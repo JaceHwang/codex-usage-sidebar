@@ -49,4 +49,5 @@ jobs:
           path: |
             .dist/codex-usage-sidebar-v*.zip
             .dist/SHA256SUMS.txt
+          include-hidden-files: true
           if-no-files-found: error
