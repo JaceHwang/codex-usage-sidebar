@@ -1,0 +1,17 @@
+{
+  "description": "Keeps the Codex Usage Sidebar native companion installed after Codex or plugin updates.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT}/scripts/sidebar-control.sh\" ensure --plugin-root \"${PLUGIN_ROOT}\" --plugin-data \"${PLUGIN_DATA}\" >/dev/null 2>&1 || true",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

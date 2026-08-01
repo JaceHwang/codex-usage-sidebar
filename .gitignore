@@ -1,0 +1,6 @@
+.DS_Store
+.build/
+.dist/
+.worktrees/
+plugins/codex-usage-sidebar/native/.build/
+*.xcresult

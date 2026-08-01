@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: macOS build and verification
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate public repository
+        run: bash scripts/validate-public-repo.sh
+
+      - name: Build and test native companion
+        working-directory: plugins/codex-usage-sidebar
+        run: bash scripts/build-companion.sh
+
+      - name: Test install lifecycle
+        working-directory: plugins/codex-usage-sidebar
+        run: bash tests/test-sidebar-control.sh

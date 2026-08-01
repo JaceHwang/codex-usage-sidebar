@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Installation and troubleshooting
+    url: https://github.com/Byctor/codex-usage-sidebar/blob/main/docs/TROUBLESHOOTING.md
+    about: Check common installation, permission, and placement problems first.
+  - name: Private security report
+    url: https://github.com/Byctor/codex-usage-sidebar/security/advisories/new
+    about: Report vulnerabilities privately instead of opening a public issue.

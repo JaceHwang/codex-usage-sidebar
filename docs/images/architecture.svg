@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="430" viewBox="0 0 1100 430" role="img" aria-labelledby="title desc">
+  <title id="title">Codex Usage Sidebar architecture</title>
+  <desc id="desc">Local Codex signals flow to an external native companion and an overlay, with no modification to Codex.app.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0l10 5-10 5z" fill="#667085"/></marker></defs>
+  <rect width="1100" height="430" rx="28" fill="#0f1423"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
+    <text x="48" y="58" fill="#f5f7fb" font-size="26" font-weight="700">Local, external, upgrade-safe</text>
+    <g transform="translate(50 105)">
+      <rect width="260" height="240" rx="18" fill="#1b2234" stroke="#39445e"/>
+      <text x="24" y="40" fill="#f5f7fb" font-size="18" font-weight="700">Official Codex app</text>
+      <rect x="24" y="70" width="212" height="54" rx="12" fill="#252e44"/><text x="42" y="102" fill="#b9c3d8" font-size="14">codex app-server · stdio</text>
+      <rect x="24" y="142" width="212" height="54" rx="12" fill="#252e44"/><text x="42" y="174" fill="#b9c3d8" font-size="14">Window semantics · theme</text>
+      <text x="24" y="222" fill="#6f7b96" font-size="12">Read-only application bundle</text>
+    </g>
+    <path d="M310 190h170" stroke="#667085" stroke-width="2" marker-end="url(#arrow)"/><text x="346" y="176" fill="#8f9ab3" font-size="12">quota updates</text>
+    <path d="M310 264h170" stroke="#667085" stroke-width="2" marker-end="url(#arrow)"/><text x="336" y="250" fill="#8f9ab3" font-size="12">placement signals</text>
+    <g transform="translate(480 105)">
+      <rect width="300" height="240" rx="18" fill="#172b2b" stroke="#2d6d62"/>
+      <text x="24" y="40" fill="#ecfffa" font-size="18" font-weight="700">Native companion</text>
+      <g fill="#b8d8d0" font-size="14"><text x="24" y="82">Decode and coalesce limits</text><text x="24" y="116">Resolve chrome + surface</text><text x="24" y="150">Format local reset time</text><text x="24" y="184">Follow Codex theme</text></g>
+      <text x="24" y="222" fill="#6fa99d" font-size="12">User LaunchAgent · AppKit</text>
+    </g>
+    <path d="M780 225h120" stroke="#667085" stroke-width="2" marker-end="url(#arrow)"/>
+    <g transform="translate(900 150)">
+      <rect width="150" height="150" rx="18" fill="#1d2540" stroke="#4c5f96"/>
+      <rect x="24" y="30" width="102" height="36" rx="10" fill="#313d61"/><text x="42" y="53" fill="#f5f7fb" font-size="13" font-weight="700">57% · 16:08</text>
+      <text x="28" y="98" fill="#c4cbe0" font-size="14">Native overlay</text><text x="28" y="122" fill="#7f8aad" font-size="11">No keyboard focus</text>
+    </g>
+    <text x="50" y="390" fill="#8f9ab3" font-size="13">Nothing is injected into or re-signed inside /Applications/ChatGPT.app</text>
+  </g>
+</svg>
