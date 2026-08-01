@@ -81,6 +81,13 @@ Codex 官方应用升级通常不会影响此授权。当前公开版采用临�
 详见 [隐私说明](docs/PRIVACY.md)、[架构说明](docs/ARCHITECTURE.md) 和
 [安全策略](SECURITY.md)。
 
+## 构建来源证明
+
+Marketplace 实际安装的伴随程序直接取自所记录 GitHub Actions 运行的精确产物。
+[`assets/PROVENANCE.json`](plugins/codex-usage-sidebar/assets/PROVENANCE.json) 固定记录源码提交、
+Actions Artifact 摘要、发行压缩包摘要、可执行文件 SHA-256 和代码目录哈希。CI 会先确认当前
+marketplace 源码仍与该提交一致、实际分发文件与固定哈希一致，再进行独立重建验证。
+
 ## 开发验证
 
 ```bash

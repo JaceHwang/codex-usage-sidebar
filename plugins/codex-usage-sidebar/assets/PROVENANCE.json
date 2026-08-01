@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "8a42e65987fac160c9b31a3e3f79ec28d0332dcd",
+  "workflowRun": "https://github.com/Byctor/codex-usage-sidebar/actions/runs/30717070112",
+  "artifact": {
+    "id": 8823665369,
+    "name": "codex-usage-sidebar-release",
+    "digest": "sha256:7281c41d428e096e0d37823b1d097b8d0d1cde99a2602d2011b020e4dfbac80f",
+    "archiveSha256": "a1b3a128b7b1c58970f56bd31312f7a6c22e1d96dcf0669e1159065af8d7e8fb"
+  },
+  "companion": {
+    "executableSha256": "42fdab956ca8568fc41cc4cd6639b63827fde196dba110ee707e8cc6deee0885",
+    "cdhashSha256": "6c5e2d6a4f6b1aa4729b9df567d6111cee953e2205856d632c9199b25c744055",
+    "signature": "adhoc"
+  }
+}

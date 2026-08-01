@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
 
       - name: Validate public repository
         run: bash scripts/validate-public-repo.sh
@@ -29,7 +31,7 @@ jobs:
         run: bash tests/test-sidebar-control.sh
 
       - name: Validate rebuilt payload
-        run: bash scripts/validate-public-repo.sh
+        run: CUS_REBUILT_PAYLOAD=1 bash scripts/validate-public-repo.sh
 
       - name: Package exact tested payload
         run: |

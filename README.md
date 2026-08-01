@@ -97,6 +97,15 @@ permanent.
 Read the complete [privacy model](docs/PRIVACY.md), [architecture](docs/ARCHITECTURE.md), and
 [security policy](SECURITY.md).
 
+## Build provenance
+
+The companion shipped by the marketplace is copied from the exact artifact produced by the linked
+GitHub Actions run. Its source commit, Actions artifact digest, release-archive digest, executable
+SHA-256, and code-directory hash are recorded in
+[`assets/PROVENANCE.json`](plugins/codex-usage-sidebar/assets/PROVENANCE.json). CI verifies that the
+recorded source tree still matches the marketplace source and that the shipped executable matches
+the pinned hash before rebuilding independently.
+
 ## Development
 
 ```bash

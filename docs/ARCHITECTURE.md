@@ -33,6 +33,15 @@ home directory. A Codex upgrade changes host discovery input, not the companion 
 plugin upgrade replaces the payload through a temporary app and atomic rename before restarting the
 LaunchAgent.
 
+## Binary provenance
+
+The marketplace companion is promoted from a successful GitHub Actions artifact rather than built
+separately for the repository commit. `assets/PROVENANCE.json` binds that payload to its source
+commit, workflow run, artifact digest, archive digest, executable SHA-256, and code-directory hash.
+The repository validator checks both the executable hash and that no plugin source changed between
+the recorded source commit and the marketplace snapshot, apart from the promoted app and provenance
+record.
+
 ## Safety properties
 
 - Exact install and uninstall paths are validated before destructive operations.

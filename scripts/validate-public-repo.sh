@@ -13,6 +13,7 @@ required=(
   docs/INSTALL.md docs/INSTALL_FOR_AGENTS.md docs/ARCHITECTURE.md docs/TROUBLESHOOTING.md
   docs/PRIVACY.md docs/images/hero.svg docs/images/placement.svg docs/images/architecture.svg
   plugins/codex-usage-sidebar/.codex-plugin/plugin.json
+  plugins/codex-usage-sidebar/assets/PROVENANCE.json
   plugins/codex-usage-sidebar/assets/Codex\ Usage\ Sidebar.app/Contents/MacOS/CodexUsageSidebar
   plugins/codex-usage-sidebar/hooks/hooks.json plugins/codex-usage-sidebar/native/Package.swift
 )
@@ -23,7 +24,10 @@ done
 
 /usr/bin/python3 - "$repo_root" <<'PY'
 import json
+import hashlib
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -44,6 +48,38 @@ assert manifest["version"].count("+codex.") == 1
 assert manifest["skills"] == "./skills/"
 
 json.loads((root / "plugins/codex-usage-sidebar/hooks/hooks.json").read_text())
+
+provenance_path = root / "plugins/codex-usage-sidebar/assets/PROVENANCE.json"
+provenance = json.loads(provenance_path.read_text())
+source_commit = provenance["sourceCommit"]
+if not re.fullmatch(r"[0-9a-f]{40}", source_commit):
+    raise SystemExit("invalid provenance source commit")
+
+if os.environ.get("CUS_REBUILT_PAYLOAD") != "1":
+    executable = root / (
+        "plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app/"
+        "Contents/MacOS/CodexUsageSidebar"
+    )
+    actual_sha = hashlib.sha256(executable.read_bytes()).hexdigest()
+    expected_sha = provenance["companion"]["executableSha256"]
+    if actual_sha != expected_sha:
+        raise SystemExit(
+            f"marketplace companion hash differs from provenance: {actual_sha} != {expected_sha}"
+        )
+    subprocess.run(
+        ["git", "-C", str(root), "cat-file", "-e", f"{source_commit}^{{commit}}"],
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
+    subprocess.run(
+        [
+            "git", "-C", str(root), "diff", "--quiet", source_commit, "HEAD", "--",
+            "plugins/codex-usage-sidebar",
+            ":(exclude)plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app",
+            ":(exclude)plugins/codex-usage-sidebar/assets/PROVENANCE.json",
+        ],
+        check=True,
+    )
 
 forbidden = [
     (re.compile(r"/Users/[^/\s]+"), "absolute macOS user path"),
