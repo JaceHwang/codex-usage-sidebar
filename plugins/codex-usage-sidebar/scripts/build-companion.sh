@@ -55,7 +55,7 @@ release_binary="$release_bin_path/CodexUsageSidebar"
 <plist version="1.0">
 <dict>
   <key>CFBundleDevelopmentRegion</key>
-  <string>zh_CN</string>
+  <string>en</string>
   <key>CFBundleDisplayName</key>
   <string>Codex Usage Sidebar</string>
   <key>CFBundleExecutable</key>
@@ -75,7 +75,7 @@ release_binary="$release_bin_path/CodexUsageSidebar"
   <key>LSUIElement</key>
   <true/>
   <key>NSAccessibilityUsageDescription</key>
-  <string>用于将剩余 Codex 用量准确放置在侧边栏用户信息旁。</string>
+  <string>Used only to position Codex quota information beside the app's native controls.</string>
 </dict>
 </plist>
 PLIST

@@ -52,9 +52,14 @@ installed and loaded: .../Codex Usage Sidebar.app
 Open `System Settings → Privacy & Security → Accessibility` and enable
 `Codex Usage Sidebar.app`. macOS may require Touch ID or an administrator password.
 
-This one-time permission lets the companion distinguish the main surface from Settings and align to
-Codex's semantic controls. Without it, the companion preserves the last synchronized placement
-instead of guessing from incomplete data.
+This permission lets the companion distinguish the main surface from Settings and align to Codex's
+semantic controls. Without it, the companion preserves the last synchronized placement instead of
+guessing from incomplete data.
+
+Official Codex app upgrades do not normally change this permission because the companion is
+installed separately. The public companion is currently ad-hoc signed; a plugin update that replaces
+its executable may change its macOS code identity and require Accessibility approval again. The
+installer verifies the signature but does not bypass macOS or claim Developer ID notarization.
 
 After changing the switch, repair once:
 

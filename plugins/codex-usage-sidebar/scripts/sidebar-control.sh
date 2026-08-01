@@ -39,6 +39,7 @@ fi
 user_home="${CUS_TEST_HOME:-$HOME}"
 user_uid="${CUS_TEST_UID:-$(/usr/bin/id -u)}"
 launchctl_bin="${CUS_TEST_LAUNCHCTL:-/bin/launchctl}"
+codesign_bin="${CUS_TEST_CODESIGN:-/usr/bin/codesign}"
 install_root="$user_home/Library/Application Support/CodexUsageSidebar"
 installed_app="$install_root/Codex Usage Sidebar.app"
 installed_binary="$installed_app/Contents/MacOS/CodexUsageSidebar"
@@ -49,6 +50,15 @@ service="$domain/$label"
 if [[ -z "$plugin_data" ]]; then
   plugin_data="$install_root/Data"
 fi
+
+verify_bundle_signature() {
+  local bundle="$1"
+  local description="$2"
+  "$codesign_bin" --verify --deep --strict "$bundle" >/dev/null 2>&1 || {
+    printf '%s has an invalid code signature: %s\n' "$description" "$bundle" >&2
+    return 1
+  }
+}
 
 require_plugin_payload() {
   [[ -n "$plugin_root" ]] || {
@@ -70,6 +80,7 @@ require_plugin_payload() {
     printf 'companion executable is missing: %s\n' "$source_binary" >&2
     exit 66
   }
+  verify_bundle_signature "$source_app" "source companion" || exit 65
 }
 
 xml_escape() {
@@ -139,6 +150,10 @@ sync_payload() {
     /bin/rm -rf "$temp_app"
     /bin/rm -rf "$previous_app"
     /usr/bin/ditto "$source_app" "$temp_app"
+    verify_bundle_signature "$temp_app" "copied companion" || {
+      /bin/rm -rf "$temp_app"
+      exit 65
+    }
     if [[ -e "$installed_app" ]]; then
       /bin/mv "$installed_app" "$previous_app"
     fi
@@ -150,6 +165,8 @@ sync_payload() {
     fi
     /bin/rm -rf "$previous_app"
   fi
+
+  verify_bundle_signature "$installed_app" "installed companion" || exit 65
 
   /bin/cp "$0" "$install_root/sidebar-control.sh"
   /bin/chmod 755 "$install_root/sidebar-control.sh" "$installed_binary"
@@ -190,6 +207,7 @@ status() {
     printf 'not installed\n'
     exit 1
   fi
+  verify_bundle_signature "$installed_app" "installed companion" || exit 65
   if "$launchctl_bin" print "$service" >/dev/null 2>&1; then
     "$installed_binary" --diagnostic-once
     printf 'installed and loaded: %s\n' "$installed_app"

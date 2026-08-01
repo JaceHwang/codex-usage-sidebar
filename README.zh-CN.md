@@ -46,7 +46,7 @@ codex plugin add codex-usage-sidebar@codex-usage-sidebar
 完整的预期输出、权限、升级与卸载步骤请看 [人工安装教程](docs/INSTALL.md)。希望由 Codex
 或其他编程 Agent 全程操作时，请使用 [Agent 安装教程](docs/INSTALL_FOR_AGENTS.md)。
 
-## 一次性 macOS 权限
+## macOS 权限
 
 没有“辅助功能”权限时，插件仍可依靠同步状态显示；要精确识别主页/设置页和语义位置，需开启：
 
@@ -54,6 +54,10 @@ codex plugin add codex-usage-sidebar@codex-usage-sidebar
 
 这是 macOS 系统安全权限，项目不会绕过授权，也不会修改、注入或重签
 `/Applications/ChatGPT.app`。
+
+Codex 官方应用升级通常不会影响此授权。当前公开版采用临时签名，因此未来若插件更新替换了
+伴随程序，可能需要重新开启“辅助功能”权限；在完成 Developer ID 签名和公证前，本项目不把
+该授权描述为永久一次性。
 
 ## 为什么 Codex 升级后仍能用
 

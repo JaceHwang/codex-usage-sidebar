@@ -59,7 +59,7 @@ For exact expected output, permission setup, updates, and removal, see
 [Install for people](docs/INSTALL.md). If you want Codex or another coding agent to perform the
 setup, use [Install with an agent](docs/INSTALL_FOR_AGENTS.md).
 
-## One-time macOS permission
+## macOS permission
 
 The companion can display from synchronized state without Accessibility access. For precise
 main/Settings classification and semantic positioning, enable:
@@ -68,6 +68,11 @@ main/Settings classification and semantic positioning, enable:
 
 macOS may ask for confirmation. The project never bypasses this system permission and never edits,
 injects into, or re-signs `/Applications/ChatGPT.app`.
+
+Official Codex app upgrades do not normally affect this approval. Public builds are currently
+ad-hoc signed, so a future companion update that replaces its executable may require you to enable
+Accessibility again. Developer ID signing and notarization are planned before calling that approval
+permanent.
 
 ## Why it survives Codex upgrades
 

@@ -41,6 +41,8 @@ fake_home="$fixture_root/home"
 fake_plugin="$fixture_root/plugin"
 fake_app="$fake_plugin/assets/Codex Usage Sidebar.app"
 fake_launchctl="$fixture_root/launchctl"
+fake_codesign="$fixture_root/codesign"
+codesign_log="$fixture_root/codesign.log"
 launchctl_log="$fixture_root/launchctl.log"
 launchctl_state="$fixture_root/launchctl.loaded"
 app_log="$fixture_root/app.log"
@@ -93,8 +95,19 @@ esac
 LAUNCHCTL
 chmod +x "$fake_launchctl"
 
+cat >"$fake_codesign" <<'CODESIGN'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >>"${CUS_TEST_CODESIGN_LOG:?}"
+bundle="${*: -1}"
+[[ ! -e "$bundle/Contents/invalid-signature" ]]
+CODESIGN
+chmod +x "$fake_codesign"
+
 export CUS_TEST_HOME="$fake_home"
 export CUS_TEST_LAUNCHCTL="$fake_launchctl"
+export CUS_TEST_CODESIGN="$fake_codesign"
+export CUS_TEST_CODESIGN_LOG="$codesign_log"
 export CUS_TEST_LAUNCHCTL_LOG="$launchctl_log"
 export CUS_TEST_LAUNCHCTL_STATE="$launchctl_state"
 export CUS_TEST_APP_LOG="$app_log"
@@ -115,6 +128,8 @@ assert_file "$installed_root/sidebar-control.sh"
 assert_file "$agent_plist"
 /usr/bin/plutil -lint "$agent_plist" >/dev/null
 assert_contains "bootstrap gui/501 $agent_plist" "$launchctl_log"
+assert_contains "--verify --deep --strict $fake_app" "$codesign_log"
+assert_contains "--verify --deep --strict $installed_app" "$codesign_log"
 "$control_script" status --plugin-root "$fake_plugin" --plugin-data "$fixture_root/plugin-data"
 
 rm -f "$launchctl_state"
@@ -183,6 +198,17 @@ fi
 after_malformed_hash="$(/usr/bin/shasum -a 256 "$installed_app/Contents/MacOS/CodexUsageSidebar" | /usr/bin/awk '{print $1}')"
 [[ "$before_malformed_hash" == "$after_malformed_hash" ]] ||
   fail "malformed source mutated the installed app"
+
+invalid_plugin="$fixture_root/invalid signature plugin"
+cp -R "$fake_plugin" "$invalid_plugin"
+touch "$invalid_plugin/assets/Codex Usage Sidebar.app/Contents/invalid-signature"
+before_invalid_hash="$(/usr/bin/shasum -a 256 "$installed_app/Contents/MacOS/CodexUsageSidebar" | /usr/bin/awk '{print $1}')"
+if "$control_script" ensure --plugin-root "$invalid_plugin" --plugin-data "$fixture_root/plugin-data"; then
+  fail "invalidly signed source bundle unexpectedly installed"
+fi
+after_invalid_hash="$(/usr/bin/shasum -a 256 "$installed_app/Contents/MacOS/CodexUsageSidebar" | /usr/bin/awk '{print $1}')"
+[[ "$before_invalid_hash" == "$after_invalid_hash" ]] ||
+  fail "invalidly signed source mutated the installed app"
 
 sentinel="$fake_home/Library/Application Support/keep-me.txt"
 printf 'keep\n' >"$sentinel"

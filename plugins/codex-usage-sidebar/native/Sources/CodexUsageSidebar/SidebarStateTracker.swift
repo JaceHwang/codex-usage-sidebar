@@ -42,16 +42,8 @@ final class SidebarStateTracker {
         if let monitor = NSEvent.addGlobalMonitorForEvents(
             matching: .keyDown,
             handler: { [weak self] event in
-                let relevantModifiers = event.modifierFlags
-                    .intersection(.deviceIndependentFlagsMask)
-                    .intersection([.command, .shift, .option, .control])
-                let isToggle = relevantModifiers == .command
-                    && event.charactersIgnoringModifiers?.lowercased() == "b"
-                guard isToggle else {
-                    return
-                }
                 Task { @MainActor in
-                    self?.toggleIfHostIsForeground()
+                    self?.handleKeyDown(event)
                 }
             }
         ) {
@@ -147,8 +139,16 @@ final class SidebarStateTracker {
         toggle()
     }
 
-    private func toggleIfHostIsForeground() {
+    private func handleKeyDown(_ event: NSEvent) {
         guard hostIsForeground else {
+            return
+        }
+        let relevantModifiers = event.modifierFlags
+            .intersection(.deviceIndependentFlagsMask)
+            .intersection([.command, .shift, .option, .control])
+        let isToggle = relevantModifiers == .command
+            && event.charactersIgnoringModifiers?.lowercased() == "b"
+        guard isToggle else {
             return
         }
         toggle()
