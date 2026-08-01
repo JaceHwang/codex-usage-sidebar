@@ -11,7 +11,7 @@ permissions:
 jobs:
   verify:
     name: macOS build and verification
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 20
     steps:
       - name: Check out repository
