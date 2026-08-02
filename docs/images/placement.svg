@@ -1,16 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="430" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
-  <title id="title">Adaptive placement states</title>
-  <desc id="desc">Three panels show expanded sidebar placement, collapsed titlebar placement, and hidden Settings placement.</desc>
+  <title id="title">Permanent titlebar placement states</title>
+  <desc id="desc">Three panels show the same right titlebar placement with the sidebar expanded or collapsed, and hidden Settings placement.</desc>
   <rect width="1200" height="430" rx="28" fill="#f3f5f8"/>
   <g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
     <g transform="translate(38 46)">
       <text x="0" y="0" fill="#20232b" font-size="20" font-weight="700">1 · Expanded</text>
       <rect y="28" width="350" height="300" rx="16" fill="#fff" stroke="#dce0e7"/>
-      <rect y="28" width="120" height="300" rx="16" fill="#e8eaee"/><path d="M120 28v300" stroke="#d5d8df"/>
-      <rect x="47" y="290" width="58" height="26" rx="8" fill="#d6dae2"/><text x="54" y="308" fill="#343842" font-size="10" font-weight="700">57% · 16:08</text>
-      <circle cx="20" cy="303" r="9" fill="#777e8d"/><circle cx="112" cy="303" r="8" fill="none" stroke="#777e8d"/>
-      <text x="142" y="90" fill="#303540" font-size="15" font-weight="650">Independent footer control</text>
-      <text x="142" y="118" fill="#737b8b" font-size="12">Profile · quota · help</text>
+      <rect y="28" width="350" height="42" rx="16" fill="#edf0f4"/><path d="M0 70h350" stroke="#d5d8df"/>
+      <rect y="70" width="120" height="258" fill="#e8eaee"/><path d="M120 70v258" stroke="#d5d8df"/>
+      <rect x="189" y="36" width="92" height="26" rx="8" fill="#d6dae2"/><text x="200" y="54" fill="#343842" font-size="11" font-weight="700">57% · 16:08</text>
+      <circle cx="299" cy="49" r="8" fill="none" stroke="#777e8d"/><path d="M323 41v16M315 49h16" stroke="#777e8d" stroke-width="1.5"/>
+      <text x="142" y="116" fill="#303540" font-size="15" font-weight="650">Right titlebar control</text>
+      <text x="142" y="144" fill="#737b8b" font-size="12">Sidebar state is irrelevant</text>
     </g>
     <g transform="translate(425 46)">
       <text x="0" y="0" fill="#20232b" font-size="20" font-weight="700">2 · Collapsed</text>
@@ -18,8 +19,9 @@
       <rect y="28" width="350" height="42" rx="16" fill="#edf0f4"/><path d="M0 70h350" stroke="#d5d8df"/>
       <rect x="189" y="36" width="92" height="26" rx="8" fill="#d6dae2"/><text x="200" y="54" fill="#343842" font-size="11" font-weight="700">57% · 16:08</text>
       <circle cx="299" cy="49" r="8" fill="none" stroke="#777e8d"/><path d="M323 41v16M315 49h16" stroke="#777e8d" stroke-width="1.5"/>
-      <path d="M281 78v44" stroke="#36b98a" stroke-width="2" stroke-dasharray="4 4"/><text x="135" y="142" fill="#303540" font-size="15" font-weight="650">8 pt before native controls</text>
-      <text x="135" y="170" fill="#737b8b" font-size="12">Never centered over your work</text>
+      <path d="M281 78v44" stroke="#36b98a" stroke-width="2" stroke-dasharray="4 4"/>
+      <text x="135" y="142" fill="#303540" font-size="15" font-weight="650">Same titlebar position</text>
+      <text x="135" y="170" fill="#737b8b" font-size="12">8 pt before native controls</text>
     </g>
     <g transform="translate(812 46)">
       <text x="0" y="0" fill="#20232b" font-size="20" font-weight="700">3 · Settings</text>
@@ -28,7 +30,7 @@
       <g fill="#777e8d" font-size="12"><text x="20" y="84">General</text><text x="20" y="116">Appearance</text><text x="20" y="148">Accounts</text><text x="20" y="180">Git</text></g>
       <circle cx="232" cy="150" r="36" fill="#eef8f5"/><path d="M217 150l10 10 21-23" fill="none" stroke="#31b487" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
       <text x="164" y="216" fill="#303540" font-size="15" font-weight="650">Overlay hidden</text>
-      <text x="140" y="244" fill="#737b8b" font-size="12">No orphan footer button</text>
+      <text x="137" y="244" fill="#737b8b" font-size="12">No orphan titlebar button</text>
     </g>
   </g>
 </svg>

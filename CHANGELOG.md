@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] - 2026-08-02
+
+### Fixed
+
+- Keep the usage control permanently in the right titlebar on Codex main surfaces, whether the
+  sidebar is expanded or collapsed.
+- Remove the fragile dependency on the expanded sidebar footer/profile anchor.
+- Continue hiding the companion on Settings and other completed non-main surfaces.
+
 ## [0.1.0] - 2026-08-02
 
 ### Added
@@ -16,3 +25,4 @@ All notable changes to this project are documented here. The project follows
 - English, Chinese, human, and agent-focused installation documentation.
 
 [0.1.0]: https://github.com/Byctor/codex-usage-sidebar/releases/tag/v0.1.0
+[0.1.1]: https://github.com/Byctor/codex-usage-sidebar/releases/tag/v0.1.1

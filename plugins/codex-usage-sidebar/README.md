@@ -4,6 +4,10 @@ This directory is the installable `codex-usage-sidebar` plugin referenced by the
 marketplace manifest. Start at the [repository README](../../README.md) for installation,
 screenshots, privacy, support, and contribution instructions.
 
+On Codex main surfaces, its native companion keeps the live quota control in the right titlebar
+whether the sidebar is expanded or collapsed. Settings and other completed non-main surfaces hide
+the control.
+
 Developer verification:
 
 ```bash

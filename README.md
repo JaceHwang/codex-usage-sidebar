@@ -34,13 +34,12 @@ and updates from Codex's own local `app-server` stream.
 
 | State | Behavior |
 | --- | --- |
-| Sidebar expanded | A separate quota control sits beside the profile and help controls. |
-| Sidebar collapsed | A compact `remaining · reset` control moves to the right titlebar group. |
+| Sidebar expanded or collapsed | A compact `remaining · reset` control stays in the right titlebar group. |
 | Hover | A native detail card shows plan, period, Credits, and every Bank entry with expiry/status. |
 | Settings or non-main surface | The companion hides after a completed surface scan. |
 
 <p align="center">
-  <img src="docs/images/placement.svg" alt="Placement behavior across expanded, collapsed, and Settings states" width="900">
+  <img src="docs/images/placement.svg" alt="Permanent titlebar placement across expanded and collapsed states, hidden in Settings" width="900">
 </p>
 
 ## Quick install

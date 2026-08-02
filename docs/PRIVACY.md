@@ -15,7 +15,7 @@
 - Companion application and control script under
   `~/Library/Application Support/CodexUsageSidebar/`.
 - A user LaunchAgent at `~/Library/LaunchAgents/com.jace.codex-usage-sidebar.plist`.
-- Small local runtime logs and persisted placement state.
+- Small local runtime logs and persisted presentation state.
 
 ## Data not collected
 
@@ -39,4 +39,5 @@ trees, or bypass the macOS permission prompt.
 
 AppKit global event monitors receive mouse-up and key-down notifications. Events are not logged or
 transmitted. Key content is ignored unless the tracked Codex process is foreground, and only the
-Command-B sidebar shortcut changes local placement state.
+Command-B sidebar shortcut triggers a presentation reconciliation; the usage control remains in the
+right titlebar.

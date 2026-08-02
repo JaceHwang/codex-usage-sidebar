@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
   <title id="title">Codex Usage Sidebar overview</title>
-  <desc id="desc">A privacy-safe illustration of the expanded sidebar quota, hover details, and collapsed titlebar quota.</desc>
+  <desc id="desc">A privacy-safe illustration of the permanent right titlebar quota and its hover details with the sidebar expanded or collapsed.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1020"/><stop offset="1" stop-color="#171b2f"/></linearGradient>
     <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#33d6a6"/><stop offset="1" stop-color="#5aa7ff"/></linearGradient>
@@ -17,6 +17,9 @@
     <rect width="210" height="400" rx="20" fill="#ececee"/>
     <path d="M210 0v400" stroke="#d5d5d8"/>
     <circle cx="28" cy="24" r="7" fill="#ff5f57"/><circle cx="50" cy="24" r="7" fill="#febc2e"/><circle cx="72" cy="24" r="7" fill="#28c840"/>
+    <rect x="500" y="7" width="110" height="32" rx="9" fill="#e5e6e9"/>
+    <text x="514" y="28" fill="#2d2d32" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" font-weight="650">57% · 16:08</text>
+    <g fill="none" stroke="#737987" stroke-width="1.5"><circle cx="630" cy="23" r="9"/><path d="M656 14v18M647 23h18"/></g>
     <text x="22" y="72" fill="#2d2d32" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18" font-weight="650">Codex</text>
     <g fill="#6e6e76" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">
       <text x="22" y="112">New task</text><text x="22" y="146">Pull requests</text><text x="22" y="180">Plugins</text>
@@ -24,13 +27,11 @@
     <rect x="0" y="350" width="210" height="50" fill="#e7e7e9"/>
     <circle cx="24" cy="375" r="11" fill="#737987"/>
     <text x="43" y="380" fill="#34343a" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">Profile</text>
-    <rect x="92" y="356" width="89" height="38" rx="10" fill="#dedfe2"/>
-    <text x="106" y="380" fill="#2d2d32" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" font-weight="650">57% · 16:08</text>
     <circle cx="195" cy="375" r="11" fill="none" stroke="#737987" stroke-width="1.5"/><text x="191.5" y="380" fill="#737987" font-family="sans-serif" font-size="13">?</text>
 
-    <text x="250" y="72" fill="#2d2d32" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="21" font-weight="700">Your Codex work stays unobstructed</text>
-    <text x="250" y="104" fill="#737987" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15">The companion uses only the available chrome space.</text>
-    <g transform="translate(92 112)">
+    <text x="250" y="88" fill="#2d2d32" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="21" font-weight="700">Always in the right titlebar</text>
+    <text x="250" y="120" fill="#737987" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15">Expanded or collapsed, the position stays the same.</text>
+    <g transform="translate(410 144)">
       <rect width="224" height="226" rx="14" fill="#f3f3f4" stroke="#d7d7da"/>
       <text x="18" y="32" fill="#303036" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" font-weight="700">Codex usage</text>
       <text x="188" y="32" fill="#303036" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18" font-weight="700">57%</text>
@@ -47,9 +48,9 @@
     <rect x="150" y="6" width="118" height="32" rx="9" fill="#30364a"/>
     <text x="166" y="27" fill="#f4f6fb" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" font-weight="650">57% · 16:08</text>
     <g fill="none" stroke="#939bb0" stroke-width="2"><circle cx="285" cy="22" r="8"/><path d="M309 14v16M301 22h16"/></g>
-    <text x="28" y="94" fill="#f4f6fb" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="19" font-weight="700">Collapsed sidebar</text>
-    <text x="28" y="124" fill="#aab2c7" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">Quota joins the native right-side</text>
-    <text x="28" y="146" fill="#aab2c7" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">titlebar controls with an 8 pt gap.</text>
+    <text x="28" y="94" fill="#f4f6fb" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="19" font-weight="700">Collapsed sidebar · same place</text>
+    <text x="28" y="124" fill="#aab2c7" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">Quota remains beside the native</text>
+    <text x="28" y="146" fill="#aab2c7" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">right-side controls with an 8 pt gap.</text>
     <rect x="28" y="174" width="274" height="7" rx="3.5" fill="#343a4d"/><rect x="28" y="174" width="156" height="7" rx="3.5" fill="url(#accent)"/>
     <text x="28" y="207" fill="#737f9b" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12">LIVE FROM LOCAL CODEX APP-SERVER</text>
   </g>

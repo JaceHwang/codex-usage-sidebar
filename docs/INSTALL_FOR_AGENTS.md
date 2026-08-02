@@ -19,7 +19,7 @@ Requirements:
 6. Verify the LaunchAgent is loaded and report the exact status output.
 7. If macOS Accessibility is off, open the correct System Settings pane and ask me to approve the
    switch; do not claim it is enabled until the OS reports it.
-8. Leave Codex on its normal main surface with the sidebar expanded.
+8. Leave Codex on its normal main surface; the sidebar may be expanded or collapsed.
 ```
 
 ## Deterministic agent procedure
@@ -83,5 +83,6 @@ app-server on every session.
 ### 6. Report evidence
 
 Return the plugin version, status output, LaunchAgent state, Accessibility state, and whether the
-indicator appears on the expanded main surface. Do not expose unrelated window contents or account
-data in screenshots.
+indicator appears in the top-right titlebar on the main surface. Verify it remains there with the
+sidebar both expanded and collapsed. Do not expose unrelated window contents or account data in
+screenshots.

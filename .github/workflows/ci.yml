@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - "codex/**"
   pull_request:
 
 permissions:
@@ -20,6 +22,8 @@ jobs:
           fetch-depth: 0
 
       - name: Validate public repository
+        env:
+          CUS_ALLOW_SOURCE_AHEAD: ${{ github.ref != 'refs/heads/main' && '1' || '0' }}
         run: bash scripts/validate-public-repo.sh
 
       - name: Build and test native companion

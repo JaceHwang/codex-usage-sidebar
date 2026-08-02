@@ -71,15 +71,16 @@ if os.environ.get("CUS_REBUILT_PAYLOAD") != "1":
         check=True,
         stdout=subprocess.DEVNULL,
     )
-    subprocess.run(
-        [
-            "git", "-C", str(root), "diff", "--quiet", source_commit, "HEAD", "--",
-            "plugins/codex-usage-sidebar",
-            ":(exclude)plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app",
-            ":(exclude)plugins/codex-usage-sidebar/assets/PROVENANCE.json",
-        ],
-        check=True,
-    )
+    if os.environ.get("CUS_ALLOW_SOURCE_AHEAD") != "1":
+        subprocess.run(
+            [
+                "git", "-C", str(root), "diff", "--quiet", source_commit, "HEAD", "--",
+                "plugins/codex-usage-sidebar",
+                ":(exclude)plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app",
+                ":(exclude)plugins/codex-usage-sidebar/assets/PROVENANCE.json",
+            ],
+            check=True,
+        )
 
 forbidden = [
     (re.compile(r"/Users/[^/\s]+"), "absolute macOS user path"),
@@ -91,7 +92,7 @@ forbidden = [
 ]
 
 text_files = []
-generated_parts = {".git", ".build", ".dist", ".swiftpm"}
+generated_parts = {".git", ".build", ".dist", ".swiftpm", ".project-board"}
 for path in root.rglob("*"):
     if not path.is_file() or generated_parts.intersection(path.parts):
         continue

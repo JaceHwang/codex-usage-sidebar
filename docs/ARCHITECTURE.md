@@ -8,10 +8,10 @@
 
 1. **Codex plugin marketplace entry** — makes the plugin installable through the Codex CLI.
 2. **SessionStart hook** — ensures the external companion payload is current and synchronizes the
-   observed sidebar state at each new task boundary.
+   observed Codex surface state at each new task boundary.
 3. **Control script** — atomically installs, repairs, reports, and removes a user LaunchAgent.
-4. **Native AppKit companion** — reads quota snapshots, resolves theme and placement, and renders an
-   independent non-activating overlay.
+4. **Native AppKit companion** — reads quota snapshots, resolves theme and surface classification,
+   and renders an independent non-activating overlay.
 5. **SidebarCore** — pure decoding, formatting, layout, refresh, and surface-classification logic
    covered by Swift tests.
 
@@ -22,7 +22,7 @@ The companion discovers the running `com.openai.codex` bundle and launches its c
 subscribes to updates. No account token is read by the companion.
 
 The placement adapter reads the Codex accessibility tree when macOS grants permission. It performs
-a shallow chrome scan first. A resolved main placement returns without traversing deep content;
+a shallow chrome scan first. A resolved main surface returns without traversing deep content;
 only a no-match scan continues far enough to confirm a non-main renderer surface before hiding.
 Unavailable or incomplete scans preserve the last confirmed state.
 
