@@ -2,10 +2,10 @@ import SidebarCore
 import XCTest
 
 final class OverlayPresentationPolicyTests: XCTestCase {
-    func testResolvedMainSurfaceShowsObservedPlacement() {
+    func testResolvedMainSurfaceAlwaysShowsInTitlebar() {
         XCTAssertEqual(
             OverlayPresentationPolicy.decision(for: .resolved(.sidebar)),
-            .show(.sidebar)
+            .show(.titlebar)
         )
         XCTAssertEqual(
             OverlayPresentationPolicy.decision(for: .resolved(.titlebar)),

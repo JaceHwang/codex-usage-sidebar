@@ -6,10 +6,10 @@ public struct SidebarVisibilityState: Equatable, Sendable {
 
     public init(
         hostIdentity: String,
-        placement: OverlayPlacement = .sidebar
+        placement _: OverlayPlacement = .titlebar
     ) {
         self.hostIdentity = hostIdentity
-        self.placement = placement
+        self.placement = .titlebar
     }
 
     public mutating func observeHost(_ identity: String) {
@@ -20,17 +20,15 @@ public struct SidebarVisibilityState: Equatable, Sendable {
     }
 
     public mutating func toggle() {
-        placement = placement == .sidebar ? .titlebar : .sidebar
+        placement = .titlebar
     }
 
     @discardableResult
     public mutating func observePlacement(
-        _ observedPlacement: OverlayPlacement
+        _: OverlayPlacement
     ) -> Bool {
-        guard observedPlacement != placement else {
-            return false
-        }
-        placement = observedPlacement
-        return true
+        let changed = placement != .titlebar
+        placement = .titlebar
+        return changed
     }
 }

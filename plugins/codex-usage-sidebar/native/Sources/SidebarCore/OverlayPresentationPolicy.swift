@@ -63,8 +63,8 @@ public enum OverlayPresentationPolicy {
         switch probe {
         case .skipped, .unavailable:
             .preserve
-        case let .resolved(placement):
-            .show(placement)
+        case .resolved:
+            .show(.titlebar)
         case .unresolved:
             .hide
         }
