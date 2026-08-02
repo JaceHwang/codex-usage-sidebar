@@ -226,10 +226,13 @@ final class RuntimeCoordinator: NSObject {
                     for: pid,
                     windowFrame: windowFrame
                 )
-                reportedPlacement = sidebarVisibility.placement(
+                let observedPlacement = sidebarVisibility.placement(
                     for: pid,
                     windowFrame: windowFrame
-                ) ?? reportedPlacement
+                )
+                if observedPlacement != nil {
+                    reportedPlacement = .titlebar
+                }
             }
         } else {
             anchorFound = false
@@ -277,7 +280,7 @@ final class RuntimeCoordinator: NSObject {
             userInfo: nil,
             deliverImmediately: true
         )
-        return "sidebar_sync=\(placement.rawValue)"
+        return "sidebar_sync=\(sidebarState.placement.rawValue)"
     }
 
     private var isCodexForeground: Bool {

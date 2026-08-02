@@ -20,7 +20,7 @@ final class SidebarStateTracker {
     }
 
     var placement: OverlayPlacement {
-        state?.placement ?? .sidebar
+        state?.placement ?? .titlebar
     }
 
     func start(onChange: @escaping () -> Void) {
@@ -85,7 +85,7 @@ final class SidebarStateTracker {
         {
             restoredPlacement = saved
         } else {
-            restoredPlacement = .sidebar
+            restoredPlacement = .titlebar
         }
         state = SidebarVisibilityState(
             hostIdentity: identity,
