@@ -92,7 +92,9 @@ forbidden = [
 ]
 
 text_files = []
-generated_parts = {".git", ".build", ".dist", ".swiftpm", ".project-board"}
+generated_parts = {
+    ".git", ".build", ".dist", ".swiftpm", ".project-board", ".worktrees"
+}
 for path in root.rglob("*"):
     if not path.is_file() or generated_parts.intersection(path.parts):
         continue
