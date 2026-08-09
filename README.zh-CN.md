@@ -19,10 +19,13 @@
 ## 当前实际效果
 
 <p align="center">
-  <img src="docs/images/live-titlebar-indicator.jpeg" alt="Codex 标题栏中实际运行的 v0.2.1 剩余额度按钮" width="246">
+  <img src="docs/images/quota-popover-zh-light.png" alt="浅色主题下的 Codex Usage Sidebar v0.2.1" width="48%">
+  <img src="docs/images/quota-popover-zh-dark.png" alt="深色主题下的 Codex Usage Sidebar v0.2.1" width="48%">
 </p>
 
-<p align="center"><em>从当前运行中的 v0.2.1 原生伴随程序实机截取。</em></p>
+<p align="center"><em>浅色主题 · 深色主题</em></p>
+
+<p align="center">v0.2.1 实机截图，完整展示标题栏按钮与剩余额度浮窗。</p>
 
 ## 功能效果
 
