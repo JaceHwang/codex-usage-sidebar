@@ -27,6 +27,8 @@ public struct QuotaDetailContent: Equatable, Sendable {
 }
 
 public struct QuotaDetailFormatter: Sendable {
+    private let relativeIntervalFormatter = RelativeIntervalFormatter()
+
     public init() {}
 
     public func content(
@@ -46,8 +48,9 @@ public struct QuotaDetailFormatter: Sendable {
         rows.append(
             .init(
                 label: "下次重置",
-                value: displayDate(
+                value: displayDateWithInterval(
                     snapshot.resetsAt,
+                    now: now,
                     locale: locale,
                     timeZone: timeZone
                 )
@@ -152,6 +155,17 @@ public struct QuotaDetailFormatter: Sendable {
         return formatter.string(from: date)
     }
 
+    private func displayDateWithInterval(
+        _ date: Date,
+        now: Date,
+        locale: Locale,
+        timeZone: TimeZone
+    ) -> String {
+        let absolute = displayDate(date, locale: locale, timeZone: timeZone)
+        let relative = relativeIntervalFormatter.string(from: now, to: date)
+        return "\(absolute)（\(relative)）"
+    }
+
     private func displayBankExpiry(
         _ credit: BankResetCredit,
         now: Date,
@@ -170,13 +184,17 @@ public struct QuotaDetailFormatter: Sendable {
             }
         }
         let date = displayDate(expiry, locale: locale, timeZone: timeZone)
+        let relative = relativeIntervalFormatter.string(from: now, to: expiry)
+        let expiryDescription = "\(date)到期（\(relative)）"
         switch status {
         case "used":
-            return "\(date) · 已使用"
+            return "\(expiryDescription) · 已使用"
         case "expired":
-            return "\(date) · 已过期"
+            return "\(expiryDescription) · 已过期"
         default:
-            return expiry <= now ? "\(date) · 已过期" : "\(date) 到期"
+            return expiry <= now
+                ? "\(expiryDescription) · 已过期"
+                : expiryDescription
         }
     }
 

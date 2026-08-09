@@ -3,7 +3,7 @@ import Foundation
 
 public enum OverlayLayout {
     public static let toolbarHeight: CGFloat = 46
-    public static let indicatorWidth: CGFloat = 148
+    public static let indicatorWidth: CGFloat = 164
     public static let indicatorGap: CGFloat = 8
 
     public static func indicatorFrame(

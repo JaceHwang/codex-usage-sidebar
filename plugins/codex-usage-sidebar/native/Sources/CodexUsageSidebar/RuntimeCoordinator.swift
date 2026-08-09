@@ -148,7 +148,10 @@ final class RuntimeCoordinator: NSObject {
             in: windowFrame,
             contentTrailingEdge: anchor.trailingEdge
         )
-        let maximumLabelWidth = min(148, max(70, indicatorFrame.width))
+        let maximumLabelWidth = min(
+            OverlayLayout.indicatorWidth,
+            max(70, indicatorFrame.width)
+        )
         let label = formatter.label(
             snapshot: snapshot,
             now: Date(),

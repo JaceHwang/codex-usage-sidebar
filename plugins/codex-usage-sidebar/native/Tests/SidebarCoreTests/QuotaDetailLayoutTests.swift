@@ -48,6 +48,20 @@ final class QuotaDetailLayoutTests: XCTestCase {
         XCTAssertEqual(frame.minY, 8)
     }
 
+    func testAccountsForWrappedDetailRows() {
+        XCTAssertEqual(
+            QuotaDetailLayout.contentHeight(rowContentHeight: 210),
+            304
+        )
+        let frame = QuotaDetailLayout.frame(
+            indicatorFrame: CGRect(x: 100, y: 600, width: 148, height: 46),
+            rowContentHeight: 210,
+            visibleFrame: CGRect(x: 0, y: 0, width: 900, height: 700)
+        )
+
+        XCTAssertEqual(frame.height, 304)
+    }
+
     func testHoverBridgeCoversGapBelowIndicator() {
         let indicator = CGRect(x: 886, y: 1_026, width: 148, height: 46)
         let detail = CGRect(x: 886, y: 780, width: 220, height: 238)

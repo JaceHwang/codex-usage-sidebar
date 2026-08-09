@@ -11,7 +11,7 @@ final class OverlayLayoutTests: XCTestCase {
                 in: window,
                 contentTrailingEdge: 1_604
             ),
-            CGRect(x: 1_448, y: 1_075, width: 148, height: 46)
+            CGRect(x: 1_432, y: 1_075, width: 164, height: 46)
         )
     }
 
@@ -51,7 +51,7 @@ final class OverlayLayoutTests: XCTestCase {
                 in: window,
                 contentTrailingEdge: nil
             ),
-            CGRect(x: 1_596, y: 1_075, width: 148, height: 46)
+            CGRect(x: 1_580, y: 1_075, width: 164, height: 46)
         )
     }
 
@@ -67,22 +67,22 @@ final class OverlayLayoutTests: XCTestCase {
     }
 
     func testTextFrameIsVerticallyCenteredInsideIndicator() {
-        let indicator = CGRect(x: 0, y: 0, width: 148, height: 46)
+        let indicator = CGRect(x: 0, y: 0, width: 164, height: 46)
         let text = OverlayLayout.centeredTextFrame(
             in: indicator,
             intrinsicHeight: 16,
             horizontalInset: 6
         )
 
-        XCTAssertEqual(text, CGRect(x: 6, y: 15, width: 136, height: 16))
+        XCTAssertEqual(text, CGRect(x: 6, y: 15, width: 152, height: 16))
         XCTAssertEqual(text.midY, indicator.midY)
     }
 
     func testControlSurfaceIsThirtyPointsAndCentered() {
-        let indicator = CGRect(x: 0, y: 0, width: 148, height: 46)
+        let indicator = CGRect(x: 0, y: 0, width: 164, height: 46)
         let surface = OverlayLayout.controlSurfaceFrame(in: indicator)
 
-        XCTAssertEqual(surface, CGRect(x: 0, y: 8, width: 148, height: 30))
+        XCTAssertEqual(surface, CGRect(x: 0, y: 8, width: 164, height: 30))
         XCTAssertEqual(surface.midY, indicator.midY)
     }
 }

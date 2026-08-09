@@ -134,9 +134,8 @@ final class OverlayPanel: NSObject {
         paragraph.lineBreakMode = .byClipping
         result.addAttributes(
             [
-                .font: NSFont.systemFont(ofSize: 11, weight: .regular),
-                .foregroundColor: NSColor.labelColor
-                    .withAlphaComponent(0.82),
+                .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
+                .foregroundColor: NSColor.labelColor,
                 .paragraphStyle: paragraph
             ],
             range: fullRange
@@ -146,7 +145,7 @@ final class OverlayPanel: NSObject {
             let range = NSRange(percentRange, in: label)
             result.addAttributes(
                 [
-                    .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+                    .font: NSFont.systemFont(ofSize: 14, weight: .bold),
                     .foregroundColor: QuotaColorScale.components(
                         remainingPercent: remainingPercent
                     ).appKitColor

@@ -60,9 +60,13 @@ final class QuotaDetailPanel {
             dx: -400,
             dy: -400
         )
+        let rowHeights = QuotaDetailRowMetrics.heights(
+            for: content.rows,
+            cardWidth: QuotaDetailLayout.width
+        )
         let panelFrame = QuotaDetailLayout.frame(
             indicatorFrame: indicatorFrame,
-            rowCount: content.rows.count,
+            rowContentHeight: rowHeights.reduce(0, +),
             visibleFrame: visibleFrame
         )
         let appearance = theme.appKitAppearance
@@ -71,7 +75,8 @@ final class QuotaDetailPanel {
         appearance.performAsCurrentDrawingAppearance {
             card = QuotaDetailCardView(
                 frame: CGRect(origin: .zero, size: panelFrame.size),
-                content: content
+                content: content,
+                rowHeights: rowHeights
             )
             card?.appearance = appearance
         }
@@ -87,16 +92,21 @@ final class QuotaDetailPanel {
 
 @MainActor
 private final class QuotaDetailCardView: NSVisualEffectView {
-    init(frame frameRect: NSRect, content: QuotaDetailContent) {
+    init(
+        frame frameRect: NSRect,
+        content: QuotaDetailContent,
+        rowHeights: [CGFloat]
+    ) {
         super.init(frame: frameRect)
-        material = .menu
-        blendingMode = .withinWindow
+        material = .popover
+        blendingMode = .behindWindow
         state = .active
         wantsLayer = true
-        layer?.cornerRadius = 11
+        layer?.cornerRadius = 12
         layer?.masksToBounds = true
         layer?.borderWidth = 0.5
-        layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.48).cgColor
+        layer?.borderColor = NSColor.separatorColor
+            .withAlphaComponent(0.24).cgColor
 
         let title = label(
             content.title,
@@ -141,8 +151,7 @@ private final class QuotaDetailCardView: NSVisualEffectView {
             width: bounds.width,
             height: max(0, bounds.height - QuotaDetailLayout.headerHeight - 8)
         )
-        let rowDocumentHeight = CGFloat(content.rows.count) *
-            QuotaDetailLayout.rowHeight
+        let rowDocumentHeight = rowHeights.reduce(0, +)
         let rowDocument = FlippedView(
             frame: CGRect(
                 x: 0,
@@ -152,11 +161,13 @@ private final class QuotaDetailCardView: NSVisualEffectView {
             )
         )
 
+        var rowY: CGFloat = 0
         for (index, row) in content.rows.enumerated() {
-            let y = CGFloat(index) * QuotaDetailLayout.rowHeight + 3
+            let rowHeight = rowHeights[index]
+            let isStacked = rowHeight > QuotaDetailLayout.rowHeight
             let rowLabel = label(
                 row.label,
-                font: .systemFont(ofSize: 12, weight: .regular),
+                font: QuotaDetailRowMetrics.labelFont,
                 color: .secondaryLabelColor,
                 alignment: .left
             )
@@ -164,24 +175,42 @@ private final class QuotaDetailCardView: NSVisualEffectView {
                 108,
                 ceil(rowLabel.intrinsicContentSize.width + 2)
             )
-            rowLabel.frame = CGRect(x: 12, y: y, width: labelWidth, height: 18)
+            rowLabel.frame = CGRect(
+                x: 12,
+                y: rowY + 3,
+                width: labelWidth,
+                height: 18
+            )
             rowDocument.addSubview(rowLabel)
 
             let value = label(
                 row.value,
-                font: .systemFont(ofSize: 12, weight: .regular),
+                font: QuotaDetailRowMetrics.valueFont,
                 color: .labelColor,
                 alignment: .right
             )
-            value.lineBreakMode = .byTruncatingTail
-            let valueX = max(82, rowLabel.frame.maxX + 6)
-            value.frame = CGRect(
-                x: valueX,
-                y: y,
-                width: bounds.width - valueX - 12,
-                height: 18
-            )
+            if isStacked {
+                let valueHeight = rowHeight - 22
+                value.maximumNumberOfLines = Int(valueHeight / 18)
+                value.lineBreakMode = .byCharWrapping
+                value.frame = CGRect(
+                    x: 12,
+                    y: rowY + 21,
+                    width: bounds.width - 24,
+                    height: valueHeight
+                )
+            } else {
+                value.lineBreakMode = .byTruncatingTail
+                let valueX = max(68, rowLabel.frame.maxX + 6)
+                value.frame = CGRect(
+                    x: valueX,
+                    y: rowY + 3,
+                    width: bounds.width - valueX - 12,
+                    height: 18
+                )
+            }
             rowDocument.addSubview(value)
+            rowY += rowHeight
         }
 
         let scrollView = NSScrollView(frame: rowAreaFrame)
@@ -212,6 +241,39 @@ private final class QuotaDetailCardView: NSVisualEffectView {
         field.maximumNumberOfLines = 1
         field.isSelectable = false
         return field
+    }
+}
+
+@MainActor
+private enum QuotaDetailRowMetrics {
+    static let labelFont = NSFont.systemFont(ofSize: 12, weight: .regular)
+    static let valueFont = NSFont.systemFont(ofSize: 12, weight: .regular)
+
+    static func heights(
+        for rows: [QuotaDetailRow],
+        cardWidth: CGFloat
+    ) -> [CGFloat] {
+        rows.map { row in
+            let labelWidth = min(108, textWidth(row.label, font: labelFont) + 2)
+            let valueX = max(68, 12 + labelWidth + 6)
+            let columnWidth = max(1, cardWidth - valueX - 12)
+            let measuredValueWidth = textWidth(row.value, font: valueFont)
+            guard measuredValueWidth > columnWidth else {
+                return QuotaDetailLayout.rowHeight
+            }
+
+            let fullWidth = max(1, cardWidth - 24)
+            let lineCount = max(1, Int(ceil(measuredValueWidth / fullWidth)))
+            return 22 + CGFloat(lineCount) * 18
+        }
+    }
+
+    private static func textWidth(_ value: String, font: NSFont) -> CGFloat {
+        ceil(
+            (value as NSString).size(
+                withAttributes: [.font: font]
+            ).width
+        )
     }
 }
 

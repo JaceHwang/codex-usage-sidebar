@@ -3,6 +3,16 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.4] - 2026-08-09
+
+### Changed
+
+- Match the quota detail card more closely to Codex's native popover material, border, corner
+  radius, and theme-aware background.
+- Increase the compact quota label size and weight to match nearby native titlebar controls.
+- Show live relative intervals after the next reset and every Bank expiry date.
+- Wrap long detail values within the existing compact card width instead of truncating them.
+
 ## [0.1.3] - 2026-08-09
 
 ### Fixed
@@ -53,3 +63,4 @@ All notable changes to this project are documented here. The project follows
 [0.1.1]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.1
 [0.1.2]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.2
 [0.1.3]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.3
+[0.1.4]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.4

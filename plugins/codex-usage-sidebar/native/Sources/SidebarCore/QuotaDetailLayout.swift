@@ -10,9 +10,13 @@ public enum QuotaDetailLayout {
     public static let controlGap: CGFloat = 8
 
     public static func contentHeight(rowCount: Int) -> CGFloat {
+        contentHeight(rowContentHeight: CGFloat(max(0, rowCount)) * rowHeight)
+    }
+
+    public static func contentHeight(rowContentHeight: CGFloat) -> CGFloat {
         min(
             maximumHeight,
-            headerHeight + verticalPadding + CGFloat(max(0, rowCount)) * rowHeight
+            headerHeight + verticalPadding + max(0, rowContentHeight)
         )
     }
 
@@ -21,8 +25,23 @@ public enum QuotaDetailLayout {
         rowCount: Int,
         visibleFrame: CGRect
     ) -> CGRect {
+        frame(
+            indicatorFrame: indicatorFrame,
+            rowContentHeight: CGFloat(max(0, rowCount)) * rowHeight,
+            visibleFrame: visibleFrame
+        )
+    }
+
+    public static func frame(
+        indicatorFrame: CGRect,
+        rowContentHeight: CGFloat,
+        visibleFrame: CGRect
+    ) -> CGRect {
         let availableHeight = max(0, visibleFrame.height - screenMargin * 2)
-        let height = min(contentHeight(rowCount: rowCount), availableHeight)
+        let height = min(
+            contentHeight(rowContentHeight: rowContentHeight),
+            availableHeight
+        )
         let minimumX = visibleFrame.minX + screenMargin
         let maximumX = visibleFrame.maxX - width - screenMargin
         let x = min(maximumX, max(minimumX, indicatorFrame.minX))
