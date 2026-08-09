@@ -25,8 +25,8 @@ Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生�
 | --- | --- |
 | 打开或关闭左、右、下侧栏 | 直接跟随原生“打开位置”按钮，始终保持精确 `8pt` 间隔。 |
 | 移动或缩放窗口 | 每 `0.1 秒`读取缓存锚点的新坐标，额度按钮同步移动。 |
-| 鼠标悬浮 | 展示套餐、额度周期、Credits、全部 Bank 次数、状态与过期时间。 |
-| 剩余额度变化 | 颜色由绿色连续过渡到橙色和红色，不使用生硬的分段切换。 |
+| 鼠标悬浮 | 展示同步的插件版本、套餐、额度周期、Credits、全部 Bank 次数、状态与过期时间。 |
+| 剩余额度变化 | 百分比严格按 100% 绿、49% 橙、10% 红连续过渡，已填充进度显示对应光谱。 |
 
 旧版左侧栏底部副本以及所有侧栏状态同步代码均已删除，现在只有顶部这一个额度按钮。
 
@@ -72,9 +72,11 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 ## 实时额度明细
 
 - 紧凑按钮始终展示剩余百分比和下次重置时间。
+- `Codex 剩余额度` 后方的小型蓝色描边徽标直接读取 App Bundle 版本，方便不打开终端就
+  判断当前实际运行代码。
 - 悬浮卡片展示套餐、额度周期、Credits、Bank 可用次数、每一条 Bank 额度、状态和过期时间。
-- 按钮百分比、悬浮百分比和进度条共用连续色阶：`100%` 绿色、`40%` 橙色、`20%` 红色，
-  中间平滑插值。
+- 按钮百分比和悬浮百分比共用连续状态色：`100%` 绿色、`49%` 橙色、`10%` 红色。
+- 已填充进度条从固定的红→橙→绿光谱中按实时额度裁切，未填充部分保持主题自适应灰色。
 - 本地通知到达后立即更新，并带有有界刷新、重置检查与数据流恢复机制。
 
 ## 为什么 Codex 升级后仍能用
@@ -82,8 +84,9 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 - 伴随程序位于 `~/Library/Application Support/CodexUsageSidebar/`，不在官方应用包中。
 - 用户级 LaunchAgent 负责常驻与自动重启。
 - 每次运行都会重新发现当前 `com.openai.codex` 和对应的 `codex app-server`。
-- 插件更新使用原子替换，Codex 官方升级不会覆盖它。
-- 构建包含稳定的 designated requirement，用来降低“辅助功能”授权漂移概率。
+- 插件更新先校验载荷指纹再原子替换，Codex 官方升级不会覆盖它。
+- 安装器会优先使用稳定的本地签名身份重新签署复制后的载荷，使插件重装前后的“辅助功能”
+  代码身份保持稳定。
 - 修复仍然只需一个命令：
 
 ```bash
@@ -108,14 +111,16 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 "$HOME/Library/Application Support/CodexUsageSidebar/sidebar-control.sh" status
 ```
 
-精确定位正常时会包含：
+精确定位正常时会返回常驻 LaunchAgent 进程的真实状态：
 
 ```text
-host=found app_server=found accessibility=granted anchor=openLocation placement=content-header
+pid=12345 version=0.1.9 runtime=shown placement=content-header anchor=openLocation
+indicator=1524,1003,164,46 ... cached:true,source:openLocation,edge:1696
 installed and loaded: .../Codex Usage Sidebar.app
 ```
 
-锚点诊断中的 `cached:true` 表示已经进入缓存控件快速跟随路径。
+额度按钮右边缘应等于 `edge - 8`。`cached:true` 表示已经进入缓存控件快速跟随路径；状态中的
+版本号还应与悬浮卡片徽标一致。
 
 ## 构建来源证明
 

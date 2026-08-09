@@ -1,5 +1,21 @@
 import CoreGraphics
 
+public struct QuotaDetailHeaderFrames: Equatable, Sendable {
+    public let title: CGRect
+    public let versionBadge: CGRect
+    public let remaining: CGRect
+
+    public init(
+        title: CGRect,
+        versionBadge: CGRect,
+        remaining: CGRect
+    ) {
+        self.title = title
+        self.versionBadge = versionBadge
+        self.remaining = remaining
+    }
+}
+
 public enum QuotaDetailLayout {
     public static let width: CGFloat = 300
     public static let headerHeight: CGFloat = 78
@@ -8,6 +24,49 @@ public enum QuotaDetailLayout {
     public static let maximumHeight: CGFloat = 480
     public static let screenMargin: CGFloat = 8
     public static let controlGap: CGFloat = 8
+
+    public static func titleWidth(
+        intrinsicWidth: CGFloat,
+        fittingWidth: CGFloat
+    ) -> CGFloat {
+        ceil(max(0, max(intrinsicWidth, fittingWidth)))
+    }
+
+    public static func headerFrames(
+        in bounds: CGRect,
+        titleWidth: CGFloat,
+        versionBadgeWidth: CGFloat
+    ) -> QuotaDetailHeaderFrames {
+        let remaining = CGRect(
+            x: bounds.maxX - 67,
+            y: bounds.maxY - 37,
+            width: 55,
+            height: 22
+        )
+        let badgeWidth = max(0, versionBadgeWidth)
+        let titleX = bounds.minX + 12
+        let maximumTitleWidth = max(
+            0,
+            remaining.minX - 8 - badgeWidth - 6 - titleX
+        )
+        let title = CGRect(
+            x: titleX,
+            y: bounds.maxY - 35,
+            width: min(max(0, titleWidth), maximumTitleWidth),
+            height: 20
+        )
+        let versionBadge = CGRect(
+            x: title.maxX + 6,
+            y: title.midY - 5,
+            width: badgeWidth,
+            height: 14
+        )
+        return QuotaDetailHeaderFrames(
+            title: title,
+            versionBadge: versionBadge,
+            remaining: remaining
+        )
+    }
 
     public static func contentHeight(rowCount: Int) -> CGFloat {
         contentHeight(rowContentHeight: CGFloat(max(0, rowCount)) * rowHeight)

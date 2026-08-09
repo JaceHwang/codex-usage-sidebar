@@ -36,8 +36,8 @@ and renders one non-activating control exactly 8 points before the native Open L
 | --- | --- |
 | Left, right, or bottom pane changes | The quota control follows the native **Open Location** control and keeps an exact 8-point gap. |
 | Window moves or resizes | A cached accessibility anchor is sampled every 0.1 seconds, so the control tracks the new position. |
-| Hover | A native detail card shows plan, period, Credits, and every Bank entry with status and expiry. |
-| Quota changes | Percentage color moves continuously from green through orange to red as remaining usage falls. |
+| Hover | A native detail card shows the synchronized plugin version, plan, period, Credits, and every Bank entry with status and expiry. |
+| Quota changes | Percentage color follows the exact 100% green, 49% orange, and 10% red palette while the filled bar reveals the matching spectrum. |
 
 The old sidebar-footer copy and all sidebar-state synchronization code are removed. There is only one
 quota control.
@@ -85,10 +85,14 @@ companion preserves a safe in-window fallback rather than touching Codex interna
 ## Live details
 
 - Remaining percentage and next reset time are always visible in the compact control.
+- A compact outlined badge beside the quota-card title reads the app bundle version, so the
+  visible UI and installed code can be identified without opening a terminal.
 - The hover card includes plan, period, Credits, Bank availability, every Bank credit, expiry, and
   status.
-- The percentage, hover percentage, and progress bar share the same continuous color scale:
-  `100%` green, `40%` orange, and `20%` red, with smooth interpolation between them.
+- The compact and hover percentages use the same continuously interpolated state color:
+  `100%` green, `49%` orange, and `10%` red.
+- The progress fill clips a fixed red-to-orange-to-green spectrum to the live remaining percentage;
+  the unused portion stays theme-aware neutral gray.
 - Local notifications update the display immediately; bounded refresh and stream recovery protect
   against missed updates.
 
@@ -99,8 +103,10 @@ companion preserves a safe in-window fallback rather than touching Codex interna
 - A user LaunchAgent keeps it running across Codex restarts.
 - Host discovery finds the currently running `com.openai.codex` bundle and its current
   `codex app-server` executable.
-- Plugin updates atomically replace the companion; Codex app upgrades cannot overwrite it.
-- The build carries a stable designated requirement to reduce Accessibility permission churn.
+- Plugin updates fingerprint and atomically replace the companion; Codex app upgrades cannot
+  overwrite it.
+- The copied payload is re-signed with the stable local identity when available, keeping the same
+  Accessibility code identity across plugin reinstalls.
 - Repair remains one command:
 
 ```bash
@@ -127,15 +133,17 @@ Read the complete [privacy model](docs/PRIVACY.md), [architecture](docs/ARCHITEC
 "$HOME/Library/Application Support/CodexUsageSidebar/sidebar-control.sh" status
 ```
 
-A healthy precise-positioning result includes:
+A healthy precise-positioning result includes the state from the actual LaunchAgent process:
 
 ```text
-host=found app_server=found accessibility=granted anchor=openLocation placement=content-header
+pid=12345 version=0.1.9 runtime=shown placement=content-header anchor=openLocation
+indicator=1524,1003,164,46 ... cached:true,source:openLocation,edge:1696
 installed and loaded: .../Codex Usage Sidebar.app
 ```
 
-`cached:true` in the anchor scan confirms the fast path is following the already-resolved Open
-Location element.
+The indicator's right edge must equal `edge - 8`. `cached:true` confirms the fast path is following
+the already-resolved Open Location element. The runtime version must match the badge in the hover
+card.
 
 ## Build provenance
 

@@ -71,15 +71,18 @@ Repair once after changing the switch:
 "$HOME/Library/Application Support/CodexUsageSidebar/sidebar-control.sh" status
 ```
 
-A healthy precise-positioning result includes:
+A healthy precise-positioning result is read from the actual managed process and includes:
 
 ```text
-host=found app_server=found accessibility=granted anchor=openLocation placement=content-header
+pid=12345 version=0.1.9 runtime=shown placement=content-header anchor=openLocation
+indicator=1524,1003,164,46 ... cached:true,source:openLocation,edge:1696
 installed and loaded: .../Codex Usage Sidebar.app
 ```
 
 The detailed anchor diagnostic should contain `cached:true` after the Open Location element has
-been resolved. A fallback source is safe but not the intended fixed-gap placement; see
+been resolved. For an indicator frame `x,y,width,height`, verify `x + width = edge - 8`. The version
+must match the badge beside the hover-card title. A fallback source is safe but not the intended
+fixed-gap placement; see
 [Troubleshooting](TROUBLESHOOTING.md).
 
 ## Update
@@ -91,6 +94,10 @@ codex plugin add codex-usage-sidebar@codex-usage-sidebar
 
 Start a new Codex task. The hook atomically replaces the old payload. Updating the official Codex
 app does not normally require reinstalling this plugin.
+
+During replacement, the installer compares a source-payload fingerprint and re-signs the copied
+app with the stable local identity when available. This prevents a routine plugin reinstall from
+silently changing the Accessibility identity of the already-authorized companion.
 
 ## Repair
 

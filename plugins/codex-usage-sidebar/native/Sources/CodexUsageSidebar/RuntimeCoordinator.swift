@@ -25,9 +25,14 @@ final class RuntimeCoordinator: NSObject {
     private var nextResetRefresh: Date?
     private var lastDiagnosticState: String?
     private let appServerEnvironmentOverrides: [String: String]
+    private let runtimeStateURL: URL?
 
-    init(appServerEnvironmentOverrides: [String: String] = [:]) {
+    init(
+        appServerEnvironmentOverrides: [String: String] = [:],
+        runtimeStateURL: URL? = nil
+    ) {
         self.appServerEnvironmentOverrides = appServerEnvironmentOverrides
+        self.runtimeStateURL = runtimeStateURL
         super.init()
     }
 
@@ -176,6 +181,10 @@ final class RuntimeCoordinator: NSObject {
 
         recordDiagnosticState(
             "shown placement=content-header anchor=\(anchor.source.rawValue) " +
+                "indicator=\(Int(indicatorFrame.minX))," +
+                "\(Int(indicatorFrame.minY))," +
+                "\(Int(indicatorFrame.width))," +
+                "\(Int(indicatorFrame.height)) " +
                 contentHeader.latestDiagnosticDetail
         )
     }
@@ -375,15 +384,31 @@ final class RuntimeCoordinator: NSObject {
     }
 
     private func recordDiagnosticState(_ state: String) {
-        guard
-            ProcessInfo.processInfo.environment["CUS_DIAGNOSTIC_LOG"] == "1",
-            state != lastDiagnosticState
-        else {
+        guard state != lastDiagnosticState else {
             return
         }
         lastDiagnosticState = state
-        print("runtime=\(state)")
-        fflush(stdout)
+        writeRuntimeState(state)
+        if ProcessInfo.processInfo.environment["CUS_DIAGNOSTIC_LOG"] == "1" {
+            print("runtime=\(state)")
+            fflush(stdout)
+        }
+    }
+
+    private func writeRuntimeState(_ state: String) {
+        guard let runtimeStateURL else {
+            return
+        }
+        let version = Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleShortVersionString"
+        ) as? String ?? "unknown"
+        let value = [
+            "pid=\(ProcessInfo.processInfo.processIdentifier)",
+            "version=\(version)",
+            "updated=\(Int(Date().timeIntervalSince1970))",
+            "runtime=\(state)"
+        ].joined(separator: " ") + "\n"
+        try? Data(value.utf8).write(to: runtimeStateURL, options: .atomic)
     }
 
     private func hideOverlay() {

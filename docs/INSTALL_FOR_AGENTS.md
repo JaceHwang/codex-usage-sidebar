@@ -79,6 +79,10 @@ Interpret status conservatively:
 - `accessibility=required` means the user must approve the macOS switch.
 - `anchor=openLocation placement=content-header` confirms the intended anchor.
 - `cached:true` confirms the 0.1-second position loop is using the cached AX element.
+- `pid=<LaunchAgent PID>` confirms status came from the managed process rather than a standalone
+  diagnostic invocation.
+- `version=<version>` must match the visible badge beside the hover-card title.
+- For `indicator=x,y,width,height` and `edge=n`, `x + width` must equal `n - 8`.
 
 Accessibility is a macOS security permission. Never bypass it or claim it is granted before the OS
 reports that state.
@@ -90,7 +94,8 @@ reports that state.
 ```
 
 The companion rediscovers the current Codex bundle and its `app-server`; no official application
-patch is required.
+patch is required. Repair also verifies the source fingerprint, atomically replaces stale payloads,
+and preserves the stable local signing identity when available.
 
 ### 7. Report evidence
 

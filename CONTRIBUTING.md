@@ -25,6 +25,8 @@ cd codex-usage-sidebar/plugins/codex-usage-sidebar
 bash scripts/build-companion.sh
 bash tests/test-sidebar-control.sh
 bash tests/test-signing-identity.sh
+bash tests/test-bundle-version.sh
+bash tests/test-build-sdk.sh
 bash tests/live-app-server-probe.sh
 ```
 

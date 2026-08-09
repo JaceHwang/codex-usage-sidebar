@@ -12,7 +12,9 @@ let appServerEnvironmentOverrides = [
     "CODEX_HOME": runtimeConfiguration.codexHomeURL.path
 ]
 let coordinator = RuntimeCoordinator(
-    appServerEnvironmentOverrides: appServerEnvironmentOverrides
+    appServerEnvironmentOverrides: appServerEnvironmentOverrides,
+    runtimeStateURL: runtimeConfiguration.pluginDataURL
+        .appendingPathComponent("runtime-state.txt")
 )
 
 if CommandLine.arguments.contains("--diagnostic-once") {

@@ -3,6 +3,26 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.9] - 2026-08-09
+
+### Added
+
+- Show the synchronized companion version in a compact blue outlined badge beside the quota-card
+  title.
+- Render the filled progress bar as a clipped red-to-orange-to-green spectrum with exact 10%, 49%,
+  and 100% palette anchors.
+- Publish sanitized runtime state from the active LaunchAgent so status reports its PID, bundle
+  version, visibility, anchor source, and indicator frame.
+
+### Fixed
+
+- Re-sign the copied companion with the stable local identity when available, preventing plugin
+  reinstall from changing the Accessibility code identity and falling back to the wrong position.
+- Compare payload fingerprints instead of signed executable bytes, so installer-side signing does
+  not cause perpetual replacement.
+- Keep the complete quota title, compact version badge, remaining percentage, and spacing aligned
+  without truncation.
+
 ## [0.1.8] - 2026-08-09
 
 ### Fixed
@@ -113,3 +133,4 @@ All notable changes to this project are documented here. The project follows
 [0.1.6]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.6
 [0.1.7]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.7
 [0.1.8]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.8
+[0.1.9]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.9

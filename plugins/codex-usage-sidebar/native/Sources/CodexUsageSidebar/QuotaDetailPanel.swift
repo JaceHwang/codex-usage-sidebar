@@ -112,8 +112,12 @@ private final class QuotaDetailCardView: NSView {
             color: .labelColor,
             alignment: .left
         )
-        title.frame = CGRect(x: 12, y: bounds.height - 35, width: 132, height: 20)
-        addSubview(title)
+        title.lineBreakMode = .byTruncatingTail
+
+        let version = Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleShortVersionString"
+        ) as? String ?? "dev"
+        let versionBadge = VersionBadgeView(text: "v\(version)")
 
         let remaining = label(
             "\(content.remainingPercent)%",
@@ -123,12 +127,19 @@ private final class QuotaDetailCardView: NSView {
             ).appKitColor,
             alignment: .right
         )
-        remaining.frame = CGRect(
-            x: bounds.width - 67,
-            y: bounds.height - 37,
-            width: 55,
-            height: 22
+        let headerFrames = QuotaDetailLayout.headerFrames(
+            in: bounds,
+            titleWidth: QuotaDetailLayout.titleWidth(
+                intrinsicWidth: title.intrinsicContentSize.width,
+                fittingWidth: title.fittingSize.width
+            ),
+            versionBadgeWidth: versionBadge.intrinsicContentSize.width
         )
+        title.frame = headerFrames.title
+        versionBadge.frame = headerFrames.versionBadge
+        remaining.frame = headerFrames.remaining
+        addSubview(title)
+        addSubview(versionBadge)
         addSubview(remaining)
 
         let progress = QuotaProgressView(
@@ -243,6 +254,56 @@ private final class QuotaDetailCardView: NSView {
 }
 
 @MainActor
+private final class VersionBadgeView: NSView {
+    private let text: String
+    private let font = NSFont.systemFont(
+        ofSize: 8,
+        weight: .medium
+    )
+
+    init(text: String) {
+        self.text = text
+        super.init(frame: .zero)
+    }
+
+    override var intrinsicContentSize: NSSize {
+        let textSize = (text as NSString).size(
+            withAttributes: [.font: font]
+        )
+        return NSSize(width: ceil(textSize.width) + 10, height: 14)
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let capsuleBounds = bounds.insetBy(dx: 0.5, dy: 0.5)
+        let capsule = NSBezierPath(
+            roundedRect: capsuleBounds,
+            xRadius: capsuleBounds.height / 2,
+            yRadius: capsuleBounds.height / 2
+        )
+        NSColor.systemBlue.withAlphaComponent(0.52).setStroke()
+        capsule.lineWidth = 0.75
+        capsule.stroke()
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: NSColor.systemBlue
+        ]
+        let textSize = (text as NSString).size(withAttributes: attributes)
+        let textPoint = CGPoint(
+            x: floor((bounds.width - textSize.width) / 2),
+            y: floor((bounds.height - textSize.height) / 2)
+        )
+        (text as NSString).draw(at: textPoint, withAttributes: attributes)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+}
+
+@MainActor
 private enum QuotaDetailRowMetrics {
     static let labelFont = NSFont.systemFont(ofSize: 12, weight: .regular)
     static let valueFont = NSFont.systemFont(ofSize: 12, weight: .regular)
@@ -308,9 +369,19 @@ private final class QuotaProgressView: NSView {
             height: bounds.height
         )
         let fill = NSBezierPath(roundedRect: fillRect, xRadius: 2.5, yRadius: 2.5)
-        QuotaColorScale.components(
-            remainingPercent: value
-        ).appKitColor.setFill()
-        fill.fill()
+        let stops = QuotaColorScale.progressGradientStops
+        let colors = stops.map(\.components.appKitColor)
+        let locations = stops.map { CGFloat($0.location) }
+        let gradient = locations.withUnsafeBufferPointer {
+            NSGradient(
+                colors: colors,
+                atLocations: $0.baseAddress,
+                colorSpace: .deviceRGB
+            )
+        }
+        NSGraphicsContext.saveGraphicsState()
+        fill.addClip()
+        gradient?.draw(in: bounds, angle: 0)
+        NSGraphicsContext.restoreGraphicsState()
     }
 }

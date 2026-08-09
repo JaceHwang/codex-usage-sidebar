@@ -39,6 +39,10 @@ the separately installed companion needs its own entry.
 The stable designated requirement reduces permission churn, but macOS can still request approval
 after signing or security-policy changes.
 
+If a locally verified layout moves only after plugin reinstall, compare the visible version badge
+with `version=` from status and check that status reports the active LaunchAgent PID. Repair copies
+and re-signs the payload with the stable local identity; do not re-sign the official Codex app.
+
 ## The gap is not fixed beside Open Location
 
 Run status and inspect the anchor fields:
@@ -52,8 +56,10 @@ anchor=openLocation placement=content-header anchor_scan=...cached:true,source:o
 - `rightPaneBoundary` means only the pane edge was resolved.
 - `fallback` means the companion used a safe in-window position.
 
-Bring the Codex window to the foreground, confirm Accessibility, and run repair. If the fallback
-persists, include sanitized status output and the Codex build number in a bug report.
+For `indicator=x,y,width,height` and `edge=n`, the intended geometry satisfies
+`x + width = n - 8`. Bring the Codex window to the foreground, confirm Accessibility, and run
+repair. If fallback persists, include sanitized status output, the visible version badge, and the
+Codex build number in a bug report.
 
 ## Data looks old
 

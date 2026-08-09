@@ -6,5 +6,6 @@
 - Feature ideas: [open a feature request](https://github.com/JaceHwang/codex-usage-sidebar/issues/new?template=feature_request.yml)
 - Security issues: use [private vulnerability reporting](SECURITY.md)
 
-When asking for help, include versions, isolated login state, and sanitized diagnostic output. Never
-post account tokens, private keys, full logs, or unrelated desktop screenshots.
+When asking for help, include the visible version badge, managed-process version, isolated login
+state, and sanitized diagnostic output. Never post account tokens, private keys, full logs, or
+unrelated desktop screenshots.

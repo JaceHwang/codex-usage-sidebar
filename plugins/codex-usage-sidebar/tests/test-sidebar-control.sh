@@ -51,9 +51,11 @@ operation_log="$fixture_root/operation.log"
 mkdir -p \
   "$fake_home/Library/Application Support" \
   "$fake_home/Library/LaunchAgents" \
+  "$fake_plugin/scripts" \
   "$fake_app/Contents/MacOS"
 
 cp "$repo_root/.codex-plugin/plugin.json" "$fake_plugin/plugin.json"
+cp "$repo_root/scripts/select-signing-identity.sh" "$fake_plugin/scripts/"
 
 cat >"$fake_app/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -113,6 +115,7 @@ export CUS_TEST_LAUNCHCTL_STATE="$launchctl_state"
 export CUS_TEST_APP_LOG="$app_log"
 export CUS_TEST_OPERATION_LOG="$operation_log"
 export CUS_TEST_UID=501
+export CUS_TEST_SIGNING_IDENTITIES='  1) TEST "Codex Usage Sidebar Local Signing"'
 
 [[ -x "$control_script" ]] || fail "control script is missing or not executable"
 
@@ -131,6 +134,8 @@ assert_file "$agent_plist"
 assert_contains "bootstrap gui/501 $agent_plist" "$launchctl_log"
 assert_contains "--verify --deep --strict $fake_app" "$codesign_log"
 assert_contains "--verify --deep --strict $installed_app" "$codesign_log"
+assert_contains "--sign Codex Usage Sidebar Local Signing" "$codesign_log"
+assert_file "$installed_root/payload.sha256"
 "$control_script" status --plugin-root "$fake_plugin" --plugin-data "$fixture_root/plugin-data"
 
 rm -f "$launchctl_state"

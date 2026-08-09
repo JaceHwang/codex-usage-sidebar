@@ -62,6 +62,50 @@ final class QuotaDetailLayoutTests: XCTestCase {
         XCTAssertEqual(frame.height, 304)
     }
 
+    func testHeaderPlacesCompactVersionBadgeAfterAndAboveTitle() {
+        let frames = QuotaDetailLayout.headerFrames(
+            in: CGRect(x: 0, y: 0, width: 300, height: 240),
+            titleWidth: 104,
+            versionBadgeWidth: 48
+        )
+
+        XCTAssertEqual(
+            frames.title,
+            CGRect(x: 12, y: 205, width: 104, height: 20)
+        )
+        XCTAssertEqual(
+            frames.versionBadge,
+            CGRect(x: 122, y: 210, width: 48, height: 14)
+        )
+        XCTAssertEqual(frames.versionBadge.midY, frames.title.midY + 2)
+        XCTAssertGreaterThanOrEqual(
+            frames.remaining.minX - frames.versionBadge.maxX,
+            8
+        )
+    }
+
+    func testHeaderTruncatesLongTitleBeforeVersionAndRemaining() {
+        let frames = QuotaDetailLayout.headerFrames(
+            in: CGRect(x: 0, y: 0, width: 300, height: 240),
+            titleWidth: 220,
+            versionBadgeWidth: 52
+        )
+
+        XCTAssertEqual(frames.title.width, 155)
+        XCTAssertEqual(frames.versionBadge.maxX, 225)
+        XCTAssertEqual(frames.remaining.minX, 233)
+    }
+
+    func testHeaderTitleMeasurementKeepsAppKitFittingAllowance() {
+        XCTAssertEqual(
+            QuotaDetailLayout.titleWidth(
+                intrinsicWidth: 95.5,
+                fittingWidth: 100
+            ),
+            100
+        )
+    }
+
     func testHoverBridgeCoversGapBelowIndicator() {
         let indicator = CGRect(x: 886, y: 1_026, width: 148, height: 46)
         let detail = CGRect(x: 886, y: 780, width: 220, height: 238)

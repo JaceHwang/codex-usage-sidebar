@@ -24,7 +24,9 @@ does not copy or read the normal `~/.codex/auth.json` file.
 - Companion application and control script under
   `~/Library/Application Support/CodexUsageSidebar/`.
 - Isolated Codex authentication and configuration under its `CodexHome` subdirectory.
-- Runtime data and local logs under the `Data` subdirectory.
+- Runtime data and local logs under the `Data` subdirectory. The sanitized runtime-state file
+  contains only the companion PID, bundle version, timestamp, visibility, anchor source, and overlay
+  geometry; it contains no quota values, account identifiers, or conversation content.
 - One user LaunchAgent at `~/Library/LaunchAgents/com.jace.codex-usage-sidebar.plist`.
 
 ## Data not collected

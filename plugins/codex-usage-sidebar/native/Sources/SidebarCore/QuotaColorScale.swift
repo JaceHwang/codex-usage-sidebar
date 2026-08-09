@@ -12,6 +12,16 @@ public struct QuotaColorComponents: Equatable, Sendable {
     }
 }
 
+public struct QuotaGradientStop: Equatable, Sendable {
+    public let location: Double
+    public let components: QuotaColorComponents
+
+    public init(location: Double, components: QuotaColorComponents) {
+        self.location = location
+        self.components = components
+    }
+}
+
 public enum QuotaColorScale {
     private static let green = QuotaColorComponents(
         hue: 0.36,
@@ -34,28 +44,35 @@ public enum QuotaColorScale {
         brightness: 0.76
     )
 
+    public static let progressGradientStops = [
+        QuotaGradientStop(location: 0, components: criticalRed),
+        QuotaGradientStop(location: 0.10, components: red),
+        QuotaGradientStop(location: 0.49, components: orange),
+        QuotaGradientStop(location: 1, components: green),
+    ]
+
     public static func components(
         remainingPercent: Int
     ) -> QuotaColorComponents {
         let value = Double(min(100, max(0, remainingPercent)))
-        if value >= 40 {
+        if value >= 49 {
             return interpolate(
                 from: orange,
                 to: green,
-                progress: (value - 40) / 60
+                progress: (value - 49) / 51
             )
         }
-        if value >= 20 {
+        if value >= 10 {
             return interpolate(
                 from: red,
                 to: orange,
-                progress: (value - 20) / 20
+                progress: (value - 10) / 39
             )
         }
         return interpolate(
             from: criticalRed,
             to: red,
-            progress: value / 20
+            progress: value / 10
         )
     }
 

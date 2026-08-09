@@ -42,9 +42,17 @@ jobs:
         working-directory: plugins/codex-usage-sidebar
         run: bash tests/test-build-sdk.sh
 
+      - name: Verify companion bundle version
+        working-directory: plugins/codex-usage-sidebar
+        run: bash tests/test-bundle-version.sh
+
       - name: Test install lifecycle
         working-directory: plugins/codex-usage-sidebar
         run: bash tests/test-sidebar-control.sh
+
+      - name: Test stable signing selection
+        working-directory: plugins/codex-usage-sidebar
+        run: bash tests/test-signing-identity.sh
 
       - name: Validate rebuilt payload
         run: CUS_REBUILT_PAYLOAD=1 bash scripts/validate-public-repo.sh

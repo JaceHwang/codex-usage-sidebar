@@ -55,9 +55,11 @@ Codex.
 ## Rendering and freshness
 
 The compact control and hover panel are native AppKit surfaces. They follow the Codex theme and do
-not activate or replace native controls. Percentage color is continuously interpolated through
-green, orange, and red. The hover model includes plan, period, Credits, aggregate Bank availability,
-and every Bank entry with expiry and status.
+not activate or replace native controls. Both percentage labels use one HSB state-color function
+with exact anchors at 100% green, 49% orange, and 10% red. The progress fill clips a fixed AppKit
+gradient with stops at 0%, 10%, 49%, and 100% across the full track. The hover header also reads
+`CFBundleShortVersionString` into a compact outlined badge. The detail model includes plan, period,
+Credits, aggregate Bank availability, and every Bank entry with expiry and status.
 
 App-server notifications update the snapshot immediately. Data dims after two minutes and hides
 after five minutes; the client restarts stalled or exited streams and schedules bounded refreshes.
@@ -66,8 +68,14 @@ after five minutes; the client restarts stalled or exited streams and schedules 
 
 The official Codex bundle remains read-only. The companion, isolated Codex home, data, and
 LaunchAgent live under the user's home directory. A Codex upgrade changes discovery input, not the
-companion installation. A plugin upgrade copies the verified payload to a temporary app and uses an
+companion installation. A plugin upgrade fingerprints the source payload, copies it to a temporary
+app, applies the stable local signing identity when available, verifies the result, and uses an
 atomic rename before restarting the LaunchAgent.
+
+The long-running process atomically publishes a sanitized `runtime-state.txt` containing PID,
+bundle version, visibility, anchor source, indicator frame, and timestamp. `sidebar-control.sh status`
+reports that file only when its PID matches the active LaunchAgent, avoiding misleading
+results from a separate one-shot diagnostic process.
 
 ## Binary provenance
 
