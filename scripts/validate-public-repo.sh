@@ -96,14 +96,14 @@ generated_parts = {
     ".git", ".build", ".dist", ".swiftpm", ".project-board", ".worktrees"
 }
 for path in root.rglob("*"):
-    if not path.is_file() or generated_parts.intersection(path.parts):
+    relative = path.relative_to(root)
+    if not path.is_file() or generated_parts.intersection(relative.parts):
         continue
     try:
         text = path.read_text(encoding="utf-8")
     except (UnicodeDecodeError, OSError):
         continue
     text_files.append((path, text))
-    relative = path.relative_to(root)
     if relative == Path("scripts/validate-public-repo.sh"):
         continue
     for pattern, label in forbidden:
