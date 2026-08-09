@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.7] - 2026-08-09
+
+### Fixed
+
+- Keep the titlebar quota control visible at a safe right-side fallback position while Codex's
+  accessibility tree is unavailable or incomplete during startup.
+- Continue scanning after fallback placement and automatically restore the exact 8-point Open
+  Location gap as soon as the native control is resolved.
+
 ## [0.1.6] - 2026-08-09
 
 ### Fixed
@@ -93,3 +102,4 @@ All notable changes to this project are documented here. The project follows
 [0.1.4]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.4
 [0.1.5]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.5
 [0.1.6]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.6
+[0.1.7]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.7

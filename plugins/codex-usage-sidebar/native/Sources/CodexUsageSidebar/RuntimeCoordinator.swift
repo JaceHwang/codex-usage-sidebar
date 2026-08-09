@@ -144,14 +144,6 @@ final class RuntimeCoordinator: NSObject {
             for: processIdentifier,
             windowFrame: windowFrame
         )
-        guard anchor.trailingEdge != nil else {
-            recordDiagnosticState(
-                "hidden:awaiting-content-header-anchor " +
-                    contentHeader.latestDiagnosticDetail
-            )
-            hideOverlay()
-            return
-        }
         let indicatorFrame = OverlayLayout.indicatorFrame(
             in: windowFrame,
             contentTrailingEdge: anchor.trailingEdge
@@ -183,7 +175,7 @@ final class RuntimeCoordinator: NSObject {
         )
 
         recordDiagnosticState(
-            "shown placement=content-header " +
+            "shown placement=content-header anchor=\(anchor.source.rawValue) " +
                 contentHeader.latestDiagnosticDetail
         )
     }
