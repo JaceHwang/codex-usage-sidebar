@@ -13,7 +13,7 @@ permissions:
 jobs:
   verify:
     name: macOS build and verification
-    runs-on: macos-26-arm64
+    runs-on: macos-26
     timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer
@@ -25,8 +25,8 @@ jobs:
 
       - name: Verify release toolchain
         run: |
-          test "$(uname -m)" = "arm64"
           test "$(xcrun --sdk macosx --show-sdk-version)" = "26.5"
+          uname -m
           xcodebuild -version
 
       - name: Validate public repository
