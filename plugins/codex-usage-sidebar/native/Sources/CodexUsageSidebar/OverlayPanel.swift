@@ -30,6 +30,7 @@ final class OverlayPanel: NSObject {
     private var latestTheme: CodexInterfaceTheme = .light
     private var isIndicatorVisible = false
     private var isHoveringIndicator = false
+    private var detailInteraction = QuotaDetailInteractionState()
 
     override init() {
         panel = PassivePanel(
@@ -67,6 +68,12 @@ final class OverlayPanel: NSObject {
         }
         contentView.addSubview(pillView)
         contentView.addSubview(textField)
+        contentView.addGestureRecognizer(
+            NSClickGestureRecognizer(
+                target: self,
+                action: #selector(toggleDetailPin(_:))
+            )
+        )
     }
 
     func show(
@@ -105,12 +112,14 @@ final class OverlayPanel: NSObject {
         )
         updateControlAppearance()
         panel.orderFrontRegardless()
+        updateDetailVisibility()
         startHoverTimerIfNeeded()
     }
 
     func hide() {
         isIndicatorVisible = false
         isHoveringIndicator = false
+        detailInteraction.reset()
         panel.orderOut(nil)
         detailPanel.hide()
     }
@@ -175,7 +184,7 @@ final class OverlayPanel: NSObject {
     private func pollHover() {
         guard
             isIndicatorVisible,
-            let latestDetail
+            latestDetail != nil
         else {
             detailPanel.hide()
             return
@@ -194,7 +203,34 @@ final class OverlayPanel: NSObject {
             isHoveringIndicator = overIndicator
             updateControlAppearance()
         }
-        if overIndicator || overDetail || overBridge {
+        detailInteraction.updatePointerInside(
+            overIndicator || overDetail || overBridge
+        )
+        updateDetailVisibility()
+    }
+
+    @objc
+    private func toggleDetailPin(_ gesture: NSClickGestureRecognizer) {
+        guard
+            gesture.state == .ended,
+            isIndicatorVisible,
+            latestDetail != nil
+        else {
+            return
+        }
+        detailInteraction.togglePinned(
+            pointerInside: panel.frame.contains(NSEvent.mouseLocation)
+        )
+        updateControlAppearance()
+        updateDetailVisibility()
+    }
+
+    private func updateDetailVisibility() {
+        if
+            isIndicatorVisible,
+            detailInteraction.shouldShowDetail,
+            let latestDetail
+        {
             detailPanel.show(
                 content: latestDetail,
                 relativeTo: panel.frame,
@@ -209,7 +245,8 @@ final class OverlayPanel: NSObject {
         let appearance = latestTheme.appKitAppearance
         appearance.performAsCurrentDrawingAppearance {
             switch OverlaySurfacePolicy.treatment(
-                isIndicatorHovered: isHoveringIndicator
+                isIndicatorHovered: isHoveringIndicator ||
+                    detailInteraction.isPinned
             ) {
             case .hostBackground:
                 pillView.layer?.backgroundColor = NSColor.clear.cgColor
