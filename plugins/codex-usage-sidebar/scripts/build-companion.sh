@@ -2,6 +2,7 @@
 set -euo pipefail
 
 plugin_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$plugin_root/scripts/select-signing-identity.sh"
 package_root="$plugin_root/native"
 assets_root="$plugin_root/assets"
 output_app="$assets_root/Codex Usage Sidebar.app"
@@ -81,7 +82,19 @@ release_binary="$release_bin_path/CodexUsageSidebar"
 PLIST
 
 /usr/bin/plutil -lint "$staged_app/Contents/Info.plist" >/dev/null
-/usr/bin/codesign --force --deep --sign - "$staged_app"
+signing_identity="$(select_signing_identity)"
+signing_arguments=(
+  --force
+  --deep
+  --sign "$signing_identity"
+)
+if [[ "$signing_identity" == "-" ]]; then
+  signing_arguments+=(
+    --requirements
+    '=designated => identifier "com.jace.codex-usage-sidebar"'
+  )
+fi
+/usr/bin/codesign "${signing_arguments[@]}" "$staged_app"
 /usr/bin/codesign --verify --deep --strict "$staged_app"
 
 if [[ "$output_app" != "$assets_root/Codex Usage Sidebar.app" ]]; then

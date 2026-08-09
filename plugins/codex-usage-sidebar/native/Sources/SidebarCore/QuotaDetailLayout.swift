@@ -18,7 +18,6 @@ public enum QuotaDetailLayout {
 
     public static func frame(
         indicatorFrame: CGRect,
-        placement: OverlayPlacement,
         rowCount: Int,
         visibleFrame: CGRect
     ) -> CGRect {
@@ -27,9 +26,7 @@ public enum QuotaDetailLayout {
         let minimumX = visibleFrame.minX + screenMargin
         let maximumX = visibleFrame.maxX - width - screenMargin
         let x = min(maximumX, max(minimumX, indicatorFrame.minX))
-        let desiredY = placement == .sidebar
-            ? indicatorFrame.maxY + controlGap
-            : indicatorFrame.minY - height - controlGap
+        let desiredY = indicatorFrame.minY - height - controlGap
         let minimumY = visibleFrame.minY + screenMargin
         let maximumY = visibleFrame.maxY - height - screenMargin
         let y = min(maximumY, max(minimumY, desiredY))

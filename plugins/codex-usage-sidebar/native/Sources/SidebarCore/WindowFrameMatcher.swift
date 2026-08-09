@@ -1,6 +1,6 @@
 import CoreGraphics
 
-public enum SidebarWindowMatcher {
+public enum WindowFrameMatcher {
     public static func bestMatchIndex(
         windowFrames: [CGRect],
         expectedFrame: CGRect,

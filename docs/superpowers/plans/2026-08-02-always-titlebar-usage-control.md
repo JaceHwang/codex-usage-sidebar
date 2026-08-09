@@ -205,9 +205,9 @@ the right-side native icon group in both states and disappears on Settings.
 
 ```bash
 git push -u origin codex/always-titlebar
-run_id="$(gh run list --repo Byctor/codex-usage-sidebar --branch codex/always-titlebar \
+run_id="$(gh run list --repo JaceHwang/codex-usage-sidebar --branch codex/always-titlebar \
   --limit 1 --json databaseId --jq '.[0].databaseId')"
-gh run watch "$run_id" --repo Byctor/codex-usage-sidebar --exit-status
+gh run watch "$run_id" --repo JaceHwang/codex-usage-sidebar --exit-status
 ```
 
 - [ ] **Step 2: Download and verify the CI artifact**
@@ -235,5 +235,5 @@ upload.
 - [ ] **Step 5: Publish and verify v0.1.1**
 
 Create the GitHub Release with the provenance-bound CI ZIP and checksum, then perform a clean
-isolated marketplace install from `Byctor/codex-usage-sidebar`. Verify installed version, signature,
+isolated marketplace install from `JaceHwang/codex-usage-sidebar`. Verify installed version, signature,
 and executable hash against `PROVENANCE.json`.

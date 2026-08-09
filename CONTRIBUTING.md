@@ -20,10 +20,11 @@ Remove usernames and unrelated window content from screenshots and logs.
 Requirements: macOS 14+, Apple Silicon, full Xcode, and a running Codex desktop app for live tests.
 
 ```bash
-git clone https://github.com/Byctor/codex-usage-sidebar.git
+git clone https://github.com/JaceHwang/codex-usage-sidebar.git
 cd codex-usage-sidebar/plugins/codex-usage-sidebar
 bash scripts/build-companion.sh
 bash tests/test-sidebar-control.sh
+bash tests/test-signing-identity.sh
 bash tests/live-app-server-probe.sh
 ```
 
@@ -31,8 +32,10 @@ bash tests/live-app-server-probe.sh
 
 - Add or update tests for behavior changes.
 - Keep the companion outside `/Applications/ChatGPT.app`.
-- Do not add telemetry, account-token access, or network calls without an explicit design discussion.
-- Run `bash scripts/validate-public-repo.sh` from the repository root.
+- Keep companion authentication isolated from the normal `~/.codex` home.
+- Do not add telemetry or direct network calls without an explicit design discussion.
+- Run `CUS_ALLOW_SOURCE_AHEAD=1 bash scripts/validate-public-repo.sh` from the repository root on a
+  feature branch. Release promotion removes that exception before `main`.
 - Explain the user impact, root cause, and verification in the PR description.
 - Do not include personal paths, account data, full-screen desktop captures, or generated build trees.
 
@@ -41,8 +44,8 @@ bash tests/live-app-server-probe.sh
 Use concise imperative subjects, for example:
 
 ```text
-fix: preserve placement during incomplete AX scans
-docs: clarify marketplace upgrade flow
+fix: keep the exact Open Location gap while panes move
+docs: clarify isolated Codex login
 ```
 
 By participating, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).

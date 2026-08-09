@@ -4,16 +4,24 @@ import SidebarCore
 
 let application = NSApplication.shared
 application.setActivationPolicy(.accessory)
-let coordinator = RuntimeCoordinator()
+let runtimeConfiguration = CompanionRuntimeConfiguration(
+    arguments: CommandLine.arguments,
+    userHomeURL: FileManager.default.homeDirectoryForCurrentUser
+)
+let appServerEnvironmentOverrides = [
+    "CODEX_HOME": runtimeConfiguration.codexHomeURL.path
+]
+let coordinator = RuntimeCoordinator(
+    appServerEnvironmentOverrides: appServerEnvironmentOverrides
+)
 
 if CommandLine.arguments.contains("--diagnostic-once") {
     print(coordinator.diagnosticSummary())
-} else if CommandLine.arguments.contains("--sync-sidebar-state-once") {
-    print(coordinator.syncActualSidebarStateOnce())
 } else if CommandLine.arguments.contains("--diagnostic-stream-once") {
     if let host = HostDiscovery.current() {
         let client = AppServerClient(
-            executableURL: host.appServerExecutableURL
+            executableURL: host.appServerExecutableURL,
+            environmentOverrides: appServerEnvironmentOverrides
         )
         Task { @MainActor in
             do {

@@ -1,57 +1,77 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
-  <title id="title">Codex Usage Sidebar overview</title>
-  <desc id="desc">A privacy-safe illustration of the permanent right titlebar quota and its hover details with the sidebar expanded or collapsed.</desc>
+  <title id="title">Codex Usage Sidebar fixed-gap quota control</title>
+  <desc id="desc">A Codex window with a quota control exactly eight points before Open Location and a detailed Bank hover card.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1020"/><stop offset="1" stop-color="#171b2f"/></linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#33d6a6"/><stop offset="1" stop-color="#5aa7ff"/></linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000" flood-opacity=".38"/></filter>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#10140f"/>
+      <stop offset=".55" stop-color="#172019"/>
+      <stop offset="1" stop-color="#23251d"/>
+    </linearGradient>
+    <linearGradient id="quota" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#df5b3f"/>
+      <stop offset=".45" stop-color="#e6a438"/>
+      <stop offset="1" stop-color="#3fac73"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000" flood-opacity=".38"/>
+    </filter>
   </defs>
-  <rect width="1200" height="620" rx="32" fill="url(#bg)"/>
-  <circle cx="1060" cy="88" r="180" fill="#2667ff" opacity=".10"/>
-  <circle cx="150" cy="530" r="200" fill="#1dd3a7" opacity=".08"/>
-  <text x="72" y="78" fill="#f5f7ff" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="34" font-weight="700">Usage at a glance. Details on hover.</text>
-  <text x="72" y="112" fill="#9aa4bd" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18">Native macOS companion · local Codex data · theme aware</text>
+  <rect width="1200" height="620" rx="32" fill="url(#background)"/>
+  <path d="M0 500C210 415 322 630 565 541S978 425 1200 516V620H0Z" fill="#d9e8a5" opacity=".06"/>
+  <circle cx="1080" cy="58" r="210" fill="#efb34f" opacity=".06"/>
+  <g font-family="Avenir Next,Helvetica Neue,sans-serif">
+    <text x="70" y="72" fill="#f4f4e9" font-size="35" font-weight="700">Quota that stays attached to Codex.</text>
+    <text x="70" y="108" fill="#aeb5a5" font-size="18">One control. Exact 8 pt gap. Live Bank details on hover.</text>
 
-  <g transform="translate(70 150)" filter="url(#shadow)">
-    <rect width="680" height="400" rx="20" fill="#f7f7f8"/>
-    <rect width="210" height="400" rx="20" fill="#ececee"/>
-    <path d="M210 0v400" stroke="#d5d5d8"/>
-    <circle cx="28" cy="24" r="7" fill="#ff5f57"/><circle cx="50" cy="24" r="7" fill="#febc2e"/><circle cx="72" cy="24" r="7" fill="#28c840"/>
-    <rect x="500" y="7" width="110" height="32" rx="9" fill="#e5e6e9"/>
-    <text x="514" y="28" fill="#2d2d32" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" font-weight="650">57% · 16:08</text>
-    <g fill="none" stroke="#737987" stroke-width="1.5"><circle cx="630" cy="23" r="9"/><path d="M656 14v18M647 23h18"/></g>
-    <text x="22" y="72" fill="#2d2d32" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18" font-weight="650">Codex</text>
-    <g fill="#6e6e76" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">
-      <text x="22" y="112">New task</text><text x="22" y="146">Pull requests</text><text x="22" y="180">Plugins</text>
+    <g transform="translate(68 150)" filter="url(#shadow)">
+      <rect width="1064" height="402" rx="22" fill="#f7f6f1"/>
+      <rect width="1064" height="54" rx="22" fill="#ecebe6"/>
+      <path d="M0 54h1064" stroke="#d6d5cf"/>
+      <circle cx="27" cy="27" r="7" fill="#ff5f57"/>
+      <circle cx="49" cy="27" r="7" fill="#febc2e"/>
+      <circle cx="71" cy="27" r="7" fill="#28c840"/>
+      <rect y="54" width="210" height="348" fill="#e8e7e2"/>
+      <path d="M210 54v348" stroke="#d2d1cb"/>
+
+      <g transform="translate(662 10)">
+        <rect width="132" height="34" rx="9" fill="#e1e0db"/>
+        <text x="16" y="23" fill="#285f45" font-size="14" font-weight="700">57%  |  16:08</text>
+        <path d="M140 5v24" stroke="#bf8b2d" stroke-width="2"/>
+        <path d="M136 5h8M136 29h8" stroke="#bf8b2d" stroke-width="2"/>
+        <text x="150" y="21" fill="#9a722b" font-size="11" font-weight="700">8 pt</text>
+        <rect x="186" width="124" height="34" rx="9" fill="#deddd8"/>
+        <path d="M204 10h14v14h-14zM207 7h14v14" fill="none" stroke="#676b62" stroke-width="1.5"/>
+        <text x="227" y="22" fill="#383b35" font-size="13" font-weight="600">Open Location</text>
+      </g>
+
+      <g fill="#3d4039" font-size="14">
+        <text x="24" y="94" font-size="17" font-weight="700">Codex</text>
+        <text x="24" y="132">New task</text>
+        <text x="24" y="166">Pull requests</text>
+        <text x="24" y="200">Plugins</text>
+      </g>
+
+      <text x="252" y="116" fill="#252822" font-size="23" font-weight="700">Open any pane. Resize anything.</text>
+      <text x="252" y="148" fill="#777b70" font-size="15">The cached native anchor moves; the measured gap does not.</text>
+
+      <g transform="translate(596 82)">
+        <rect width="386" height="282" rx="16" fill="#fff" stroke="#d2d1cb"/>
+        <text x="22" y="35" fill="#292c26" font-size="16" font-weight="700">Codex usage</text>
+        <text x="346" y="35" fill="#318157" font-size="20" font-weight="700" text-anchor="end">57%</text>
+        <rect x="22" y="52" width="342" height="7" rx="3.5" fill="#e2e2dc"/>
+        <rect x="22" y="52" width="195" height="7" rx="3.5" fill="url(#quota)"/>
+        <g fill="#898d82" font-size="11" font-weight="700">
+          <text x="22" y="92">PLAN</text><text x="22" y="123">RESET</text>
+          <text x="22" y="154">CREDITS</text><text x="22" y="185">BANK</text>
+          <text x="22" y="216">BANK 1</text><text x="22" y="247">BANK 2</text>
+        </g>
+        <g fill="#373a33" font-size="13" text-anchor="end">
+          <text x="364" y="92">Plus</text><text x="364" y="123">Aug 9, 16:08</text>
+          <text x="364" y="154">None</text><text x="364" y="185">2 available</text>
+          <text x="364" y="216">Available - expires Aug 13</text>
+          <text x="364" y="247">Available - expires Aug 20</text>
+        </g>
+      </g>
     </g>
-    <rect x="0" y="350" width="210" height="50" fill="#e7e7e9"/>
-    <circle cx="24" cy="375" r="11" fill="#737987"/>
-    <text x="43" y="380" fill="#34343a" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">Profile</text>
-    <circle cx="195" cy="375" r="11" fill="none" stroke="#737987" stroke-width="1.5"/><text x="191.5" y="380" fill="#737987" font-family="sans-serif" font-size="13">?</text>
-
-    <text x="250" y="88" fill="#2d2d32" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="21" font-weight="700">Always in the right titlebar</text>
-    <text x="250" y="120" fill="#737987" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15">Expanded or collapsed, the position stays the same.</text>
-    <g transform="translate(410 144)">
-      <rect width="224" height="226" rx="14" fill="#f3f3f4" stroke="#d7d7da"/>
-      <text x="18" y="32" fill="#303036" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" font-weight="700">Codex usage</text>
-      <text x="188" y="32" fill="#303036" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18" font-weight="700">57%</text>
-      <rect x="18" y="48" width="188" height="5" rx="2.5" fill="#d5d7db"/><rect x="18" y="48" width="107" height="5" rx="2.5" fill="url(#accent)"/>
-      <g fill="#747780" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12"><text x="18" y="84">PLAN</text><text x="18" y="112">RESET</text><text x="18" y="140">CREDITS</text><text x="18" y="168">BANK</text><text x="18" y="196">BANK 1</text></g>
-      <g fill="#303036" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12"><text x="206" y="84">Plus</text><text x="206" y="112">Aug 8 · 16:08</text><text x="206" y="140">None</text><text x="206" y="168">1 available</text><text x="206" y="196">Expires Aug 13</text></g>
-    </g>
-  </g>
-
-  <g transform="translate(800 184)" filter="url(#shadow)">
-    <rect width="330" height="235" rx="20" fill="#222737" stroke="#3c4358"/>
-    <circle cx="25" cy="22" r="6" fill="#ff5f57"/><circle cx="45" cy="22" r="6" fill="#febc2e"/><circle cx="65" cy="22" r="6" fill="#28c840"/>
-    <rect x="0" y="44" width="330" height="1" fill="#3c4358"/>
-    <rect x="150" y="6" width="118" height="32" rx="9" fill="#30364a"/>
-    <text x="166" y="27" fill="#f4f6fb" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" font-weight="650">57% · 16:08</text>
-    <g fill="none" stroke="#939bb0" stroke-width="2"><circle cx="285" cy="22" r="8"/><path d="M309 14v16M301 22h16"/></g>
-    <text x="28" y="94" fill="#f4f6fb" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="19" font-weight="700">Collapsed sidebar · same place</text>
-    <text x="28" y="124" fill="#aab2c7" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">Quota remains beside the native</text>
-    <text x="28" y="146" fill="#aab2c7" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">right-side controls with an 8 pt gap.</text>
-    <rect x="28" y="174" width="274" height="7" rx="3.5" fill="#343a4d"/><rect x="28" y="174" width="156" height="7" rx="3.5" fill="url(#accent)"/>
-    <text x="28" y="207" fill="#737f9b" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12">LIVE FROM LOCAL CODEX APP-SERVER</text>
   </g>
 </svg>

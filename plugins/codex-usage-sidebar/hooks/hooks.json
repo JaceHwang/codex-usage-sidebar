@@ -1,5 +1,5 @@
 {
-  "description": "Keeps the Codex Usage Sidebar native companion installed after Codex or plugin updates.",
+  "description": "Keeps the single Codex usage header companion installed after Codex or plugin updates.",
   "hooks": {
     "SessionStart": [
       {

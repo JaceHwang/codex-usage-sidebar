@@ -48,6 +48,7 @@ public actor AppServerClient {
 
     public init(
         executableURL: URL,
+        environmentOverrides: [String: String] = [:],
         restartDelaysNanoseconds: [UInt64] = [
             500_000_000,
             2_000_000_000,
@@ -56,7 +57,10 @@ public actor AppServerClient {
     ) {
         self.init(
             transportFactory: {
-                ProcessLineTransport(executableURL: executableURL)
+                ProcessLineTransport(
+                    executableURL: executableURL,
+                    environmentOverrides: environmentOverrides
+                )
             },
             restartDelaysNanoseconds: restartDelaysNanoseconds
         )

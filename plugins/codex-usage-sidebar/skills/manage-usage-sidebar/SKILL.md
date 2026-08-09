@@ -1,6 +1,6 @@
 ---
 name: manage-usage-sidebar
-description: Install, check, repair, or uninstall the native Codex Usage Sidebar companion. Use when the user asks about the sidebar usage indicator, says it disappeared after a Codex update, requests repair, status, installation, or removal, or invokes @codex-usage-sidebar.
+description: Install, check, repair, or uninstall the native Codex Usage Sidebar companion. Use when the user asks about the Codex usage header indicator, says it disappeared after a Codex update, requests repair, status, installation, or removal, or invokes @codex-usage-sidebar.
 ---
 
 # Manage Codex Usage Sidebar

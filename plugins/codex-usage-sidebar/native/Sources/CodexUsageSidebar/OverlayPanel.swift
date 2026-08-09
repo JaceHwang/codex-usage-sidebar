@@ -27,7 +27,6 @@ final class OverlayPanel: NSObject {
     private let detailPanel = QuotaDetailPanel()
     private var hoverTimer: Timer?
     private var latestDetail: QuotaDetailContent?
-    private var latestPlacement: OverlayPlacement = .sidebar
     private var latestTheme: CodexInterfaceTheme = .light
     private var isIndicatorVisible = false
     private var isHoveringIndicator = false
@@ -74,7 +73,6 @@ final class OverlayPanel: NSObject {
         snapshot: AllowanceSnapshot,
         label: String,
         indicatorFrame: CGRect,
-        placement: OverlayPlacement,
         theme: CodexInterfaceTheme,
         detail: QuotaDetailContent,
         dimmed: Bool
@@ -92,7 +90,6 @@ final class OverlayPanel: NSObject {
             )
         }
         latestDetail = detail
-        latestPlacement = placement
         latestTheme = theme
         isIndicatorVisible = true
         panel.alphaValue = dimmed ? 0.52 : 1
@@ -118,6 +115,13 @@ final class OverlayPanel: NSObject {
         detailPanel.hide()
     }
 
+    func reposition(to frame: CGRect) {
+        guard isIndicatorVisible, panel.frame != frame else {
+            return
+        }
+        panel.setFrame(frame, display: true)
+    }
+
     private func attributedLabel(
         _ label: String,
         remainingPercent: Int,
@@ -130,8 +134,9 @@ final class OverlayPanel: NSObject {
         paragraph.lineBreakMode = .byClipping
         result.addAttributes(
             [
-                .font: NSFont.systemFont(ofSize: 10, weight: .regular),
-                .foregroundColor: NSColor.tertiaryLabelColor,
+                .font: NSFont.systemFont(ofSize: 11, weight: .regular),
+                .foregroundColor: NSColor.labelColor
+                    .withAlphaComponent(0.82),
                 .paragraphStyle: paragraph
             ],
             range: fullRange
@@ -141,10 +146,10 @@ final class OverlayPanel: NSObject {
             let range = NSRange(percentRange, in: label)
             result.addAttributes(
                 [
-                    .font: NSFont.systemFont(ofSize: 11, weight: .medium),
-                    .foregroundColor: remainingPercent <= 10
-                        ? NSColor.systemRed
-                        : NSColor.secondaryLabelColor
+                    .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+                    .foregroundColor: QuotaColorScale.components(
+                        remainingPercent: remainingPercent
+                    ).appKitColor
                 ],
                 range: range
             )
@@ -194,7 +199,6 @@ final class OverlayPanel: NSObject {
             detailPanel.show(
                 content: latestDetail,
                 relativeTo: panel.frame,
-                placement: latestPlacement,
                 theme: latestTheme
             )
         } else {

@@ -1,44 +1,85 @@
 # Troubleshooting
 
-## The plugin is installed but no quota appears
+## No quota control appears
 
-1. Open Codex desktop and leave it on the normal main surface.
+1. Open Codex desktop and bring its main window to the foreground.
 2. Start a new Codex task so the `SessionStart` hook runs.
-3. Check the runtime:
+3. Verify the companion:
 
    ```bash
    "$HOME/Library/Application Support/CodexUsageSidebar/sidebar-control.sh" status
    ```
 
-4. Repair if needed:
+4. Repair if the service is missing or stale:
 
    ```bash
    "$HOME/Library/Application Support/CodexUsageSidebar/sidebar-control.sh" repair
    ```
 
+If status reports `hidden:no-snapshot`, verify the isolated login described next.
+
+## Isolated Codex home is not logged in
+
+The companion does not use the normal `~/.codex` credentials. Authorize its private home:
+
+```bash
+plugin_home="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome"
+env CODEX_HOME="$plugin_home" codex login
+env CODEX_HOME="$plugin_home" codex login status
+```
+
+Then repair the companion or wait for its app-server client to reconnect.
+
 ## Status says `accessibility=required`
 
-Enable `Codex Usage Sidebar.app` in
-`System Settings → Privacy & Security → Accessibility`, then run repair. A rebuilt development
-binary has a new ad-hoc signature and may need this permission again; unchanged release payloads do
-not change when Codex itself upgrades.
+Enable **Codex Usage Sidebar** in
+`System Settings -> Privacy & Security -> Accessibility`, then run repair. Do not enable only Codex;
+the separately installed companion needs its own entry.
 
-## The quota remains visible in Settings
+The stable designated requirement reduces permission churn, but macOS can still request approval
+after signing or security-policy changes.
 
-This means the long-running companion cannot complete the semantic surface scan. Confirm the exact
-installed `Codex Usage Sidebar.app` is enabled in Accessibility, repair, and reopen Settings.
+## The gap is not fixed beside Open Location
 
-## The titlebar quota is in the fallback position
+Run status and inspect the anchor fields:
 
-The companion could not resolve the current right-side titlebar controls. It uses a safe trailing
-fallback inside the window. Include sanitized `status` output and Codex build number in a bug report.
+```text
+anchor=openLocation placement=content-header anchor_scan=...cached:true,source:openLocation
+```
+
+- `openLocation` is the intended exact 8-point placement.
+- `labeledControl` means the named button was unavailable and another header control was used.
+- `rightPaneBoundary` means only the pane edge was resolved.
+- `fallback` means the companion used a safe in-window position.
+
+Bring the Codex window to the foreground, confirm Accessibility, and run repair. If the fallback
+persists, include sanitized status output and the Codex build number in a bug report.
 
 ## Data looks old
 
-The indicator dims after two minutes and hides after five. Confirm Codex is online, return it to the
-foreground, and run repair. The app-server client automatically restarts after a stalled stream.
+The indicator dims after two minutes and hides after five. Confirm the isolated login is active and
+Codex is online, then bring Codex to the foreground. The client automatically recovers from a
+stalled stream; repair forces an immediate clean restart.
 
-## Reset everything
+Logs are stored at:
+
+```text
+~/Library/Application Support/CodexUsageSidebar/Data/sidebar.log
+~/Library/Application Support/CodexUsageSidebar/Data/sidebar-error.log
+```
+
+Remove credentials and account identifiers before sharing log excerpts.
+
+## Update or reset
+
+Normal update:
+
+```bash
+codex plugin marketplace upgrade codex-usage-sidebar
+codex plugin add codex-usage-sidebar@codex-usage-sidebar
+```
+
+Full reset:
 
 ```bash
 "$HOME/Library/Application Support/CodexUsageSidebar/sidebar-control.sh" uninstall
@@ -51,5 +92,5 @@ Start a new Codex task afterward.
 ## Reporting a bug
 
 Use the repository bug form. Include macOS version, Codex build, plugin version, sanitized status
-output, and exact reproduction steps. Crop screenshots to the relevant UI; never attach a full
-desktop containing unrelated projects or conversations.
+output, the relevant log excerpt, and exact reproduction steps. Crop screenshots to the affected
+titlebar area; never attach a full desktop containing unrelated projects or conversations.

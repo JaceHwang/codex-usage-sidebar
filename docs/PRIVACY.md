@@ -2,42 +2,48 @@
 
 ## Data read
 
-- Remaining Codex quota, reset time, plan metadata, Credits, and Bank entries from the local Codex
-  `app-server` JSON-RPC stream.
-- Codex window geometry, button descriptions, and theme preference for placement and styling.
+- Remaining Codex quota, reset time, plan metadata, Credits, and every Bank entry from the local
+  Codex `app-server` JSON-RPC stream.
+- Codex window geometry and named-control accessibility labels and frames needed for placement.
 - Local process and bundle metadata needed to discover the running Codex installation.
-- Global mouse-up events and key-down notifications used to detect the Codex sidebar toggle. The
-  key value is examined only after the tracked Codex process is confirmed as the foreground app; the
-  companion reacts only to Command-B and does not store event content.
+- Local Codex theme preference used to match light and dark appearance.
+
+## Authentication
+
+The companion launches `codex app-server` with an isolated home at:
+
+```text
+~/Library/Application Support/CodexUsageSidebar/CodexHome
+```
+
+Credentials in that directory are created only through the official `codex login` flow. The plugin
+does not copy or read the normal `~/.codex/auth.json` file.
 
 ## Data written
 
 - Companion application and control script under
   `~/Library/Application Support/CodexUsageSidebar/`.
-- A user LaunchAgent at `~/Library/LaunchAgents/com.jace.codex-usage-sidebar.plist`.
-- Small local runtime logs and persisted presentation state.
+- Isolated Codex authentication and configuration under its `CodexHome` subdirectory.
+- Runtime data and local logs under the `Data` subdirectory.
+- One user LaunchAgent at `~/Library/LaunchAgents/com.jace.codex-usage-sidebar.plist`.
 
 ## Data not collected
 
-- Account passwords or OAuth tokens
 - Conversation text or repository contents
-- Browser cookies
-- Usage telemetry or analytics
-- Remote identifiers beyond what the local Codex app-server already returns for rate limits
+- Browser cookies or data from other applications
+- Normal Codex-home credentials
+- Keyboard or global mouse events
+- Usage telemetry, remote analytics, or advertising identifiers
 
 ## Network behavior
 
-The companion does not add a remote analytics or application server. It communicates with the
-Codex app-server executable over local stdio. Any network access performed by that official
-component remains governed by Codex itself.
+The companion adds no analytics service or application server. It communicates with the official
+Codex `app-server` executable over local stdio. Network access performed by that component for
+authenticated quota data remains governed by Codex itself.
 
 ## Accessibility permission
 
-Accessibility is used only to inspect Codex window semantics for placement and surface
-classification. The plugin does not synthesize typing, read other applications' accessibility
-trees, or bypass the macOS permission prompt.
-
-AppKit global event monitors receive mouse-up and key-down notifications. Events are not logged or
-transmitted. Key content is ignored unless the tracked Codex process is foreground, and only the
-Command-B sidebar shortcut triggers a presentation reconciliation; the usage control remains in the
-right titlebar.
+Accessibility is used only to inspect the active Codex window and identify the native Open Location
+control by its title, description, help text, or identifier. The companion reads geometry to place
+its overlay. It does not synthesize typing or clicks, inspect another application's accessibility
+tree, or bypass the macOS permission prompt.

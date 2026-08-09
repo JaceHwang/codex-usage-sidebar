@@ -1,36 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="430" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
-  <title id="title">Permanent titlebar placement states</title>
-  <desc id="desc">Three panels show the same right titlebar placement with the sidebar expanded or collapsed, and hidden Settings placement.</desc>
-  <rect width="1200" height="430" rx="28" fill="#f3f5f8"/>
-  <g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
-    <g transform="translate(38 46)">
-      <text x="0" y="0" fill="#20232b" font-size="20" font-weight="700">1 · Expanded</text>
-      <rect y="28" width="350" height="300" rx="16" fill="#fff" stroke="#dce0e7"/>
-      <rect y="28" width="350" height="42" rx="16" fill="#edf0f4"/><path d="M0 70h350" stroke="#d5d8df"/>
-      <rect y="70" width="120" height="258" fill="#e8eaee"/><path d="M120 70v258" stroke="#d5d8df"/>
-      <rect x="189" y="36" width="92" height="26" rx="8" fill="#d6dae2"/><text x="200" y="54" fill="#343842" font-size="11" font-weight="700">57% · 16:08</text>
-      <circle cx="299" cy="49" r="8" fill="none" stroke="#777e8d"/><path d="M323 41v16M315 49h16" stroke="#777e8d" stroke-width="1.5"/>
-      <text x="142" y="116" fill="#303540" font-size="15" font-weight="650">Right titlebar control</text>
-      <text x="142" y="144" fill="#737b8b" font-size="12">Sidebar state is irrelevant</text>
+  <title id="title">Fixed eight-point placement across Codex layouts</title>
+  <desc id="desc">Three Codex window layouts keep the quota control eight points before Open Location.</desc>
+  <rect width="1200" height="430" rx="28" fill="#f1f1eb"/>
+  <g font-family="Avenir Next,Helvetica Neue,sans-serif">
+    <text x="42" y="46" fill="#232720" font-size="23" font-weight="700">The anchor moves. The gap stays 8 pt.</text>
+    <g transform="translate(38 78)">
+      <text x="0" y="0" fill="#50554b" font-size="14" font-weight="700">LEFT PANE OPEN</text>
+      <rect y="18" width="350" height="280" rx="16" fill="#fff" stroke="#d4d5ce"/>
+      <rect y="18" width="350" height="44" rx="16" fill="#e9e9e4"/>
+      <path d="M0 62h350" stroke="#d4d5ce"/>
+      <rect y="62" width="116" height="236" fill="#e5e5df"/>
+      <path d="M116 62v236" stroke="#d4d5ce"/>
+      <rect x="148" y="27" width="104" height="27" rx="8" fill="#dadbd4"/>
+      <text x="163" y="45" fill="#286047" font-size="11" font-weight="700">57% | 16:08</text>
+      <path d="M256 32v17" stroke="#c18a28" stroke-width="2"/>
+      <rect x="264" y="27" width="72" height="27" rx="8" fill="#dadbd4"/>
+      <text x="274" y="45" fill="#44483f" font-size="10">Open Location</text>
+      <text x="135" y="111" fill="#373b33" font-size="14" font-weight="700">Content narrows</text>
+      <text x="135" y="136" fill="#7c8176" font-size="12">Native anchor shifts left</text>
     </g>
-    <g transform="translate(425 46)">
-      <text x="0" y="0" fill="#20232b" font-size="20" font-weight="700">2 · Collapsed</text>
-      <rect y="28" width="350" height="300" rx="16" fill="#fff" stroke="#dce0e7"/>
-      <rect y="28" width="350" height="42" rx="16" fill="#edf0f4"/><path d="M0 70h350" stroke="#d5d8df"/>
-      <rect x="189" y="36" width="92" height="26" rx="8" fill="#d6dae2"/><text x="200" y="54" fill="#343842" font-size="11" font-weight="700">57% · 16:08</text>
-      <circle cx="299" cy="49" r="8" fill="none" stroke="#777e8d"/><path d="M323 41v16M315 49h16" stroke="#777e8d" stroke-width="1.5"/>
-      <path d="M281 78v44" stroke="#36b98a" stroke-width="2" stroke-dasharray="4 4"/>
-      <text x="135" y="142" fill="#303540" font-size="15" font-weight="650">Same titlebar position</text>
-      <text x="135" y="170" fill="#737b8b" font-size="12">8 pt before native controls</text>
+
+    <g transform="translate(425 78)">
+      <text x="0" y="0" fill="#50554b" font-size="14" font-weight="700">RIGHT PANE OPEN</text>
+      <rect y="18" width="350" height="280" rx="16" fill="#fff" stroke="#d4d5ce"/>
+      <rect y="18" width="350" height="44" rx="16" fill="#e9e9e4"/>
+      <path d="M0 62h350" stroke="#d4d5ce"/>
+      <rect x="238" y="62" width="112" height="236" fill="#e5e5df"/>
+      <path d="M238 62v236" stroke="#d4d5ce"/>
+      <rect x="42" y="27" width="104" height="27" rx="8" fill="#dadbd4"/>
+      <text x="57" y="45" fill="#286047" font-size="11" font-weight="700">57% | 16:08</text>
+      <path d="M150 32v17" stroke="#c18a28" stroke-width="2"/>
+      <rect x="158" y="27" width="72" height="27" rx="8" fill="#dadbd4"/>
+      <text x="168" y="45" fill="#44483f" font-size="10">Open Location</text>
+      <text x="30" y="111" fill="#373b33" font-size="14" font-weight="700">Header shifts farther left</text>
+      <text x="30" y="136" fill="#7c8176" font-size="12">Quota follows the same AX control</text>
     </g>
-    <g transform="translate(812 46)">
-      <text x="0" y="0" fill="#20232b" font-size="20" font-weight="700">3 · Settings</text>
-      <rect y="28" width="350" height="300" rx="16" fill="#fff" stroke="#dce0e7"/>
-      <rect y="28" width="110" height="300" rx="16" fill="#e8eaee"/><path d="M110 28v300" stroke="#d5d8df"/>
-      <g fill="#777e8d" font-size="12"><text x="20" y="84">General</text><text x="20" y="116">Appearance</text><text x="20" y="148">Accounts</text><text x="20" y="180">Git</text></g>
-      <circle cx="232" cy="150" r="36" fill="#eef8f5"/><path d="M217 150l10 10 21-23" fill="none" stroke="#31b487" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="164" y="216" fill="#303540" font-size="15" font-weight="650">Overlay hidden</text>
-      <text x="137" y="244" fill="#737b8b" font-size="12">No orphan titlebar button</text>
+
+    <g transform="translate(812 78)">
+      <text x="0" y="0" fill="#50554b" font-size="14" font-weight="700">BOTTOM PANE + RESIZE</text>
+      <rect y="18" width="350" height="280" rx="16" fill="#fff" stroke="#d4d5ce"/>
+      <rect y="18" width="350" height="44" rx="16" fill="#e9e9e4"/>
+      <path d="M0 62h350" stroke="#d4d5ce"/>
+      <rect y="218" width="350" height="80" fill="#e5e5df"/>
+      <path d="M0 218h350" stroke="#d4d5ce"/>
+      <rect x="148" y="27" width="104" height="27" rx="8" fill="#dadbd4"/>
+      <text x="163" y="45" fill="#286047" font-size="11" font-weight="700">57% | 16:08</text>
+      <path d="M256 32v17" stroke="#c18a28" stroke-width="2"/>
+      <rect x="264" y="27" width="72" height="27" rx="8" fill="#dadbd4"/>
+      <text x="274" y="45" fill="#44483f" font-size="10">Open Location</text>
+      <text x="30" y="111" fill="#373b33" font-size="14" font-weight="700">Window geometry changes</text>
+      <text x="30" y="136" fill="#7c8176" font-size="12">Cached frame sampled every 0.1 s</text>
     </g>
   </g>
 </svg>

@@ -6,7 +6,7 @@ import SidebarCore
 final class RuntimeCoordinator: NSObject {
     private let overlay = OverlayPanel()
     private let accessibility = AccessibilityLocator()
-    private let sidebarVisibility = SidebarVisibilityLocator()
+    private let contentHeader = ContentHeaderLocator()
     private let formatter = ResetFormatter()
     private let detailFormatter = QuotaDetailFormatter()
     private let policy = RefreshPolicy()
@@ -14,33 +14,24 @@ final class RuntimeCoordinator: NSObject {
         configurationURL: FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".codex/config.toml")
     )
-    private let sidebarState = SidebarStateTracker()
-    private var sidebarProbeGate = SidebarProbeGate()
-
     private var host: HostInstallation?
     private var client: AppServerClient?
     private var clientStartedAt: Date?
     private var snapshot: AllowanceSnapshot?
     private var snapshotTask: Task<Void, Never>?
     private var timer: Timer?
+    private var layoutTimer: Timer?
     private var nextPeriodicRefresh = Date.distantPast
     private var nextResetRefresh: Date?
     private var lastDiagnosticState: String?
+    private let appServerEnvironmentOverrides: [String: String]
+
+    init(appServerEnvironmentOverrides: [String: String] = [:]) {
+        self.appServerEnvironmentOverrides = appServerEnvironmentOverrides
+        super.init()
+    }
 
     func start() {
-        sidebarState.start { [weak self] in
-            guard let self else {
-                return
-            }
-            self.sidebarProbeGate.observeHint(at: Date())
-            self.reconcileOverlay()
-        }
-        DistributedNotificationCenter.default().addObserver(
-            self,
-            selector: #selector(sidebarStateSynchronized(_:)),
-            name: .codexUsageSidebarStateSynchronized,
-            object: nil
-        )
         let workspaceCenter = NSWorkspace.shared.notificationCenter
         workspaceCenter.addObserver(
             self,
@@ -71,14 +62,23 @@ final class RuntimeCoordinator: NSObject {
                 self?.tick()
             }
         }
+        let layoutTimer = Timer(timeInterval: 0.1, repeats: true) {
+            [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.trackOverlayPosition()
+            }
+        }
+        RunLoop.main.add(layoutTimer, forMode: .common)
+        self.layoutTimer = layoutTimer
         reconcileOverlay()
     }
 
     func stop() {
-        DistributedNotificationCenter.default().removeObserver(self)
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         timer?.invalidate()
         timer = nil
+        layoutTimer?.invalidate()
+        layoutTimer = nil
         snapshotTask?.cancel()
         snapshotTask = nil
         if let client {
@@ -88,8 +88,7 @@ final class RuntimeCoordinator: NSObject {
         }
         client = nil
         clientStartedAt = nil
-        sidebarState.stop()
-        overlay.hide()
+        hideOverlay()
     }
 
     func refreshNow(reason: RefreshReason) {
@@ -111,17 +110,17 @@ final class RuntimeCoordinator: NSObject {
     func reconcileOverlay() {
         guard isCodexForeground else {
             recordDiagnosticState("hidden:not-foreground")
-            overlay.hide()
+            hideOverlay()
             return
         }
         guard let host, let processIdentifier = host.processIdentifier else {
             recordDiagnosticState("hidden:no-running-host")
-            overlay.hide()
+            hideOverlay()
             return
         }
         guard let snapshot else {
             recordDiagnosticState("hidden:no-snapshot")
-            overlay.hide()
+            hideOverlay()
             return
         }
 
@@ -131,61 +130,24 @@ final class RuntimeCoordinator: NSObject {
         )
         guard freshness != .hidden else {
             recordDiagnosticState("hidden:stale")
-            overlay.hide()
+            hideOverlay()
             return
         }
         guard let windowFrame = accessibility.hostWindowFrame(
             for: processIdentifier
         ) else {
             recordDiagnosticState("hidden:no-window")
-            overlay.hide()
+            hideOverlay()
             return
         }
-        let hostIdentity = "\(processIdentifier):\(host.buildIdentity)"
-        sidebarState.observeHost(
-            identity: hostIdentity,
-            processIdentifier: processIdentifier,
+        let anchor = contentHeader.resolve(
+            for: processIdentifier,
             windowFrame: windowFrame
         )
-        let chromeProbe: SidebarChromeProbe
-        if sidebarProbeGate.shouldProbe(at: Date()) {
-            chromeProbe = sidebarVisibility.probe(
-                for: processIdentifier,
-                windowFrame: windowFrame
-            )
-        } else {
-            chromeProbe = .skipped
-        }
-        switch OverlayPresentationPolicy.decision(for: chromeProbe) {
-        case .preserve:
-            break
-        case let .show(actualPlacement):
-            sidebarState.observeActualPlacement(actualPlacement)
-        case .hide:
-            recordDiagnosticState("hidden:non-main-surface")
-            overlay.hide()
-            return
-        }
-        let placement = sidebarState.placement
-        let indicatorFrame: CGRect
-        switch placement {
-        case .sidebar:
-            guard let rowFrame = accessibility.profileRow(
-                for: processIdentifier
-            ) else {
-                recordDiagnosticState("hidden:no-anchor")
-                overlay.hide()
-                return
-            }
-            indicatorFrame = OverlayLayout.sidebarIndicatorFrame(in: rowFrame)
-        case .titlebar:
-            indicatorFrame = OverlayLayout.titlebarIndicatorFrame(
-                in: windowFrame,
-                rightControlsLeadingEdge: sidebarVisibility
-                    .rightTitlebarControlsLeadingEdge
-            )
-        }
-
+        let indicatorFrame = OverlayLayout.indicatorFrame(
+            in: windowFrame,
+            contentTrailingEdge: anchor.trailingEdge
+        )
         let maximumLabelWidth = min(148, max(70, indicatorFrame.width))
         let label = formatter.label(
             snapshot: snapshot,
@@ -194,21 +156,25 @@ final class RuntimeCoordinator: NSObject {
             timeZone: .autoupdatingCurrent,
             maxWidth: maximumLabelWidth
         )
+        let detail = detailFormatter.content(
+            snapshot: snapshot,
+            now: Date(),
+            locale: .autoupdatingCurrent,
+            timeZone: .autoupdatingCurrent
+        )
         overlay.show(
             snapshot: snapshot,
             label: label,
             indicatorFrame: indicatorFrame,
-            placement: placement,
             theme: currentTheme,
-            detail: detailFormatter.content(
-                snapshot: snapshot,
-                now: Date(),
-                locale: .autoupdatingCurrent,
-                timeZone: .autoupdatingCurrent
-            ),
+            detail: detail,
             dimmed: freshness == .dimmed
         )
-        recordDiagnosticState("shown placement=\(placement.rawValue)")
+
+        recordDiagnosticState(
+            "shown placement=content-header " +
+                contentHeader.latestDiagnosticDetail
+        )
     }
 
     func diagnosticSummary() -> String {
@@ -216,71 +182,60 @@ final class RuntimeCoordinator: NSObject {
             return "host=missing app_server=missing accessibility=unknown anchor=unavailable"
         }
         let trusted = accessibility.isTrusted(prompt: false)
-        let anchorFound: Bool
-        var reportedPlacement = sidebarState.placement
-        var sidebarDiagnostic = "sidebar_probe=unknown"
-        if trusted, let pid = host.processIdentifier {
-            anchorFound = accessibility.profileRow(for: pid) != nil
-            if let windowFrame = accessibility.hostWindowFrame(for: pid) {
-                sidebarDiagnostic = sidebarVisibility.diagnosticDetail(
+        var anchor = ContentHeaderAnchor(
+            trailingEdge: nil,
+            source: .fallback
+        )
+        if
+            trusted,
+            let pid = host.processIdentifier,
+            let windowFrame = accessibility.hostWindowFrame(for: pid)
+        {
+            anchor = contentHeader.resolve(
+                for: pid,
+                windowFrame: windowFrame
+            )
+            if anchor.source == .openLocation {
+                anchor = contentHeader.resolve(
                     for: pid,
                     windowFrame: windowFrame
                 )
-                let observedPlacement = sidebarVisibility.placement(
-                    for: pid,
-                    windowFrame: windowFrame
-                )
-                if observedPlacement != nil {
-                    reportedPlacement = .titlebar
-                }
             }
-        } else {
-            anchorFound = false
         }
         return [
             "host=found",
             "app_server=found",
             "accessibility=\(trusted ? "granted" : "required")",
-            "anchor=\(anchorFound ? "found" : "unavailable")",
-            "placement=\(reportedPlacement.rawValue)",
+            "anchor=\(anchor.source.rawValue)",
+            "placement=content-header",
             "source=\(host.source.rawValue)",
-            sidebarDiagnostic,
-            host.processIdentifier.map {
-                accessibility.diagnosticDetail(for: $0)
-            } ?? "ax=no-running-host"
+            contentHeader.latestDiagnosticDetail
         ].joined(separator: " ")
     }
 
-    func syncActualSidebarStateOnce() -> String {
+    private func trackOverlayPosition() {
         guard
-            let host = HostDiscovery.current(),
-            let processIdentifier = host.processIdentifier,
+            isCodexForeground,
+            let processIdentifier = host?.processIdentifier,
             let windowFrame = accessibility.hostWindowFrame(
                 for: processIdentifier
             )
         else {
-            return "sidebar_sync=unavailable"
+            return
         }
-
-        sidebarState.observeHost(
-            identity: "\(processIdentifier):\(host.buildIdentity)",
-            processIdentifier: processIdentifier,
-            windowFrame: windowFrame
-        )
-        guard let placement = sidebarVisibility.placement(
+        let anchor = contentHeader.resolve(
             for: processIdentifier,
             windowFrame: windowFrame
-        ) else {
-            return "sidebar_sync=unavailable"
-        }
-        sidebarState.observeActualPlacement(placement)
-        DistributedNotificationCenter.default().postNotificationName(
-            .codexUsageSidebarStateSynchronized,
-            object: nil,
-            userInfo: nil,
-            deliverImmediately: true
         )
-        return "sidebar_sync=\(sidebarState.placement.rawValue)"
+        guard anchor.source == .openLocation else {
+            return
+        }
+        overlay.reposition(
+            to: OverlayLayout.indicatorFrame(
+                in: windowFrame,
+                contentTrailingEdge: anchor.trailingEdge
+            )
+        )
     }
 
     private var isCodexForeground: Bool {
@@ -364,39 +319,15 @@ final class RuntimeCoordinator: NSObject {
 
     private func reconcileHost() {
         let discovered = HostDiscovery.current()
-        let previousHostIdentity = host.map {
-            "\($0.processIdentifier ?? -1):\($0.buildIdentity)"
-        }
-        let discoveredHostIdentity = discovered.map {
-            "\($0.processIdentifier ?? -1):\($0.buildIdentity)"
-        }
         let actions = policy.actionsForHostTransition(
             from: host?.buildIdentity,
             to: discovered?.buildIdentity
         )
-        if actions.invalidateAnchor {
-            accessibility.invalidateCachedAnchor()
-        }
-        if previousHostIdentity != discoveredHostIdentity {
-            sidebarVisibility.invalidate()
-        }
 
         let executableChanged = host?.appServerExecutableURL !=
             discovered?.appServerExecutableURL
         let needsClient = client == nil && discovered != nil
         host = discovered
-        if
-            let discovered,
-            let processIdentifier = discovered.processIdentifier
-        {
-            sidebarState.observeHost(
-                identity: "\(processIdentifier):\(discovered.buildIdentity)",
-                processIdentifier: processIdentifier,
-                windowFrame: accessibility.hostWindowFrame(
-                    for: processIdentifier
-                )
-            )
-        }
         if actions.restartClient || executableChanged || needsClient {
             replaceClient(using: discovered)
         }
@@ -414,12 +345,13 @@ final class RuntimeCoordinator: NSObject {
         clientStartedAt = nil
 
         guard let host else {
-            overlay.hide()
+            hideOverlay()
             return
         }
 
         let newClient = AppServerClient(
-            executableURL: host.appServerExecutableURL
+            executableURL: host.appServerExecutableURL,
+            environmentOverrides: appServerEnvironmentOverrides
         )
         client = newClient
         clientStartedAt = Date()
@@ -457,13 +389,8 @@ final class RuntimeCoordinator: NSObject {
         fflush(stdout)
     }
 
-    @objc
-    private func sidebarStateSynchronized(_ notification: Notification) {
-        guard sidebarState.reloadPersistedPlacement() else {
-            return
-        }
-        sidebarProbeGate.observeHint(at: Date())
-        reconcileOverlay()
+    private func hideOverlay() {
+        overlay.hide()
     }
 
     @objc
@@ -474,7 +401,7 @@ final class RuntimeCoordinator: NSObject {
             ] as? NSRunningApplication,
             application.bundleIdentifier == "com.openai.codex"
         else {
-            overlay.hide()
+            hideOverlay()
             return
         }
         reconcileHost()

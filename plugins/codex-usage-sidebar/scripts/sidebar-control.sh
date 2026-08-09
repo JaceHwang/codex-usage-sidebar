@@ -50,6 +50,7 @@ service="$domain/$label"
 if [[ -z "$plugin_data" ]]; then
   plugin_data="$install_root/Data"
 fi
+codex_home="$(/usr/bin/dirname "$plugin_data")/CodexHome"
 
 verify_bundle_signature() {
   local bundle="$1"
@@ -140,7 +141,11 @@ sync_payload() {
   local force_sync="${1:-false}"
   local temp_app="$install_root/.Codex Usage Sidebar.app.tmp.$$"
   local previous_app="$install_root/.Codex Usage Sidebar.app.previous.$$"
-  /bin/mkdir -p "$install_root" "$plugin_data" "$user_home/Library/LaunchAgents"
+  /bin/mkdir -p \
+    "$install_root" \
+    "$plugin_data" \
+    "$codex_home" \
+    "$user_home/Library/LaunchAgents"
 
   if [[ "$force_sync" == "true" ]] || ! payload_matches; then
     if [[ "$temp_app" != "$install_root/"* ]]; then
@@ -189,15 +194,10 @@ stop_service_before_payload_upgrade() {
   fi
 }
 
-synchronize_sidebar_state() {
-  "$installed_binary" --sync-sidebar-state-once >/dev/null 2>&1 || true
-}
-
 ensure() {
   require_plugin_payload
   stop_service_before_payload_upgrade
   sync_payload
-  synchronize_sidebar_state
   start_service
   printf 'Codex Usage Sidebar is installed and running.\n'
 }
@@ -221,7 +221,6 @@ repair() {
   require_plugin_payload
   "$launchctl_bin" bootout "$service" >/dev/null 2>&1 || true
   sync_payload true
-  synchronize_sidebar_state
   "$launchctl_bin" bootstrap "$domain" "$agent_plist"
   "$launchctl_bin" kickstart -k "$service"
   "$installed_binary" --diagnostic-once

@@ -35,7 +35,7 @@ project in public spaces.
 ## Enforcement
 
 Report abusive, harassing, or otherwise unacceptable behavior privately through
-https://github.com/Byctor/codex-usage-sidebar/security/advisories/new. Reports will be reviewed
+https://github.com/JaceHwang/codex-usage-sidebar/security/advisories/new. Reports will be reviewed
 promptly and fairly. The privacy and security of reporters will be respected.
 
 ## Attribution

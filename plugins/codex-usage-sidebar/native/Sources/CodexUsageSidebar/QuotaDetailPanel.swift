@@ -11,7 +11,6 @@ final class QuotaDetailPanel {
     private let panel: NSPanel
     private var lastContent: QuotaDetailContent?
     private var lastIndicatorFrame: CGRect?
-    private var lastPlacement: OverlayPlacement?
     private var lastTheme: CodexInterfaceTheme?
 
     init() {
@@ -38,21 +37,18 @@ final class QuotaDetailPanel {
     func show(
         content: QuotaDetailContent,
         relativeTo indicatorFrame: CGRect,
-        placement: OverlayPlacement,
         theme: CodexInterfaceTheme
     ) {
         if
             panel.isVisible,
             lastContent == content,
             lastIndicatorFrame == indicatorFrame,
-            lastPlacement == placement,
             lastTheme == theme
         {
             return
         }
         lastContent = content
         lastIndicatorFrame = indicatorFrame
-        lastPlacement = placement
         lastTheme = theme
 
         let screen = NSScreen.screens.first {
@@ -66,7 +62,6 @@ final class QuotaDetailPanel {
         )
         let panelFrame = QuotaDetailLayout.frame(
             indicatorFrame: indicatorFrame,
-            placement: placement,
             rowCount: content.rows.count,
             visibleFrame: visibleFrame
         )
@@ -115,7 +110,9 @@ private final class QuotaDetailCardView: NSVisualEffectView {
         let remaining = label(
             "\(content.remainingPercent)%",
             font: .systemFont(ofSize: 17, weight: .semibold),
-            color: content.remainingPercent <= 10 ? .systemRed : .labelColor,
+            color: QuotaColorScale.components(
+                remainingPercent: content.remainingPercent
+            ).appKitColor,
             alignment: .right
         )
         remaining.frame = CGRect(
@@ -251,7 +248,9 @@ private final class QuotaProgressView: NSView {
             height: bounds.height
         )
         let fill = NSBezierPath(roundedRect: fillRect, xRadius: 2.5, yRadius: 2.5)
-        (value <= 10 ? NSColor.systemRed : NSColor.controlAccentColor).setFill()
+        QuotaColorScale.components(
+            remainingPercent: value
+        ).appKitColor.setFill()
         fill.fill()
     }
 }

@@ -1,31 +1,57 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="430" viewBox="0 0 1100 430" role="img" aria-labelledby="title desc">
-  <title id="title">Codex Usage Sidebar architecture</title>
-  <desc id="desc">Local Codex signals flow to an external native companion and an overlay, with no modification to Codex.app.</desc>
-  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0l10 5-10 5z" fill="#667085"/></marker></defs>
-  <rect width="1100" height="430" rx="28" fill="#0f1423"/>
-  <g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
-    <text x="48" y="58" fill="#f5f7fb" font-size="26" font-weight="700">Local, external, upgrade-safe</text>
-    <g transform="translate(50 105)">
-      <rect width="260" height="240" rx="18" fill="#1b2234" stroke="#39445e"/>
-      <text x="24" y="40" fill="#f5f7fb" font-size="18" font-weight="700">Official Codex app</text>
-      <rect x="24" y="70" width="212" height="54" rx="12" fill="#252e44"/><text x="42" y="102" fill="#b9c3d8" font-size="14">codex app-server · stdio</text>
-      <rect x="24" y="142" width="212" height="54" rx="12" fill="#252e44"/><text x="42" y="174" fill="#b9c3d8" font-size="14">Window semantics · theme</text>
-      <text x="24" y="222" fill="#6f7b96" font-size="12">Read-only application bundle</text>
+  <title id="title">Codex Usage Sidebar local architecture</title>
+  <desc id="desc">An isolated Codex app-server quota stream and semantic accessibility anchor feed an external native overlay.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0l10 5-10 5z" fill="#899286"/>
+    </marker>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#111610"/><stop offset="1" stop-color="#20251d"/>
+    </linearGradient>
+  </defs>
+  <rect width="1100" height="430" rx="28" fill="url(#background)"/>
+  <g font-family="Avenir Next,Helvetica Neue,sans-serif">
+    <text x="48" y="56" fill="#f2f4e9" font-size="26" font-weight="700">Local data. Semantic placement. External companion.</text>
+
+    <g transform="translate(48 102)">
+      <rect width="230" height="245" rx="18" fill="#20291f" stroke="#465243"/>
+      <text x="22" y="37" fill="#edf2e8" font-size="17" font-weight="700">Official Codex</text>
+      <rect x="22" y="62" width="186" height="58" rx="11" fill="#2b3529"/>
+      <text x="38" y="87" fill="#c2cabd" font-size="13">app-server over stdio</text>
+      <text x="38" y="106" fill="#82907d" font-size="11">quota + Bank updates</text>
+      <rect x="22" y="137" width="186" height="58" rx="11" fill="#2b3529"/>
+      <text x="38" y="162" fill="#c2cabd" font-size="13">Accessibility tree</text>
+      <text x="38" y="181" fill="#82907d" font-size="11">Open Location frame</text>
+      <text x="22" y="224" fill="#768172" font-size="11">Application bundle remains read-only</text>
     </g>
-    <path d="M310 190h170" stroke="#667085" stroke-width="2" marker-end="url(#arrow)"/><text x="346" y="176" fill="#8f9ab3" font-size="12">quota updates</text>
-    <path d="M310 264h170" stroke="#667085" stroke-width="2" marker-end="url(#arrow)"/><text x="336" y="250" fill="#8f9ab3" font-size="12">placement signals</text>
-    <g transform="translate(480 105)">
-      <rect width="300" height="240" rx="18" fill="#172b2b" stroke="#2d6d62"/>
-      <text x="24" y="40" fill="#ecfffa" font-size="18" font-weight="700">Native companion</text>
-      <g fill="#b8d8d0" font-size="14"><text x="24" y="82">Decode and coalesce limits</text><text x="24" y="116">Resolve chrome + surface</text><text x="24" y="150">Format local reset time</text><text x="24" y="184">Follow Codex theme</text></g>
-      <text x="24" y="222" fill="#6fa99d" font-size="12">User LaunchAgent · AppKit</text>
+
+    <path d="M278 172h116" stroke="#899286" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M278 274h116" stroke="#899286" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <g transform="translate(394 102)">
+      <rect width="306" height="245" rx="18" fill="#253025" stroke="#61705d"/>
+      <text x="22" y="37" fill="#f1f4eb" font-size="17" font-weight="700">Native AppKit companion</text>
+      <g fill="#c3cdc0" font-size="13">
+        <text x="22" y="76">AllowanceSnapshot + every Bank entry</text>
+        <text x="22" y="108">Isolated CodexHome credentials</text>
+        <text x="22" y="140">Open Location semantic resolver</text>
+        <text x="22" y="172">Cached AX frame every 0.1 seconds</text>
+        <text x="22" y="204">Theme + continuous quota color</text>
+      </g>
+      <text x="22" y="228" fill="#82907d" font-size="11">User LaunchAgent - no global input monitor</text>
     </g>
-    <path d="M780 225h120" stroke="#667085" stroke-width="2" marker-end="url(#arrow)"/>
-    <g transform="translate(900 150)">
-      <rect width="150" height="150" rx="18" fill="#1d2540" stroke="#4c5f96"/>
-      <rect x="24" y="30" width="102" height="36" rx="10" fill="#313d61"/><text x="42" y="53" fill="#f5f7fb" font-size="13" font-weight="700">57% · 16:08</text>
-      <text x="28" y="98" fill="#c4cbe0" font-size="14">Native overlay</text><text x="28" y="122" fill="#7f8aad" font-size="11">No keyboard focus</text>
+
+    <path d="M700 224h112" stroke="#899286" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <g transform="translate(812 137)">
+      <rect width="238" height="175" rx="18" fill="#282c25" stroke="#777e70"/>
+      <text x="22" y="34" fill="#e9ece3" font-size="14" font-weight="700">Non-activating overlay</text>
+      <rect x="22" y="55" width="120" height="34" rx="9" fill="#383d34"/>
+      <text x="38" y="77" fill="#66c68e" font-size="13" font-weight="700">57% | 16:08</text>
+      <path d="M151 58v28" stroke="#d3a349" stroke-width="2"/>
+      <text x="163" y="76" fill="#d3a349" font-size="11">8 pt</text>
+      <text x="22" y="121" fill="#bdc4b8" font-size="12">quota.maxX =</text>
+      <text x="22" y="141" fill="#bdc4b8" font-size="12">openLocation.minX - 8 pt</text>
     </g>
-    <text x="50" y="390" fill="#8f9ab3" font-size="13">Nothing is injected into or re-signed inside /Applications/ChatGPT.app</text>
   </g>
 </svg>

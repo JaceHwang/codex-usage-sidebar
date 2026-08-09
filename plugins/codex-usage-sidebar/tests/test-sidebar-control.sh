@@ -126,6 +126,7 @@ assert_file "$installed_app/Contents/Info.plist"
 assert_file "$installed_app/Contents/MacOS/CodexUsageSidebar"
 assert_file "$installed_root/sidebar-control.sh"
 assert_file "$agent_plist"
+[[ -d "$fixture_root/CodexHome" ]] || fail "plugin CodexHome was not created"
 /usr/bin/plutil -lint "$agent_plist" >/dev/null
 assert_contains "bootstrap gui/501 $agent_plist" "$launchctl_log"
 assert_contains "--verify --deep --strict $fake_app" "$codesign_log"
@@ -143,10 +144,6 @@ first_hash="$(/usr/bin/shasum -a 256 "$installed_app/Contents/MacOS/CodexUsageSi
 second_hash="$(/usr/bin/shasum -a 256 "$installed_app/Contents/MacOS/CodexUsageSidebar" | /usr/bin/awk '{print $1}')"
 [[ "$first_hash" == "$second_hash" ]] || fail "idempotent ensure changed the installed executable"
 
-: >"$app_log"
-"$control_script" ensure --plugin-root "$fake_plugin" --plugin-data "$fixture_root/plugin-data"
-assert_contains "--sync-sidebar-state-once" "$app_log"
-
 : >"$operation_log"
 cat >"$fake_app/Contents/MacOS/CodexUsageSidebar" <<'UPGRADED_APP'
 #!/usr/bin/env bash
@@ -162,10 +159,6 @@ chmod +x "$fake_app/Contents/MacOS/CodexUsageSidebar"
 assert_contains "0.2.0-test" "$installed_app/Contents/Info.plist"
 assert_before \
   "launchctl bootout gui/501/com.jace.codex-usage-sidebar" \
-  "app upgraded --sync-sidebar-state-once" \
-  "$operation_log"
-assert_before \
-  "app upgraded --sync-sidebar-state-once" \
   "launchctl bootstrap gui/501" \
   "$operation_log"
 
@@ -184,7 +177,6 @@ assert_contains "0.3.0-test" "$installed_app/Contents/Info.plist"
 assert_contains "repaired" "$installed_app/Contents/MacOS/CodexUsageSidebar"
 assert_contains "bootout gui/501/com.jace.codex-usage-sidebar" "$launchctl_log"
 assert_contains "kickstart -k gui/501/com.jace.codex-usage-sidebar" "$launchctl_log"
-assert_contains "repaired --sync-sidebar-state-once" "$app_log"
 assert_contains "repaired --diagnostic-once" "$app_log"
 
 malformed_plugin="$fixture_root/malformed plugin"

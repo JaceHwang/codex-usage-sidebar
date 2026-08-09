@@ -6,47 +6,79 @@
 
 ## Components
 
-1. **Codex plugin marketplace entry** — makes the plugin installable through the Codex CLI.
-2. **SessionStart hook** — ensures the external companion payload is current and synchronizes the
-   observed Codex surface state at each new task boundary.
-3. **Control script** — atomically installs, repairs, reports, and removes a user LaunchAgent.
-4. **Native AppKit companion** — reads quota snapshots, resolves theme and surface classification,
-   and renders an independent non-activating overlay.
-5. **SidebarCore** — pure decoding, formatting, layout, refresh, and surface-classification logic
-   covered by Swift tests.
+1. **Marketplace plugin** provides the installable manifest, skill, and `SessionStart` hook.
+2. **Control script** atomically installs, repairs, reports, and removes the user LaunchAgent.
+3. **Native AppKit companion** runs outside Codex and renders a non-activating quota panel.
+4. **SidebarCore** contains pure rate-limit decoding, formatting, color, layout, transport, and
+   anchor-resolution logic covered by Swift tests.
 
 ## Data flow
 
-The companion discovers the running `com.openai.codex` bundle and launches its current
-`codex app-server` executable over local stdio. It initializes JSON-RPC, reads rate limits, and
-subscribes to updates. No account token is read by the companion.
+```text
+Codex app-server over stdio
+        |
+        v
+AllowanceSnapshot + Bank entries
+        |
+        v
+Native AppKit companion
+        |
+        v
+Open Location semantic AX lookup
+        |
+        v
+cached AX element sampled every 0.1s
+        |
+        v
+quota.maxX = openLocation.minX - 8pt
+```
 
-The placement adapter reads the Codex accessibility tree when macOS grants permission. It performs
-a shallow chrome scan first. A resolved main surface returns without traversing deep content;
-only a no-match scan continues far enough to confirm a non-main renderer surface before hiding.
-Unavailable or incomplete scans preserve the last confirmed state.
+The companion discovers the running `com.openai.codex` bundle and launches its current
+`codex app-server` executable over local stdio with an isolated `CODEX_HOME`. JSON-RPC initialization,
+rate-limit reads, notifications, refresh recovery, and reset checks produce an `AllowanceSnapshot`.
+
+## Placement
+
+The accessibility scan selects the Codex AX window that best matches the active Quartz window. It
+walks the right half of the tree, pruning left-side branches, and recognizes Open Location through
+its title, description, help text, or identifier in English or Chinese.
+
+After the first match, the AX window and element are cached. The 0.1-second position loop reads only
+the cached element frame and repositions the overlay, which keeps the gap stable while the left,
+right, or bottom pane opens, the window resizes, or the window moves.
+
+If the exact target is unavailable, pure resolver fallbacks can use another labeled header control,
+the right-pane boundary, or a safe in-window edge. Diagnostics expose the selected source. The
+runtime has no sidebar-state model, global key monitor, global mouse monitor, or code injected into
+Codex.
+
+## Rendering and freshness
+
+The compact control and hover panel are native AppKit surfaces. They follow the Codex theme and do
+not activate or replace native controls. Percentage color is continuously interpolated through
+green, orange, and red. The hover model includes plan, period, Credits, aggregate Bank availability,
+and every Bank entry with expiry and status.
+
+App-server notifications update the snapshot immediately. Data dims after two minutes and hides
+after five minutes; the client restarts stalled or exited streams and schedules bounded refreshes.
 
 ## Upgrade boundary
 
-The official Codex bundle is read-only. The plugin's app, data, and LaunchAgent live under the user
-home directory. A Codex upgrade changes host discovery input, not the companion installation. A
-plugin upgrade replaces the payload through a temporary app and atomic rename before restarting the
-LaunchAgent.
+The official Codex bundle remains read-only. The companion, isolated Codex home, data, and
+LaunchAgent live under the user's home directory. A Codex upgrade changes discovery input, not the
+companion installation. A plugin upgrade copies the verified payload to a temporary app and uses an
+atomic rename before restarting the LaunchAgent.
 
 ## Binary provenance
 
-The marketplace companion is promoted from a successful GitHub Actions artifact rather than built
-separately for the repository commit. `assets/PROVENANCE.json` binds that payload to its source
-commit, workflow run, artifact digest, archive digest, executable SHA-256, and code-directory hash.
-The repository validator checks both the executable hash and that no plugin source changed between
-the recorded source commit and the marketplace snapshot, apart from the promoted app and provenance
-record.
+The marketplace app is promoted from a successful GitHub Actions artifact. `PROVENANCE.json` binds
+it to the source commit, workflow run, artifact digest, archive digest, executable SHA-256, and code
+directory hash. Validation checks the pinned executable and rejects unpromoted source on `main`.
 
 ## Safety properties
 
-- Exact install and uninstall paths are validated before destructive operations.
-- App-server reads are coalesced and recover after stalled or exited transports.
-- Stale quota data dims after two minutes and hides after five minutes.
-- Ambiguous anchors, invalid windows, non-foreground host state, and completed non-main surfaces
-  hide the overlay.
-- The overlay does not take keyboard focus or replace native Codex controls.
+- Install and uninstall paths are validated before destructive operations.
+- The official Codex application is never modified or re-signed.
+- The app-server receives credentials only from the isolated `CodexHome` created by `codex login`.
+- The accessibility reader inspects only Codex window and named-control geometry.
+- Invalid windows, missing snapshots, background host state, and expired data hide the overlay.

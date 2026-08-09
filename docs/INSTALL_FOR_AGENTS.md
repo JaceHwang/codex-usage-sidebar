@@ -1,7 +1,6 @@
 # Install with an Agent
 
-This guide is written for Codex and other coding agents. A human can paste the prompt below into an
-agent with terminal access on the target Mac.
+This playbook is for a coding agent with terminal access to the target Mac.
 
 ## Copy-paste task
 
@@ -10,19 +9,18 @@ Install Codex Usage Sidebar from the public GitHub marketplace.
 
 Requirements:
 1. Verify macOS 14+, Apple Silicon, Codex desktop, and the codex CLI.
-2. Run:
-   codex plugin marketplace add Byctor/codex-usage-sidebar
-   codex plugin add codex-usage-sidebar@codex-usage-sidebar
-3. Do not modify, inject into, or re-sign /Applications/ChatGPT.app.
+2. Install JaceHwang/codex-usage-sidebar through the codex plugin marketplace commands.
+3. Do not modify, inject into, or re-sign the official Codex application.
 4. Explain that a new Codex task is required before the SessionStart hook is available.
-5. In the new task, invoke @codex-usage-sidebar to check/repair it.
-6. Verify the LaunchAgent is loaded and report the exact status output.
-7. If macOS Accessibility is off, open the correct System Settings pane and ask me to approve the
-   switch; do not claim it is enabled until the OS reports it.
-8. Leave Codex on its normal main surface; the sidebar may be expanded or collapsed.
+5. Authorize the companion's isolated CodexHome with the official codex login command.
+6. In the new task, invoke @codex-usage-sidebar to check and repair the installation.
+7. Verify the LaunchAgent, status output, isolated login, and accessibility state.
+8. If Accessibility is off, open the correct System Settings pane and ask me to approve the switch.
+9. Confirm anchor=openLocation, placement=content-header, and cached:true without exposing unrelated
+   windows, conversations, or account data.
 ```
 
-## Deterministic agent procedure
+## Deterministic procedure
 
 ### 1. Preflight
 
@@ -34,27 +32,38 @@ codex --version
 codex plugin --help
 ```
 
-Stop and report the failed requirement instead of attempting an unsupported installation.
+Report a failed requirement instead of attempting an unsupported installation.
 
-### 2. Install marketplace and plugin
+### 2. Install
 
 ```bash
-codex plugin marketplace add Byctor/codex-usage-sidebar
+codex plugin marketplace add JaceHwang/codex-usage-sidebar
 codex plugin add codex-usage-sidebar@codex-usage-sidebar
 codex plugin list
 ```
 
-Confirm the list contains `codex-usage-sidebar@codex-usage-sidebar` with `installed, enabled`.
+Confirm `codex-usage-sidebar@codex-usage-sidebar` is installed and enabled.
 
 ### 3. Cross the task boundary
 
-Plugins and skills are loaded at task start. Ask the user to start a new Codex task, then invoke:
+Plugins and skills load when a task starts. Ask the user to create a new Codex task, then invoke:
 
 ```text
 @codex-usage-sidebar check the installation and repair it if needed
 ```
 
-### 4. Verify runtime
+### 4. Authorize the isolated Codex home
+
+```bash
+plugin_home="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome"
+env CODEX_HOME="$plugin_home" codex login
+env CODEX_HOME="$plugin_home" codex login status
+```
+
+The login flow is interactive and may require the user to finish authorization. Do not copy
+`~/.codex/auth.json` into the isolated home.
+
+### 5. Verify runtime and placement
 
 ```bash
 control="$HOME/Library/Application Support/CodexUsageSidebar/sidebar-control.sh"
@@ -63,26 +72,28 @@ test -x "$control"
 launchctl print "gui/$(id -u)/com.jace.codex-usage-sidebar"
 ```
 
-The agent must distinguish these states:
+Interpret status conservatively:
 
-- `installed and loaded`: runtime is present.
-- `accessibility=granted`: semantic positioning and Settings hiding can be verified.
-- `accessibility=required`: open the Accessibility pane and ask for user approval at the switch.
+- `installed and loaded` confirms the managed runtime is present.
+- `accessibility=granted` permits semantic placement checks.
+- `accessibility=required` means the user must approve the macOS switch.
+- `anchor=openLocation placement=content-header` confirms the intended anchor.
+- `cached:true` confirms the 0.1-second position loop is using the cached AX element.
 
-Accessibility is a macOS security permission. An agent must not bypass it or silently claim success.
+Accessibility is a macOS security permission. Never bypass it or claim it is granted before the OS
+reports that state.
 
-### 5. Repair after an official Codex update
+### 6. Repair after an update
 
 ```bash
 "$HOME/Library/Application Support/CodexUsageSidebar/sidebar-control.sh" repair
 ```
 
-No application patching is required. The companion rediscovers the current Codex bundle and local
-app-server on every session.
+The companion rediscovers the current Codex bundle and its `app-server`; no official application
+patch is required.
 
-### 6. Report evidence
+### 7. Report evidence
 
-Return the plugin version, status output, LaunchAgent state, Accessibility state, and whether the
-indicator appears in the top-right titlebar on the main surface. Verify it remains there with the
-sidebar both expanded and collapsed. Do not expose unrelated window contents or account data in
-screenshots.
+Return the plugin version, login status, companion status, LaunchAgent state, Accessibility state,
+anchor source, and whether the visible control keeps an 8-point gap from Open Location while panes
+and window size change. Crop screenshots to the relevant titlebar area.

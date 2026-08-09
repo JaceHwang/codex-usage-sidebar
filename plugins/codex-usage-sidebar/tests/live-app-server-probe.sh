@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+default_codex_home="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome"
+codex_home="${CODEX_HOME:-}"
+if [[ -z "$codex_home" && -d "$default_codex_home" ]]; then
+  codex_home="$default_codex_home"
+fi
+
+if (($#)); then
+  if [[ "$1" == "--codex-home" && $# -eq 2 ]]; then
+    codex_home="$2"
+  else
+    printf 'usage: %s [--codex-home PATH]\n' "$0" >&2
+    exit 64
+  fi
+fi
+
 if [[ -x /Applications/ChatGPT.app/Contents/Resources/codex ]]; then
   codex_binary=/Applications/ChatGPT.app/Contents/Resources/codex
 elif command -v codex >/dev/null 2>&1; then
@@ -28,7 +43,14 @@ trap cleanup EXIT
 
 mkfifo "$input_fifo"
 exec 3<>"$input_fifo"
-"$codex_binary" app-server --stdio <"$input_fifo" >"$output_file" 2>"$error_file" &
+if [[ -n "$codex_home" ]]; then
+  env CODEX_HOME="$codex_home" \
+    "$codex_binary" app-server --stdio \
+    <"$input_fifo" >"$output_file" 2>"$error_file" &
+else
+  "$codex_binary" app-server --stdio \
+    <"$input_fifo" >"$output_file" 2>"$error_file" &
+fi
 server_pid=$!
 
 printf '%s\n' \

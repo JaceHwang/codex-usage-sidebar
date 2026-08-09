@@ -4,9 +4,9 @@ This directory is the installable `codex-usage-sidebar` plugin referenced by the
 marketplace manifest. Start at the [repository README](../../README.md) for installation,
 screenshots, privacy, support, and contribution instructions.
 
-On Codex main surfaces, its native companion keeps the live quota control in the right titlebar
-whether the sidebar is expanded or collapsed. Settings and other completed non-main surfaces hide
-the control.
+Its native companion shows one live quota control in the central content header. The control tracks
+the Open Location action directly with a fixed 8-point gap as sidebars and the window change; it
+never creates a second control in the left sidebar.
 
 Developer verification:
 

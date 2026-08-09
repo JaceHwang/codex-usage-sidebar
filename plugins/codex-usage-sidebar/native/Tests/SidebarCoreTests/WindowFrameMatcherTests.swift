@@ -2,7 +2,7 @@ import CoreGraphics
 import SidebarCore
 import XCTest
 
-final class SidebarWindowMatcherTests: XCTestCase {
+final class WindowFrameMatcherTests: XCTestCase {
     func testSelectsWindowMatchingObservedGeometryInsteadOfFirstWindow() {
         let expected = CGRect(x: 89, y: 31, width: 1_831, height: 1_049)
         let windows = [
@@ -11,7 +11,7 @@ final class SidebarWindowMatcherTests: XCTestCase {
         ]
 
         XCTAssertEqual(
-            SidebarWindowMatcher.bestMatchIndex(
+            WindowFrameMatcher.bestMatchIndex(
                 windowFrames: windows,
                 expectedFrame: expected
             ),
@@ -24,7 +24,7 @@ final class SidebarWindowMatcherTests: XCTestCase {
         let windows = [CGRect(x: 900, y: 400, width: 500, height: 400)]
 
         XCTAssertNil(
-            SidebarWindowMatcher.bestMatchIndex(
+            WindowFrameMatcher.bestMatchIndex(
                 windowFrames: windows,
                 expectedFrame: expected
             )

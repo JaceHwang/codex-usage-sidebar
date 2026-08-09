@@ -54,6 +54,7 @@ public final class ProcessLineTransport: LineTransport, @unchecked Sendable {
     private let continuation: AsyncStream<String>.Continuation
     private let executableURL: URL
     private let arguments: [String]
+    private let environmentOverrides: [String: String]
     private let lock = NSLock()
     private var process: Process?
     private var inputHandle: FileHandle?
@@ -62,10 +63,12 @@ public final class ProcessLineTransport: LineTransport, @unchecked Sendable {
 
     public init(
         executableURL: URL,
-        arguments: [String] = ["app-server", "--stdio"]
+        arguments: [String] = ["app-server", "--stdio"],
+        environmentOverrides: [String: String] = [:]
     ) {
         self.executableURL = executableURL
         self.arguments = arguments
+        self.environmentOverrides = environmentOverrides
         let pair = AsyncStream<String>.makeStream()
         lines = pair.stream
         continuation = pair.continuation
@@ -79,6 +82,12 @@ public final class ProcessLineTransport: LineTransport, @unchecked Sendable {
 
         process.executableURL = executableURL
         process.arguments = arguments
+        if !environmentOverrides.isEmpty {
+            process.environment = ProcessInfo.processInfo.environment.merging(
+                environmentOverrides,
+                uniquingKeysWith: { _, override in override }
+            )
+        }
         process.standardInput = inputPipe
         process.standardOutput = outputPipe
         process.standardError = errorPipe
