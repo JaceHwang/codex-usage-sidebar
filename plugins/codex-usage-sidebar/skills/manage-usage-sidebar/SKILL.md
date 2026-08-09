@@ -22,3 +22,7 @@ application bundle so official upgrades cannot overwrite it.
 After install or repair, tell the user that macOS may require one-time Accessibility
 permission for Codex Usage Sidebar. Never claim that permission was granted unless
 the operating system reports it.
+
+For language reports, use the sanitized `language=` and `language_source=` fields from
+status. `process` reflects Codex's effective displayed locale, including Auto; do not
+request or expose raw process arguments.

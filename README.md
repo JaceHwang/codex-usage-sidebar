@@ -37,7 +37,9 @@ and renders one non-activating control exactly 8 points before the native Open L
 | Left, right, or bottom pane changes | The quota control follows the native **Open Location** control and keeps an exact 8-point gap. |
 | Window moves or resizes | A cached accessibility anchor is sampled every 0.1 seconds, so the control tracks the new position. |
 | Hover | A native detail card shows the synchronized plugin version, plan, period, Credits, and every Bank entry with status and expiry. |
+| Click | The detail card stays pinned until the quota control is clicked again; hover behavior remains available. |
 | Quota changes | Percentage color follows the exact 100% green, 49% orange, and 10% red palette while the filled bar reveals the matching spectrum. |
+| Codex language changes | The control and detail card follow Codex's effective Simplified Chinese, Traditional Chinese, or English locale within one second. |
 
 The old sidebar-footer copy and all sidebar-state synchronization code are removed. There is only one
 quota control.
@@ -96,6 +98,22 @@ companion preserves a safe in-window fallback rather than touching Codex interna
 - Local notifications update the display immediately; bounded refresh and stream recovery protect
   against missed updates.
 
+## Language matching
+
+Version 0.2.0 follows the language Codex is actually displaying, including when Codex language is
+set to **Auto**. The running renderer's resolved locale is authoritative; Codex preferences and the
+macOS preferred language provide safe startup fallbacks.
+
+| Effective Codex locale | Plugin UI |
+| --- | --- |
+| Simplified Chinese (`zh-Hans`, `zh-CN`, `zh-SG`) | 简体中文 |
+| Traditional Chinese (`zh-Hant`, `zh-TW`, `zh-HK`, `zh-MO`) | 繁體中文 |
+| English (`en-*`) | English |
+| Any other locale | English |
+
+There is no separate plugin language switch. The companion checks the effective locale every
+second, so both a visible and a click-pinned detail card update without reinstalling the plugin.
+
 ## Why it survives Codex upgrades
 
 - The companion lives in `~/Library/Application Support/CodexUsageSidebar/`, outside the official
@@ -121,6 +139,8 @@ signature change.
 - Reads quota snapshots from the local Codex `app-server` process over stdio.
 - Uses an isolated `CodexHome`; credentials are created by the official `codex login` flow.
 - Does not scrape web pages, inject into Codex, read conversation text, or send telemetry.
+- Reads only the running Codex renderer's locale argument in memory for language matching; raw
+  process arguments are never written to diagnostics or logs.
 - Reads only the active Codex window and named control geometry for placement.
 - Keeps runtime files under the user's Application Support directory.
 
@@ -136,7 +156,8 @@ Read the complete [privacy model](docs/PRIVACY.md), [architecture](docs/ARCHITEC
 A healthy precise-positioning result includes the state from the actual LaunchAgent process:
 
 ```text
-pid=12345 version=0.1.9 runtime=shown placement=content-header anchor=openLocation
+pid=12345 version=0.2.0 runtime=shown placement=content-header anchor=openLocation
+language=simplifiedChinese language_source=process
 indicator=1524,1003,164,46 ... cached:true,source:openLocation,edge:1696
 installed and loaded: .../Codex Usage Sidebar.app
 ```

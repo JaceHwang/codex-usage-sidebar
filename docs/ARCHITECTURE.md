@@ -37,6 +37,29 @@ The companion discovers the running `com.openai.codex` bundle and launches its c
 `codex app-server` executable over local stdio with an isolated `CODEX_HOME`. JSON-RPC initialization,
 rate-limit reads, notifications, refresh recovery, and reset checks produce an `AllowanceSnapshot`.
 
+Language resolution is independent from quota transport:
+
+```text
+running Codex renderer --lang
+        |
+        v
+Codex Preferences fallback
+        |
+        v
+macOS preferred-language fallback
+        |
+        v
+Simplified Chinese / Traditional Chinese / English
+        |
+        v
+localized compact control + detail card
+```
+
+The running renderer argument is the final effective locale, so it also reflects Codex's resolved
+choice when the application setting is Auto. A script subtag takes precedence over a region;
+unsupported locales map to English. Raw process arguments are used in memory only and are never
+persisted.
+
 ## Placement
 
 The accessibility scan selects the Codex AX window that best matches the active Quartz window. It
@@ -61,6 +84,10 @@ gradient with stops at 0%, 10%, 49%, and 100% across the full track. The hover h
 `CFBundleShortVersionString` into a compact outlined badge. The detail model includes plan, period,
 Credits, aggregate Bank availability, and every Bank entry with expiry and status.
 
+Hover shows the detail card transiently. Clicking the quota control pins the same card; clicking
+again dismisses it. A one-second language check re-renders visible content from the current
+snapshot without changing interaction state or triggering an app-server refresh.
+
 App-server notifications update the snapshot immediately. Data dims after two minutes and hides
 after five minutes; the client restarts stalled or exited streams and schedules bounded refreshes.
 
@@ -73,7 +100,8 @@ app, applies the stable local signing identity when available, verifies the resu
 atomic rename before restarting the LaunchAgent.
 
 The long-running process atomically publishes a sanitized `runtime-state.txt` containing PID,
-bundle version, visibility, anchor source, indicator frame, and timestamp. `sidebar-control.sh status`
+bundle version, visibility, mapped language and source, anchor source, indicator frame, and
+timestamp. `sidebar-control.sh status`
 reports that file only when its PID matches the active LaunchAgent, avoiding misleading
 results from a separate one-shot diagnostic process.
 

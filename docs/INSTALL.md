@@ -74,7 +74,8 @@ Repair once after changing the switch:
 A healthy precise-positioning result is read from the actual managed process and includes:
 
 ```text
-pid=12345 version=0.1.9 runtime=shown placement=content-header anchor=openLocation
+pid=12345 version=0.2.0 runtime=shown placement=content-header anchor=openLocation
+language=simplifiedChinese language_source=process
 indicator=1524,1003,164,46 ... cached:true,source:openLocation,edge:1696
 installed and loaded: .../Codex Usage Sidebar.app
 ```
@@ -84,6 +85,10 @@ been resolved. For an indicator frame `x,y,width,height`, verify `x + width = ed
 must match the badge beside the hover-card title. A fallback source is safe but not the intended
 fixed-gap placement; see
 [Troubleshooting](TROUBLESHOOTING.md).
+
+The language fields report the effective mapped UI language and how it was obtained. `process` is
+the preferred steady-state result because it reflects the language Codex is actually displaying,
+including the final result of the Auto setting. `preferences` and `system` are startup fallbacks.
 
 ## Update
 

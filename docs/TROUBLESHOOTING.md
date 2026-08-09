@@ -76,6 +76,24 @@ Logs are stored at:
 
 Remove credentials and account identifiers before sharing log excerpts.
 
+## The plugin language does not match Codex
+
+Run status and inspect the sanitized language fields:
+
+```text
+language=traditionalChinese language_source=process
+```
+
+The companion follows Codex's effective displayed locale rather than maintaining a separate
+language selector. `process` is authoritative while Codex is running; `preferences` and `system`
+are startup fallbacks. Simplified Chinese, Traditional Chinese, and English map directly, while
+every other locale displays English.
+
+After changing Codex's language setting, allow up to one second for a running renderer change. If
+Codex itself still shows the previous language, restart Codex so its renderer applies the new
+setting, then run status again. If status remains inconsistent, repair the companion. Raw process
+arguments are never included in status or logs.
+
 ## Update or reset
 
 Normal update:

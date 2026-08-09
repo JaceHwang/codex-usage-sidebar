@@ -26,7 +26,9 @@ Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生�
 | 打开或关闭左、右、下侧栏 | 直接跟随原生“打开位置”按钮，始终保持精确 `8pt` 间隔。 |
 | 移动或缩放窗口 | 每 `0.1 秒`读取缓存锚点的新坐标，额度按钮同步移动。 |
 | 鼠标悬浮 | 展示同步的插件版本、套餐、额度周期、Credits、全部 Bank 次数、状态与过期时间。 |
+| 鼠标点击 | 浮窗保持常驻，再次点击收回；原有悬浮查看方式继续保留。 |
 | 剩余额度变化 | 百分比严格按 100% 绿、49% 橙、10% 红连续过渡，已填充进度显示对应光谱。 |
+| Codex 语言变化 | 按 Codex 最终显示语言在 1 秒内切换简体中文、繁体中文或英文。 |
 
 旧版左侧栏底部副本以及所有侧栏状态同步代码均已删除，现在只有顶部这一个额度按钮。
 
@@ -79,6 +81,21 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 - 已填充进度条从固定的红→橙→绿光谱中按实时额度裁切，未填充部分保持主题自适应灰色。
 - 本地通知到达后立即更新，并带有有界刷新、重置检查与数据流恢复机制。
 
+## 语言自动匹配
+
+v0.2.0 直接跟随 Codex **最终实际显示的语言**，因此 Codex 设为“自动”时也能正确匹配。
+运行中的 Codex 渲染进程语言优先；Codex 偏好设置与 macOS 首选语言仅作为启动阶段的安全回退。
+
+| Codex 最终语言 | 插件显示 |
+| --- | --- |
+| 简体中文（`zh-Hans`、`zh-CN`、`zh-SG`） | 简体中文 |
+| 繁体中文（`zh-Hant`、`zh-TW`、`zh-HK`、`zh-MO`） | 繁體中文 |
+| 英文（`en-*`） | English |
+| 其他语言 | English |
+
+插件不再提供一套独立语言设置，避免与 Codex 不一致。伴随程序每秒检查一次有效语言；已显示或
+点击固定的浮窗也会原地更新，无需重新安装插件。
+
 ## 为什么 Codex 升级后仍能用
 
 - 伴随程序位于 `~/Library/Application Support/CodexUsageSidebar/`，不在官方应用包中。
@@ -100,6 +117,7 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 - 只通过 stdio 从本机 Codex `app-server` 读取额度快照。
 - 使用隔离的 `CodexHome`，凭据仅由官方 `codex login` 流程创建。
 - 不抓网页、不注入 Codex、不读取聊天正文、不上传遥测。
+- 只在内存中读取 Codex 渲染进程的语言参数用于匹配；原始进程参数不会写入诊断或日志。
 - 只读取当前 Codex 窗口与目标控件的几何信息用于定位。
 - 运行文件只保存在用户的 Application Support 目录。
 
@@ -114,7 +132,8 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 精确定位正常时会返回常驻 LaunchAgent 进程的真实状态：
 
 ```text
-pid=12345 version=0.1.9 runtime=shown placement=content-header anchor=openLocation
+pid=12345 version=0.2.0 runtime=shown placement=content-header anchor=openLocation
+language=simplifiedChinese language_source=process
 indicator=1524,1003,164,46 ... cached:true,source:openLocation,edge:1696
 installed and loaded: .../Codex Usage Sidebar.app
 ```
