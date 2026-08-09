@@ -26,6 +26,14 @@
 > [!NOTE]
 > This is an independent community project and is not affiliated with or endorsed by OpenAI.
 
+## Actual appearance
+
+<p align="center">
+  <img src="docs/images/live-titlebar-indicator.jpeg" alt="Live v0.2.1 quota indicator in the Codex titlebar" width="246">
+</p>
+
+<p align="center"><em>Real v0.2.1 capture from the running native companion.</em></p>
+
 ## What it does
 
 Codex Usage Sidebar installs a small native macOS companion outside the signed Codex application.

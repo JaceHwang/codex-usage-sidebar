@@ -16,6 +16,14 @@
 > [!NOTE]
 > 这是独立社区项目，与 OpenAI 无隶属关系，也不代表 OpenAI 官方背书。
 
+## 当前实际效果
+
+<p align="center">
+  <img src="docs/images/live-titlebar-indicator.jpeg" alt="Codex 标题栏中实际运行的 v0.2.1 剩余额度按钮" width="246">
+</p>
+
+<p align="center"><em>从当前运行中的 v0.2.1 原生伴随程序实机截取。</em></p>
+
 ## 功能效果
 
 Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生伴随程序。它从本机
