@@ -28,19 +28,19 @@ final class JSONRPCTests: XCTestCase {
 
     func testProcessTransportAppliesEnvironmentOverrides() async throws {
         let transport = ProcessLineTransport(
-            executableURL: URL(fileURLWithPath: "/usr/bin/env"),
-            arguments: [],
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: [
+                "-c",
+                #"printf 'CODEX_HOME=%s\n' "$CODEX_HOME"; read input"#,
+            ],
             environmentOverrides: ["CODEX_HOME": "/tmp/plugin-codex-home"]
         )
 
         try await transport.start()
-        var observedCodexHome: String?
-        for await line in transport.lines {
-            if line.hasPrefix("CODEX_HOME=") {
-                observedCodexHome = String(line.dropFirst("CODEX_HOME=".count))
-            }
-        }
+        var iterator = transport.lines.makeAsyncIterator()
+        let line = await iterator.next()
+        await transport.stop()
 
-        XCTAssertEqual(observedCodexHome, "/tmp/plugin-codex-home")
+        XCTAssertEqual(line, "CODEX_HOME=/tmp/plugin-codex-home")
     }
 }
