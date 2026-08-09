@@ -34,35 +34,47 @@ public struct QuotaDetailFormatter: Sendable {
     public func content(
         snapshot: AllowanceSnapshot,
         now: Date,
-        locale: Locale,
+        language: CodexDisplayLanguage,
         timeZone: TimeZone
     ) -> QuotaDetailContent {
+        let copy = QuotaLocalization(language: language)
         var rows: [QuotaDetailRow] = []
 
         if let planType = snapshot.planType, !planType.isEmpty {
-            rows.append(.init(label: "套餐", value: displayPlan(planType)))
+            rows.append(.init(label: copy.plan, value: displayPlan(planType)))
         }
         if let minutes = snapshot.windowDurationMins, minutes > 0 {
-            rows.append(.init(label: "额度周期", value: displayPeriod(minutes)))
+            rows.append(
+                .init(
+                    label: copy.quotaWindow,
+                    value: copy.period(minutes: minutes)
+                )
+            )
         }
         rows.append(
             .init(
-                label: "下次重置",
+                label: copy.nextReset,
                 value: displayDateWithInterval(
                     snapshot.resetsAt,
                     now: now,
-                    locale: locale,
+                    copy: copy,
                     timeZone: timeZone
                 )
             )
         )
         rows.append(
-            .init(label: "Credits", value: displayCredits(snapshot.credits))
+            .init(
+                label: "Credits",
+                value: displayCredits(snapshot.credits, copy: copy)
+            )
         )
 
         if let bank = snapshot.bank {
             rows.append(
-                .init(label: "Bank 可用重置", value: "\(bank.availableCount) 次")
+                .init(
+                    label: copy.bankAvailable,
+                    value: copy.bankCount(bank.availableCount)
+                )
             )
             let credits = (bank.credits ?? []).enumerated().sorted {
                 left,
@@ -84,32 +96,36 @@ public struct QuotaDetailFormatter: Sendable {
             for (index, item) in credits.enumerated() {
                 rows.append(
                     .init(
-                        label: "Bank \(index + 1)到期时间",
+                        label: copy.bankExpiryLabel(index + 1),
                         value: displayBankExpiry(
                             item.element,
                             now: now,
-                            locale: locale,
+                            copy: copy,
                             timeZone: timeZone
                         )
                     )
                 )
             }
             if credits.isEmpty, bank.availableCount > 0 {
-                rows.append(.init(label: "Bank 明细", value: "暂无数据"))
+                rows.append(.init(label: copy.bankDetails, value: copy.noData))
             }
         } else {
-            rows.append(.init(label: "Bank 可用重置", value: "暂无数据"))
+            rows.append(.init(label: copy.bankAvailable, value: copy.noData))
         }
 
         rows.append(
             .init(
-                label: "数据更新",
-                value: displayFreshness(snapshot.receivedAt, now: now)
+                label: copy.updated,
+                value: displayFreshness(
+                    snapshot.receivedAt,
+                    now: now,
+                    copy: copy
+                )
             )
         )
 
         return QuotaDetailContent(
-            title: "Codex 剩余额度",
+            title: copy.title,
             remainingPercent: snapshot.remainingPercent,
             rows: rows
         )
@@ -119,96 +135,98 @@ public struct QuotaDetailFormatter: Sendable {
         value.prefix(1).uppercased() + value.dropFirst()
     }
 
-    private func displayPeriod(_ minutes: Int) -> String {
-        if minutes.isMultiple(of: 1_440) {
-            return "\(minutes / 1_440) 天"
-        }
-        if minutes.isMultiple(of: 60) {
-            return "\(minutes / 60) 小时"
-        }
-        return "\(minutes) 分钟"
-    }
-
-    private func displayCredits(_ credits: CreditBalance?) -> String {
+    private func displayCredits(
+        _ credits: CreditBalance?,
+        copy: QuotaLocalization
+    ) -> String {
         guard let credits else {
-            return "暂无数据"
+            return copy.noData
         }
         if credits.unlimited {
-            return "无限"
+            return copy.unlimited
         }
         if credits.hasCredits {
-            return credits.balance ?? "可用"
+            return credits.balance ?? copy.available
         }
-        return "无"
+        return copy.none
     }
 
     private func displayDate(
         _ date: Date,
-        locale: Locale,
+        copy: QuotaLocalization,
         timeZone: TimeZone
     ) -> String {
         let formatter = DateFormatter()
-        formatter.locale = locale
+        formatter.locale = copy.locale
         formatter.timeZone = timeZone
         formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.dateFormat = "M月d日 HH:mm"
+        formatter.dateFormat = copy.detailDateFormat
         return formatter.string(from: date)
     }
 
     private func displayDateWithInterval(
         _ date: Date,
         now: Date,
-        locale: Locale,
+        copy: QuotaLocalization,
         timeZone: TimeZone
     ) -> String {
-        let absolute = displayDate(date, locale: locale, timeZone: timeZone)
-        let relative = relativeIntervalFormatter.string(from: now, to: date)
-        return "\(absolute)（\(relative)）"
+        let absolute = displayDate(date, copy: copy, timeZone: timeZone)
+        let relative = relativeIntervalFormatter.string(
+            from: now,
+            to: date,
+            language: copy.language
+        )
+        return "\(absolute)\(copy.openingParenthesis)\(relative)" +
+            copy.closingParenthesis
     }
 
     private func displayBankExpiry(
         _ credit: BankResetCredit,
         now: Date,
-        locale: Locale,
+        copy: QuotaLocalization,
         timeZone: TimeZone
     ) -> String {
         let status = credit.status?.lowercased()
         guard let expiry = credit.expiresAt else {
             switch status {
             case "used":
-                return "未提供到期时间 · 已使用"
+                return "\(copy.noExpiry) · \(copy.used)"
             case "expired":
-                return "未提供到期时间 · 已过期"
+                return "\(copy.noExpiry) · \(copy.expired)"
             default:
-                return "未提供到期时间"
+                return copy.noExpiry
             }
         }
         let expiryDescription = displayDateWithInterval(
             expiry,
             now: now,
-            locale: locale,
+            copy: copy,
             timeZone: timeZone
         )
         switch status {
         case "used":
-            return "\(expiryDescription) · 已使用"
+            return "\(expiryDescription) · \(copy.used)"
         case "expired":
-            return "\(expiryDescription) · 已过期"
+            return "\(expiryDescription) · \(copy.expired)"
         default:
             return expiry <= now
-                ? "\(expiryDescription) · 已过期"
+                ? "\(expiryDescription) · \(copy.expired)"
                 : expiryDescription
         }
     }
 
-    private func displayFreshness(_ receivedAt: Date, now: Date) -> String {
+    private func displayFreshness(
+        _ receivedAt: Date,
+        now: Date,
+        copy: QuotaLocalization
+    ) -> String {
         let seconds = max(0, now.timeIntervalSince(receivedAt))
         if seconds < 60 {
-            return "刚刚"
+            return copy.justNow
         }
         if seconds < 3_600 {
-            return "\(Int(seconds / 60)) 分钟前"
+            return copy.freshness(minutes: Int(seconds / 60))
         }
-        return "\(Int(seconds / 3_600)) 小时前"
+        return copy.freshness(hours: Int(seconds / 3_600))
     }
 }

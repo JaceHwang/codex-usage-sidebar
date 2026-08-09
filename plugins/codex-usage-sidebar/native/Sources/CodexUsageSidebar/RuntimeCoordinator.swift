@@ -160,14 +160,14 @@ final class RuntimeCoordinator: NSObject {
         let label = formatter.label(
             snapshot: snapshot,
             now: Date(),
-            locale: .autoupdatingCurrent,
+            language: .simplifiedChinese,
             timeZone: .autoupdatingCurrent,
             maxWidth: maximumLabelWidth
         )
         let detail = detailFormatter.content(
             snapshot: snapshot,
             now: Date(),
-            locale: .autoupdatingCurrent,
+            language: .simplifiedChinese,
             timeZone: .autoupdatingCurrent
         )
         overlay.show(

@@ -3,7 +3,11 @@ import Foundation
 public struct RelativeIntervalFormatter: Sendable {
     public init() {}
 
-    public func string(from now: Date, to target: Date) -> String {
+    public func string(
+        from now: Date,
+        to target: Date,
+        language: CodexDisplayLanguage
+    ) -> String {
         let interval = target.timeIntervalSince(now)
         let totalSeconds = Int(abs(interval).rounded(.down))
         let value: String
@@ -18,15 +22,13 @@ public struct RelativeIntervalFormatter: Sendable {
             value = "\(hours)h\(minutes)m"
         } else if totalSeconds >= 60 {
             value = "\(totalSeconds / 60)m"
-        } else if interval < 0 {
-            value = "<1m前"
         } else {
             value = "<1m"
         }
 
-        guard interval < 0, totalSeconds >= 60 else {
+        guard interval < 0 else {
             return value
         }
-        return "\(value)前"
+        return "\(value)\(QuotaLocalization(language: language).pastSuffix)"
     }
 }

@@ -27,7 +27,29 @@ final class RelativeIntervalFormatterTests: XCTestCase {
         XCTAssertEqual(format(after: -42), "<1m前")
     }
 
-    private func format(after interval: TimeInterval) -> String {
-        formatter.string(from: now, to: now.addingTimeInterval(interval))
+    func testLocalizesPastSuffixWithoutChangingCompactUnits() {
+        XCTAssertEqual(
+            format(after: -42 * 60, language: .traditionalChinese),
+            "42m前"
+        )
+        XCTAssertEqual(
+            format(after: -42 * 60, language: .english),
+            "42m ago"
+        )
+        XCTAssertEqual(
+            format(after: -42, language: .english),
+            "<1m ago"
+        )
+    }
+
+    private func format(
+        after interval: TimeInterval,
+        language: CodexDisplayLanguage = .simplifiedChinese
+    ) -> String {
+        formatter.string(
+            from: now,
+            to: now.addingTimeInterval(interval),
+            language: language
+        )
     }
 }

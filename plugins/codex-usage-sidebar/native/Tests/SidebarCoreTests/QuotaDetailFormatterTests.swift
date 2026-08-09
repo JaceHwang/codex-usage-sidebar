@@ -4,7 +4,6 @@ import XCTest
 
 final class QuotaDetailFormatterTests: XCTestCase {
     private let formatter = QuotaDetailFormatter()
-    private let locale = Locale(identifier: "zh_CN")
     private let timeZone = TimeZone(identifier: "Asia/Shanghai")!
     private let now = Date(timeIntervalSince1970: 1_785_000_000)
 
@@ -12,7 +11,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
         let content = formatter.content(
             snapshot: fullSnapshot,
             now: now,
-            locale: locale,
+            language: .simplifiedChinese,
             timeZone: timeZone
         )
 
@@ -53,13 +52,13 @@ final class QuotaDetailFormatterTests: XCTestCase {
         let unavailable = formatter.content(
             snapshot: snapshot(bank: nil),
             now: now,
-            locale: locale,
+            language: .simplifiedChinese,
             timeZone: timeZone
         )
         let empty = formatter.content(
             snapshot: snapshot(bank: BankResetSummary(availableCount: 0, credits: [])),
             now: now,
-            locale: locale,
+            language: .simplifiedChinese,
             timeZone: timeZone
         )
         let countWithoutDetails = formatter.content(
@@ -67,7 +66,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
                 bank: BankResetSummary(availableCount: 2, credits: nil)
             ),
             now: now,
-            locale: locale,
+            language: .simplifiedChinese,
             timeZone: timeZone
         )
 
@@ -125,7 +124,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
                 )
             ),
             now: now,
-            locale: locale,
+            language: .simplifiedChinese,
             timeZone: timeZone
         )
 
@@ -173,13 +172,69 @@ final class QuotaDetailFormatterTests: XCTestCase {
                 )
             ),
             now: now,
-            locale: locale,
+            language: .simplifiedChinese,
             timeZone: timeZone
         )
 
         XCTAssertEqual(
             bankRows(in: content).map(\.value),
             ["未提供到期时间 · 已使用", "未提供到期时间 · 已过期"]
+        )
+    }
+
+    func testFormatsEnglishContentAndDates() {
+        let content = formatter.content(
+            snapshot: fullSnapshot,
+            now: now,
+            language: .english,
+            timeZone: timeZone
+        )
+
+        XCTAssertEqual(content.title, "Codex quota")
+        XCTAssertTrue(content.rows.contains(.init(label: "Plan", value: "Plus")))
+        XCTAssertTrue(
+            content.rows.contains(.init(label: "Quota window", value: "7 days"))
+        )
+        XCTAssertTrue(
+            content.rows.contains(
+                .init(label: "Next reset", value: "Aug 2, 08:00 (7d6h)")
+            )
+        )
+        XCTAssertTrue(
+            content.rows.contains(
+                .init(label: "Bank resets available", value: "2 resets")
+            )
+        )
+        XCTAssertTrue(
+            content.rows.contains(
+                .init(label: "Bank 1 expires", value: "Aug 1, 04:19 (6d2h)")
+            )
+        )
+        XCTAssertTrue(
+            content.rows.contains(.init(label: "Updated", value: "Just now"))
+        )
+    }
+
+    func testFormatsTraditionalChineseContent() {
+        let content = formatter.content(
+            snapshot: fullSnapshot,
+            now: now,
+            language: .traditionalChinese,
+            timeZone: timeZone
+        )
+
+        XCTAssertEqual(content.title, "Codex 剩餘額度")
+        XCTAssertTrue(content.rows.contains(.init(label: "方案", value: "Plus")))
+        XCTAssertTrue(content.rows.contains(.init(label: "額度週期", value: "7 天")))
+        XCTAssertTrue(
+            content.rows.contains(
+                .init(label: "下次重設", value: "8月2日 08:00（7d6h）")
+            )
+        )
+        XCTAssertTrue(
+            content.rows.contains(
+                .init(label: "Bank 1到期時間", value: "8月1日 04:19（6d2h）")
+            )
         )
     }
 

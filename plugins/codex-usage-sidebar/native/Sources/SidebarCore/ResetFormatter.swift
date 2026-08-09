@@ -6,13 +6,14 @@ public struct ResetFormatter: Sendable {
     public func label(
         snapshot: AllowanceSnapshot,
         now _: Date,
-        locale: Locale,
+        language: CodexDisplayLanguage,
         timeZone: TimeZone,
         maxWidth: Double
     ) -> String {
+        let localization = QuotaLocalization(language: language)
         let format: String
         if maxWidth >= 130 {
-            format = "M月d日 HH:mm"
+            format = localization.fullIndicatorDateFormat
         } else if maxWidth >= 90 {
             format = "EEE HH:mm"
         } else {
@@ -20,7 +21,7 @@ public struct ResetFormatter: Sendable {
         }
 
         let formatter = DateFormatter()
-        formatter.locale = locale
+        formatter.locale = localization.locale
         formatter.timeZone = timeZone
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.dateFormat = format

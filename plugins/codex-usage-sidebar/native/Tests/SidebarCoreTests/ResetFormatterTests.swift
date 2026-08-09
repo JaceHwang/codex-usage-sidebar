@@ -4,7 +4,6 @@ import XCTest
 
 final class ResetFormatterTests: XCTestCase {
     private let formatter = ResetFormatter()
-    private let locale = Locale(identifier: "zh_CN")
     private let timeZone = TimeZone(identifier: "Asia/Shanghai")!
     private let now = Date(timeIntervalSince1970: 1_785_456_000)
     private let snapshot = AllowanceSnapshot(
@@ -18,7 +17,7 @@ final class ResetFormatterTests: XCTestCase {
         let label = formatter.label(
             snapshot: snapshot,
             now: now,
-            locale: locale,
+            language: .simplifiedChinese,
             timeZone: timeZone,
             maxWidth: 200
         )
@@ -30,7 +29,7 @@ final class ResetFormatterTests: XCTestCase {
         let label = formatter.label(
             snapshot: snapshot,
             now: now,
-            locale: locale,
+            language: .simplifiedChinese,
             timeZone: timeZone,
             maxWidth: 110
         )
@@ -42,7 +41,7 @@ final class ResetFormatterTests: XCTestCase {
         let label = formatter.label(
             snapshot: snapshot,
             now: now,
-            locale: locale,
+            language: .simplifiedChinese,
             timeZone: timeZone,
             maxWidth: 75
         )
@@ -55,7 +54,7 @@ final class ResetFormatterTests: XCTestCase {
             let label = formatter.label(
                 snapshot: snapshot,
                 now: now,
-                locale: locale,
+                language: .simplifiedChinese,
                 timeZone: timeZone,
                 maxWidth: maxWidth
             )
@@ -63,5 +62,28 @@ final class ResetFormatterTests: XCTestCase {
             XCTAssertTrue(label.contains("%"))
             XCTAssertNotNil(label.range(of: #"\d{2}:\d{2}"#, options: .regularExpression))
         }
+    }
+
+    func testUsesTraditionalChineseAndEnglishDates() {
+        XCTAssertEqual(
+            formatter.label(
+                snapshot: snapshot,
+                now: now,
+                language: .traditionalChinese,
+                timeZone: timeZone,
+                maxWidth: 200
+            ),
+            "76% · 8月2日 08:00"
+        )
+        XCTAssertEqual(
+            formatter.label(
+                snapshot: snapshot,
+                now: now,
+                language: .english,
+                timeZone: timeZone,
+                maxWidth: 200
+            ),
+            "76% · Aug 2, 08:00"
+        )
     }
 }
