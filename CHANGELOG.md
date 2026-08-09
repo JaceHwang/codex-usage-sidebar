@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.8] - 2026-08-09
+
+### Fixed
+
+- Build release artifacts on the macOS 26 ARM64 runner with Xcode and macOS SDK 26.5 so the
+  installed titlebar control retains the same AppKit behavior as the verified local build.
+- Reject release binaries compiled for another architecture or an older macOS SDK before they can
+  be packaged and promoted.
+
 ## [0.1.7] - 2026-08-09
 
 ### Fixed
@@ -103,3 +112,4 @@ All notable changes to this project are documented here. The project follows
 [0.1.5]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.5
 [0.1.6]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.6
 [0.1.7]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.7
+[0.1.8]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.8
