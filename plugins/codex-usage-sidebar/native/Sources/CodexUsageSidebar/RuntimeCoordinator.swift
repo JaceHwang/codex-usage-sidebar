@@ -398,15 +398,26 @@ final class RuntimeCoordinator: NSObject {
         guard
             let application = notification.userInfo?[
                 NSWorkspace.applicationUserInfoKey
-            ] as? NSRunningApplication,
-            application.bundleIdentifier == "com.openai.codex"
+            ] as? NSRunningApplication
         else {
             hideOverlay()
             return
         }
-        reconcileHost()
-        refreshNow(reason: .focus)
-        reconcileOverlay()
+        switch ActivationVisibilityPolicy.decision(
+            activatedBundleIdentifier: application.bundleIdentifier,
+            hostBundleIdentifier: "com.openai.codex",
+            companionBundleIdentifier: Bundle.main.bundleIdentifier
+                ?? "com.jace.codex-usage-sidebar"
+        ) {
+        case .reconcileHost:
+            reconcileHost()
+            refreshNow(reason: .focus)
+            reconcileOverlay()
+        case .preserve:
+            break
+        case .hide:
+            hideOverlay()
+        }
     }
 
     @objc

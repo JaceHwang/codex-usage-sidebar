@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.3] - 2026-08-09
+
+### Fixed
+
+- Preserve the visible quota control when clicking it activates the external companion, preventing
+  the control from briefly hiding before the foreground fallback shows it again.
+
 ## [0.1.2] - 2026-08-09
 
 ### Changed
@@ -45,3 +52,4 @@ All notable changes to this project are documented here. The project follows
 [0.1.0]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.0
 [0.1.1]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.1
 [0.1.2]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.2
+[0.1.3]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.3

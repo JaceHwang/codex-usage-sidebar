@@ -1,6 +1,6 @@
 {
   "name": "codex-usage-sidebar",
-  "version": "0.1.2+codex.20260809051934",
+  "version": "0.1.3+codex.20260809063344",
   "description": "Shows live Codex usage in the desktop titlebar.",
   "author": {
     "name": "Jace"
