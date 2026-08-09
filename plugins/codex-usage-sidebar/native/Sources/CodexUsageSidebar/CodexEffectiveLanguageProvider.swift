@@ -6,6 +6,7 @@ import SidebarCore
 final class CodexEffectiveLanguageProvider {
     private let userDataDirectory: URL
     private let preferencesURL: URL
+    private let configurationProvider: CodexConfigurationLanguageProvider
     private let processReader: CodexProcessArgumentReader
 
     init(
@@ -13,16 +14,24 @@ final class CodexEffectiveLanguageProvider {
             .homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support/Codex"),
         preferencesURL: URL? = nil,
+        configurationURL: URL = FileManager.default
+            .homeDirectoryForCurrentUser
+            .appendingPathComponent(".codex/config.toml"),
         processReader: CodexProcessArgumentReader = .init()
     ) {
         self.userDataDirectory = userDataDirectory
         self.preferencesURL = preferencesURL ?? userDataDirectory
             .appendingPathComponent("Default/Preferences")
+        configurationProvider = CodexConfigurationLanguageProvider(
+            configurationURL: configurationURL
+        )
         self.processReader = processReader
     }
 
     func currentLanguage() -> CodexResolvedLanguage? {
         CodexLanguageResolver.resolve(
+            configurationLocale: configurationProvider
+                .currentLocaleIdentifier(),
             processLocale: CodexProcessLocaleSelector.localeIdentifier(
                 in: processReader.codexRendererProcesses(),
                 userDataDirectory: userDataDirectory.path
