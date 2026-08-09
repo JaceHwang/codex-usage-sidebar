@@ -16,6 +16,14 @@
 > [!NOTE]
 > 这是独立社区项目，与 OpenAI 无隶属关系，也不代表 OpenAI 官方背书。
 
+## 当前实际效果
+
+<p align="center">
+  <img src="docs/images/live-titlebar-indicator.jpeg" alt="Codex 标题栏中实际运行的 v0.2.1 剩余额度按钮" width="246">
+</p>
+
+<p align="center"><em>从当前运行中的 v0.2.1 原生伴随程序实机截取。</em></p>
+
 ## 功能效果
 
 Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生伴随程序。它从本机
@@ -83,8 +91,8 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 
 ## 语言自动匹配
 
-v0.2.0 直接跟随 Codex **最终实际显示的语言**，因此 Codex 设为“自动”时也能正确匹配。
-运行中的 Codex 渲染进程语言优先；Codex 偏好设置与 macOS 首选语言仅作为启动阶段的安全回退。
+v0.2.1 直接跟随 Codex **最终实际显示的语言**。Codex 明确选择的语言优先；设为“自动”时，
+插件跟随运行中的 Codex 渲染进程语言。Codex 偏好设置与 macOS 首选语言仅作为启动阶段的安全回退。
 
 | Codex 最终语言 | 插件显示 |
 | --- | --- |
@@ -132,7 +140,7 @@ v0.2.0 直接跟随 Codex **最终实际显示的语言**，因此 Codex 设为�
 精确定位正常时会返回常驻 LaunchAgent 进程的真实状态：
 
 ```text
-pid=12345 version=0.2.0 runtime=shown placement=content-header anchor=openLocation
+pid=12345 version=0.2.1 runtime=shown placement=content-header anchor=openLocation
 language=simplifiedChinese language_source=process
 indicator=1524,1003,164,46 ... cached:true,source:openLocation,edge:1696
 installed and loaded: .../Codex Usage Sidebar.app

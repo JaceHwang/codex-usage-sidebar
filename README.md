@@ -26,6 +26,14 @@
 > [!NOTE]
 > This is an independent community project and is not affiliated with or endorsed by OpenAI.
 
+## Actual appearance
+
+<p align="center">
+  <img src="docs/images/live-titlebar-indicator.jpeg" alt="Live v0.2.1 quota indicator in the Codex titlebar" width="246">
+</p>
+
+<p align="center"><em>Real v0.2.1 capture from the running native companion.</em></p>
+
 ## What it does
 
 Codex Usage Sidebar installs a small native macOS companion outside the signed Codex application.
@@ -100,9 +108,9 @@ companion preserves a safe in-window fallback rather than touching Codex interna
 
 ## Language matching
 
-Version 0.2.0 follows the language Codex is actually displaying, including when Codex language is
-set to **Auto**. The running renderer's resolved locale is authoritative; Codex preferences and the
-macOS preferred language provide safe startup fallbacks.
+Version 0.2.1 follows the language Codex is actually displaying. An explicit Codex language choice
+is authoritative; when Codex is set to **Auto**, the running renderer's resolved locale is used.
+Codex preferences and the macOS preferred language remain safe startup fallbacks.
 
 | Effective Codex locale | Plugin UI |
 | --- | --- |
@@ -156,7 +164,7 @@ Read the complete [privacy model](docs/PRIVACY.md), [architecture](docs/ARCHITEC
 A healthy precise-positioning result includes the state from the actual LaunchAgent process:
 
 ```text
-pid=12345 version=0.2.0 runtime=shown placement=content-header anchor=openLocation
+pid=12345 version=0.2.1 runtime=shown placement=content-header anchor=openLocation
 language=simplifiedChinese language_source=process
 indicator=1524,1003,164,46 ... cached:true,source:openLocation,edge:1696
 installed and loaded: .../Codex Usage Sidebar.app

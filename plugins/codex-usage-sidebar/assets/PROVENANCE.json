@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "ac7b56f085047cc8626d5329d3b56a4c47744438",
-  "workflowRun": "https://github.com/JaceHwang/codex-usage-sidebar/actions/runs/31311603988",
+  "sourceCommit": "8355d7ec177ad65643302ecad9c5451199c529d9",
+  "workflowRun": "https://github.com/JaceHwang/codex-usage-sidebar/actions/runs/31313429348",
   "artifact": {
-    "id": 9037541382,
+    "id": 9038042514,
     "name": "codex-usage-sidebar-release",
-    "digest": "sha256:3b7ec2b843f49d5fa7ad28253c68c732177f03a1e598de6579bcddcb0df606a6",
-    "archiveSha256": "b5b7230ef55aa10a89b9f62b8a2e740a2ad48be68a1ed50009f855c7c7428d90"
+    "digest": "sha256:532984d00845d53481a2ae29c626ce8229e104f4fba228f892582cf58ced0b35",
+    "archiveSha256": "171847e722b18649e42878c8e0581d1c887ec5c78cea5bb7e95ebc3b7bb7f0ec"
   },
   "companion": {
-    "executableSha256": "1f81523ac2a7c8ca439e013547b68f61d2e360a68f3ca485beb280c4409eaec9",
-    "cdhashSha256": "68ba6ee73b7507e98d2a2fdf5a493c7eea4b65966fee396583f5314ff8550c7d",
+    "executableSha256": "97c14ba29d805959fffaf17d1d5b8b3574cc1483ed6611f1ff538f25695915dc",
+    "cdhashSha256": "4dabb4645b4057492d7a671a654f6bc57f9b6f59e68da0f91a1275ce53ca7fe6",
     "signature": "adhoc"
   }
 }

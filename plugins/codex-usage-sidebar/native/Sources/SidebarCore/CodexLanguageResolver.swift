@@ -7,6 +7,7 @@ public enum CodexDisplayLanguage: String, Equatable, Sendable {
 }
 
 public enum CodexLanguageSource: String, Equatable, Sendable {
+    case configuration
     case process
     case preferences
     case system
@@ -49,11 +50,13 @@ public enum CodexLanguageResolver {
     }
 
     public static func resolve(
+        configurationLocale: String? = nil,
         processLocale: String?,
         preferencesLocale: String?,
         systemLocale: String?
     ) -> CodexResolvedLanguage? {
         let candidates: [(String?, CodexLanguageSource)] = [
+            (configurationLocale, .configuration),
             (processLocale, .process),
             (preferencesLocale, .preferences),
             (systemLocale, .system)
@@ -72,6 +75,98 @@ public enum CodexLanguageResolver {
             )
         }
         return nil
+    }
+}
+
+public enum CodexConfigurationLanguageParser {
+    public static func localeIdentifier(in contents: String) -> String? {
+        var currentSection: String?
+
+        for rawLine in contents.components(separatedBy: .newlines) {
+            let line = stripInlineComment(from: rawLine)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if line.hasPrefix("["), line.hasSuffix("]") {
+                currentSection = String(line.dropFirst().dropLast())
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                continue
+            }
+            guard currentSection == nil || currentSection == "desktop" else {
+                continue
+            }
+
+            let parts = line.split(
+                separator: "=",
+                maxSplits: 1,
+                omittingEmptySubsequences: false
+            )
+            guard
+                parts.count == 2,
+                parts[0].trimmingCharacters(in: .whitespacesAndNewlines) ==
+                    "localeOverride"
+            else {
+                continue
+            }
+
+            let value = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+            guard
+                value.count >= 2,
+                let quote = value.first,
+                (quote == "\"" || quote == "'"),
+                value.last == quote
+            else {
+                return nil
+            }
+            let locale = String(value.dropFirst().dropLast())
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return locale.isEmpty ? nil : locale
+        }
+
+        return nil
+    }
+
+    private static func stripInlineComment(from line: String) -> String {
+        var quote: Character?
+        var escaped = false
+
+        for index in line.indices {
+            let character = line[index]
+            if quote == "\"", character == "\\", !escaped {
+                escaped = true
+                continue
+            }
+            if character == "\"" || character == "'" {
+                if quote == character, !escaped {
+                    quote = nil
+                } else if quote == nil {
+                    quote = character
+                }
+            } else if character == "#", quote == nil {
+                return String(line[..<index])
+            }
+            escaped = false
+        }
+
+        return line
+    }
+}
+
+public struct CodexConfigurationLanguageProvider: Sendable {
+    private let configurationURL: URL
+
+    public init(configurationURL: URL) {
+        self.configurationURL = configurationURL
+    }
+
+    public func currentLocaleIdentifier() -> String? {
+        guard
+            let contents = try? String(
+                contentsOf: configurationURL,
+                encoding: .utf8
+            )
+        else {
+            return nil
+        }
+        return CodexConfigurationLanguageParser.localeIdentifier(in: contents)
     }
 }
 
