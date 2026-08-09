@@ -20,6 +20,57 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
         XCTAssertEqual(anchor.source, .openLocation)
     }
 
+    func testRetainsCachedOpenLocationAcrossTransientFallback() {
+        let cached = ContentHeaderAnchor(
+            trailingEdge: 1_696,
+            source: .openLocation
+        )
+
+        let stabilized = ContentHeaderAnchorResolver.stabilized(
+            scanned: ContentHeaderAnchor(
+                trailingEdge: nil,
+                source: .fallback
+            ),
+            cached: cached
+        )
+
+        XCTAssertEqual(stabilized, cached)
+    }
+
+    func testRetainsCachedOpenLocationAcrossTransientBoundaryResult() {
+        let cached = ContentHeaderAnchor(
+            trailingEdge: 1_696,
+            source: .openLocation
+        )
+
+        let stabilized = ContentHeaderAnchorResolver.stabilized(
+            scanned: ContentHeaderAnchor(
+                trailingEdge: 1_604,
+                source: .rightPaneBoundary
+            ),
+            cached: cached
+        )
+
+        XCTAssertEqual(stabilized, cached)
+    }
+
+    func testFreshOpenLocationReplacesCachedOpenLocation() {
+        let scanned = ContentHeaderAnchor(
+            trailingEdge: 1_720,
+            source: .openLocation
+        )
+
+        let stabilized = ContentHeaderAnchorResolver.stabilized(
+            scanned: scanned,
+            cached: ContentHeaderAnchor(
+                trailingEdge: 1_696,
+                source: .openLocation
+            )
+        )
+
+        XCTAssertEqual(stabilized, scanned)
+    }
+
     func testRecognizesEnglishOpenLocationIdentifier() {
         let anchor = ContentHeaderAnchorResolver.resolve(
             controls: [

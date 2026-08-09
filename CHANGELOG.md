@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.6] - 2026-08-09
+
+### Fixed
+
+- Keep the last valid Open Location accessibility element during transient incomplete scans so
+  pane animations and layout refreshes cannot move the quota control back to a fallback position.
+- Delay the initial quota control until Open Location is resolved instead of briefly rendering at
+  the legacy window-relative fallback position after installation or restart.
+- Report the actual first accessibility scan in diagnostics, making fallback regressions visible
+  instead of replacing them with a second cached lookup.
+
 ## [0.1.5] - 2026-08-09
 
 ### Fixed
@@ -81,3 +92,4 @@ All notable changes to this project are documented here. The project follows
 [0.1.3]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.3
 [0.1.4]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.4
 [0.1.5]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.5
+[0.1.6]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.6

@@ -56,7 +56,8 @@ final class ContentHeaderLocator {
         if let anchor = resolvedCachedAnchor(
             processIdentifier: processIdentifier,
             window: window,
-            windowFrame: windowFrame
+            windowFrame: windowFrame,
+            requireFresh: true
         ) {
             let edge = anchor.trailingEdge.map { String(Int($0)) }
                 ?? "fallback"
@@ -65,28 +66,45 @@ final class ContentHeaderLocator {
                 "cached:true,source:\(anchor.source.rawValue),edge:\(edge)"
             return anchor
         }
-        cachedAnchor = nil
+
+        let retainedAnchor = resolvedCachedAnchor(
+            processIdentifier: processIdentifier,
+            window: window,
+            windowFrame: windowFrame,
+            requireFresh: false
+        )
 
         let scan = scanLayout(in: window, windowFrame: windowFrame)
-        let anchor = ContentHeaderAnchorResolver.resolve(
+        let scannedAnchor = ContentHeaderAnchorResolver.resolve(
             controls: scan.controls.map(\.value),
             paneFrames: scan.panes.map(\.frame),
             windowFrame: windowFrame
         )
-        if let selected = selectedElement(for: anchor, in: scan) {
+        let anchor = ContentHeaderAnchorResolver.stabilized(
+            scanned: scannedAnchor,
+            cached: retainedAnchor
+        )
+        if
+            anchor == scannedAnchor,
+            let selected = selectedElement(for: scannedAnchor, in: scan)
+        {
             cachedAnchor = CachedAnchor(
                 processIdentifier: processIdentifier,
                 window: window,
                 element: selected,
-                source: anchor.source,
+                source: scannedAnchor.source,
                 expiresAt: Date().addingTimeInterval(cacheLifetime)
             )
+        } else if retainedAnchor == nil {
+            cachedAnchor = nil
         }
         let edge = anchor.trailingEdge.map { String(Int($0)) } ?? "fallback"
         latestDiagnosticDetail =
             "anchor_scan=visited:\(scan.visited)," +
             "controls:\(scan.controls.count),panes:\(scan.panes.count)," +
-            "cached:false,source:\(anchor.source.rawValue),edge:\(edge)"
+            "cached:false,source:\(anchor.source.rawValue),edge:\(edge)," +
+            "window:\(Int(windowFrame.minX)),\(Int(windowFrame.minY))," +
+            "\(Int(windowFrame.width)),\(Int(windowFrame.height))"
         return anchor
     }
 
@@ -156,13 +174,14 @@ final class ContentHeaderLocator {
     private func resolvedCachedAnchor(
         processIdentifier: pid_t,
         window: AXUIElement,
-        windowFrame: CGRect
+        windowFrame: CGRect,
+        requireFresh: Bool
     ) -> ContentHeaderAnchor? {
         guard
             let cachedAnchor,
             cachedAnchor.processIdentifier == processIdentifier,
             CFEqual(cachedAnchor.window, window),
-            cachedAnchor.expiresAt > Date()
+            !requireFresh || cachedAnchor.expiresAt > Date()
         else {
             return nil
         }

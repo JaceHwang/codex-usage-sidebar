@@ -32,6 +32,21 @@ public struct ContentHeaderAnchor: Equatable, Sendable {
 }
 
 public enum ContentHeaderAnchorResolver {
+    public static func stabilized(
+        scanned: ContentHeaderAnchor,
+        cached: ContentHeaderAnchor?
+    ) -> ContentHeaderAnchor {
+        guard
+            scanned.source != .openLocation,
+            let cached,
+            cached.source == .openLocation,
+            cached.trailingEdge != nil
+        else {
+            return scanned
+        }
+        return cached
+    }
+
     public static func resolve(
         controls: [ContentHeaderControl],
         paneFrames: [CGRect],
