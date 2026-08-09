@@ -29,10 +29,13 @@
 ## Actual appearance
 
 <p align="center">
-  <img src="docs/images/live-titlebar-indicator.jpeg" alt="Live v0.2.1 quota indicator in the Codex titlebar" width="246">
+  <img src="docs/images/quota-popover-en-light.png" alt="Codex Usage Sidebar v0.2.1 in the light theme" width="48%">
+  <img src="docs/images/quota-popover-en-dark.png" alt="Codex Usage Sidebar v0.2.1 in the dark theme" width="48%">
 </p>
 
-<p align="center"><em>Real v0.2.1 capture from the running native companion.</em></p>
+<p align="center"><em>Light theme · Dark theme</em></p>
+
+<p align="center">Real v0.2.1 captures showing the titlebar indicator and full quota popover.</p>
 
 ## What it does
 
