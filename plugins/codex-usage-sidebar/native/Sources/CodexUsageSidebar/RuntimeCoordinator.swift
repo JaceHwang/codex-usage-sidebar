@@ -10,6 +10,7 @@ final class RuntimeCoordinator: NSObject {
     private let formatter = ResetFormatter()
     private let detailFormatter = QuotaDetailFormatter()
     private let policy = RefreshPolicy()
+    private let languageProvider = CodexEffectiveLanguageProvider()
     private let themeProvider = CodexThemeProvider(
         configurationURL: FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".codex/config.toml")
@@ -24,6 +25,7 @@ final class RuntimeCoordinator: NSObject {
     private var nextPeriodicRefresh = Date.distantPast
     private var nextResetRefresh: Date?
     private var lastDiagnosticState: String?
+    private var languageState = RuntimeLanguageState()
     private let appServerEnvironmentOverrides: [String: String]
     private let runtimeStateURL: URL?
 
@@ -57,6 +59,7 @@ final class RuntimeCoordinator: NSObject {
             object: nil
         )
 
+        reconcileLanguage()
         reconcileHost()
         refreshNow(reason: .startup)
         timer = Timer.scheduledTimer(
@@ -160,14 +163,14 @@ final class RuntimeCoordinator: NSObject {
         let label = formatter.label(
             snapshot: snapshot,
             now: Date(),
-            language: .simplifiedChinese,
+            language: languageState.language,
             timeZone: .autoupdatingCurrent,
             maxWidth: maximumLabelWidth
         )
         let detail = detailFormatter.content(
             snapshot: snapshot,
             now: Date(),
-            language: .simplifiedChinese,
+            language: languageState.language,
             timeZone: .autoupdatingCurrent
         )
         overlay.show(
@@ -190,8 +193,11 @@ final class RuntimeCoordinator: NSObject {
     }
 
     func diagnosticSummary() -> String {
+        reconcileLanguage()
+        let languageDescription = diagnosticLanguageDescription
         guard let host = HostDiscovery.current() else {
-            return "host=missing app_server=missing accessibility=unknown anchor=unavailable"
+            return "host=missing app_server=missing accessibility=unknown " +
+                "anchor=unavailable \(languageDescription)"
         }
         let trusted = accessibility.isTrusted(prompt: false)
         var anchor = ContentHeaderAnchor(
@@ -215,6 +221,7 @@ final class RuntimeCoordinator: NSObject {
             "anchor=\(anchor.source.rawValue)",
             "placement=content-header",
             "source=\(host.source.rawValue)",
+            languageDescription,
             contentHeader.latestDiagnosticDetail
         ].joined(separator: " ")
     }
@@ -295,6 +302,7 @@ final class RuntimeCoordinator: NSObject {
     }
 
     private func tick() {
+        reconcileLanguage()
         reconcileHost()
         let now = Date()
         if
@@ -337,6 +345,16 @@ final class RuntimeCoordinator: NSObject {
         if actions.restartClient || executableChanged || needsClient {
             replaceClient(using: discovered)
         }
+    }
+
+    private func reconcileLanguage() {
+        _ = languageState.apply(languageProvider.currentLanguage())
+    }
+
+    private var diagnosticLanguageDescription: String {
+        let source = languageState.source?.rawValue ?? "fallback"
+        return "language=\(languageState.language.rawValue) " +
+            "language_source=\(source)"
     }
 
     private func replaceClient(using host: HostInstallation?) {
@@ -384,13 +402,14 @@ final class RuntimeCoordinator: NSObject {
     }
 
     private func recordDiagnosticState(_ state: String) {
-        guard state != lastDiagnosticState else {
+        let sanitizedState = "\(state) \(diagnosticLanguageDescription)"
+        guard sanitizedState != lastDiagnosticState else {
             return
         }
-        lastDiagnosticState = state
-        writeRuntimeState(state)
+        lastDiagnosticState = sanitizedState
+        writeRuntimeState(sanitizedState)
         if ProcessInfo.processInfo.environment["CUS_DIAGNOSTIC_LOG"] == "1" {
-            print("runtime=\(state)")
+            print("runtime=\(sanitizedState)")
             fflush(stdout)
         }
     }
@@ -453,6 +472,7 @@ final class RuntimeCoordinator: NSObject {
             return
         }
         reconcileHost()
+        reconcileLanguage()
         reconcileOverlay()
     }
 }

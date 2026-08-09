@@ -96,6 +96,22 @@ final class QuotaDetailLayoutTests: XCTestCase {
         XCTAssertEqual(frames.remaining.minX, 233)
     }
 
+    func testLocalizedHeadersNeverOverlapBadgeOrPercentage() {
+        for titleWidth in [82.0, 104.0, 132.0] {
+            let frames = QuotaDetailLayout.headerFrames(
+                in: CGRect(x: 0, y: 0, width: 300, height: 240),
+                titleWidth: titleWidth,
+                versionBadgeWidth: 42
+            )
+
+            XCTAssertLessThanOrEqual(frames.title.maxX, frames.versionBadge.minX)
+            XCTAssertLessThanOrEqual(
+                frames.versionBadge.maxX + 8,
+                frames.remaining.minX
+            )
+        }
+    }
+
     func testHeaderTitleMeasurementKeepsAppKitFittingAllowance() {
         XCTAssertEqual(
             QuotaDetailLayout.titleWidth(
