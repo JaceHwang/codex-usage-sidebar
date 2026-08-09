@@ -7,12 +7,17 @@ All notable changes to this project are documented here. The project follows
 
 ### Fixed
 
-- Keep the quota control inside the central content header when Codex's right pane is open instead
-  of following the global Open Location button into that pane.
+- Keep the quota control exactly 8 points before the native Open Location button whether Codex's
+  right pane is open or closed.
 - Periodically revalidate cached accessibility anchors so opening, closing, or resizing a pane is
   reflected automatically.
 - Render the detail card with Codex-native semantic window and separator colors instead of a
   visual-effect material that appeared unchanged inside the transparent companion window.
+
+### Changed
+
+- Widen the detail card to 300 points so reset and Bank expiry dates remain on one line.
+- Label every Bank row as `Bank N到期时间` and use compact relative intervals such as `3d10h`.
 
 ## [0.1.4] - 2026-08-09
 

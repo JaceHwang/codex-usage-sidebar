@@ -13,7 +13,7 @@ final class QuotaDetailLayoutTests: XCTestCase {
             visibleFrame: visibleFrame
         )
 
-        XCTAssertEqual(frame.width, 220)
+        XCTAssertEqual(frame.width, 300)
         XCTAssertEqual(frame.minX, indicator.minX)
         XCTAssertEqual(frame.maxY, indicator.minY - 8)
     }

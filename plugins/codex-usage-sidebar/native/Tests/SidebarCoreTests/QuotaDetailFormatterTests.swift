@@ -23,16 +23,16 @@ final class QuotaDetailFormatterTests: XCTestCase {
         XCTAssertTrue(
             content.rows.contains(
                 .init(
-                    label: "Bank 1",
-                    value: "8月1日 04:19到期（6天2小时）"
+                    label: "Bank 1到期时间",
+                    value: "8月1日 04:19（6d2h）"
                 )
             )
         )
         XCTAssertTrue(
             content.rows.contains(
                 .init(
-                    label: "Bank 2",
-                    value: "8月13日 02:00到期（18天0小时）"
+                    label: "Bank 2到期时间",
+                    value: "8月13日 02:00（18d0h）"
                 )
             )
         )
@@ -40,7 +40,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
             content.rows.contains(
                 .init(
                     label: "下次重置",
-                    value: "8月2日 08:00（7天6小时）"
+                    value: "8月2日 08:00（7d6h）"
                 )
             )
         )
@@ -133,18 +133,18 @@ final class QuotaDetailFormatterTests: XCTestCase {
             bankRows(in: content),
             [
                 .init(
-                    label: "Bank 1",
-                    value: "7月26日 01:19到期（1分钟前） · 已过期"
+                    label: "Bank 1到期时间",
+                    value: "7月26日 01:19（1m前） · 已过期"
                 ),
                 .init(
-                    label: "Bank 2",
-                    value: "8月1日 04:19到期（6天2小时）"
+                    label: "Bank 2到期时间",
+                    value: "8月1日 04:19（6d2h）"
                 ),
                 .init(
-                    label: "Bank 3",
-                    value: "8月13日 02:00到期（18天0小时） · 已使用"
+                    label: "Bank 3到期时间",
+                    value: "8月13日 02:00（18d0h） · 已使用"
                 ),
-                .init(label: "Bank 4", value: "未提供到期时间")
+                .init(label: "Bank 4到期时间", value: "未提供到期时间")
             ]
         )
     }
@@ -226,7 +226,10 @@ final class QuotaDetailFormatterTests: XCTestCase {
 
     private func bankRows(in content: QuotaDetailContent) -> [QuotaDetailRow] {
         content.rows.filter {
-            $0.label.range(of: #"^Bank \d+$"#, options: .regularExpression) != nil
+            $0.label.range(
+                of: #"^Bank \d+到期时间$"#,
+                options: .regularExpression
+            ) != nil
         }
     }
 }

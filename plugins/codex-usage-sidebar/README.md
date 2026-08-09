@@ -4,7 +4,7 @@ This directory is the installable `codex-usage-sidebar` plugin referenced by the
 marketplace manifest. Start at the [repository README](../../README.md) for installation,
 screenshots, privacy, support, and contribution instructions.
 
-Its native companion shows one live quota control in the central content header. The control tracks
+Its native companion shows one live quota control exactly 8 points before Open Location. It tracks
 the Open Location action directly with a fixed 8-point gap as sidebars and the window change; it
 never creates a second control in the left sidebar.
 

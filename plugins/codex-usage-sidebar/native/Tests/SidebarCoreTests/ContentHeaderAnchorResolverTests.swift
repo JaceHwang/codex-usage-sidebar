@@ -48,7 +48,7 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
         XCTAssertEqual(anchor.source, .rightPaneBoundary)
     }
 
-    func testRightPaneBoundaryOverridesOpenLocationInsideRightPane() {
+    func testOpenLocationRemainsAnchorInsideRightPane() {
         let anchor = ContentHeaderAnchorResolver.resolve(
             controls: [
                 control(x: 1_696, width: 91, labels: ["打开位置"]),
@@ -60,11 +60,20 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
             windowFrame: window
         )
 
-        XCTAssertEqual(anchor.trailingEdge, 1_604)
-        XCTAssertEqual(anchor.source, .rightPaneBoundary)
+        XCTAssertEqual(anchor.trailingEdge, 1_696)
+        XCTAssertEqual(anchor.source, .openLocation)
+
+        let indicator = OverlayLayout.indicatorFrame(
+            in: window,
+            contentTrailingEdge: anchor.trailingEdge
+        )
+        XCTAssertEqual(
+            1_696 - indicator.maxX,
+            OverlayLayout.indicatorGap
+        )
     }
 
-    func testCentralOpenLocationRemainsPreferredBeforeRightPane() {
+    func testRightmostOpenLocationRemainsPreferredWithRightPane() {
         let anchor = ContentHeaderAnchorResolver.resolve(
             controls: [
                 control(x: 1_500, width: 91, labels: ["打开位置"]),
@@ -76,7 +85,7 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
             windowFrame: window
         )
 
-        XCTAssertEqual(anchor.trailingEdge, 1_500)
+        XCTAssertEqual(anchor.trailingEdge, 1_696)
         XCTAssertEqual(anchor.source, .openLocation)
     }
 

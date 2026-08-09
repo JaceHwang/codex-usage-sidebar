@@ -84,7 +84,7 @@ public struct QuotaDetailFormatter: Sendable {
             for (index, item) in credits.enumerated() {
                 rows.append(
                     .init(
-                        label: "Bank \(index + 1)",
+                        label: "Bank \(index + 1)到期时间",
                         value: displayBankExpiry(
                             item.element,
                             now: now,
@@ -183,9 +183,12 @@ public struct QuotaDetailFormatter: Sendable {
                 return "未提供到期时间"
             }
         }
-        let date = displayDate(expiry, locale: locale, timeZone: timeZone)
-        let relative = relativeIntervalFormatter.string(from: now, to: expiry)
-        let expiryDescription = "\(date)到期（\(relative)）"
+        let expiryDescription = displayDateWithInterval(
+            expiry,
+            now: now,
+            locale: locale,
+            timeZone: timeZone
+        )
         switch status {
         case "used":
             return "\(expiryDescription) · 已使用"

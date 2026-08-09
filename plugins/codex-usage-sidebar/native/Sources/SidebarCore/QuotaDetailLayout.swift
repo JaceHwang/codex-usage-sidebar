@@ -1,7 +1,7 @@
 import CoreGraphics
 
 public enum QuotaDetailLayout {
-    public static let width: CGFloat = 220
+    public static let width: CGFloat = 300
     public static let headerHeight: CGFloat = 78
     public static let rowHeight: CGFloat = 24
     public static let verticalPadding: CGFloat = 16

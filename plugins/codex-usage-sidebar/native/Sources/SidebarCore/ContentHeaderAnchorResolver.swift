@@ -57,7 +57,7 @@ public enum ContentHeaderAnchorResolver {
             $0.frame.maxX <= contentLimit + 1
         }
 
-        if let openLocation = centralHeaderControls.filter(isOpenLocation).max(
+        if let openLocation = headerControls.filter(isOpenLocation).max(
             by: { $0.frame.minX < $1.frame.minX }
         ) {
             return ContentHeaderAnchor(

@@ -11,17 +11,17 @@ public struct RelativeIntervalFormatter: Sendable {
         if totalSeconds >= 86_400 {
             let days = totalSeconds / 86_400
             let hours = totalSeconds % 86_400 / 3_600
-            value = "\(days)天\(hours)小时"
+            value = "\(days)d\(hours)h"
         } else if totalSeconds >= 3_600 {
             let hours = totalSeconds / 3_600
             let minutes = totalSeconds % 3_600 / 60
-            value = "\(hours)小时\(minutes)分钟"
+            value = "\(hours)h\(minutes)m"
         } else if totalSeconds >= 60 {
-            value = "\(totalSeconds / 60)分钟"
+            value = "\(totalSeconds / 60)m"
         } else if interval < 0 {
-            value = "不足1分钟前"
+            value = "<1m前"
         } else {
-            value = "不足1分钟"
+            value = "<1m"
         }
 
         guard interval < 0, totalSeconds >= 60 else {

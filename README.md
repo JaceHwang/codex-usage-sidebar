@@ -30,7 +30,7 @@
 
 Codex Usage Sidebar installs a small native macOS companion outside the signed Codex application.
 It reads quota updates from Codex's local `app-server`, follows the current light or dark theme,
-and renders one non-activating control in the central content header.
+and renders one non-activating control exactly 8 points before the native Open Location button.
 
 | Situation | Behavior |
 | --- | --- |
