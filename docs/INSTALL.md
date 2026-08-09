@@ -74,7 +74,7 @@ Repair once after changing the switch:
 A healthy precise-positioning result is read from the actual managed process and includes:
 
 ```text
-pid=12345 version=0.2.0 runtime=shown placement=content-header anchor=openLocation
+pid=12345 version=0.2.1 runtime=shown placement=content-header anchor=openLocation
 language=simplifiedChinese language_source=process
 indicator=1524,1003,164,46 ... cached:true,source:openLocation,edge:1696
 installed and loaded: .../Codex Usage Sidebar.app

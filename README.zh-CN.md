@@ -83,8 +83,8 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 
 ## 语言自动匹配
 
-v0.2.0 直接跟随 Codex **最终实际显示的语言**，因此 Codex 设为“自动”时也能正确匹配。
-运行中的 Codex 渲染进程语言优先；Codex 偏好设置与 macOS 首选语言仅作为启动阶段的安全回退。
+v0.2.1 直接跟随 Codex **最终实际显示的语言**。Codex 明确选择的语言优先；设为“自动”时，
+插件跟随运行中的 Codex 渲染进程语言。Codex 偏好设置与 macOS 首选语言仅作为启动阶段的安全回退。
 
 | Codex 最终语言 | 插件显示 |
 | --- | --- |
@@ -132,7 +132,7 @@ v0.2.0 直接跟随 Codex **最终实际显示的语言**，因此 Codex 设为�
 精确定位正常时会返回常驻 LaunchAgent 进程的真实状态：
 
 ```text
-pid=12345 version=0.2.0 runtime=shown placement=content-header anchor=openLocation
+pid=12345 version=0.2.1 runtime=shown placement=content-header anchor=openLocation
 language=simplifiedChinese language_source=process
 indicator=1524,1003,164,46 ... cached:true,source:openLocation,edge:1696
 installed and loaded: .../Codex Usage Sidebar.app

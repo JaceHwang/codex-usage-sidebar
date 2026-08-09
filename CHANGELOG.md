@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-08-09
+
+### Fixed
+
+- Honor an explicit Codex language selected in General settings even when an older renderer
+  process still advertises the previous locale.
+- Read only the quoted `localeOverride` inside Codex's `[desktop]` configuration table and ignore
+  unrelated, malformed, or empty values.
+- Preserve Auto behavior by falling through to the effective renderer locale whenever Codex has
+  no explicit language override.
+
 ## [0.2.0] - 2026-08-09
 
 ### Added
@@ -153,3 +164,4 @@ All notable changes to this project are documented here. The project follows
 [0.1.8]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.8
 [0.1.9]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.9
 [0.2.0]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.2.0
+[0.2.1]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.2.1
