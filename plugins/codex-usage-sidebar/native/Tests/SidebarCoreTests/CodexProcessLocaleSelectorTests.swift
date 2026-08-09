@@ -3,7 +3,7 @@ import XCTest
 
 final class CodexProcessLocaleSelectorTests: XCTestCase {
     private let codexData =
-        "/Users/test/Library/Application Support/Codex"
+        "/tmp/CodexLanguageTests/Application Support/Codex"
     private let rendererPath =
         "/Applications/ChatGPT.app/Contents/Frameworks/" +
         "Codex (Renderer).app/Contents/MacOS/Codex (Renderer)"
