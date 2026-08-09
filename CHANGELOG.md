@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.5] - 2026-08-09
+
+### Fixed
+
+- Keep the quota control inside the central content header when Codex's right pane is open instead
+  of following the global Open Location button into that pane.
+- Periodically revalidate cached accessibility anchors so opening, closing, or resizing a pane is
+  reflected automatically.
+- Render the detail card with Codex-native semantic window and separator colors instead of a
+  visual-effect material that appeared unchanged inside the transparent companion window.
+
 ## [0.1.4] - 2026-08-09
 
 ### Changed
@@ -64,3 +75,4 @@ All notable changes to this project are documented here. The project follows
 [0.1.2]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.2
 [0.1.3]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.3
 [0.1.4]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.4
+[0.1.5]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.5

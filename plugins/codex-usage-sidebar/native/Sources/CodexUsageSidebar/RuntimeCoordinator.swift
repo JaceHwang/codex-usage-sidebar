@@ -230,7 +230,7 @@ final class RuntimeCoordinator: NSObject {
             for: processIdentifier,
             windowFrame: windowFrame
         )
-        guard anchor.source == .openLocation else {
+        guard anchor.trailingEdge != nil else {
             return
         }
         overlay.reposition(

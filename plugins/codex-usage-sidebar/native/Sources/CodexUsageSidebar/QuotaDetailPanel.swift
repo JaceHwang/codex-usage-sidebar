@@ -91,22 +91,20 @@ final class QuotaDetailPanel {
 }
 
 @MainActor
-private final class QuotaDetailCardView: NSVisualEffectView {
+private final class QuotaDetailCardView: NSView {
     init(
         frame frameRect: NSRect,
         content: QuotaDetailContent,
         rowHeights: [CGFloat]
     ) {
         super.init(frame: frameRect)
-        material = .popover
-        blendingMode = .behindWindow
-        state = .active
         wantsLayer = true
         layer?.cornerRadius = 12
+        layer?.cornerCurve = .continuous
         layer?.masksToBounds = true
         layer?.borderWidth = 0.5
-        layer?.borderColor = NSColor.separatorColor
-            .withAlphaComponent(0.24).cgColor
+        layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        layer?.borderColor = NSColor.separatorColor.cgColor
 
         let title = label(
             content.title,

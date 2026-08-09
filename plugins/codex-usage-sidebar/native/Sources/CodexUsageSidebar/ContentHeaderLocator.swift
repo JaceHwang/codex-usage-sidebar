@@ -15,15 +15,23 @@ final class ContentHeaderLocator {
         let value: ContentHeaderControl
     }
 
-    private struct CachedOpenLocation {
+    private struct ScannedPane {
+        let element: AXUIElement
+        let frame: CGRect
+    }
+
+    private struct CachedAnchor {
         let processIdentifier: pid_t
         let window: AXUIElement
         let element: AXUIElement
+        let source: ContentHeaderAnchorSource
+        let expiresAt: Date
     }
 
     private let maximumDepth = 32
     private let maximumElements = 1_000
-    private var cachedOpenLocation: CachedOpenLocation?
+    private let cacheLifetime: TimeInterval = 0.75
+    private var cachedAnchor: CachedAnchor?
     private(set) var latestDiagnosticDetail = "anchor_scan=not-run"
 
     func resolve(
@@ -45,45 +53,33 @@ final class ContentHeaderLocator {
             return ContentHeaderAnchor(trailingEdge: nil, source: .fallback)
         }
 
-        if
-            let cachedOpenLocation,
-            cachedOpenLocation.processIdentifier == processIdentifier,
-            CFEqual(cachedOpenLocation.window, window),
-            let control = control(for: cachedOpenLocation.element)
-        {
-            let anchor = ContentHeaderAnchorResolver.resolve(
-                controls: [control],
-                paneFrames: [],
-                windowFrame: windowFrame
-            )
-            if anchor.source == .openLocation {
-                let edge = anchor.trailingEdge.map { String(Int($0)) }
-                    ?? "fallback"
-                latestDiagnosticDetail =
-                    "anchor_scan=visited:0,controls:1,panes:0," +
-                    "cached:true,source:\(anchor.source.rawValue),edge:\(edge)"
-                return anchor
-            }
+        if let anchor = resolvedCachedAnchor(
+            processIdentifier: processIdentifier,
+            window: window,
+            windowFrame: windowFrame
+        ) {
+            let edge = anchor.trailingEdge.map { String(Int($0)) }
+                ?? "fallback"
+            latestDiagnosticDetail =
+                "anchor_scan=visited:0,controls:0,panes:0," +
+                "cached:true,source:\(anchor.source.rawValue),edge:\(edge)"
+            return anchor
         }
-        cachedOpenLocation = nil
+        cachedAnchor = nil
 
         let scan = scanLayout(in: window, windowFrame: windowFrame)
         let anchor = ContentHeaderAnchorResolver.resolve(
             controls: scan.controls.map(\.value),
-            paneFrames: scan.panes,
+            paneFrames: scan.panes.map(\.frame),
             windowFrame: windowFrame
         )
-        if
-            anchor.source == .openLocation,
-            let edge = anchor.trailingEdge,
-            let selected = scan.controls.first(where: {
-                abs($0.value.frame.minX - edge) < 0.5
-            })
-        {
-            cachedOpenLocation = CachedOpenLocation(
+        if let selected = selectedElement(for: anchor, in: scan) {
+            cachedAnchor = CachedAnchor(
                 processIdentifier: processIdentifier,
                 window: window,
-                element: selected.element
+                element: selected,
+                source: anchor.source,
+                expiresAt: Date().addingTimeInterval(cacheLifetime)
             )
         }
         let edge = anchor.trailingEdge.map { String(Int($0)) } ?? "fallback"
@@ -97,14 +93,14 @@ final class ContentHeaderLocator {
     private func scanLayout(
         in window: AXUIElement,
         windowFrame: CGRect
-    ) -> (controls: [ScannedControl], panes: [CGRect], visited: Int) {
+    ) -> (controls: [ScannedControl], panes: [ScannedPane], visited: Int) {
         var queue = children(of: window).map {
             QueueEntry(element: $0, depth: 1)
         }
         var index = 0
         var visited = 0
         var controls: [ScannedControl] = []
-        var panes: [CGRect] = []
+        var panes: [ScannedPane] = []
 
         while index < queue.count, visited < maximumElements {
             let entry = queue[index]
@@ -132,7 +128,9 @@ final class ContentHeaderLocator {
                         )
                     }
                 } else if role == "AXGroup" {
-                    panes.append(appKitFrame)
+                    panes.append(
+                        ScannedPane(element: entry.element, frame: appKitFrame)
+                    )
                 }
             }
 
@@ -153,6 +151,67 @@ final class ContentHeaderLocator {
             }
         }
         return (controls, panes, visited)
+    }
+
+    private func resolvedCachedAnchor(
+        processIdentifier: pid_t,
+        window: AXUIElement,
+        windowFrame: CGRect
+    ) -> ContentHeaderAnchor? {
+        guard
+            let cachedAnchor,
+            cachedAnchor.processIdentifier == processIdentifier,
+            CFEqual(cachedAnchor.window, window),
+            cachedAnchor.expiresAt > Date()
+        else {
+            return nil
+        }
+
+        let anchor: ContentHeaderAnchor
+        switch cachedAnchor.source {
+        case .openLocation, .labeledControl:
+            guard let control = control(for: cachedAnchor.element) else {
+                return nil
+            }
+            anchor = ContentHeaderAnchorResolver.resolve(
+                controls: [control],
+                paneFrames: [],
+                windowFrame: windowFrame
+            )
+        case .rightPaneBoundary:
+            guard let topLeftFrame = frame(of: cachedAnchor.element) else {
+                return nil
+            }
+            anchor = ContentHeaderAnchorResolver.resolve(
+                controls: [],
+                paneFrames: [appKitFrame(fromTopLeftFrame: topLeftFrame)],
+                windowFrame: windowFrame
+            )
+        case .fallback:
+            return nil
+        }
+        return anchor.source == cachedAnchor.source ? anchor : nil
+    }
+
+    private func selectedElement(
+        for anchor: ContentHeaderAnchor,
+        in scan: (controls: [ScannedControl], panes: [ScannedPane], visited: Int)
+    ) -> AXUIElement? {
+        guard let edge = anchor.trailingEdge else {
+            return nil
+        }
+        switch anchor.source {
+        case .openLocation, .labeledControl:
+            return scan.controls.first {
+                abs($0.value.frame.minX - edge) < 0.5
+            }?.element
+        case .rightPaneBoundary:
+            return scan.panes.first {
+                abs($0.frame.minX - edge) < 0.5
+            }?.element
+        case .fallback:
+            return nil
+        }
     }
 
     private func control(

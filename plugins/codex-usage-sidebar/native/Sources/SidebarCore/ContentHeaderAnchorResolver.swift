@@ -53,7 +53,11 @@ public enum ContentHeaderAnchorResolver {
                 && frame.midX >= windowFrame.midX
         }
 
-        if let openLocation = headerControls.filter(isOpenLocation).max(
+        let centralHeaderControls = headerControls.filter {
+            $0.frame.maxX <= contentLimit + 1
+        }
+
+        if let openLocation = centralHeaderControls.filter(isOpenLocation).max(
             by: { $0.frame.minX < $1.frame.minX }
         ) {
             return ContentHeaderAnchor(
@@ -62,9 +66,8 @@ public enum ContentHeaderAnchorResolver {
             )
         }
 
-        let labeledControl = headerControls.filter { control in
+        let labeledControl = centralHeaderControls.filter { control in
             control.frame.width >= 64
-                && control.frame.maxX <= contentLimit + 1
                 && !control.labels.isEmpty
         }.max { lhs, rhs in
             lhs.frame.minX < rhs.frame.minX

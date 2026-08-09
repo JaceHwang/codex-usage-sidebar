@@ -48,11 +48,27 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
         XCTAssertEqual(anchor.source, .rightPaneBoundary)
     }
 
-    func testOpenLocationIsUsedEvenWhenRightPaneIsOpen() {
+    func testRightPaneBoundaryOverridesOpenLocationInsideRightPane() {
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                control(x: 1_696, width: 91, labels: ["打开位置"]),
+                control(x: 1_810, width: 28, labels: ["其他"]),
+            ],
+            paneFrames: [
+                CGRect(x: 1_604, y: 84, width: 316, height: 978),
+            ],
+            windowFrame: window
+        )
+
+        XCTAssertEqual(anchor.trailingEdge, 1_604)
+        XCTAssertEqual(anchor.source, .rightPaneBoundary)
+    }
+
+    func testCentralOpenLocationRemainsPreferredBeforeRightPane() {
         let anchor = ContentHeaderAnchorResolver.resolve(
             controls: [
                 control(x: 1_500, width: 91, labels: ["打开位置"]),
-                control(x: 1_620, width: 28, labels: ["其他"]),
+                control(x: 1_696, width: 91, labels: ["打开位置"]),
             ],
             paneFrames: [
                 CGRect(x: 1_604, y: 84, width: 316, height: 978),
@@ -82,7 +98,6 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
     func testOpenLocationAnchorSurvivesEverySidebarLayout() {
         let layouts: [(window: CGRect, openLocationX: CGFloat, panes: [CGRect])] = [
             (window, 1_696, []),
-            (window, 1_500, [CGRect(x: 1_604, y: 84, width: 316, height: 978)]),
             (CGRect(x: 72, y: 72, width: 1_520, height: 1_049), 1_340, []),
             (CGRect(x: 72, y: 240, width: 1_520, height: 881), 1_340, []),
             (CGRect(x: 72, y: 240, width: 1_100, height: 700), 980, []),
