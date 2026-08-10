@@ -4,7 +4,7 @@ public enum InstallationIssue: Hashable, Sendable {
     case statusCommandFailed
     case managedProcessMissing
     case versionMismatch
-    case runtimeNotShown
+    case runtimeStateMissing
 }
 
 public struct InstallationReport: Equatable, Sendable {
@@ -44,8 +44,8 @@ public enum InstallationVerifier {
         if version != expectedVersion {
             issues.append(.versionMismatch)
         }
-        if fields["runtime"] != "shown" {
-            issues.append(.runtimeNotShown)
+        if fields["runtime"] == nil {
+            issues.append(.runtimeStateMissing)
         }
         return InstallationReport(pid: pid, version: version, issues: issues)
     }

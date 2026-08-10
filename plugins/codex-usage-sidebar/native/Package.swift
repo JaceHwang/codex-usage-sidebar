@@ -10,6 +10,10 @@ let package = Package(
         .executable(
             name: "CodexUsageSidebar",
             targets: ["CodexUsageSidebar"]
+        ),
+        .executable(
+            name: "CodexUsageSidebarInstaller",
+            targets: ["CodexUsageSidebarInstaller"]
         )
     ],
     targets: [
@@ -18,6 +22,10 @@ let package = Package(
         .executableTarget(
             name: "CodexUsageSidebar",
             dependencies: ["SidebarCore"]
+        ),
+        .executableTarget(
+            name: "CodexUsageSidebarInstaller",
+            dependencies: ["InstallerCore"]
         ),
         .testTarget(
             name: "SidebarCoreTests",

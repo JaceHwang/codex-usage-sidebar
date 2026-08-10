@@ -58,6 +58,13 @@ final class InstallerCommandPlanTests: XCTestCase {
         XCTAssertEqual(login.environment["CODEX_HOME"], paths.codexHome.path)
     }
 
+    func testMarketplaceListUsesStructuredJSONOutput() {
+        let command = InstallerCommandPlan.marketplaceList(paths: paths)
+
+        XCTAssertEqual(command.executable, paths.codexExecutable)
+        XCTAssertEqual(command.arguments, ["plugin", "marketplace", "list", "--json"])
+    }
+
     func testPlansNeverEvaluateShellSource() {
         let commands = InstallerCommandPlan.install(
             paths: paths,

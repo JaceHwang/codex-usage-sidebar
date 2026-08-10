@@ -16,7 +16,7 @@ final class InstallationVerifierTests: XCTestCase {
 
     func testVerificationReportsEveryMissingHealthSignal() {
         let report = InstallationVerifier.evaluate(
-            statusOutput: "pid=none version=0.2.2 runtime=hidden",
+            statusOutput: "pid=none version=0.2.2",
             expectedVersion: "0.2.3",
             commandSucceeded: false
         )
@@ -24,8 +24,18 @@ final class InstallationVerifierTests: XCTestCase {
         XCTAssertFalse(report.isHealthy)
         XCTAssertEqual(
             Set(report.issues),
-            Set([.statusCommandFailed, .managedProcessMissing, .versionMismatch, .runtimeNotShown])
+            Set([.statusCommandFailed, .managedProcessMissing, .versionMismatch, .runtimeStateMissing])
         )
+    }
+
+    func testForegroundInstallerMayObserveAHealthyHiddenRuntime() {
+        let report = InstallationVerifier.evaluate(
+            statusOutput: "pid=42 version=0.2.3 runtime=hidden placement=content-header",
+            expectedVersion: "0.2.3",
+            commandSucceeded: true
+        )
+
+        XCTAssertTrue(report.isHealthy)
     }
 
     func testMarketplaceInspectionRecognizesOnlyTheNamedMarketplace() throws {

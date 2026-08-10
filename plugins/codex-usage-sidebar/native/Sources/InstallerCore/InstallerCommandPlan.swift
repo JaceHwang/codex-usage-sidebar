@@ -43,6 +43,13 @@ public enum InstallerCommandPlan {
         codexLoginCommand(["login", "status"], paths: paths)
     }
 
+    public static func marketplaceList(paths: InstallerPaths) -> CommandSpec {
+        CommandSpec(
+            executable: paths.codexExecutable,
+            arguments: ["plugin", "marketplace", "list", "--json"]
+        )
+    }
+
     public static func login(paths: InstallerPaths) -> CommandSpec {
         codexLoginCommand(["login"], paths: paths)
     }
