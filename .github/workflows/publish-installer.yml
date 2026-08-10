@@ -1,0 +1,85 @@
+name: Publish v0.2.3 macOS Installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      ci_run_id:
+        description: Successful main CI run ID that produced the installer artifact
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    name: Upload exact tested installer asset
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      CI_RUN_ID: ${{ inputs.ci_run_id }}
+      RELEASE_TAG: v0.2.3
+      INSTALLER_ASSET: codex-usage-sidebar-v0.2.3-macos-arm64.dmg
+      INSTALLER_ARTIFACT: codex-usage-sidebar-installer-v0.2.3
+    steps:
+      - name: Verify the target release and CI run
+        run: |
+          set -euo pipefail
+          release="$(gh release view "$RELEASE_TAG" --repo "$REPOSITORY" --json tagName,isDraft,isPrerelease)"
+          test "$(jq -r '.tagName' <<<"$release")" = "$RELEASE_TAG"
+          test "$(jq -r '.isDraft' <<<"$release")" = false
+          test "$(jq -r '.isPrerelease' <<<"$release")" = false
+
+          run="$(gh api "repos/$REPOSITORY/actions/runs/$CI_RUN_ID")"
+          test "$(jq -r '.name' <<<"$run")" = "CI"
+          test "$(jq -r '.head_branch' <<<"$run")" = main
+          test "$(jq -r '.status' <<<"$run")" = completed
+          test "$(jq -r '.conclusion' <<<"$run")" = success
+          printf '%s\n' "$(jq -r '.head_sha' <<<"$run")" > "$RUNNER_TEMP/ci-head-sha"
+
+      - name: Download the exact tested artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release" "$RUNNER_TEMP/installer"
+          gh release download "$RELEASE_TAG" --repo "$REPOSITORY" \
+            --dir "$RUNNER_TEMP/release" \
+            --pattern 'codex-usage-sidebar-v0.2.3.zip' \
+            --pattern 'SHA256SUMS.txt'
+          gh run download "$CI_RUN_ID" --repo "$REPOSITORY" \
+            --name "$INSTALLER_ARTIFACT" \
+            --dir "$RUNNER_TEMP/installer"
+
+      - name: Verify and combine release checksums
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/release"
+          shasum -a 256 -c SHA256SUMS.txt
+          test -f "$RUNNER_TEMP/installer/$INSTALLER_ASSET"
+          test -f "$RUNNER_TEMP/installer/INSTALLER-SHA256SUMS.txt"
+          test -f "$RUNNER_TEMP/installer/INSTALLER-PROVENANCE.json"
+          cp "$RUNNER_TEMP/installer/$INSTALLER_ASSET" .
+          cp "$RUNNER_TEMP/installer/INSTALLER-PROVENANCE.json" .
+          shasum -a 256 -c "$RUNNER_TEMP/installer/INSTALLER-SHA256SUMS.txt"
+          if grep -Fq "  $INSTALLER_ASSET" SHA256SUMS.txt; then
+            echo "release checksum file already contains the installer asset" >&2
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/installer/INSTALLER-SHA256SUMS.txt" >> SHA256SUMS.txt
+          shasum -a 256 -c SHA256SUMS.txt
+          test "$(jq -r '.version' INSTALLER-PROVENANCE.json)" = 0.2.3
+          test "$(jq -r '.asset.name' INSTALLER-PROVENANCE.json)" = "$INSTALLER_ASSET"
+          test "$(jq -r '.installerSourceCommit' INSTALLER-PROVENANCE.json)" = "$(cat "$RUNNER_TEMP/ci-head-sha")"
+
+      - name: Upload installer files to the existing release
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/release"
+          gh release upload "$RELEASE_TAG" \
+            "$INSTALLER_ASSET" \
+            SHA256SUMS.txt \
+            INSTALLER-PROVENANCE.json \
+            --repo "$REPOSITORY" \
+            --clobber
