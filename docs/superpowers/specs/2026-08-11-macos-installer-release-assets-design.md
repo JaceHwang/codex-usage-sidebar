@@ -109,12 +109,12 @@ Codex-discovery path.
 
 ## Release assets
 
-The first installer release increments the project to `v0.3.0` because it adds a new public
-installation surface. GitHub Release Assets will contain:
+The installer is a distribution enhancement for the current formal `v0.2.3` payload. It does not
+change the plugin or companion version. The existing `v0.2.3` GitHub Release Assets will contain:
 
 ```text
-codex-usage-sidebar-v0.3.0-macos-arm64.dmg
-codex-usage-sidebar-v0.3.0-plugin.zip
+codex-usage-sidebar-v0.2.3-macos-arm64.dmg
+codex-usage-sidebar-v0.2.3.zip
 SHA256SUMS.txt
 PROVENANCE.json
 ```
@@ -146,9 +146,12 @@ The existing macOS 26 CI job will additionally:
 5. verify checksums and reject metadata or generated-file leakage;
 6. upload the DMG, plugin ZIP, checksums, and provenance as one immutable workflow artifact.
 
-A tag-driven release job downloads that exact tested artifact and uploads its files to GitHub
-Release Assets. It does not rebuild after the tag. Release notes show the DMG first as the normal
-installation path and retain marketplace commands as the advanced/manual path.
+A manually dispatched release job on the protected default branch builds and verifies the installer,
+records both the installer source commit and target `v0.2.3` tag in provenance, and uploads the exact
+tested files to the existing `v0.2.3` GitHub Release Assets. It may replace only the checksum and
+provenance metadata needed to cover the added DMG; it must not replace the existing formal plugin
+ZIP with a different payload. Release notes show the DMG first as the normal installation path and
+retain marketplace commands as the advanced/manual path.
 
 ## Failure handling
 
