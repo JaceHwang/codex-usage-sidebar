@@ -168,7 +168,7 @@ forbidden = [
 
 text_files = []
 generated_parts = {
-    ".git", ".build", ".dist", ".swiftpm", ".project-board", ".worktrees"
+    ".git", ".build", ".dist", ".swiftpm", ".project-board", ".superpowers", ".worktrees"
 }
 for path in root.rglob("*"):
     relative = path.relative_to(root)
@@ -214,6 +214,18 @@ for forbidden_path in [root / ".superpowers", root / "docs/verification"]:
         stderr=subprocess.DEVNULL,
     ).returncode == 0:
         raise SystemExit(f"tracked private development artifact: {forbidden_path.relative_to(root)}")
+
+publisher = (root / ".github/workflows/publish-installer.yml").read_text(encoding="utf-8")
+publisher_guards = {
+    "push event": "test \"$(jq -r '.event' <<<\"$run\")\" = push",
+    "same-repository head": "test \"$(jq -r '.head_repository.full_name' <<<\"$run\")\" = \"$REPOSITORY\"",
+    "CI workflow lookup": "repos/$REPOSITORY/actions/workflows/ci.yml",
+    "CI workflow ID": "jq -r '.workflow_id'",
+    "CI workflow path": '".github/workflows/ci.yml@"',
+}
+for label, guard in publisher_guards.items():
+    if guard not in publisher:
+        raise SystemExit(f"publish installer workflow missing trusted CI run guard: {label}")
 
 print("JSON, privacy, placeholder, and Markdown link checks passed")
 PY

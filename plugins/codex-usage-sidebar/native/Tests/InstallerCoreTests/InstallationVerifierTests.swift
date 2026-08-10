@@ -39,9 +39,8 @@ final class InstallationVerifierTests: XCTestCase {
     }
 
     func testMarketplaceInspectionRecognizesOnlyTheNamedMarketplace() throws {
-        let personalMarketplaceRoot = "/" + "Users/test"
         let configured = """
-        {"marketplaces":[{"name":"personal","root":"\(personalMarketplaceRoot)"},{"name":"codex-usage-sidebar","root":"/tmp/sidebar-marketplace"}]}
+        {"marketplaces":[{"name":"personal","root":"/tmp/personal"},{"name":"codex-usage-sidebar","root":"/tmp/sidebar-marketplace"}]}
         """
         let unrelated = """
         {"marketplaces":[{"name":"personal"}]}

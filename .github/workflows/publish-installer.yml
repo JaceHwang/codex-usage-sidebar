@@ -35,9 +35,20 @@ jobs:
 
           run="$(gh api "repos/$REPOSITORY/actions/runs/$CI_RUN_ID")"
           test "$(jq -r '.name' <<<"$run")" = "CI"
+          test "$(jq -r '.event' <<<"$run")" = push
           test "$(jq -r '.head_branch' <<<"$run")" = main
+          test "$(jq -r '.head_repository.full_name' <<<"$run")" = "$REPOSITORY"
           test "$(jq -r '.status' <<<"$run")" = completed
           test "$(jq -r '.conclusion' <<<"$run")" = success
+          ci_workflow="$(gh api "repos/$REPOSITORY/actions/workflows/ci.yml")"
+          test "$(jq -r '.workflow_id' <<<"$run")" = "$(jq -r '.id' <<<"$ci_workflow")"
+          case "$(jq -r '.path' <<<"$run")" in
+            ".github/workflows/ci.yml@"*) ;;
+            *)
+              echo "CI run does not use .github/workflows/ci.yml" >&2
+              exit 1
+              ;;
+          esac
           printf '%s\n' "$(jq -r '.head_sha' <<<"$run")" > "$RUNNER_TEMP/ci-head-sha"
 
       - name: Download the exact tested artifacts
