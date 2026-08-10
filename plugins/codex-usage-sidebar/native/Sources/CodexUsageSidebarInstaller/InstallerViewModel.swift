@@ -177,9 +177,19 @@ final class InstallerViewModel: ObservableObject {
         Task {
             defer { isBusy = false }
             do {
+                let listResult = try await Self.run(
+                    InstallerCommandPlan.marketplaceList(paths: paths)
+                )
+                let configuredRoot = try? MarketplaceInspector.sidebarMarketplaceRoot(
+                    in: listResult.standardOutput
+                )
+                let removeMarketplace = configuredRoot.map {
+                    URL(fileURLWithPath: $0).standardizedFileURL ==
+                        paths.stableMarketplaceRoot.standardizedFileURL
+                } ?? false
                 for command in InstallerCommandPlan.uninstall(
                     paths: paths,
-                    removeMarketplace: false
+                    removeMarketplace: removeMarketplace
                 ) where FileManager.default.isExecutableFile(atPath: command.executable.path) {
                     let result = try await Self.run(command)
                     appendDetails(command: command, result: result)

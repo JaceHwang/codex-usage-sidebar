@@ -53,19 +53,27 @@ public enum InstallationVerifier {
 
 public enum MarketplaceInspector {
     public static func containsSidebarMarketplace(in json: String) throws -> Bool {
-        let response = try JSONDecoder().decode(
-            MarketplaceList.self,
-            from: Data(json.utf8)
-        )
+        let response = try decode(json)
         return response.marketplaces.contains {
             $0.name == InstallerCommandPlan.marketplaceName
         }
+    }
+
+    public static func sidebarMarketplaceRoot(in json: String) throws -> String? {
+        try decode(json).marketplaces.first {
+            $0.name == InstallerCommandPlan.marketplaceName
+        }?.root
+    }
+
+    private static func decode(_ json: String) throws -> MarketplaceList {
+        try JSONDecoder().decode(MarketplaceList.self, from: Data(json.utf8))
     }
 }
 
 private struct MarketplaceList: Decodable {
     struct Marketplace: Decodable {
         let name: String
+        let root: String?
     }
 
     let marketplaces: [Marketplace]

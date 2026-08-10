@@ -40,7 +40,7 @@ final class InstallationVerifierTests: XCTestCase {
 
     func testMarketplaceInspectionRecognizesOnlyTheNamedMarketplace() throws {
         let configured = """
-        {"marketplaces":[{"name":"personal"},{"name":"codex-usage-sidebar"}]}
+        {"marketplaces":[{"name":"personal","root":"/Users/test"},{"name":"codex-usage-sidebar","root":"/tmp/sidebar-marketplace"}]}
         """
         let unrelated = """
         {"marketplaces":[{"name":"personal"}]}
@@ -48,5 +48,10 @@ final class InstallationVerifierTests: XCTestCase {
 
         XCTAssertTrue(try MarketplaceInspector.containsSidebarMarketplace(in: configured))
         XCTAssertFalse(try MarketplaceInspector.containsSidebarMarketplace(in: unrelated))
+        XCTAssertEqual(
+            try MarketplaceInspector.sidebarMarketplaceRoot(in: configured),
+            "/tmp/sidebar-marketplace"
+        )
+        XCTAssertNil(try MarketplaceInspector.sidebarMarketplaceRoot(in: unrelated))
     }
 }
