@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="docs/images/hero.svg" alt="Codex Usage Sidebar fixed beside Open Location" width="900">
+  <img src="docs/images/hero.svg" alt="Codex Usage Sidebar adaptive titlebar placement" width="900">
 </p>
 
 <h1 align="center">Codex Usage Sidebar</h1>
 
 <p align="center">
-  Live Codex quota, reset time, Credits, and Bank details beside the native Open Location control.
+  Live Codex quota, reset time, Credits, and Bank details in the Codex titlebar.
 </p>
 
 <p align="center">
@@ -35,18 +35,32 @@
 
 <p align="center"><em>Light theme · Dark theme</em></p>
 
-<p align="center">Real v0.2.1 captures showing the titlebar indicator and full quota popover.</p>
+<p align="center">Real captures of the localized popover in both Codex themes. The popover design is unchanged in v0.2.3.</p>
+
+## Adaptive titlebar placement
+
+<p align="center">
+  <img src="docs/images/adaptive-titlebar-nearby-dark.png" alt="Quota control moved into the nearest free titlebar slot before Open Location" width="96%">
+</p>
+
+<p align="center"><em>Enough room: the control occupies the nearest collision-free slot and keeps an 8-point gap.</em></p>
+
+<p align="center">
+  <img src="docs/images/adaptive-titlebar-fallback-dark.png" alt="Quota control moved to the safe right-side titlebar fallback" width="96%">
+</p>
+
+<p align="center"><em>Not enough room: the control moves immediately to the reserved right-side titlebar position.</em></p>
 
 ## What it does
 
 Codex Usage Sidebar installs a small native macOS companion outside the signed Codex application.
 It reads quota updates from Codex's local `app-server`, follows the current light or dark theme,
-and renders one non-activating control exactly 8 points before the native Open Location button.
+and renders one non-activating control in the nearest safe titlebar slot.
 
 | Situation | Behavior |
 | --- | --- |
-| Left, right, or bottom pane changes | The quota control follows the native **Open Location** control and keeps an exact 8-point gap. |
-| Window moves or resizes | A cached accessibility anchor is sampled every 0.1 seconds, so the control tracks the new position. |
+| Left, right, or bottom pane changes | The quota control prefers the native **Open Location** anchor, slides left around occupied controls, and moves to the reserved right-side position only when the local titlebar cannot fit it. |
+| Window moves or resizes | The collision-aware layout is sampled every 0.1 seconds, so the control tracks the available titlebar space without overlapping native controls or titles. |
 | Hover | A native detail card shows the synchronized plugin version, plan, period, Credits, and every Bank entry with status and expiry. |
 | Click | The detail card stays pinned until the quota control is clicked again; hover behavior remains available. |
 | Quota changes | Percentage color follows the exact 100% green, 49% orange, and 10% red palette while the filled bar reveals the matching spectrum. |
@@ -56,7 +70,7 @@ The old sidebar-footer copy and all sidebar-state synchronization code are remov
 quota control.
 
 <p align="center">
-  <img src="docs/images/placement.svg" alt="Fixed eight-point placement across pane and window changes" width="900">
+  <img src="docs/images/placement.svg" alt="Collision-aware placement across pane and window changes" width="900">
 </p>
 
 ## Quick install
@@ -82,18 +96,28 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 Then enable Accessibility for **Codex Usage Sidebar** when macOS asks. See
 [Installation and operations](docs/INSTALL.md) for exact status, update, repair, and removal steps.
 
-## Fixed positioning
+## Collision-aware positioning
 
-The companion does not estimate placement from the window edge. It finds the real Open Location
-button by its accessibility title, description, help text, or identifier, then lays out:
+The companion scans the accessibility branches that can affect titlebar placement. It reads labels
+and frames only from eligible buttons and static title text, and uses unlabeled structural group
+frames in the relevant region to detect pane boundaries. It then applies this placement policy:
 
 ```text
-quota.maxX = openLocation.minX - 8 pt
+1. Prefer quota.maxX = openLocation.minX - 8 pt.
+2. If that frame intersects another titlebar item, slide left to the nearest free slot.
+3. If no complete slot remains before a title barrier, use the reserved right-side fallback.
 ```
 
-After the first semantic scan, the AX element is cached. Pane changes and window resizing only
-require reading that element's current frame. If the named control is temporarily unavailable, the
-companion preserves a safe in-window fallback rather than touching Codex internals.
+The toolbar-item scan includes the full horizontal reach of the 164-point control but rejects items
+outside the 46-point titlebar. Structural groups are considered only as geometry for pane-boundary
+detection; their labels and text are never read. This keeps resizing responsive without reading
+conversation bodies.
+Degenerate elements clipped to a 1-point line at the top of a fullscreen window are ignored rather
+than mistaken for visible title text. Geometry eligibility is checked before any label is read, and
+every 0.1-second placement tick re-scans eligible titlebar geometry even when the semantic anchor
+itself is unchanged. An intentional fallback replaces an obsolete retained anchor immediately; a
+transient incomplete scan still preserves the last valid placement for at most 0.75 seconds. The
+companion never modifies Codex internals.
 
 ## Live details
 
@@ -111,7 +135,7 @@ companion preserves a safe in-window fallback rather than touching Codex interna
 
 ## Language matching
 
-Version 0.2.1 follows the language Codex is actually displaying. An explicit Codex language choice
+Version 0.2.3 follows the language Codex is actually displaying. An explicit Codex language choice
 is authoritative; when Codex is set to **Auto**, the running renderer's resolved locale is used.
 Codex preferences and the macOS preferred language remain safe startup fallbacks.
 
@@ -152,7 +176,8 @@ signature change.
 - Does not scrape web pages, inject into Codex, read conversation text, or send telemetry.
 - Reads only the running Codex renderer's locale argument in memory for language matching; raw
   process arguments are never written to diagnostics or logs.
-- Reads only the active Codex window and named control geometry for placement.
+- Reads labels and frames only for eligible titlebar controls/static text, plus unlabeled structural
+  group frames in the relevant region for pane-boundary detection.
 - Keeps runtime files under the user's Application Support directory.
 
 Read the complete [privacy model](docs/PRIVACY.md), [architecture](docs/ARCHITECTURE.md), and
@@ -167,15 +192,15 @@ Read the complete [privacy model](docs/PRIVACY.md), [architecture](docs/ARCHITEC
 A healthy precise-positioning result includes the state from the actual LaunchAgent process:
 
 ```text
-pid=12345 version=0.2.1 runtime=shown placement=content-header anchor=openLocation
+pid=12345 version=0.2.3 runtime=shown placement=content-header anchor=labeledControl
 language=simplifiedChinese language_source=process
-indicator=1524,1003,164,46 ... cached:true,source:openLocation,edge:1696
+indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app
 ```
 
-The indicator's right edge must equal `edge - 8`. `cached:true` confirms the fast path is following
-the already-resolved Open Location element. The runtime version must match the badge in the hover
-card.
+For `openLocation`, `labeledControl`, or `rightPaneBoundary`, the indicator's right edge equals
+`edge - 8`. A `fallback` with a resolved edge is an intentional move to the safe right-side slot,
+not an error. The runtime version must match the badge in the hover card.
 
 ## Build provenance
 

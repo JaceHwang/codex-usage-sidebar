@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="430" viewBox="0 0 1100 430" role="img" aria-labelledby="title desc">
   <title id="title">Codex Usage Sidebar local architecture</title>
-  <desc id="desc">An isolated Codex app-server quota stream and semantic accessibility anchor feed an external native overlay.</desc>
+  <desc id="desc">An isolated quota stream and collision-aware titlebar geometry feed an external native overlay.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
       <path d="M0 0l10 5-10 5z" fill="#899286"/>
@@ -21,7 +21,7 @@
       <text x="38" y="106" fill="#82907d" font-size="11">quota + Bank updates</text>
       <rect x="22" y="137" width="186" height="58" rx="11" fill="#2b3529"/>
       <text x="38" y="162" fill="#c2cabd" font-size="13">Accessibility tree</text>
-      <text x="38" y="181" fill="#82907d" font-size="11">Open Location frame</text>
+      <text x="38" y="181" fill="#82907d" font-size="11">titlebar labels + frames</text>
       <text x="22" y="224" fill="#768172" font-size="11">Application bundle remains read-only</text>
     </g>
 
@@ -34,8 +34,8 @@
       <g fill="#c3cdc0" font-size="13">
         <text x="22" y="76">AllowanceSnapshot + every Bank entry</text>
         <text x="22" y="108">Isolated CodexHome credentials</text>
-        <text x="22" y="140">Open Location semantic resolver</text>
-        <text x="22" y="172">Cached AX frame every 0.1 seconds</text>
+        <text x="22" y="140">Semantic anchor + collision resolver</text>
+        <text x="22" y="172">Titlebar geometry every 0.1 seconds</text>
         <text x="22" y="204">Theme + continuous quota color</text>
       </g>
       <text x="22" y="228" fill="#82907d" font-size="11">User LaunchAgent - no global input monitor</text>
@@ -49,9 +49,9 @@
       <rect x="22" y="55" width="120" height="34" rx="9" fill="#383d34"/>
       <text x="38" y="77" fill="#66c68e" font-size="13" font-weight="700">57% | 16:08</text>
       <path d="M151 58v28" stroke="#d3a349" stroke-width="2"/>
-      <text x="163" y="76" fill="#d3a349" font-size="11">8 pt</text>
-      <text x="22" y="121" fill="#bdc4b8" font-size="12">quota.maxX =</text>
-      <text x="22" y="141" fill="#bdc4b8" font-size="12">openLocation.minX - 8 pt</text>
+      <text x="163" y="76" fill="#d3a349" font-size="11">safe</text>
+      <text x="22" y="121" fill="#bdc4b8" font-size="12">direct anchor, nearest slot,</text>
+      <text x="22" y="141" fill="#bdc4b8" font-size="12">or reserved right fallback</text>
     </g>
   </g>
 </svg>

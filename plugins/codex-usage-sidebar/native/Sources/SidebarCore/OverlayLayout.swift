@@ -6,6 +6,12 @@ public enum OverlayLayout {
     public static let indicatorWidth: CGFloat = 164
     public static let indicatorGap: CGFloat = 8
 
+    public static func trailingFallbackEdge(
+        in windowFrame: CGRect
+    ) -> CGFloat {
+        windowFrame.maxX - 176 + indicatorGap
+    }
+
     public static func indicatorFrame(
         in windowFrame: CGRect,
         contentTrailingEdge: CGFloat?
@@ -13,7 +19,7 @@ public enum OverlayLayout {
         let resolvedTrailingEdge = contentTrailingEdge.map {
             $0 - indicatorGap
         }
-            ?? windowFrame.maxX - 176
+            ?? trailingFallbackEdge(in: windowFrame) - indicatorGap
         let originX = max(
             windowFrame.minX + 8,
             min(

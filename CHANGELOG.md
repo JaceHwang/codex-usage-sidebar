@@ -3,6 +3,33 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.3] - 2026-08-10
+
+### Fixed
+
+- Prevent the quota control from overlapping native titlebar controls while the right pane is
+  dragged left through intermediate widths.
+- Slide the quota control to the nearest complete free titlebar slot when its preferred Open
+  Location frame is occupied.
+- Move immediately to the existing safe right-side fallback when no complete local slot remains
+  before a static title barrier.
+- Let an intentional resolved fallback replace an obsolete cached Open Location anchor while still
+  retaining the last valid placement during a transient incomplete accessibility scan.
+- Ignore degenerate content elements clipped to a 1-point line at the top of a fullscreen Codex
+  window, preventing them from masquerading as titlebar obstacles and forcing an overlapping
+  fallback when the right pane is closed.
+- Re-scan eligible titlebar geometry on every 0.1-second placement tick instead of bypassing
+  collision detection while a semantic anchor cache is fresh.
+
+### Changed
+
+- Scan the full horizontal reach of the 164-point indicator and recognize both native buttons and
+  meaningfully visible static title text as occupied geometry, while pruning everything below the
+  46-point titlebar.
+- Apply geometry eligibility before reading accessibility labels, and stop traversing degenerate
+  clipped branches before they can consume the bounded scan.
+- Add real screenshots of the nearest-free-slot and safe-right-fallback layouts to both READMEs.
+
 ## [0.2.2] - 2026-08-10
 
 ### Changed
@@ -176,3 +203,4 @@ All notable changes to this project are documented here. The project follows
 [0.2.0]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.2.0
 [0.2.1]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.2.1
 [0.2.2]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.2.2
+[0.2.3]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.2.3

@@ -16,8 +16,9 @@ Requirements:
 6. In the new task, invoke @codex-usage-sidebar to check and repair the installation.
 7. Verify the LaunchAgent, status output, isolated login, and accessibility state.
 8. If Accessibility is off, open the correct System Settings pane and ask me to approve the switch.
-9. Confirm anchor=openLocation, placement=content-header, and cached:true without exposing unrelated
-   windows, conversations, or account data.
+9. Resize the right pane and confirm collision-free adaptive placement: a resolved local source
+   keeps an 8-point edge gap, while insufficient space selects the safe right-side fallback. Do not
+   expose unrelated windows, conversations, or account data.
 ```
 
 ## Deterministic procedure
@@ -77,12 +78,17 @@ Interpret status conservatively:
 - `installed and loaded` confirms the managed runtime is present.
 - `accessibility=granted` permits semantic placement checks.
 - `accessibility=required` means the user must approve the macOS switch.
-- `anchor=openLocation placement=content-header` confirms the intended anchor.
-- `cached:true` confirms the 0.1-second position loop is using the cached AX element.
+- `placement=content-header` with `openLocation`, `labeledControl`, or `rightPaneBoundary` confirms
+  a resolved collision-free local placement.
+- `fallback` with a numeric edge confirms the intentional safe right-side placement used when no
+  complete local slot remains; it is not a failure.
+- `cached:false` is the expected v0.2.3 steady state because every 0.1-second tick re-scans eligible
+  titlebar geometry for collisions.
 - `pid=<LaunchAgent PID>` confirms status came from the managed process rather than a standalone
   diagnostic invocation.
 - `version=<version>` must match the visible badge beside the hover-card title.
-- For `indicator=x,y,width,height` and `edge=n`, `x + width` must equal `n - 8`.
+- For a resolved non-fallback source with `indicator=x,y,width,height` and `edge=n`, `x + width`
+  must equal `n - 8`.
 
 Accessibility is a macOS security permission. Never bypass it or claim it is granted before the OS
 reports that state.
@@ -100,5 +106,6 @@ and preserves the stable local signing identity when available.
 ### 7. Report evidence
 
 Return the plugin version, login status, companion status, LaunchAgent state, Accessibility state,
-anchor source, and whether the visible control keeps an 8-point gap from Open Location while panes
-and window size change. Crop screenshots to the relevant titlebar area.
+anchor source, and whether the control avoids native controls while the right pane is dragged
+through intermediate widths. Confirm both the nearest-free-slot and safe-right-fallback states.
+Crop screenshots to the relevant titlebar area.

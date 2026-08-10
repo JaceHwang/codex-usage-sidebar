@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
-  <title id="title">Codex Usage Sidebar fixed-gap quota control</title>
-  <desc id="desc">A Codex window with a quota control exactly eight points before Open Location and a detailed Bank hover card.</desc>
+  <title id="title">Codex Usage Sidebar adaptive quota control</title>
+  <desc id="desc">A Codex window with a collision-aware quota control and a detailed Bank hover card.</desc>
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
       <stop stop-color="#10140f"/>
@@ -21,7 +21,7 @@
   <circle cx="1080" cy="58" r="210" fill="#efb34f" opacity=".06"/>
   <g font-family="Avenir Next,Helvetica Neue,sans-serif">
     <text x="70" y="72" fill="#f4f4e9" font-size="35" font-weight="700">Quota that stays attached to Codex.</text>
-    <text x="70" y="108" fill="#aeb5a5" font-size="18">One control. Exact 8 pt gap. Live Bank details on hover.</text>
+    <text x="70" y="108" fill="#aeb5a5" font-size="18">One control. Adaptive safe placement. Live Bank details on hover.</text>
 
     <g transform="translate(68 150)" filter="url(#shadow)">
       <rect width="1064" height="402" rx="22" fill="#f7f6f1"/>
@@ -52,7 +52,7 @@
       </g>
 
       <text x="252" y="116" fill="#252822" font-size="23" font-weight="700">Open any pane. Resize anything.</text>
-      <text x="252" y="148" fill="#777b70" font-size="15">The cached native anchor moves; the measured gap does not.</text>
+      <text x="252" y="148" fill="#777b70" font-size="15">Direct anchor, nearest free slot, or reserved fallback.</text>
 
       <g transform="translate(596 82)">
         <rect width="386" height="282" rx="16" fill="#fff" stroke="#d2d1cb"/>

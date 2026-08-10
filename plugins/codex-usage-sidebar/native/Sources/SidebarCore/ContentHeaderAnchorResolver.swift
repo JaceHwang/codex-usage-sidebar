@@ -11,10 +11,16 @@ public enum ContentHeaderAnchorSource: String, Equatable, Sendable {
 public struct ContentHeaderControl: Equatable, Sendable {
     public let frame: CGRect
     public let labels: [String]
+    public let isAnchorCandidate: Bool
 
-    public init(frame: CGRect, labels: [String]) {
+    public init(
+        frame: CGRect,
+        labels: [String],
+        isAnchorCandidate: Bool = true
+    ) {
         self.frame = frame
         self.labels = labels
+        self.isAnchorCandidate = isAnchorCandidate
     }
 }
 
@@ -32,10 +38,44 @@ public struct ContentHeaderAnchor: Equatable, Sendable {
 }
 
 public enum ContentHeaderAnchorResolver {
+    private static let maximumAnchorWidth: CGFloat = 160
+    private static let minimumToolbarItemHeight: CGFloat = 8
+
+    public static func shouldScanDescendants(
+        of frame: CGRect,
+        windowFrame: CGRect
+    ) -> Bool {
+        let scanMinimumX = windowFrame.midX
+            - OverlayLayout.indicatorWidth
+            - OverlayLayout.indicatorGap
+            - maximumAnchorWidth / 2
+        let scanMinimumY = windowFrame.maxY - OverlayLayout.toolbarHeight
+        return frame.height >= minimumToolbarItemHeight
+            && frame.maxX >= scanMinimumX
+            && frame.maxY >= scanMinimumY
+    }
+
+    public static func isEligibleToolbarItem(
+        frame: CGRect,
+        windowFrame: CGRect
+    ) -> Bool {
+        let toolbarMinimumY = windowFrame.maxY - OverlayLayout.toolbarHeight
+        return frame.width > 0
+            && frame.height >= minimumToolbarItemHeight
+            && frame.height <= OverlayLayout.toolbarHeight
+            && frame.midY >= toolbarMinimumY
+            && frame.midY <= windowFrame.maxY
+            && frame.maxX >= windowFrame.minX
+            && frame.minX <= windowFrame.maxX
+    }
+
     public static func stabilized(
         scanned: ContentHeaderAnchor,
         cached: ContentHeaderAnchor?
     ) -> ContentHeaderAnchor {
+        if scanned.source == .fallback, scanned.trailingEdge != nil {
+            return scanned
+        }
         guard
             scanned.source != .openLocation,
             let cached,
@@ -57,14 +97,17 @@ public enum ContentHeaderAnchorResolver {
             windowFrame: windowFrame
         )
         let contentLimit = paneBoundary ?? windowFrame.maxX
-        let toolbarMinimumY = windowFrame.maxY - OverlayLayout.toolbarHeight
+        let toolbarItems = controls.filter { control in
+            isEligibleToolbarItem(
+                frame: control.frame,
+                windowFrame: windowFrame
+            )
+        }
 
-        let headerControls = controls.filter { control in
+        let headerControls = toolbarItems.filter { control in
             let frame = control.frame
-            return frame.width <= 160
-                && frame.height <= OverlayLayout.toolbarHeight
-                && frame.midY >= toolbarMinimumY
-                && frame.midY <= windowFrame.maxY
+            return control.isAnchorCandidate
+                && frame.width <= maximumAnchorWidth
                 && frame.midX >= windowFrame.midX
         }
 
@@ -75,9 +118,12 @@ public enum ContentHeaderAnchorResolver {
         if let openLocation = headerControls.filter(isOpenLocation).max(
             by: { $0.frame.minX < $1.frame.minX }
         ) {
-            return ContentHeaderAnchor(
+            return collisionAwareAnchor(
                 trailingEdge: openLocation.frame.minX,
-                source: .openLocation
+                source: .openLocation,
+                selectedFrame: openLocation.frame,
+                toolbarItems: toolbarItems,
+                windowFrame: windowFrame
             )
         }
 
@@ -88,19 +134,82 @@ public enum ContentHeaderAnchorResolver {
             lhs.frame.minX < rhs.frame.minX
         }
         if let labeledControl {
-            return ContentHeaderAnchor(
+            return collisionAwareAnchor(
                 trailingEdge: labeledControl.frame.minX,
-                source: .labeledControl
+                source: .labeledControl,
+                selectedFrame: labeledControl.frame,
+                toolbarItems: toolbarItems,
+                windowFrame: windowFrame
             )
         }
 
         if let paneBoundary {
-            return ContentHeaderAnchor(
+            return collisionAwareAnchor(
                 trailingEdge: paneBoundary,
-                source: .rightPaneBoundary
+                source: .rightPaneBoundary,
+                selectedFrame: nil,
+                toolbarItems: toolbarItems,
+                windowFrame: windowFrame
             )
         }
         return ContentHeaderAnchor(trailingEdge: nil, source: .fallback)
+    }
+
+    private static func collisionAwareAnchor(
+        trailingEdge: CGFloat,
+        source: ContentHeaderAnchorSource,
+        selectedFrame: CGRect?,
+        toolbarItems: [ContentHeaderControl],
+        windowFrame: CGRect
+    ) -> ContentHeaderAnchor {
+        let obstacles = toolbarItems.filter { item in
+            guard let selectedFrame else {
+                return true
+            }
+            return item.frame != selectedFrame
+        }
+        var resolvedEdge = trailingEdge
+
+        for _ in 0...obstacles.count {
+            let candidate = OverlayLayout.indicatorFrame(
+                in: windowFrame,
+                contentTrailingEdge: resolvedEdge
+            )
+            let collisions = obstacles.filter { item in
+                candidate.intersects(
+                    item.frame.insetBy(
+                        dx: -OverlayLayout.indicatorGap,
+                        dy: 0
+                    )
+                )
+            }
+            guard !collisions.isEmpty else {
+                return ContentHeaderAnchor(
+                    trailingEdge: resolvedEdge,
+                    source: source
+                )
+            }
+            if collisions.contains(where: { !$0.isAnchorCandidate }) {
+                return trailingFallback(in: windowFrame)
+            }
+            guard
+                let nextEdge = collisions.map(\.frame.minX).min(),
+                nextEdge < resolvedEdge - 0.5
+            else {
+                return trailingFallback(in: windowFrame)
+            }
+            resolvedEdge = nextEdge
+        }
+        return trailingFallback(in: windowFrame)
+    }
+
+    private static func trailingFallback(
+        in windowFrame: CGRect
+    ) -> ContentHeaderAnchor {
+        ContentHeaderAnchor(
+            trailingEdge: OverlayLayout.trailingFallbackEdge(in: windowFrame),
+            source: .fallback
+        )
     }
 
     private static func isOpenLocation(

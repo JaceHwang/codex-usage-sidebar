@@ -53,8 +53,10 @@ This authorization survives companion restarts and normal Codex app upgrades.
 Open `System Settings -> Privacy & Security -> Accessibility` and enable
 **Codex Usage Sidebar**. macOS may require Touch ID or an administrator password.
 
-Accessibility lets the companion find the native Open Location control and follow its frame. The
-companion only reads geometry from the active Codex window; it does not click or type.
+Accessibility lets the companion identify native titlebar controls and static titles, then choose
+a collision-free frame. It reads labels and frames only from eligible titlebar buttons/static text,
+plus unlabeled structural group frames in the relevant region for pane-boundary detection. It does
+not click, type, or read conversation content.
 
 The release build uses a stable designated requirement to reduce permission churn. macOS remains
 the authority and can request approval again after a security-policy or signing change.
@@ -71,19 +73,20 @@ Repair once after changing the switch:
 "$HOME/Library/Application Support/CodexUsageSidebar/sidebar-control.sh" status
 ```
 
-A healthy precise-positioning result is read from the actual managed process and includes:
+A healthy adaptive-positioning result is read from the actual managed process and includes:
 
 ```text
-pid=12345 version=0.2.1 runtime=shown placement=content-header anchor=openLocation
+pid=12345 version=0.2.3 runtime=shown placement=content-header anchor=labeledControl
 language=simplifiedChinese language_source=process
-indicator=1524,1003,164,46 ... cached:true,source:openLocation,edge:1696
+indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app
 ```
 
-The detailed anchor diagnostic should contain `cached:true` after the Open Location element has
-been resolved. For an indicator frame `x,y,width,height`, verify `x + width = edge - 8`. The version
-must match the badge beside the hover-card title. A fallback source is safe but not the intended
-fixed-gap placement; see
+`openLocation`, `labeledControl`, and `rightPaneBoundary` are valid resolved sources. For those
+sources, an indicator frame `x,y,width,height` satisfies `x + width = edge - 8`. A `fallback` with
+a numeric edge is also healthy: it is the deliberate safe right-side position used when no full
+local slot remains. v0.2.3 normally reports `cached:false` because every placement tick re-scans
+eligible titlebar geometry; the version must match the badge beside the hover-card title. See
 [Troubleshooting](TROUBLESHOOTING.md).
 
 The language fields report the effective mapped UI language and how it was obtained. `process` is
