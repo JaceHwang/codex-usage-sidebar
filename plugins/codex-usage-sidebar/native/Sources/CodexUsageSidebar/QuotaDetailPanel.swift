@@ -62,7 +62,8 @@ final class QuotaDetailPanel {
         )
         let rowHeights = QuotaDetailRowMetrics.heights(
             for: content.rows,
-            cardWidth: QuotaDetailLayout.width
+            cardWidth: QuotaDetailLayout.width,
+            remainingPercent: content.remainingPercent
         )
         let panelFrame = QuotaDetailLayout.frame(
             indicatorFrame: indicatorFrame,
@@ -198,6 +199,10 @@ private final class QuotaDetailCardView: NSView {
                 color: .labelColor,
                 alignment: .right
             )
+            value.attributedStringValue = QuotaCountdownTypography.string(
+                row.value,
+                remainingPercent: content.remainingPercent
+            )
             if isStacked {
                 let valueHeight = rowHeight - 22
                 value.maximumNumberOfLines = Int(valueHeight / 18)
@@ -310,13 +315,19 @@ private enum QuotaDetailRowMetrics {
 
     static func heights(
         for rows: [QuotaDetailRow],
-        cardWidth: CGFloat
+        cardWidth: CGFloat,
+        remainingPercent: Int
     ) -> [CGFloat] {
         rows.map { row in
             let labelWidth = min(108, textWidth(row.label, font: labelFont) + 2)
             let valueX = max(68, 12 + labelWidth + 6)
             let columnWidth = max(1, cardWidth - valueX - 12)
-            let measuredValueWidth = textWidth(row.value, font: valueFont)
+            let measuredValueWidth = ceil(
+                QuotaCountdownTypography.string(
+                    row.value,
+                    remainingPercent: remainingPercent
+                ).size().width
+            )
             guard measuredValueWidth > columnWidth else {
                 return QuotaDetailLayout.rowHeight
             }
@@ -333,6 +344,73 @@ private enum QuotaDetailRowMetrics {
                 withAttributes: [.font: font]
             ).width
         )
+    }
+}
+
+@MainActor
+private enum QuotaCountdownTypography {
+    private static let digitFont = NSFont.systemFont(
+        ofSize: 14,
+        weight: .semibold
+    )
+    private static let unitFont = NSFont.systemFont(
+        ofSize: 10,
+        weight: .medium
+    )
+    private static let punctuationFont = NSFont.systemFont(
+        ofSize: 10,
+        weight: .regular
+    )
+
+    static func string(
+        _ value: String,
+        remainingPercent: Int
+    ) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        let accentColor = QuotaColorScale.components(
+            remainingPercent: remainingPercent
+        ).appKitColor
+
+        for segment in QuotaCountdownSegmenter.segments(in: value) {
+            let attributes: [NSAttributedString.Key: Any]
+            switch segment.role {
+            case .plain:
+                attributes = [
+                    .font: QuotaDetailRowMetrics.valueFont,
+                    .foregroundColor: NSColor.labelColor
+                ]
+            case .digits:
+                attributes = [
+                    .font: digitFont,
+                    .foregroundColor: accentColor
+                ]
+            case .unit:
+                attributes = [
+                    .font: unitFont,
+                    .foregroundColor: NSColor.secondaryLabelColor
+                ]
+            case .punctuation, .suffix:
+                attributes = [
+                    .font: punctuationFont,
+                    .foregroundColor: NSColor.secondaryLabelColor
+                ]
+            }
+            result.append(
+                NSAttributedString(
+                    string: segment.text,
+                    attributes: attributes
+                )
+            )
+        }
+
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .right
+        result.addAttribute(
+            .paragraphStyle,
+            value: paragraph,
+            range: NSRange(location: 0, length: result.length)
+        )
+        return result
     }
 }
 

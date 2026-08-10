@@ -3,6 +3,16 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.2] - 2026-08-10
+
+### Changed
+
+- Emphasize the numeric portions of reset and Bank expiry intervals with larger semibold type and
+  the live quota color while keeping units and parentheses smaller and muted.
+- Use the same semantic typography and contrast behavior in Codex light and dark themes.
+- Measure emphasized attributed values with the same fonts used for rendering so compact date rows
+  retain their existing alignment and wrapping behavior.
+
 ## [0.2.1] - 2026-08-09
 
 ### Fixed
@@ -165,3 +175,4 @@ All notable changes to this project are documented here. The project follows
 [0.1.9]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.1.9
 [0.2.0]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.2.0
 [0.2.1]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.2.1
+[0.2.2]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.2.2
