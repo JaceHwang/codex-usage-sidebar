@@ -57,6 +57,12 @@ jobs:
       - name: Validate rebuilt payload
         run: CUS_REBUILT_PAYLOAD=1 bash scripts/validate-public-repo.sh
 
+      - name: Restore promoted payload for main release package
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git restore --source=HEAD -- 'plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app'
+          bash scripts/validate-public-repo.sh
+
       - name: Package exact tested payload
         run: |
           bash scripts/package-release.sh
