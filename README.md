@@ -29,13 +29,13 @@
 ## Actual appearance
 
 <p align="center">
-  <img src="docs/images/quota-popover-en-light.png" alt="Codex Usage Sidebar v0.2.1 in the light theme" width="48%">
-  <img src="docs/images/quota-popover-en-dark.png" alt="Codex Usage Sidebar v0.2.1 in the dark theme" width="48%">
+  <img src="docs/images/quota-popover-en-light.png" alt="Codex Usage Sidebar v0.2.3 with emphasized countdown values in the light theme" width="48%">
+  <img src="docs/images/quota-popover-en-dark.png" alt="Codex Usage Sidebar v0.2.3 with emphasized countdown values in the dark theme" width="48%">
 </p>
 
 <p align="center"><em>Light theme · Dark theme</em></p>
 
-<p align="center">Real captures of the localized popover in both Codex themes. The popover design is unchanged in v0.2.3.</p>
+<p align="center">Real v0.2.3 captures in both Codex themes. Larger, color-synced countdown numbers make the remaining days and hours easy to scan while the units stay understated.</p>
 
 ## Adaptive titlebar placement
 

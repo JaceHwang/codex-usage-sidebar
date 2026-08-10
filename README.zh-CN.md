@@ -19,13 +19,13 @@
 ## 当前实际效果
 
 <p align="center">
-  <img src="docs/images/quota-popover-zh-light.png" alt="浅色主题下的 Codex Usage Sidebar v0.2.1" width="48%">
-  <img src="docs/images/quota-popover-zh-dark.png" alt="深色主题下的 Codex Usage Sidebar v0.2.1" width="48%">
+  <img src="docs/images/quota-popover-zh-light.png" alt="浅色主题下突出显示剩余时间数字的 Codex Usage Sidebar v0.2.3" width="48%">
+  <img src="docs/images/quota-popover-zh-dark.png" alt="深色主题下突出显示剩余时间数字的 Codex Usage Sidebar v0.2.3" width="48%">
 </p>
 
 <p align="center"><em>浅色主题 · 深色主题</em></p>
 
-<p align="center">简体中文浮窗在两种 Codex 主题下的真实截图；v0.2.3 保持相同的浮窗设计。</p>
+<p align="center">v0.2.3 在两种 Codex 主题下的真实截图；剩余天数与小时数字使用更大字号并同步额度颜色，单位则保持弱化，扫一眼即可识别。</p>
 
 ## 自适应标题栏定位
 
