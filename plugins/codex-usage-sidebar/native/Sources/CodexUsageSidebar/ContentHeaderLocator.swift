@@ -10,21 +10,10 @@ final class ContentHeaderLocator {
         let depth: Int
     }
 
-    private struct ScannedControl {
-        let element: AXUIElement
-        let value: ContentHeaderControl
-    }
-
-    private struct ScannedPane {
-        let element: AXUIElement
-        let frame: CGRect
-    }
-
     private struct CachedAnchor {
         let processIdentifier: pid_t
         let window: AXUIElement
-        let element: AXUIElement
-        let source: ContentHeaderAnchorSource
+        let anchor: ContentHeaderAnchor
         let expiresAt: Date
     }
 
@@ -53,48 +42,30 @@ final class ContentHeaderLocator {
             return ContentHeaderAnchor(trailingEdge: nil, source: .fallback)
         }
 
-        if let anchor = resolvedCachedAnchor(
+        let retainedAnchor = retainedAnchor(
             processIdentifier: processIdentifier,
-            window: window,
-            windowFrame: windowFrame,
-            requireFresh: true
-        ) {
-            let edge = anchor.trailingEdge.map { String(Int($0)) }
-                ?? "fallback"
-            latestDiagnosticDetail =
-                "anchor_scan=visited:0,controls:0,panes:0," +
-                "cached:true,source:\(anchor.source.rawValue),edge:\(edge)"
-            return anchor
-        }
-
-        let retainedAnchor = resolvedCachedAnchor(
-            processIdentifier: processIdentifier,
-            window: window,
-            windowFrame: windowFrame,
-            requireFresh: false
+            window: window
         )
 
         let scan = scanLayout(in: window, windowFrame: windowFrame)
         let scannedAnchor = ContentHeaderAnchorResolver.resolve(
-            controls: scan.controls.map(\.value),
-            paneFrames: scan.panes.map(\.frame),
+            controls: scan.controls,
+            paneFrames: scan.panes,
             windowFrame: windowFrame
         )
         let anchor = ContentHeaderAnchorResolver.stabilized(
             scanned: scannedAnchor,
             cached: retainedAnchor
         )
-        if
-            anchor == scannedAnchor,
-            let selected = selectedElement(for: scannedAnchor, in: scan)
-        {
+        if scannedAnchor.trailingEdge != nil, scannedAnchor.source != .fallback {
             cachedAnchor = CachedAnchor(
                 processIdentifier: processIdentifier,
                 window: window,
-                element: selected,
-                source: scannedAnchor.source,
+                anchor: scannedAnchor,
                 expiresAt: Date().addingTimeInterval(cacheLifetime)
             )
+        } else if scannedAnchor.trailingEdge != nil {
+            cachedAnchor = nil
         } else if retainedAnchor == nil {
             cachedAnchor = nil
         }
@@ -111,14 +82,14 @@ final class ContentHeaderLocator {
     private func scanLayout(
         in window: AXUIElement,
         windowFrame: CGRect
-    ) -> (controls: [ScannedControl], panes: [ScannedPane], visited: Int) {
+    ) -> (controls: [ContentHeaderControl], panes: [CGRect], visited: Int) {
         var queue = children(of: window).map {
             QueueEntry(element: $0, depth: 1)
         }
         var index = 0
         var visited = 0
-        var controls: [ScannedControl] = []
-        var panes: [ScannedPane] = []
+        var controls: [ContentHeaderControl] = []
+        var panes: [CGRect] = []
 
         while index < queue.count, visited < maximumElements {
             let entry = queue[index]
@@ -133,22 +104,22 @@ final class ContentHeaderLocator {
                 let topLeftFrame = frame(of: entry.element)
             {
                 let appKitFrame = appKitFrame(fromTopLeftFrame: topLeftFrame)
-                if role == "AXButton" {
+                if
+                    (role == "AXButton" || role == "AXStaticText"),
+                    ContentHeaderAnchorResolver.isEligibleToolbarItem(
+                        frame: appKitFrame,
+                        windowFrame: windowFrame
+                    )
+                {
                     if let control = control(
                         for: entry.element,
-                        appKitFrame: appKitFrame
+                        appKitFrame: appKitFrame,
+                        isAnchorCandidate: role == "AXButton"
                     ) {
-                        controls.append(
-                            ScannedControl(
-                                element: entry.element,
-                                value: control
-                            )
-                        )
+                        controls.append(control)
                     }
                 } else if role == "AXGroup" {
-                    panes.append(
-                        ScannedPane(element: entry.element, frame: appKitFrame)
-                    )
+                    panes.append(appKitFrame)
                 }
             }
 
@@ -157,9 +128,10 @@ final class ContentHeaderLocator {
                     guard let topLeftFrame = frame(of: $0) else {
                         return true
                     }
-                    return appKitFrame(
-                        fromTopLeftFrame: topLeftFrame
-                    ).maxX >= windowFrame.midX
+                    return ContentHeaderAnchorResolver.shouldScanDescendants(
+                        of: appKitFrame(fromTopLeftFrame: topLeftFrame),
+                        windowFrame: windowFrame
+                    )
                 }
                 queue.append(
                     contentsOf: rightSideChildren.map {
@@ -171,71 +143,25 @@ final class ContentHeaderLocator {
         return (controls, panes, visited)
     }
 
-    private func resolvedCachedAnchor(
+    private func retainedAnchor(
         processIdentifier: pid_t,
-        window: AXUIElement,
-        windowFrame: CGRect,
-        requireFresh: Bool
+        window: AXUIElement
     ) -> ContentHeaderAnchor? {
         guard
             let cachedAnchor,
             cachedAnchor.processIdentifier == processIdentifier,
             CFEqual(cachedAnchor.window, window),
-            !requireFresh || cachedAnchor.expiresAt > Date()
+            cachedAnchor.expiresAt > Date()
         else {
             return nil
         }
-
-        let anchor: ContentHeaderAnchor
-        switch cachedAnchor.source {
-        case .openLocation, .labeledControl:
-            guard let control = control(for: cachedAnchor.element) else {
-                return nil
-            }
-            anchor = ContentHeaderAnchorResolver.resolve(
-                controls: [control],
-                paneFrames: [],
-                windowFrame: windowFrame
-            )
-        case .rightPaneBoundary:
-            guard let topLeftFrame = frame(of: cachedAnchor.element) else {
-                return nil
-            }
-            anchor = ContentHeaderAnchorResolver.resolve(
-                controls: [],
-                paneFrames: [appKitFrame(fromTopLeftFrame: topLeftFrame)],
-                windowFrame: windowFrame
-            )
-        case .fallback:
-            return nil
-        }
-        return anchor.source == cachedAnchor.source ? anchor : nil
-    }
-
-    private func selectedElement(
-        for anchor: ContentHeaderAnchor,
-        in scan: (controls: [ScannedControl], panes: [ScannedPane], visited: Int)
-    ) -> AXUIElement? {
-        guard let edge = anchor.trailingEdge else {
-            return nil
-        }
-        switch anchor.source {
-        case .openLocation, .labeledControl:
-            return scan.controls.first {
-                abs($0.value.frame.minX - edge) < 0.5
-            }?.element
-        case .rightPaneBoundary:
-            return scan.panes.first {
-                abs($0.frame.minX - edge) < 0.5
-            }?.element
-        case .fallback:
-            return nil
-        }
+        return cachedAnchor.anchor
     }
 
     private func control(
         for element: AXUIElement,
-        appKitFrame suppliedFrame: CGRect? = nil
+        appKitFrame suppliedFrame: CGRect? = nil,
+        isAnchorCandidate: Bool = true
     ) -> ContentHeaderControl? {
         let resolvedFrame: CGRect
         if let suppliedFrame {
@@ -253,7 +179,11 @@ final class ContentHeaderLocator {
         ].compactMap { name in
             attribute(element, name: name as CFString) as String?
         }
-        return ContentHeaderControl(frame: resolvedFrame, labels: labels)
+        return ContentHeaderControl(
+            frame: resolvedFrame,
+            labels: labels,
+            isAnchorCandidate: isAnchorCandidate
+        )
     }
 
     private func enableRendererAccessibility(for application: AXUIElement) {

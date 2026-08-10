@@ -43,23 +43,33 @@ If a locally verified layout moves only after plugin reinstall, compare the visi
 with `version=` from status and check that status reports the active LaunchAgent PID. Repair copies
 and re-signs the payload with the stable local identity; do not re-sign the official Codex app.
 
-## The gap is not fixed beside Open Location
+## Placement overlaps a titlebar control after resizing a pane
 
 Run status and inspect the anchor fields:
 
 ```text
-anchor=openLocation placement=content-header anchor_scan=...cached:true,source:openLocation
+version=0.2.3 anchor=labeledControl placement=content-header
+indicator=654,1003,164,46 anchor_scan=...cached:false,source:labeledControl,edge:826
 ```
 
-- `openLocation` is the intended exact 8-point placement.
-- `labeledControl` means the named button was unavailable and another header control was used.
-- `rightPaneBoundary` means only the pane edge was resolved.
-- `fallback` means the companion used a safe in-window position.
+- `openLocation` identifies Open Location as the semantic origin; the resolved edge may be its
+  direct 8-point slot or a collision-adjusted slot farther left.
+- `labeledControl` means the resolver used the nearest collision-free slot before a labeled button.
+- `rightPaneBoundary` means the nearest safe slot was derived from the pane boundary.
+- `fallback` with a numeric `edge` is an intentional safe right-side placement when the local
+  titlebar has no complete slot.
+- `fallback` without an edge is a transient unresolved scan; the last valid placement is retained.
 
-For `indicator=x,y,width,height` and `edge=n`, the intended geometry satisfies
-`x + width = n - 8`. Bring the Codex window to the foreground, confirm Accessibility, and run
-repair. If fallback persists, include sanitized status output, the visible version badge, and the
-Codex build number in a bug report.
+For any resolved non-fallback source with `indicator=x,y,width,height` and `edge=n`, the geometry
+satisfies `x + width = n - 8`. Drag the right pane through the failing width and confirm the control
+either moves into the nearest free slot or switches to the safe right-side position. If the badge
+or status reports a version older than 0.2.3, upgrade first. Otherwise bring Codex to the
+foreground, confirm Accessibility, run repair, and include sanitized status output, the visible
+version badge, the Codex build number, and a cropped titlebar screenshot in a bug report.
+
+On v0.2.3 and later, fullscreen Codex with the right pane closed must not switch to fallback merely
+because conversation elements are clipped against the top window edge. A healthy direct result in
+that state reports `anchor=openLocation`; the indicator still ends eight points before its edge.
 
 ## Data looks old
 

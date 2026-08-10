@@ -124,7 +124,7 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
         )
     }
 
-    func testRightmostOpenLocationRemainsPreferredWithRightPane() {
+    func testMultipleOpenLocationControlsUseNearestNonOverlappingSlot() {
         let anchor = ContentHeaderAnchorResolver.resolve(
             controls: [
                 control(x: 1_500, width: 91, labels: ["打开位置"]),
@@ -136,7 +136,7 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
             windowFrame: window
         )
 
-        XCTAssertEqual(anchor.trailingEdge, 1_696)
+        XCTAssertEqual(anchor.trailingEdge, 1_500)
         XCTAssertEqual(anchor.source, .openLocation)
     }
 
@@ -153,6 +153,171 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
 
         XCTAssertEqual(anchor.trailingEdge, 1_696)
         XCTAssertEqual(anchor.source, .labeledControl)
+    }
+
+    func testSlidesLeftIntoNearestFreeSlotWhenPreferredAnchorWouldOverlapAControl() {
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                control(x: 900, width: 120, labels: []),
+                control(x: 1_040, width: 80, labels: ["Renamed action"]),
+            ],
+            paneFrames: [],
+            windowFrame: window
+        )
+
+        XCTAssertEqual(anchor.trailingEdge, 900)
+        XCTAssertEqual(anchor.source, .labeledControl)
+
+        let indicator = OverlayLayout.indicatorFrame(
+            in: window,
+            contentTrailingEdge: anchor.trailingEdge
+        )
+        XCTAssertFalse(indicator.intersects(CGRect(
+            x: 900,
+            y: 1_084,
+            width: 120,
+            height: 28
+        )))
+    }
+
+    func testIgnoresStaticTextNestedInsideSelectedOpenLocationButton() {
+        let openLocationFrame = CGRect(
+            x: 1_696,
+            y: 1_084,
+            width: 104,
+            height: 36
+        )
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                ContentHeaderControl(
+                    frame: openLocationFrame,
+                    labels: ["打开位置"]
+                ),
+                ContentHeaderControl(
+                    frame: CGRect(x: 1_720, y: 1_091, width: 68, height: 22),
+                    labels: ["打开位置"],
+                    isAnchorCandidate: false
+                ),
+            ],
+            paneFrames: [],
+            windowFrame: window
+        )
+
+        XCTAssertEqual(anchor.trailingEdge, openLocationFrame.minX)
+        XCTAssertEqual(anchor.source, .openLocation)
+    }
+
+    func testIgnoresDegenerateContentClippedToTopWindowEdge() {
+        let openLocationFrame = CGRect(
+            x: 1_696,
+            y: 1_012,
+            width: 91,
+            height: 28
+        )
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                ContentHeaderControl(
+                    frame: openLocationFrame,
+                    labels: ["打开位置"]
+                ),
+                ContentHeaderControl(
+                    frame: CGRect(x: 639, y: 1_048, width: 1_261, height: 1),
+                    labels: [],
+                    isAnchorCandidate: false
+                ),
+            ],
+            paneFrames: [],
+            windowFrame: CGRect(x: 72, y: 0, width: 1_848, height: 1_049)
+        )
+
+        XCTAssertEqual(anchor.trailingEdge, openLocationFrame.minX)
+        XCTAssertEqual(anchor.source, .openLocation)
+    }
+
+    func testReevaluatesCollisionWhenObstacleAppearsAtSameAnchor() {
+        let openLocation = control(
+            x: 1_040,
+            width: 80,
+            labels: ["打开位置"]
+        )
+        let initial = ContentHeaderAnchorResolver.resolve(
+            controls: [openLocation],
+            paneFrames: [],
+            windowFrame: window
+        )
+        let afterObstacleAppears = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                control(x: 900, width: 120, labels: []),
+                openLocation,
+            ],
+            paneFrames: [],
+            windowFrame: window
+        )
+
+        XCTAssertEqual(initial.trailingEdge, 1_040)
+        XCTAssertEqual(afterObstacleAppears.trailingEdge, 900)
+        XCTAssertEqual(afterObstacleAppears.source, .openLocation)
+    }
+
+    func testUsesImmediateTrailingFallbackWhenNoFreeSlotRemains() {
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                control(x: 72, width: 828, labels: []),
+                control(x: 900, width: 120, labels: []),
+                control(x: 1_040, width: 80, labels: ["Renamed action"]),
+            ],
+            paneFrames: [],
+            windowFrame: window
+        )
+
+        XCTAssertEqual(anchor.trailingEdge, window.maxX - 168)
+        XCTAssertEqual(anchor.source, .fallback)
+        XCTAssertEqual(
+            OverlayLayout.indicatorFrame(
+                in: window,
+                contentTrailingEdge: anchor.trailingEdge
+            ),
+            OverlayLayout.indicatorFrame(
+                in: window,
+                contentTrailingEdge: nil
+            )
+        )
+    }
+
+    func testDoesNotRelocateBeforeAStaticTitleBarrier() {
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                ContentHeaderControl(
+                    frame: CGRect(x: 700, y: 1_084, width: 180, height: 28),
+                    labels: ["Thread title"],
+                    isAnchorCandidate: false
+                ),
+                control(x: 900, width: 120, labels: []),
+                control(x: 1_040, width: 80, labels: ["Renamed action"]),
+            ],
+            paneFrames: [],
+            windowFrame: window
+        )
+
+        XCTAssertEqual(anchor.trailingEdge, window.maxX - 168)
+        XCTAssertEqual(anchor.source, .fallback)
+    }
+
+    func testIntentionalTrailingFallbackReplacesCachedOpenLocation() {
+        let scanned = ContentHeaderAnchor(
+            trailingEdge: window.maxX - 168,
+            source: .fallback
+        )
+
+        let stabilized = ContentHeaderAnchorResolver.stabilized(
+            scanned: scanned,
+            cached: ContentHeaderAnchor(
+                trailingEdge: 1_696,
+                source: .openLocation
+            )
+        )
+
+        XCTAssertEqual(stabilized, scanned)
     }
 
     func testOpenLocationAnchorSurvivesEverySidebarLayout() {
@@ -204,6 +369,50 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
 
         XCTAssertNil(anchor.trailingEdge)
         XCTAssertEqual(anchor.source, .fallback)
+    }
+
+    func testScanRegionIncludesPaneThatCanOverlapIndicatorLeftOfWindowMidpoint() {
+        XCTAssertTrue(
+            ContentHeaderAnchorResolver.shouldScanDescendants(
+                of: CGRect(x: 310, y: 0, width: 670, height: 1_049),
+                windowFrame: CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+            )
+        )
+        XCTAssertFalse(
+            ContentHeaderAnchorResolver.shouldScanDescendants(
+                of: CGRect(x: 70, y: 0, width: 620, height: 1_049),
+                windowFrame: CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+            )
+        )
+        XCTAssertFalse(
+            ContentHeaderAnchorResolver.shouldScanDescendants(
+                of: CGRect(x: 310, y: 0, width: 670, height: 900),
+                windowFrame: CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+            )
+        )
+        XCTAssertFalse(
+            ContentHeaderAnchorResolver.shouldScanDescendants(
+                of: CGRect(x: 639, y: 1_048, width: 1_261, height: 1),
+                windowFrame: CGRect(x: 72, y: 0, width: 1_848, height: 1_049)
+            )
+        )
+    }
+
+    func testToolbarEligibilityRejectsClippedContentBeforeLabelRead() {
+        let fullscreenWindow = CGRect(x: 72, y: 0, width: 1_848, height: 1_049)
+
+        XCTAssertTrue(
+            ContentHeaderAnchorResolver.isEligibleToolbarItem(
+                frame: CGRect(x: 1_696, y: 1_012, width: 91, height: 28),
+                windowFrame: fullscreenWindow
+            )
+        )
+        XCTAssertFalse(
+            ContentHeaderAnchorResolver.isEligibleToolbarItem(
+                frame: CGRect(x: 639, y: 1_048, width: 1_261, height: 1),
+                windowFrame: fullscreenWindow
+            )
+        )
     }
 
     private func control(

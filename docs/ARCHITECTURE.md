@@ -24,13 +24,13 @@ AllowanceSnapshot + Bank entries
 Native AppKit companion
         |
         v
-Open Location semantic AX lookup
+titlebar-band AX scan
         |
         v
-cached AX element sampled every 0.1s
+preferred semantic anchor + occupied geometry
         |
         v
-quota.maxX = openLocation.minX - 8pt
+nearest free slot or safe right-side fallback
 ```
 
 The companion discovers the running `com.openai.codex` bundle and launches its current
@@ -63,17 +63,26 @@ persisted.
 ## Placement
 
 The accessibility scan selects the Codex AX window that best matches the active Quartz window. It
-walks the right half of the tree, pruning left-side branches, and recognizes Open Location through
-its title, description, help text, or identifier in English or Chinese.
+scans the full horizontal reach where the 164-point indicator could be placed. Buttons are semantic
+anchor candidates; buttons and static title text inside the 46-point titlebar band and with a
+meaningfully visible height are both treated as occupied geometry. Structural `AXGroup` frames in
+relevant branches are collected only for pane-boundary detection; group labels and text are never
+read. Degenerate content elements clipped to a 1-point line at the top of a fullscreen window are
+excluded. Open Location is recognized through its title, description, help text, or identifier in
+English or Chinese. Geometry eligibility is applied before those control labels are read, and
+degenerate branches are pruned before their descendants enter the bounded breadth-first scan.
 
-After the first match, the AX window and element are cached. The 0.1-second position loop reads only
-the cached element frame and repositions the overlay, which keeps the gap stable while the left,
-right, or bottom pane opens, the window resizes, or the window moves.
+The resolver first tries the exact frame ending eight points before Open Location. If that frame
+intersects native titlebar geometry, it slides left to the nearest complete free slot. A static
+title barrier cannot be crossed. When no local slot remains, the resolver deliberately selects the
+existing safe right-side fallback instead of allowing an overlap.
 
-If the exact target is unavailable, pure resolver fallbacks can use another labeled header control,
-the right-pane boundary, or a safe in-window edge. Diagnostics expose the selected source. The
-runtime has no sidebar-state model, global key monitor, global mouse monitor, or code injected into
-Codex.
+Every 0.1-second position tick scans the current eligible titlebar geometry and runs collision
+resolution, even when the semantic anchor has not moved. The last resolved anchor value is retained
+for at most 0.75 seconds only to bridge a transient incomplete scan. A deliberate fallback with a
+resolved edge clears that retained value immediately. Diagnostics expose `openLocation`,
+`labeledControl`, `rightPaneBoundary`, or `fallback` as the selected source. The runtime has no
+sidebar-state model, global key monitor, global mouse monitor, or code injected into Codex.
 
 ## Rendering and freshness
 
@@ -116,5 +125,7 @@ directory hash. Validation checks the pinned executable and rejects unpromoted s
 - Install and uninstall paths are validated before destructive operations.
 - The official Codex application is never modified or re-signed.
 - The app-server receives credentials only from the isolated `CodexHome` created by `codex login`.
-- The accessibility reader inspects only Codex window and named-control geometry.
+- The accessibility reader reads labels and frames only for eligible titlebar buttons/static text,
+  plus unlabeled structural `AXGroup` frames in relevant branches for pane-boundary detection; it
+  does not read conversation bodies.
 - Invalid windows, missing snapshots, background host state, and expired data hide the overlay.

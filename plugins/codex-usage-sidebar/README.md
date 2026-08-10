@@ -4,9 +4,11 @@ This directory is the installable `codex-usage-sidebar` plugin referenced by the
 marketplace manifest. Start at the [repository README](../../README.md) for installation,
 screenshots, privacy, support, and contribution instructions.
 
-Its native companion shows one live quota control exactly 8 points before Open Location. It tracks
-the Open Location action directly with a fixed 8-point gap as sidebars and the window change; it
-never creates a second control in the left sidebar.
+Its native companion shows one live quota control in a collision-free Codex titlebar slot. Version
+0.2.3 prefers an exact 8-point Open Location gap, slides left to the nearest complete free slot when
+native controls occupy that frame, and uses the safe right-side fallback when no local slot remains.
+Fullscreen content clipped to a 1-point top-edge frame is ignored rather than treated as a titlebar
+obstacle. The companion never creates a second control in the left sidebar.
 
 The hover card shows the synchronized bundle version beside its title. Percentage text uses exact
 100% green, 49% orange, and 10% red anchors, while the filled progress bar clips the matching

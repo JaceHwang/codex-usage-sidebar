@@ -45,7 +45,13 @@ authenticated quota data remains governed by Codex itself.
 
 ## Accessibility permission
 
-Accessibility is used only to inspect the active Codex window and identify the native Open Location
-control by its title, description, help text, or identifier. The companion reads geometry to place
-its overlay. It does not synthesize typing or clicks, inspect another application's accessibility
-tree, or bypass the macOS permission prompt.
+Accessibility is used only for placement in the active Codex window. The companion reads labels
+and frames from eligible buttons/static text in the 46-point titlebar band to identify a preferred
+semantic anchor and avoid meaningfully visible occupied geometry. It also reads structural
+`AXGroup` frames in relevant accessibility branches for pane-boundary detection, but never reads
+labels or text from those groups. Degenerate content clipped to the fullscreen top edge is rejected
+by geometry before any label attribute is read, and its descendants are pruned from traversal.
+Eligible titlebar labels remain in memory; managed diagnostics contain only the sanitized anchor
+source, scan counts, edge, and indicator frame. It does not read conversation bodies, synthesize
+typing or clicks, inspect another application's accessibility tree, or bypass the macOS permission
+prompt.

@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="docs/images/hero.svg" alt="固定显示在打开位置按钮旁的 Codex 剩余额度" width="900">
+  <img src="docs/images/hero.svg" alt="自适应放置在 Codex 标题栏中的剩余额度" width="900">
 </p>
 
 <h1 align="center">Codex Usage Sidebar</h1>
 
-<p align="center">在“打开位置”左侧实时显示剩余额度、重置时间、Credits 与 Bank 明细。</p>
+<p align="center">在 Codex 标题栏实时显示剩余额度、重置时间、Credits 与 Bank 明细。</p>
 
 <p align="center">
   <a href="README.md">English</a> ·
@@ -25,17 +25,31 @@
 
 <p align="center"><em>浅色主题 · 深色主题</em></p>
 
-<p align="center">v0.2.1 实机截图，完整展示标题栏按钮与剩余额度浮窗。</p>
+<p align="center">简体中文浮窗在两种 Codex 主题下的真实截图；v0.2.3 保持相同的浮窗设计。</p>
+
+## 自适应标题栏定位
+
+<p align="center">
+  <img src="docs/images/adaptive-titlebar-nearby-dark.png" alt="额度按钮移动到打开位置左侧最近的无碰撞空位" width="96%">
+</p>
+
+<p align="center"><em>空间足够：使用最近的无碰撞空位，并与原生控件保持 8pt 间隔。</em></p>
+
+<p align="center">
+  <img src="docs/images/adaptive-titlebar-fallback-dark.png" alt="额度按钮移动到右侧标题栏安全回退位置" width="96%">
+</p>
+
+<p align="center"><em>空间不足：立即切换到标题栏右侧预留位置。</em></p>
 
 ## 功能效果
 
 Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生伴随程序。它从本机
-`app-server` 读取额度更新，跟随白天/黑夜主题，并在原生“打开位置”按钮左侧 8 点处显示额度按钮。
+`app-server` 读取额度更新，跟随白天/黑夜主题，并把额度按钮放进最近的安全标题栏空位。
 
 | 场景 | 表现 |
 | --- | --- |
-| 打开或关闭左、右、下侧栏 | 直接跟随原生“打开位置”按钮，始终保持精确 `8pt` 间隔。 |
-| 移动或缩放窗口 | 每 `0.1 秒`读取缓存锚点的新坐标，额度按钮同步移动。 |
+| 打开或关闭左、右、下侧栏 | 优先跟随原生“打开位置”，遇到占用控件时向左寻找最近空位；本地空间不足才切换到右侧预留位置。 |
+| 移动或缩放窗口 | 每 `0.1 秒`重新核对可用标题栏空间，避免覆盖原生按钮和页签标题。 |
 | 鼠标悬浮 | 展示同步的插件版本、套餐、额度周期、Credits、全部 Bank 次数、状态与过期时间。 |
 | 鼠标点击 | 浮窗保持常驻，再次点击收回；原有悬浮查看方式继续保留。 |
 | 剩余额度变化 | 百分比严格按 100% 绿、49% 橙、10% 红连续过渡，已填充进度显示对应光谱。 |
@@ -44,7 +58,7 @@ Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生�
 旧版左侧栏底部副本以及所有侧栏状态同步代码均已删除，现在只有顶部这一个额度按钮。
 
 <p align="center">
-  <img src="docs/images/placement.svg" alt="侧栏与窗口变化时仍固定八点间距" width="900">
+  <img src="docs/images/placement.svg" alt="侧栏与窗口变化时自动避让原生控件" width="900">
 </p>
 
 ## 快速安装
@@ -69,18 +83,23 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 之后按 macOS 提示，为 **Codex Usage Sidebar** 开启“辅助功能”。完整状态检查、更新、修复与
 卸载步骤见[安装运维说明](docs/INSTALL.md)。
 
-## 固定间距原理
+## 防碰撞定位原理
 
-伴随程序不再根据窗口边缘估算位置，而是通过无障碍标题、描述、帮助文本或标识符找到真正的
-“打开位置”按钮，然后执行固定布局：
+伴随程序扫描会影响标题栏定位的辅助功能分支，只读取合格按钮和静态标题的标签与几何信息；
+相关区域内的结构组只读取几何信息，用于识别面板边界。之后按以下规则定位：
 
 ```text
-额度按钮.maxX = 打开位置按钮.minX - 8pt
+1. 优先：额度按钮.maxX = 打开位置按钮.minX - 8pt
+2. 若候选框碰到其他标题栏元素，向左移动到最近的完整空位
+3. 若标题前已无完整空位，立即使用右侧预留回退位置
 ```
 
-首次语义扫描后会缓存该 AX 控件。打开侧栏或缩放窗口时，只需读取它的新 frame，因此不会再
-被聊天内容中的复制按钮或其他标题栏控件误导。若原生按钮短暂不可用，则回退到窗口内安全位置，
-不会修改 Codex 内部代码。
+标题栏元素扫描横向覆盖 164pt 额度按钮的完整可能范围，并排除 46pt 标题栏以外的元素。结构组
+只作为面板边界几何使用，不读取其标签或文字，因此不会读取聊天正文。
+全屏时被裁切到窗口顶端、仅剩 1px 高的退化正文元素会被忽略，不会误判成可见标题。程序会在
+读取标签前先做几何过滤，每个 0.1 秒定位周期都会重新扫描合格标题栏几何，即使语义锚点本身
+没有移动。主动回退会立即替换已过期的保留锚点；短暂扫描不完整时最多保留最后一次有效位置
+0.75 秒。整个过程不会修改 Codex 内部代码。
 
 ## 实时额度明细
 
@@ -94,7 +113,7 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 
 ## 语言自动匹配
 
-v0.2.1 直接跟随 Codex **最终实际显示的语言**。Codex 明确选择的语言优先；设为“自动”时，
+v0.2.3 直接跟随 Codex **最终实际显示的语言**。Codex 明确选择的语言优先；设为“自动”时，
 插件跟随运行中的 Codex 渲染进程语言。Codex 偏好设置与 macOS 首选语言仅作为启动阶段的安全回退。
 
 | Codex 最终语言 | 插件显示 |
@@ -129,7 +148,8 @@ v0.2.1 直接跟随 Codex **最终实际显示的语言**。Codex 明确选择�
 - 使用隔离的 `CodexHome`，凭据仅由官方 `codex login` 流程创建。
 - 不抓网页、不注入 Codex、不读取聊天正文、不上传遥测。
 - 只在内存中读取 Codex 渲染进程的语言参数用于匹配；原始进程参数不会写入诊断或日志。
-- 只读取当前 Codex 窗口与目标控件的几何信息用于定位。
+- 只读取合格标题栏控件和静态标题的标签与几何信息；相关区域内的结构组只读取几何信息，
+  用于识别面板边界。
 - 运行文件只保存在用户的 Application Support 目录。
 
 详见[隐私说明](docs/PRIVACY.md)、[架构说明](docs/ARCHITECTURE.md)和[安全策略](SECURITY.md)。
@@ -143,14 +163,15 @@ v0.2.1 直接跟随 Codex **最终实际显示的语言**。Codex 明确选择�
 精确定位正常时会返回常驻 LaunchAgent 进程的真实状态：
 
 ```text
-pid=12345 version=0.2.1 runtime=shown placement=content-header anchor=openLocation
+pid=12345 version=0.2.3 runtime=shown placement=content-header anchor=labeledControl
 language=simplifiedChinese language_source=process
-indicator=1524,1003,164,46 ... cached:true,source:openLocation,edge:1696
+indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app
 ```
 
-额度按钮右边缘应等于 `edge - 8`。`cached:true` 表示已经进入缓存控件快速跟随路径；状态中的
-版本号还应与悬浮卡片徽标一致。
+当锚点为 `openLocation`、`labeledControl` 或 `rightPaneBoundary` 时，额度按钮右边缘应等于
+`edge - 8`。带有效边缘的 `fallback` 表示主动切换到右侧安全位置，并非故障；状态版本号还应
+与悬浮卡片徽标一致。
 
 ## 构建来源证明
 
