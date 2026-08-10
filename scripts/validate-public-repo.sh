@@ -221,7 +221,8 @@ publisher_guards = {
     "same-repository head": "test \"$(jq -r '.head_repository.full_name' <<<\"$run\")\" = \"$REPOSITORY\"",
     "CI workflow lookup": "repos/$REPOSITORY/actions/workflows/ci.yml",
     "CI workflow ID": "jq -r '.workflow_id'",
-    "CI workflow path": '".github/workflows/ci.yml@"',
+    "CI exact workflow path": '".github/workflows/ci.yml") ;;',
+    "CI optional workflow ref": '".github/workflows/ci.yml@"*) ;;',
 }
 for label, guard in publisher_guards.items():
     if guard not in publisher:

@@ -43,6 +43,7 @@ jobs:
           ci_workflow="$(gh api "repos/$REPOSITORY/actions/workflows/ci.yml")"
           test "$(jq -r '.workflow_id' <<<"$run")" = "$(jq -r '.id' <<<"$ci_workflow")"
           case "$(jq -r '.path' <<<"$run")" in
+            ".github/workflows/ci.yml") ;;
             ".github/workflows/ci.yml@"*) ;;
             *)
               echo "CI run does not use .github/workflows/ci.yml" >&2
