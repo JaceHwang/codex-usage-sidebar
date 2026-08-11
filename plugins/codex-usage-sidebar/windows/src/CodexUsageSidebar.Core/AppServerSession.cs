@@ -38,30 +38,67 @@ public sealed class AppServerSession
 
         var initialized = false;
         AllowanceSnapshot? latest = null;
+        int? pendingReadId = null;
+        var pendingReadWasSuperseded = false;
         await foreach (var line in connection.ReadLinesAsync(cancellationToken).ConfigureAwait(false))
         {
             if (!initialized && IsSuccessfulResponse(line, 1))
             {
                 initialized = true;
                 await connection.WriteLineAsync(protocol.CreateInitializedNotification(), cancellationToken).ConfigureAwait(false);
-                await connection.WriteLineAsync(protocol.CreateRateLimitReadRequest(), cancellationToken).ConfigureAwait(false);
+                pendingReadId = await SendReadAsync(connection, cancellationToken).ConfigureAwait(false);
                 continue;
             }
 
-            var snapshot = protocol.DecodeSnapshot(line, now());
-            if (snapshot is null)
+            if (IsRateLimitNotification(line))
             {
+                var notification = protocol.DecodeSnapshot(line, now());
+                if (notification is not null)
+                {
+                    latest = notification.MergeSupplementary(latest);
+                    await snapshotReceived(latest).ConfigureAwait(false);
+                    if (pendingReadId is null)
+                    {
+                        pendingReadId = await SendReadAsync(connection, cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        pendingReadWasSuperseded = true;
+                    }
+                }
                 continue;
             }
 
-            var isNotification = IsRateLimitNotification(line);
-            latest = snapshot.MergeSupplementary(latest);
-            await snapshotReceived(latest).ConfigureAwait(false);
-            if (isNotification)
+            var responseId = ResponseId(line);
+            if (pendingReadId is null || responseId != pendingReadId)
             {
-                await connection.WriteLineAsync(protocol.CreateRateLimitReadRequest(), cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+            pendingReadId = null;
+            if (!pendingReadWasSuperseded)
+            {
+                var response = protocol.DecodeSnapshot(line, now());
+                if (response is not null)
+                {
+                    latest = response.MergeSupplementary(latest);
+                    await snapshotReceived(latest).ConfigureAwait(false);
+                }
+            }
+            if (pendingReadWasSuperseded)
+            {
+                pendingReadWasSuperseded = false;
+                pendingReadId = await SendReadAsync(connection, cancellationToken).ConfigureAwait(false);
             }
         }
+    }
+
+    private async ValueTask<int> SendReadAsync(
+        IJsonLineConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var request = protocol.CreateRateLimitRead();
+        await connection.WriteLineAsync(request.Json, cancellationToken).ConfigureAwait(false);
+        return request.Id;
     }
 
     private static bool IsSuccessfulResponse(string line, int id)
@@ -94,6 +131,23 @@ public sealed class AppServerSession
         catch (JsonException)
         {
             return false;
+        }
+    }
+
+    private static int? ResponseId(string line)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(line);
+            return document.RootElement.TryGetProperty("id", out var id)
+                && id.ValueKind == JsonValueKind.Number
+                && id.TryGetInt32(out var value)
+                    ? value
+                    : null;
+        }
+        catch (JsonException)
+        {
+            return null;
         }
     }
 }

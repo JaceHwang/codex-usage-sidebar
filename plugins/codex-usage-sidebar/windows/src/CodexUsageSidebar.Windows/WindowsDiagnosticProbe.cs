@@ -10,7 +10,7 @@ public sealed record WindowsProbeReport(
     string OsVersion,
     bool IncludesText,
     HostWindowSnapshot Host,
-    string? ExecutablePathSha256,
+    string? ExecutablePathToken,
     IReadOnlyList<UiaProbeNode> Nodes);
 
 public sealed record UiaProbeNode(
@@ -20,7 +20,7 @@ public sealed record UiaProbeNode(
     string ClassName,
     RectD Bounds,
     int NameLength,
-    string NameSha256,
+    string NameToken,
     string? Name);
 
 public sealed class WindowsDiagnosticProbe(IHostWindowLocator locator)
@@ -36,8 +36,9 @@ public sealed class WindowsDiagnosticProbe(IHostWindowLocator locator)
             ?? throw new InvalidOperationException("A visible Codex window is required for the diagnostic probe.");
         var root = AutomationElement.FromHandle(host.Handle)
             ?? throw new InvalidOperationException("Windows UI Automation could not inspect the Codex window.");
+        var redactor = ProbeRedactor.Create();
         var nodes = new List<UiaProbeNode>();
-        Append(root, 0, includeText, nodes, cancellationToken);
+        Append(root, 0, includeText, redactor, nodes, cancellationToken);
         var executablePath = Win32CodexWindowLocator.ExecutablePath(host.Handle);
         return new WindowsProbeReport(
             "1",
@@ -45,7 +46,7 @@ public sealed class WindowsDiagnosticProbe(IHostWindowLocator locator)
             Environment.OSVersion.VersionString,
             includeText,
             host,
-            executablePath is null ? null : ProbeSanitizer.PathIdentity(executablePath),
+            executablePath is null ? null : redactor.Token(executablePath),
             nodes);
     }
 
@@ -53,6 +54,7 @@ public sealed class WindowsDiagnosticProbe(IHostWindowLocator locator)
         AutomationElement element,
         int depth,
         bool includeText,
+        ProbeRedactor redactor,
         List<UiaProbeNode> nodes,
         CancellationToken cancellationToken)
     {
@@ -73,7 +75,7 @@ public sealed class WindowsDiagnosticProbe(IHostWindowLocator locator)
                 current.ClassName ?? string.Empty,
                 new RectD(bounds.X, bounds.Y, bounds.Width, bounds.Height),
                 name.Length,
-                ProbeSanitizer.TextIdentity(name),
+                redactor.Token(name),
                 includeText ? name : null));
         }
         catch (ElementNotAvailableException)
@@ -93,7 +95,7 @@ public sealed class WindowsDiagnosticProbe(IHostWindowLocator locator)
         }
         while (child is not null && nodes.Count < MaximumNodes)
         {
-            Append(child, depth + 1, includeText, nodes, cancellationToken);
+            Append(child, depth + 1, includeText, redactor, nodes, cancellationToken);
             try
             {
                 child = walker.GetNextSibling(child);

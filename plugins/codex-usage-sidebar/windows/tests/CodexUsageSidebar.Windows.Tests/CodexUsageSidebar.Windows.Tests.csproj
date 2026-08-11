@@ -10,5 +10,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/CodexUsageSidebar.Windows/CodexUsageSidebar.Windows.csproj" />
+    <ProjectReference Include="../CodexUsageSidebar.ProcessFixture/CodexUsageSidebar.ProcessFixture.csproj" />
   </ItemGroup>
 </Project>

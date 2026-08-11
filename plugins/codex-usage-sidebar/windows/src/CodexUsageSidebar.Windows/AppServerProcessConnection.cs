@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text;
 using CodexUsageSidebar.Core;
 
 namespace CodexUsageSidebar.Windows;
@@ -70,8 +72,22 @@ public sealed class AppServerProcessConnectionFactory(AppServerLaunchPlan plan) 
     }
 }
 
-internal sealed class ProcessJsonLineConnection(Process process) : IJsonLineConnection
+internal sealed class ProcessJsonLineConnection : IJsonLineConnection
 {
+    private const int StandardErrorTailCapacity = 4_000;
+    private readonly Process process;
+    private readonly BoundedTextCapture standardError = new(StandardErrorTailCapacity);
+    private readonly Task standardErrorDrain;
+
+    internal ProcessJsonLineConnection(Process process)
+    {
+        this.process = process;
+        standardErrorDrain = DrainStandardErrorAsync(process.StandardError, standardError);
+    }
+
+    internal string StandardErrorTail => standardError.Value;
+    internal bool StandardErrorWasTruncated => standardError.WasTruncated;
+
     public async ValueTask WriteLineAsync(string line, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -89,7 +105,9 @@ internal sealed class ProcessJsonLineConnection(Process process) : IJsonLineConn
         await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         if (process.ExitCode != 0)
         {
-            var error = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            await standardErrorDrain.WaitAsync(cancellationToken).ConfigureAwait(false);
+            var error = standardError.Value;
+            if (standardError.WasTruncated) error = "…" + error;
             throw new InvalidOperationException($"Codex app-server exited with code {process.ExitCode}: {error}");
         }
     }
@@ -105,10 +123,70 @@ internal sealed class ProcessJsonLineConnection(Process process) : IJsonLineConn
         try
         {
             await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
+            await standardErrorDrain.WaitAsync(timeout.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
         }
         process.Dispose();
+    }
+
+    private static async Task DrainStandardErrorAsync(
+        StreamReader reader,
+        BoundedTextCapture capture)
+    {
+        var buffer = new char[1_024];
+        int count;
+        while ((count = await reader.ReadAsync(buffer.AsMemory()).ConfigureAwait(false)) > 0)
+        {
+            capture.Append(buffer.AsSpan(0, count));
+        }
+    }
+}
+
+internal sealed class BoundedTextCapture
+{
+    private readonly int capacity;
+    private readonly object gate = new();
+    private readonly StringBuilder buffer;
+    private bool wasTruncated;
+
+    internal BoundedTextCapture(int capacity)
+    {
+        if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity));
+        this.capacity = capacity;
+        buffer = new StringBuilder(capacity);
+    }
+
+    internal bool WasTruncated
+    {
+        get { lock (gate) return wasTruncated; }
+    }
+
+    internal string Value
+    {
+        get { lock (gate) return buffer.ToString(); }
+    }
+
+    internal void Append(ReadOnlySpan<char> value)
+    {
+        lock (gate)
+        {
+            if (value.Length >= capacity)
+            {
+                buffer.Clear();
+                buffer.Append(value[^capacity..]);
+                wasTruncated = true;
+                return;
+            }
+
+            var overflow = buffer.Length + value.Length - capacity;
+            if (overflow > 0)
+            {
+                buffer.Remove(0, overflow);
+                wasTruncated = true;
+            }
+            buffer.Append(value);
+        }
     }
 }

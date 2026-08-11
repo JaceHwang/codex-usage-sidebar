@@ -3,14 +3,17 @@ using System.Text;
 
 namespace CodexUsageSidebar.Windows;
 
-public static class ProbeSanitizer
+public sealed class ProbeRedactor
 {
-    public static string PathIdentity(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(path))).ToLowerInvariant();
-    }
+    private readonly byte[] key;
 
-    public static string TextIdentity(string text) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text ?? string.Empty))).ToLowerInvariant();
+    private ProbeRedactor(byte[] key) => this.key = key;
+
+    public static ProbeRedactor Create() => new(RandomNumberGenerator.GetBytes(32));
+
+    public string Token(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        return Convert.ToHexString(HMACSHA256.HashData(key, Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
+    }
 }

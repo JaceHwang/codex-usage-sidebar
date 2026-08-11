@@ -34,6 +34,18 @@ public sealed class PlacementResolverTests
         Assert.AreEqual(PlacementSurface.RightToolbar, result.Surface);
     }
 
+    [TestMethod]
+    public void UsesFreeContentSpaceLeftOfWindowMidpointBeforeFallingBack()
+    {
+        var window = new RectD(0, 0, 1200, 800);
+        var obstacles = new[] { new RectD(650, 0, 250, 48) };
+
+        var result = PlacementResolver.Resolve(window, 900, 208, 8, obstacles);
+
+        Assert.AreEqual(PlacementSurface.Content, result.Surface);
+        Assert.AreEqual(434, result.Frame.X, 0.001);
+    }
+
     public sealed record PlacementFixture(
         RectD Window,
         IndicatorFixture Indicator,

@@ -11,6 +11,7 @@ from pathlib import Path
 
 
 EXPECTED_VERSION = "0.3.0-beta.1"
+OFFICIAL_CODEX_RELEASE_PREFIX = "https://github.com/openai/codex/releases/download/"
 REQUIRED_FILES = {
     "CodexUsageSidebar.Windows.exe",
     "CodexUsageSidebar.Control.exe",
@@ -70,7 +71,7 @@ def main() -> None:
     runtime = manifest.get("codexRuntime", {})
     if runtime.get("sha256") != files["codex.exe"]:
         raise SystemExit("Codex runtime provenance digest mismatch")
-    if not str(runtime.get("source", "")).startswith("https://"):
+    if not str(runtime.get("source", "")).startswith(OFFICIAL_CODEX_RELEASE_PREFIX):
         raise SystemExit("Codex runtime provenance source is invalid")
 
     print("PASS: Windows payload manifest, digests, version, architecture, and provenance")

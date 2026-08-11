@@ -33,12 +33,18 @@ public sealed class AppServerProtocol
         @params = new { },
     });
 
-    public string CreateRateLimitReadRequest() => JsonSerializer.Serialize(new
+    public JsonRpcRequest CreateRateLimitRead()
     {
-        id = nextRequestId++,
-        method = "account/rateLimits/read",
-        @params = new { },
-    });
+        var id = nextRequestId++;
+        return new JsonRpcRequest(id, JsonSerializer.Serialize(new
+        {
+            id,
+            method = "account/rateLimits/read",
+            @params = new { },
+        }));
+    }
+
+    public string CreateRateLimitReadRequest() => CreateRateLimitRead().Json;
 
     public AllowanceSnapshot? DecodeSnapshot(string line, DateTimeOffset receivedAt)
     {
@@ -66,3 +72,5 @@ public sealed class AppServerProtocol
         return null;
     }
 }
+
+public readonly record struct JsonRpcRequest(int Id, string Json);

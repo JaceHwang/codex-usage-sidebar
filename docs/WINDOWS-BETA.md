@@ -82,7 +82,8 @@ extract it and run:
 CodexUsageSidebar.Control.exe probe C:\Temp\codex-usage-sidebar-probe.json
 ```
 
-The default report hashes executable paths and UIA names. Add `--include-text` only when the person
+The default report assigns per-report random HMAC tokens to executable paths and UIA names, so
+equal values can be correlated only inside that single report. Add `--include-text` only when the person
 collecting the report intentionally agrees to include visible UI Automation names; conversation
 content should be closed or replaced with a disposable task first.
 
@@ -113,4 +114,3 @@ codex-usage-sidebar-v0.3.0-beta.1-windows-x64-setup.exe
 It will install under `%LOCALAPPDATA%\CodexUsageSidebar`, register only a per-user startup entry,
 keep the official Codex application read-only, verify every bundled file and its Codex runtime
 provenance, and expose install, repair, status, probe, and uninstall actions.
-

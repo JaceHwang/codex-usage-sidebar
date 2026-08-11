@@ -6,10 +6,29 @@ namespace CodexUsageSidebar.Installer;
 public sealed class AtomicPayloadInstaller
 {
     private const string ManifestName = "windows-payload.json";
-
-    public void Install(string source, string destination, string expectedVersion)
+    private const string OfficialCodexReleasePrefix = "https://github.com/openai/codex/releases/download/";
+    private static readonly HashSet<string> RequiredFiles = new(StringComparer.OrdinalIgnoreCase)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(expectedVersion);
+        "CodexUsageSidebar.Windows.exe",
+        "CodexUsageSidebar.Control.exe",
+        "codex.exe",
+        "selectors.json",
+    };
+
+    private readonly TrustedPayloadIdentity trustedIdentity;
+    private readonly IBackupCleaner backupCleaner;
+
+    public AtomicPayloadInstaller(
+        TrustedPayloadIdentity trustedIdentity,
+        IBackupCleaner? backupCleaner = null)
+    {
+        ValidateTrustedIdentity(trustedIdentity);
+        this.trustedIdentity = trustedIdentity;
+        this.backupCleaner = backupCleaner ?? new BackupCleaner();
+    }
+
+    public void Install(string source, string destination)
+    {
         var sourcePath = Path.GetFullPath(source);
         var destinationPath = Path.GetFullPath(destination);
         if (!Directory.Exists(sourcePath))
@@ -26,7 +45,7 @@ public sealed class AtomicPayloadInstaller
         {
             ValidateExistingAncestors(Path.GetDirectoryName(destinationPath)!);
         }
-        ValidateManifest(sourcePath, expectedVersion);
+        ValidateManifest(sourcePath, trustedIdentity);
 
         var parent = Path.GetDirectoryName(destinationPath)
             ?? throw new InvalidDataException("The destination must have a parent directory.");
@@ -36,23 +55,20 @@ public sealed class AtomicPayloadInstaller
         var backup = Path.Combine(parent, ".cus-backup-" + operationId);
         var lockPath = Path.Combine(parent, ".cus-install.lock");
 
-        using var installLock = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         var movedPrevious = false;
         var activated = false;
         try
         {
-            CopyDirectory(sourcePath, temporary);
-            if (Directory.Exists(destinationPath))
+            using (new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
             {
-                Directory.Move(destinationPath, backup);
-                movedPrevious = true;
-            }
-            Directory.Move(temporary, destinationPath);
-            activated = true;
-            if (movedPrevious)
-            {
-                Directory.Delete(backup, recursive: true);
-                movedPrevious = false;
+                CopyDirectory(sourcePath, temporary);
+                if (Directory.Exists(destinationPath))
+                {
+                    Directory.Move(destinationPath, backup);
+                    movedPrevious = true;
+                }
+                Directory.Move(temporary, destinationPath);
+                activated = true;
             }
         }
         catch
@@ -69,14 +85,16 @@ public sealed class AtomicPayloadInstaller
         }
         finally
         {
-            if (Directory.Exists(temporary)) Directory.Delete(temporary, recursive: true);
-            if (Directory.Exists(backup) && !movedPrevious) Directory.Delete(backup, recursive: true);
+            TryDeleteDirectory(temporary);
+            TryDeleteFile(lockPath);
         }
-        installLock.Dispose();
-        File.Delete(lockPath);
+        if (activated && movedPrevious && Directory.Exists(backup))
+        {
+            backupCleaner.TryDelete(backup);
+        }
     }
 
-    private static void ValidateManifest(string source, string expectedVersion)
+    private static void ValidateManifest(string source, TrustedPayloadIdentity trustedIdentity)
     {
         var manifestPath = Path.Combine(source, ManifestName);
         if (!File.Exists(manifestPath))
@@ -87,9 +105,15 @@ public sealed class AtomicPayloadInstaller
         {
             using var document = JsonDocument.Parse(File.ReadAllText(manifestPath));
             var root = document.RootElement;
+            if (!root.TryGetProperty("schemaVersion", out var schemaVersion)
+                || schemaVersion.ValueKind != JsonValueKind.Number
+                || schemaVersion.GetInt32() != 1)
+            {
+                throw new InvalidDataException("The Windows payload schema is not supported.");
+            }
             if (!root.TryGetProperty("version", out var version)
                 || version.ValueKind != JsonValueKind.String
-                || !string.Equals(version.GetString(), expectedVersion, StringComparison.Ordinal))
+                || !string.Equals(version.GetString(), trustedIdentity.Version, StringComparison.Ordinal))
             {
                 throw new InvalidDataException("The Windows payload version does not match the installer.");
             }
@@ -98,6 +122,23 @@ public sealed class AtomicPayloadInstaller
                 || architecture.GetString() != "x64")
             {
                 throw new InvalidDataException("The Windows beta payload must declare the x64 architecture.");
+            }
+            if (!root.TryGetProperty("sourceCommit", out var sourceCommit)
+                || sourceCommit.ValueKind != JsonValueKind.String
+                || !string.Equals(sourceCommit.GetString(), trustedIdentity.SourceCommit, StringComparison.Ordinal))
+            {
+                throw new InvalidDataException("The Windows payload source commit is not trusted by this installer.");
+            }
+            if (!root.TryGetProperty("codexRuntime", out var codexRuntime)
+                || codexRuntime.ValueKind != JsonValueKind.Object
+                || !codexRuntime.TryGetProperty("source", out var runtimeSource)
+                || runtimeSource.ValueKind != JsonValueKind.String
+                || !string.Equals(runtimeSource.GetString(), trustedIdentity.CodexRuntimeSource, StringComparison.Ordinal)
+                || !codexRuntime.TryGetProperty("sha256", out var runtimeDigest)
+                || runtimeDigest.ValueKind != JsonValueKind.String
+                || !string.Equals(runtimeDigest.GetString(), trustedIdentity.CodexRuntimeSha256, StringComparison.Ordinal))
+            {
+                throw new InvalidDataException("The Codex runtime provenance is not trusted by this installer.");
             }
             if (!root.TryGetProperty("files", out var files) || files.ValueKind != JsonValueKind.Object)
             {
@@ -131,6 +172,17 @@ public sealed class AtomicPayloadInstaller
                 declared.Add(Path.GetRelativePath(source, filePath));
             }
 
+            if (!RequiredFiles.IsSubsetOf(declared)
+                || !files.TryGetProperty("codex.exe", out var declaredRuntimeDigest)
+                || declaredRuntimeDigest.ValueKind != JsonValueKind.String
+                || !string.Equals(
+                    declaredRuntimeDigest.GetString(),
+                    trustedIdentity.CodexRuntimeSha256,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidDataException("The Windows payload is incomplete or its Codex runtime binding is invalid.");
+            }
+
             var actualFiles = Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories)
                 .Select(path => Path.GetRelativePath(source, path))
                 .Where(path => !string.Equals(path, ManifestName, StringComparison.OrdinalIgnoreCase))
@@ -145,6 +197,27 @@ public sealed class AtomicPayloadInstaller
             throw new InvalidDataException("The Windows payload manifest is invalid.", error);
         }
     }
+
+    private static void ValidateTrustedIdentity(TrustedPayloadIdentity identity)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(identity.Version);
+        if (!IsLowerHex(identity.SourceCommit, 40))
+        {
+            throw new ArgumentException("The trusted source commit must be a lowercase 40-character Git object ID.", nameof(identity));
+        }
+        if (!identity.CodexRuntimeSource.StartsWith(OfficialCodexReleasePrefix, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("The trusted Codex runtime must use the official OpenAI Codex release source.", nameof(identity));
+        }
+        if (!IsLowerHex(identity.CodexRuntimeSha256, 64))
+        {
+            throw new ArgumentException("The trusted Codex runtime digest must be lowercase SHA-256.", nameof(identity));
+        }
+    }
+
+    private static bool IsLowerHex(string value, int length) =>
+        value.Length == length && value.All(character =>
+            character is >= '0' and <= '9' or >= 'a' and <= 'f');
 
     private static void CopyDirectory(string source, string destination)
     {
@@ -188,5 +261,64 @@ public sealed class AtomicPayloadInstaller
         var normalizedAncestor = ancestor.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
         return string.Equals(candidate.TrimEnd(Path.DirectorySeparatorChar), ancestor.TrimEnd(Path.DirectorySeparatorChar), comparison)
             || candidate.StartsWith(normalizedAncestor, comparison);
+    }
+
+    private static void TryDeleteDirectory(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path)) Directory.Delete(path, recursive: true);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private static void TryDeleteFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+}
+
+public sealed record TrustedPayloadIdentity(
+    string Version,
+    string SourceCommit,
+    string CodexRuntimeSource,
+    string CodexRuntimeSha256);
+
+public interface IBackupCleaner
+{
+    bool TryDelete(string path);
+}
+
+internal sealed class BackupCleaner : IBackupCleaner
+{
+    public bool TryDelete(string path)
+    {
+        try
+        {
+            Directory.Delete(path, recursive: true);
+            return true;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 }

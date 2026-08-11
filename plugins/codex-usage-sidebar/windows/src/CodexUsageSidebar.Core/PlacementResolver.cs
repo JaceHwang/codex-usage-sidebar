@@ -21,7 +21,10 @@ public static class PlacementResolver
         double gap,
         IReadOnlyList<RectD> obstacles)
     {
-        var minimumContentX = window.X + (window.Width / 2);
+        // The center of the host window is not a layout boundary. A wide right
+        // pane can move the semantic toolbar anchor left of center while still
+        // leaving a complete, collision-free title-bar slot.
+        var minimumContentX = window.X + gap;
         var candidateX = Math.Min(preferredAnchorTrailingEdge - gap - indicatorWidth, window.Right - indicatorWidth - gap);
 
         while (candidateX >= minimumContentX)

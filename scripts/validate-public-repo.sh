@@ -15,6 +15,7 @@ required=(
   docs/PRIVACY.md docs/images/hero.svg docs/images/placement.svg docs/images/architecture.svg
   scripts/finalize-installer-provenance.py scripts/verify-installer-package.sh
   scripts/build-windows-payload-manifest.py scripts/verify-windows-payload.py
+  tests/test-v023-publish-freeze.sh
   plugins/codex-usage-sidebar/.codex-plugin/plugin.json
   plugins/codex-usage-sidebar/assets/PROVENANCE.json
   plugins/codex-usage-sidebar/assets/Codex\ Usage\ Sidebar.app/Contents/MacOS/CodexUsageSidebar
@@ -264,6 +265,7 @@ publisher_guards = {
     "same-repository head": "test \"$(jq -r '.head_repository.full_name' <<<\"$run\")\" = \"$REPOSITORY\"",
     "CI workflow lookup": "repos/$REPOSITORY/actions/workflows/ci.yml",
     "CI workflow ID": "jq -r '.workflow_id'",
+    "frozen v0.2.3 source": "FROZEN_V023_INSTALLER_SOURCE_COMMIT",
     "CI exact workflow path": '".github/workflows/ci.yml") ;;',
     "CI optional workflow ref": '".github/workflows/ci.yml@"*) ;;',
     "exact CI checkout": "ref: ${{ steps.trusted_ci.outputs.head_sha }}",
@@ -318,10 +320,12 @@ PY
 [[ -x "$repo_root/scripts/verify-windows-payload.py" ]]
 [[ -x "$repo_root/tests/test-windows-beta-workflow.sh" ]]
 [[ -x "$repo_root/tests/test-windows-payload-manifest.sh" ]]
+[[ -x "$repo_root/tests/test-v023-publish-freeze.sh" ]]
 [[ -x "$plugin_root/tests/test-windows-hook.sh" ]]
 
 bash "$repo_root/tests/test-windows-beta-workflow.sh"
 bash "$repo_root/tests/test-windows-payload-manifest.sh"
+bash "$repo_root/tests/test-v023-publish-freeze.sh"
 bash "$plugin_root/tests/test-windows-hook.sh"
 
 for svg in "$repo_root"/docs/images/*.svg; do

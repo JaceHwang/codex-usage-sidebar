@@ -34,6 +34,38 @@ public sealed class AppServerSessionTests
         Assert.AreEqual(2, snapshots[1].Bank?.AvailableCount);
     }
 
+    [TestMethod]
+    public async Task NotificationDuringPendingReadNeverRevertsAndCoalescesFollowUp()
+    {
+        var oldResponse = File.ReadAllText(ContractPath("read-response.json"));
+        var notification = File.ReadAllText(ContractPath("updated-notification.json"));
+        var freshResponse = oldResponse.Replace("\"usedPercent\": 24", "\"usedPercent\": 31", StringComparison.Ordinal);
+        var connection = new ReplayConnection(new[]
+        {
+            "{\"id\":1,\"result\":{}}",
+            notification,
+            oldResponse,
+            freshResponse.Replace("\"id\": 2", "\"id\": 3", StringComparison.Ordinal),
+        });
+        var snapshots = new List<AllowanceSnapshot>();
+        var session = new AppServerSession(
+            new StubConnectionFactory(connection),
+            new AppServerProtocol("test", "1"),
+            () => DateTimeOffset.UnixEpoch);
+
+        await session.RunAsync(snapshot =>
+        {
+            snapshots.Add(snapshot);
+            return ValueTask.CompletedTask;
+        }, CancellationToken.None);
+
+        CollectionAssert.AreEqual(new[] { 69, 69 }, snapshots.Select(x => x.RemainingPercent).ToArray());
+        CollectionAssert.AreEqual(
+            new[] { "initialize", "initialized", "account/rateLimits/read", "account/rateLimits/read" },
+            connection.WrittenMethods.ToArray());
+        Assert.AreEqual(2, snapshots[^1].Bank?.AvailableCount);
+    }
+
     private static string ContractPath(string file) =>
         Path.Combine(AppContext.BaseDirectory, "contracts", "rate-limits", file);
 

@@ -13,6 +13,7 @@ from pathlib import Path
 
 
 EXPECTED_VERSION = "0.3.0-beta.1"
+OFFICIAL_CODEX_RELEASE_PREFIX = "https://github.com/openai/codex/releases/download/"
 REQUIRED_FILES = {
     "CodexUsageSidebar.Windows.exe",
     "CodexUsageSidebar.Control.exe",
@@ -62,8 +63,8 @@ def main() -> None:
         raise SystemExit(f"Windows payload version must be {EXPECTED_VERSION}")
     if not re.fullmatch(r"[0-9a-f]{40}", arguments.source_commit):
         raise SystemExit("source commit must be a lowercase 40-character Git object ID")
-    if not arguments.codex_source.startswith("https://"):
-        raise SystemExit("Codex runtime source must be an HTTPS URL")
+    if not arguments.codex_source.startswith(OFFICIAL_CODEX_RELEASE_PREFIX):
+        raise SystemExit("Codex runtime source must be an official OpenAI Codex release URL")
     if not re.fullmatch(r"[0-9a-f]{64}", arguments.codex_sha256):
         raise SystemExit("Codex runtime SHA-256 must be lowercase hexadecimal")
 

@@ -24,6 +24,7 @@ jobs:
       RELEASE_TAG: v0.2.3
       INSTALLER_ASSET: codex-usage-sidebar-v0.2.3-macos-arm64.dmg
       INSTALLER_ARTIFACT: codex-usage-sidebar-installer-v0.2.3
+      FROZEN_V023_INSTALLER_SOURCE_COMMIT: a72b4636ddf99fa4c1d4660b3e281376be361711
     steps:
       - name: Verify the target release and CI run
         id: trusted_ci
@@ -41,6 +42,7 @@ jobs:
           test "$(jq -r '.head_repository.full_name' <<<"$run")" = "$REPOSITORY"
           test "$(jq -r '.status' <<<"$run")" = completed
           test "$(jq -r '.conclusion' <<<"$run")" = success
+          test "$(jq -r '.head_sha' <<<"$run")" = "$FROZEN_V023_INSTALLER_SOURCE_COMMIT"
           ci_workflow="$(gh api "repos/$REPOSITORY/actions/workflows/ci.yml")"
           test "$(jq -r '.workflow_id' <<<"$run")" = "$(jq -r '.id' <<<"$ci_workflow")"
           case "$(jq -r '.path' <<<"$run")" in
@@ -89,7 +91,9 @@ jobs:
           gh release download "$RELEASE_TAG" --repo "$REPOSITORY" \
             --dir "$RUNNER_TEMP/release" \
             --pattern 'codex-usage-sidebar-v0.2.3.zip' \
-            --pattern 'SHA256SUMS.txt'
+            --pattern 'SHA256SUMS.txt' \
+            --pattern 'INSTALLER-PROVENANCE.json'
+          test "$(jq -r '.installerSourceCommit' "$RUNNER_TEMP/release/INSTALLER-PROVENANCE.json")" = "$FROZEN_V023_INSTALLER_SOURCE_COMMIT"
           artifact_zip="$RUNNER_TEMP/installer-artifact.zip"
           gh api "repos/$REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" >"$artifact_zip"
           downloaded_digest="$(sha256sum "$artifact_zip" | awk '{print $1}')"
