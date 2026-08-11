@@ -84,6 +84,217 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
         XCTAssertEqual(anchor.source, .openLocation)
     }
 
+    func testOpenLocationLeftOfWindowMidpointUsesVisibleFreeSlot() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                control(x: 768, y: 1_012, width: 132, labels: ["打开位置"]),
+                control(x: 910, y: 1_012, width: 28, labels: ["环境信息"]),
+            ],
+            paneFrames: [CGRect(x: 955, y: 0, width: 965, height: 1_049)],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(anchor, ContentHeaderAnchor(trailingEdge: 768, source: .openLocation))
+        XCTAssertEqual(
+            OverlayLayout.indicatorFrame(in: wideWindow, contentTrailingEdge: anchor.trailingEdge),
+            CGRect(x: 596, y: 1_003, width: 164, height: 46)
+        )
+    }
+
+    func testNearLeftOpenLocationFallsBackWhenClampedIndicatorOverlapsIt() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                control(x: 200, y: 1_012, width: 132, labels: ["打开位置"]),
+            ],
+            paneFrames: [],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(
+            anchor,
+            ContentHeaderAnchor(
+                trailingEdge: wideWindow.maxX - 168,
+                source: .fallback
+            )
+        )
+    }
+
+    func testOpenLocationLeftOfWindowMidpointFallsBackAtStaticTitleBarrier() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                ContentHeaderControl(
+                    frame: CGRect(x: 650, y: 1_012, width: 160, height: 28),
+                    labels: ["Thread title"],
+                    isAnchorCandidate: false
+                ),
+                control(x: 820, y: 1_012, width: 70, labels: ["Other action"]),
+                control(x: 905, y: 1_012, width: 132, labels: ["打开位置"]),
+            ],
+            paneFrames: [CGRect(x: 955, y: 0, width: 965, height: 1_049)],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(
+            anchor,
+            ContentHeaderAnchor(
+                trailingEdge: wideWindow.maxX - 168,
+                source: .fallback
+            )
+        )
+    }
+
+    func testProgressiveScanFindsStaticTitleBarrierLeftOfFixedScanBound() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let controls = [
+            ContentHeaderControl(
+                frame: CGRect(x: 580, y: 1_012, width: 160, height: 28),
+                labels: ["Thread title"],
+                isAnchorCandidate: false
+            ),
+            control(x: 905, y: 1_012, width: 132, labels: ["打开位置"]),
+        ]
+        let result = progressiveAnchor(
+            controls: controls,
+            paneFrames: [CGRect(x: 955, y: 0, width: 965, height: 1_049)],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(
+            result.anchor,
+            ContentHeaderAnchor(
+                trailingEdge: wideWindow.maxX - 168,
+                source: .fallback
+            )
+        )
+        XCTAssertEqual(result.scanPasses, 2)
+    }
+
+    func testProgressiveScanIncludesStaticTitleInsideIndicatorGapPadding() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let result = progressiveAnchor(
+            controls: [
+                ContentHeaderControl(
+                    frame: CGRect(x: 572, y: 1_012, width: 160, height: 28),
+                    labels: ["Thread title"],
+                    isAnchorCandidate: false
+                ),
+                control(x: 905, y: 1_012, width: 132, labels: ["打开位置"]),
+            ],
+            paneFrames: [],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(
+            result.anchor,
+            ContentHeaderAnchor(
+                trailingEdge: wideWindow.maxX - 168,
+                source: .fallback
+            )
+        )
+        XCTAssertEqual(result.minimumX, 725)
+    }
+
+    func testProgressiveScanKeepsWideOpenLocationWhenItsIndicatorIsFree() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let result = progressiveAnchor(
+            controls: [
+                control(x: 905, y: 1_012, width: 132, labels: ["打开位置"]),
+            ],
+            paneFrames: [CGRect(x: 955, y: 0, width: 965, height: 1_049)],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(
+            result.anchor,
+            ContentHeaderAnchor(trailingEdge: 905, source: .openLocation)
+        )
+        XCTAssertEqual(result.scanPasses, 2)
+    }
+
+    func testProgressiveScanExpandsAgainAfterButtonCollisionSlidesLeft() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let result = progressiveAnchor(
+            controls: [
+                ContentHeaderControl(
+                    frame: CGRect(x: 600, y: 1_012, width: 140, height: 28),
+                    labels: ["Thread title"],
+                    isAnchorCandidate: false
+                ),
+                control(x: 820, y: 1_012, width: 70, labels: ["Other action"]),
+                control(x: 905, y: 1_012, width: 132, labels: ["打开位置"]),
+            ],
+            paneFrames: [CGRect(x: 955, y: 0, width: 965, height: 1_049)],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(
+            result.anchor,
+            ContentHeaderAnchor(
+                trailingEdge: wideWindow.maxX - 168,
+                source: .fallback
+            )
+        )
+        XCTAssertEqual(result.scanPasses, 2)
+        XCTAssertEqual(result.minimumX, 640)
+    }
+
+    func testProgressiveScanStopsAfterFallbackOrCoveredIndicatorRange() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let free = progressiveAnchor(
+            controls: [control(x: 905, y: 1_012, width: 132, labels: ["打开位置"])],
+            paneFrames: [],
+            windowFrame: wideWindow
+        )
+        let blocked = progressiveAnchor(
+            controls: [
+                ContentHeaderControl(
+                    frame: CGRect(x: 580, y: 1_012, width: 160, height: 28),
+                    labels: ["Thread title"],
+                    isAnchorCandidate: false
+                ),
+                control(x: 905, y: 1_012, width: 132, labels: ["打开位置"]),
+            ],
+            paneFrames: [],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(free.scanPasses, 2)
+        XCTAssertEqual(blocked.scanPasses, 2)
+        XCTAssertEqual(blocked.anchor.source, .fallback)
+    }
+
+    func testProgressiveScanFallsBackWhenPassCapLeavesStaticTitleHidden() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let result = progressiveAnchor(
+            controls: [
+                ContentHeaderControl(
+                    frame: CGRect(x: 200, y: 1_012, width: 160, height: 28),
+                    labels: ["Thread title"],
+                    isAnchorCandidate: false
+                ),
+                control(x: 460, y: 1_012, width: 30, labels: ["Action"]),
+                control(x: 580, y: 1_012, width: 30, labels: ["Action"]),
+                control(x: 700, y: 1_012, width: 30, labels: ["Action"]),
+                control(x: 820, y: 1_012, width: 30, labels: ["Action"]),
+                control(x: 905, y: 1_012, width: 132, labels: ["打开位置"]),
+            ],
+            paneFrames: [],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(result.scanPasses, 4)
+        XCTAssertEqual(
+            result.anchor,
+            ContentHeaderAnchor(
+                trailingEdge: wideWindow.maxX - 168,
+                source: .fallback
+            )
+        )
+    }
+
     func testRightPaneBoundaryKeepsOverlayInsideCentralContent() {
         let anchor = ContentHeaderAnchorResolver.resolve(
             controls: [
@@ -97,6 +308,34 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
 
         XCTAssertEqual(anchor.trailingEdge, 1_604)
         XCTAssertEqual(anchor.source, .rightPaneBoundary)
+    }
+
+    func testRecognizesWideRightPaneBoundaryWithoutTreatingFullContentAsPane() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [],
+            paneFrames: [CGRect(x: 955, y: 0, width: 965, height: 1_049)],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(anchor, ContentHeaderAnchor(trailingEdge: 955, source: .rightPaneBoundary))
+    }
+
+    func testPrefersRealRightPaneOverSimultaneousOuterContentSurface() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [],
+            paneFrames: [
+                CGRect(x: 551, y: 0, width: 1_369, height: 1_049),
+                CGRect(x: 955, y: 0, width: 965, height: 1_049),
+            ],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(
+            anchor,
+            ContentHeaderAnchor(trailingEdge: 955, source: .rightPaneBoundary)
+        )
     }
 
     func testOpenLocationRemainsAnchorInsideRightPane() {
@@ -425,5 +664,50 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
             frame: CGRect(x: x, y: y, width: width, height: 28),
             labels: labels
         )
+    }
+
+    private func progressiveAnchor(
+        controls: [ContentHeaderControl],
+        paneFrames: [CGRect],
+        windowFrame: CGRect
+    ) -> (anchor: ContentHeaderAnchor, scanPasses: Int, minimumX: CGFloat) {
+        var minimumX = ContentHeaderAnchorResolver.initialScanMinimumX(in: windowFrame)
+        var scanPasses = 0
+        var anchor = ContentHeaderAnchor(trailingEdge: nil, source: .fallback)
+
+        while scanPasses < 4 {
+            let scannedControls = controls.filter {
+                ContentHeaderAnchorResolver.shouldScanDescendants(
+                    of: $0.frame,
+                    windowFrame: windowFrame,
+                    minimumX: minimumX
+                )
+            }
+            anchor = ContentHeaderAnchorResolver.resolve(
+                controls: scannedControls,
+                paneFrames: paneFrames,
+                windowFrame: windowFrame
+            )
+            scanPasses += 1
+            guard
+                scanPasses < 4,
+                let expandedMinimumX = ContentHeaderAnchorResolver.expandedScanMinimumX(
+                after: anchor,
+                currentMinimumX: minimumX,
+                windowFrame: windowFrame
+                )
+            else {
+                break
+            }
+            minimumX = expandedMinimumX
+        }
+        if scanPasses == 4 {
+            anchor = ContentHeaderAnchorResolver.fallbackIfScanIsIncomplete(
+                anchor: anchor,
+                currentMinimumX: minimumX,
+                windowFrame: windowFrame
+            )
+        }
+        return (anchor, scanPasses, minimumX)
     }
 }

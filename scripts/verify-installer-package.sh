@@ -28,7 +28,10 @@ verify_app() {
   local companion="$payload/assets/Codex Usage Sidebar.app/Contents/MacOS/CodexUsageSidebar"
 
   [[ -d "$candidate" ]] || { printf 'installer app is missing: %s\n' "$candidate" >&2; exit 66; }
-  [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$candidate/Contents/Info.plist")" == "0.2.3" ]]
+  [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$candidate/Contents/Info.plist")" == "0.2.3" ]] || {
+    printf 'installer app version is not 0.2.3: %s\n' "$candidate" >&2
+    exit 65
+  }
   [[ -f "$manifest" ]] || { printf 'embedded plugin manifest is missing\n' >&2; exit 66; }
   [[ -f "$payload_provenance" ]] || { printf 'embedded payload provenance is missing\n' >&2; exit 66; }
   [[ -x "$companion" ]] || { printf 'embedded companion is missing\n' >&2; exit 66; }

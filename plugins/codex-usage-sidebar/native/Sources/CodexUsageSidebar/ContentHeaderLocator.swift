@@ -19,6 +19,7 @@ final class ContentHeaderLocator {
 
     private let maximumDepth = 32
     private let maximumElements = 1_000
+    private let maximumScanPasses = 4
     private let cacheLifetime: TimeInterval = 0.75
     private var cachedAnchor: CachedAnchor?
     private(set) var latestDiagnosticDetail = "anchor_scan=not-run"
@@ -47,16 +48,55 @@ final class ContentHeaderLocator {
             window: window
         )
 
-        let scan = scanLayout(in: window, windowFrame: windowFrame)
-        let scannedAnchor = ContentHeaderAnchorResolver.resolve(
+        var scanMinimumX = ContentHeaderAnchorResolver.initialScanMinimumX(
+            in: windowFrame
+        )
+        var scan = scanLayout(
+            in: window,
+            windowFrame: windowFrame,
+            minimumX: scanMinimumX
+        )
+        var scannedAnchor = ContentHeaderAnchorResolver.resolve(
             controls: scan.controls,
             paneFrames: scan.panes,
             windowFrame: windowFrame
         )
+        var scanPasses = 1
+        var totalVisited = scan.visited
+        while
+            scanPasses < maximumScanPasses,
+            let expandedMinimumX = ContentHeaderAnchorResolver.expandedScanMinimumX(
+                after: scannedAnchor,
+                currentMinimumX: scanMinimumX,
+                windowFrame: windowFrame
+            )
+        {
+            scanMinimumX = expandedMinimumX
+            scan = scanLayout(
+                in: window,
+                windowFrame: windowFrame,
+                minimumX: scanMinimumX
+            )
+            totalVisited += scan.visited
+            scannedAnchor = ContentHeaderAnchorResolver.resolve(
+                controls: scan.controls,
+                paneFrames: scan.panes,
+                windowFrame: windowFrame
+            )
+            scanPasses += 1
+        }
+        if scanPasses == maximumScanPasses {
+            scannedAnchor = ContentHeaderAnchorResolver.fallbackIfScanIsIncomplete(
+                anchor: scannedAnchor,
+                currentMinimumX: scanMinimumX,
+                windowFrame: windowFrame
+            )
+        }
         let anchor = ContentHeaderAnchorResolver.stabilized(
             scanned: scannedAnchor,
             cached: retainedAnchor
         )
+        let usedCachedAnchor = anchor != scannedAnchor
         if scannedAnchor.trailingEdge != nil, scannedAnchor.source != .fallback {
             cachedAnchor = CachedAnchor(
                 processIdentifier: processIdentifier,
@@ -71,9 +111,10 @@ final class ContentHeaderLocator {
         }
         let edge = anchor.trailingEdge.map { String(Int($0)) } ?? "fallback"
         latestDiagnosticDetail =
-            "anchor_scan=visited:\(scan.visited)," +
+            "anchor_scan=visited:\(totalVisited)," +
             "controls:\(scan.controls.count),panes:\(scan.panes.count)," +
-            "cached:false,source:\(anchor.source.rawValue),edge:\(edge)," +
+            "passes:\(scanPasses),minimumX:\(Int(scanMinimumX))," +
+            "cached:\(usedCachedAnchor),source:\(anchor.source.rawValue),edge:\(edge)," +
             "window:\(Int(windowFrame.minX)),\(Int(windowFrame.minY))," +
             "\(Int(windowFrame.width)),\(Int(windowFrame.height))"
         return anchor
@@ -81,7 +122,8 @@ final class ContentHeaderLocator {
 
     private func scanLayout(
         in window: AXUIElement,
-        windowFrame: CGRect
+        windowFrame: CGRect,
+        minimumX: CGFloat
     ) -> (controls: [ContentHeaderControl], panes: [CGRect], visited: Int) {
         var queue = children(of: window).map {
             QueueEntry(element: $0, depth: 1)
@@ -130,7 +172,8 @@ final class ContentHeaderLocator {
                     }
                     return ContentHeaderAnchorResolver.shouldScanDescendants(
                         of: appKitFrame(fromTopLeftFrame: topLeftFrame),
-                        windowFrame: windowFrame
+                        windowFrame: windowFrame,
+                        minimumX: minimumX
                     )
                 }
                 queue.append(

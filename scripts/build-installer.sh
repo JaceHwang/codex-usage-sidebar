@@ -7,7 +7,7 @@ native_root="$repo_root/plugins/codex-usage-sidebar/native"
 dist="$repo_root/.dist"
 output_root="$dist/installer"
 app="$output_root/Codex Usage Sidebar Installer.app"
-payload_ref="${CUS_INSTALLER_PAYLOAD_REF:-v0.2.3}"
+payload_ref="${CUS_INSTALLER_PAYLOAD_REF:-HEAD}"
 signing_identity="${CUS_INSTALLER_SIGN_IDENTITY:--}"
 version="$(/usr/bin/python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"].split("+")[0])' "$plugin_manifest")"
 
@@ -16,6 +16,7 @@ if [[ "$version" != "0.2.3" ]]; then
   exit 65
 fi
 /usr/bin/git -C "$repo_root" cat-file -e "$payload_ref^{commit}"
+payload_commit="$(/usr/bin/git -C "$repo_root" rev-parse "$payload_ref^{commit}")"
 
 /bin/mkdir -p "$dist"
 /bin/rm -rf "$output_root"
@@ -43,10 +44,11 @@ bin_path="$(
 /bin/chmod 755 "$app/Contents/MacOS/CodexUsageSidebarInstaller"
 
 /usr/bin/git -C "$repo_root" archive \
-  "$payload_ref" \
+  "$payload_commit" \
   .agents/plugins/marketplace.json \
   plugins/codex-usage-sidebar |
   /usr/bin/tar -xf - -C "$app/Contents/Resources/payload"
+/usr/bin/printf '%s\n' "$payload_commit" >"$app/Contents/Resources/InstallerPayloadCommit"
 
 /bin/cat >"$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

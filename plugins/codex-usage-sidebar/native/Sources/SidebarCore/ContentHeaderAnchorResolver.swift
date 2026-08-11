@@ -43,16 +43,58 @@ public enum ContentHeaderAnchorResolver {
 
     public static func shouldScanDescendants(
         of frame: CGRect,
-        windowFrame: CGRect
+        windowFrame: CGRect,
+        minimumX: CGFloat? = nil
     ) -> Bool {
-        let scanMinimumX = windowFrame.midX
-            - OverlayLayout.indicatorWidth
-            - OverlayLayout.indicatorGap
-            - maximumAnchorWidth / 2
+        let scanMinimumX = minimumX ?? initialScanMinimumX(in: windowFrame)
         let scanMinimumY = windowFrame.maxY - OverlayLayout.toolbarHeight
         return frame.height >= minimumToolbarItemHeight
             && frame.maxX >= scanMinimumX
             && frame.maxY >= scanMinimumY
+    }
+
+    public static func initialScanMinimumX(in windowFrame: CGRect) -> CGFloat {
+        windowFrame.midX
+            - OverlayLayout.indicatorWidth
+            - OverlayLayout.indicatorGap
+            - maximumAnchorWidth / 2
+    }
+
+    public static func expandedScanMinimumX(
+        after anchor: ContentHeaderAnchor,
+        currentMinimumX: CGFloat,
+        windowFrame: CGRect
+    ) -> CGFloat? {
+        guard
+            anchor.source != .fallback,
+            let trailingEdge = anchor.trailingEdge
+        else {
+            return nil
+        }
+        let resolvedMinimumX = OverlayLayout.indicatorFrame(
+            in: windowFrame,
+            contentTrailingEdge: trailingEdge
+        ).minX - OverlayLayout.indicatorGap
+        let clampedMinimumX = max(windowFrame.minX, resolvedMinimumX)
+        guard clampedMinimumX < currentMinimumX - 0.5 else {
+            return nil
+        }
+        return clampedMinimumX
+    }
+
+    public static func fallbackIfScanIsIncomplete(
+        anchor: ContentHeaderAnchor,
+        currentMinimumX: CGFloat,
+        windowFrame: CGRect
+    ) -> ContentHeaderAnchor {
+        guard expandedScanMinimumX(
+            after: anchor,
+            currentMinimumX: currentMinimumX,
+            windowFrame: windowFrame
+        ) != nil else {
+            return anchor
+        }
+        return trailingFallback(in: windowFrame)
     }
 
     public static func isEligibleToolbarItem(
@@ -104,18 +146,22 @@ public enum ContentHeaderAnchorResolver {
             )
         }
 
-        let headerControls = toolbarItems.filter { control in
+        let eligibleAnchorCandidates = toolbarItems.filter { control in
             let frame = control.frame
             return control.isAnchorCandidate
                 && frame.width <= maximumAnchorWidth
-                && frame.midX >= windowFrame.midX
+        }
+
+        let headerControls = eligibleAnchorCandidates.filter { control in
+            let frame = control.frame
+            return frame.midX >= windowFrame.midX
         }
 
         let centralHeaderControls = headerControls.filter {
             $0.frame.maxX <= contentLimit + 1
         }
 
-        if let openLocation = headerControls.filter(isOpenLocation).max(
+        if let openLocation = eligibleAnchorCandidates.filter(isOpenLocation).max(
             by: { $0.frame.minX < $1.frame.minX }
         ) {
             return collisionAwareAnchor(
@@ -175,6 +221,15 @@ public enum ContentHeaderAnchorResolver {
                 in: windowFrame,
                 contentTrailingEdge: resolvedEdge
             )
+            if let selectedFrame {
+                let expectedMaximumX = resolvedEdge - OverlayLayout.indicatorGap
+                guard
+                    abs(candidate.maxX - expectedMaximumX) <= 0.5,
+                    !candidate.intersects(selectedFrame)
+                else {
+                    return trailingFallback(in: windowFrame)
+                }
+            }
             let collisions = obstacles.filter { item in
                 candidate.intersects(
                     item.frame.insetBy(
@@ -236,7 +291,7 @@ public enum ContentHeaderAnchorResolver {
         paneFrames: [CGRect],
         windowFrame: CGRect
     ) -> CGFloat? {
-        let maximumPaneWidth = min(520, windowFrame.width * 0.42)
+        let maximumPaneWidth = windowFrame.width * 0.60
         let toolbarMinimumY = windowFrame.maxY - OverlayLayout.toolbarHeight
 
         return paneFrames.filter { frame in
