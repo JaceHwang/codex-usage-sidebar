@@ -74,11 +74,27 @@ public enum ContentHeaderAnchorResolver {
         let resolvedMinimumX = OverlayLayout.indicatorFrame(
             in: windowFrame,
             contentTrailingEdge: trailingEdge
-        ).minX
-        guard resolvedMinimumX < currentMinimumX - 0.5 else {
+        ).minX - OverlayLayout.indicatorGap
+        let clampedMinimumX = max(windowFrame.minX, resolvedMinimumX)
+        guard clampedMinimumX < currentMinimumX - 0.5 else {
             return nil
         }
-        return resolvedMinimumX
+        return clampedMinimumX
+    }
+
+    public static func fallbackIfScanIsIncomplete(
+        anchor: ContentHeaderAnchor,
+        currentMinimumX: CGFloat,
+        windowFrame: CGRect
+    ) -> ContentHeaderAnchor {
+        guard expandedScanMinimumX(
+            after: anchor,
+            currentMinimumX: currentMinimumX,
+            windowFrame: windowFrame
+        ) != nil else {
+            return anchor
+        }
+        return trailingFallback(in: windowFrame)
     }
 
     public static func isEligibleToolbarItem(

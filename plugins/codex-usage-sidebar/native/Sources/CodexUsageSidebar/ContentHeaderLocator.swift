@@ -83,6 +83,13 @@ final class ContentHeaderLocator {
             )
             scanPasses += 1
         }
+        if scanPasses == maximumScanPasses {
+            scannedAnchor = ContentHeaderAnchorResolver.fallbackIfScanIsIncomplete(
+                anchor: scannedAnchor,
+                currentMinimumX: scanMinimumX,
+                windowFrame: windowFrame
+            )
+        }
         let anchor = ContentHeaderAnchorResolver.stabilized(
             scanned: scannedAnchor,
             cached: retainedAnchor
