@@ -19,6 +19,7 @@ final class ContentHeaderLocator {
 
     private let maximumDepth = 32
     private let maximumElements = 1_000
+    private let maximumScanPasses = 4
     private let cacheLifetime: TimeInterval = 0.75
     private var cachedAnchor: CachedAnchor?
     private(set) var latestDiagnosticDetail = "anchor_scan=not-run"
@@ -47,12 +48,41 @@ final class ContentHeaderLocator {
             window: window
         )
 
-        let scan = scanLayout(in: window, windowFrame: windowFrame)
-        let scannedAnchor = ContentHeaderAnchorResolver.resolve(
+        var scanMinimumX = ContentHeaderAnchorResolver.initialScanMinimumX(
+            in: windowFrame
+        )
+        var scan = scanLayout(
+            in: window,
+            windowFrame: windowFrame,
+            minimumX: scanMinimumX
+        )
+        var scannedAnchor = ContentHeaderAnchorResolver.resolve(
             controls: scan.controls,
             paneFrames: scan.panes,
             windowFrame: windowFrame
         )
+        var scanPasses = 1
+        while
+            scanPasses < maximumScanPasses,
+            let expandedMinimumX = ContentHeaderAnchorResolver.expandedScanMinimumX(
+                after: scannedAnchor,
+                currentMinimumX: scanMinimumX,
+                windowFrame: windowFrame
+            )
+        {
+            scanMinimumX = expandedMinimumX
+            scan = scanLayout(
+                in: window,
+                windowFrame: windowFrame,
+                minimumX: scanMinimumX
+            )
+            scannedAnchor = ContentHeaderAnchorResolver.resolve(
+                controls: scan.controls,
+                paneFrames: scan.panes,
+                windowFrame: windowFrame
+            )
+            scanPasses += 1
+        }
         let anchor = ContentHeaderAnchorResolver.stabilized(
             scanned: scannedAnchor,
             cached: retainedAnchor
@@ -73,6 +103,7 @@ final class ContentHeaderLocator {
         latestDiagnosticDetail =
             "anchor_scan=visited:\(scan.visited)," +
             "controls:\(scan.controls.count),panes:\(scan.panes.count)," +
+            "passes:\(scanPasses),minimumX:\(Int(scanMinimumX))," +
             "cached:false,source:\(anchor.source.rawValue),edge:\(edge)," +
             "window:\(Int(windowFrame.minX)),\(Int(windowFrame.minY))," +
             "\(Int(windowFrame.width)),\(Int(windowFrame.height))"
@@ -81,7 +112,8 @@ final class ContentHeaderLocator {
 
     private func scanLayout(
         in window: AXUIElement,
-        windowFrame: CGRect
+        windowFrame: CGRect,
+        minimumX: CGFloat
     ) -> (controls: [ContentHeaderControl], panes: [CGRect], visited: Int) {
         var queue = children(of: window).map {
             QueueEntry(element: $0, depth: 1)
@@ -130,7 +162,8 @@ final class ContentHeaderLocator {
                     }
                     return ContentHeaderAnchorResolver.shouldScanDescendants(
                         of: appKitFrame(fromTopLeftFrame: topLeftFrame),
-                        windowFrame: windowFrame
+                        windowFrame: windowFrame,
+                        minimumX: minimumX
                     )
                 }
                 queue.append(

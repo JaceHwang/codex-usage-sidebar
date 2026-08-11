@@ -121,6 +121,18 @@ bash tests/test-installer-package.sh
 
 Expected: all commands exit zero; the DMG remains named `codex-usage-sidebar-v0.2.3-macos-arm64.dmg`.
 
+## Discovered scanner constraint (review follow-up)
+
+The resolver may now select a semantic Open Location anchor left of the whole-window midpoint.
+The locator must therefore not rely on one fixed horizontal descendant bound: a static-title branch
+whose right edge is just left of that bound can overlap the resulting 164-point indicator without
+ever reaching collision resolution. Keep the initial narrow scan, then rescan only as far left as
+the resolved indicator frame requires. Repeat after a collision shift, retain the vertical/depth/
+element guards, and stop after numeric fallback, a covered range, or a bounded number of passes.
+
+Regression coverage must exercise scan filtering plus resolution for a free wide layout, a hidden
+static-title barrier, a second expansion after a button collision, and termination.
+
 - [ ] **Step 11: Commit and publish**
 
 Stage only the resolver, tests, design, plan, rebuilt companion payload/provenance, and any required release documentation. Commit, push `codex/fix-wide-right-pane-placement`, open a ready PR to `main`, wait for CI, and merge only after review and checks pass.

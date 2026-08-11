@@ -29,10 +29,15 @@ direction.
    wider than 520 points as long as it is not the full-width content surface.
 5. The established right-side fallback is used only when no complete collision-free local frame
    exists.
+6. Descendant scanning starts with the existing narrow right-side band, then expands only to the
+   resolved indicator frame's left edge when a semantic anchor or collision shift needs it. Each
+   pass retains vertical pruning and element/depth limits; it stops on numeric fallback, once the
+   resolved range is covered, or after a bounded number of passes.
 
 ## Scope and safety
 
-The change is confined to `ContentHeaderAnchorResolver` and its tests. It does not change quota
+The change is confined to `ContentHeaderAnchorResolver`, `ContentHeaderLocator`, and their tests.
+It does not change quota
 data collection, UI appearance, versions, installer behavior, Accessibility permissions, or Codex
 application files. Runtime placement continues to refresh every 0.1 seconds.
 

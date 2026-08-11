@@ -43,16 +43,42 @@ public enum ContentHeaderAnchorResolver {
 
     public static func shouldScanDescendants(
         of frame: CGRect,
-        windowFrame: CGRect
+        windowFrame: CGRect,
+        minimumX: CGFloat? = nil
     ) -> Bool {
-        let scanMinimumX = windowFrame.midX
-            - OverlayLayout.indicatorWidth
-            - OverlayLayout.indicatorGap
-            - maximumAnchorWidth / 2
+        let scanMinimumX = minimumX ?? initialScanMinimumX(in: windowFrame)
         let scanMinimumY = windowFrame.maxY - OverlayLayout.toolbarHeight
         return frame.height >= minimumToolbarItemHeight
             && frame.maxX >= scanMinimumX
             && frame.maxY >= scanMinimumY
+    }
+
+    public static func initialScanMinimumX(in windowFrame: CGRect) -> CGFloat {
+        windowFrame.midX
+            - OverlayLayout.indicatorWidth
+            - OverlayLayout.indicatorGap
+            - maximumAnchorWidth / 2
+    }
+
+    public static func expandedScanMinimumX(
+        after anchor: ContentHeaderAnchor,
+        currentMinimumX: CGFloat,
+        windowFrame: CGRect
+    ) -> CGFloat? {
+        guard
+            anchor.source != .fallback,
+            let trailingEdge = anchor.trailingEdge
+        else {
+            return nil
+        }
+        let resolvedMinimumX = OverlayLayout.indicatorFrame(
+            in: windowFrame,
+            contentTrailingEdge: trailingEdge
+        ).minX
+        guard resolvedMinimumX < currentMinimumX - 0.5 else {
+            return nil
+        }
+        return resolvedMinimumX
     }
 
     public static func isEligibleToolbarItem(

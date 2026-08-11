@@ -9,8 +9,8 @@
     "archiveSha256": "274246aba5f7722cb27621f6379425d110209975b84e997f34763c623fa65603"
   },
   "companion": {
-    "executableSha256": "729829e3dbc08592b55a29e22f080326193f1ce65e2dc194c696eab81977ad43",
-    "cdhashSha256": "31bbb932b085fddf650ec7acedd8cab273dae10c0a4e4a790e552332100f3cc6",
+    "executableSha256": "b3e02b485445d89c01648353dc70280aeff9ed15bc1edac189eaeda92a2a4a6f",
+    "cdhashSha256": "d4341a49e78b3d9e7d581ac140871103352e6ea3107d8047d14fdf91c6ce58c4",
     "signature": "local-signing"
   }
 }
