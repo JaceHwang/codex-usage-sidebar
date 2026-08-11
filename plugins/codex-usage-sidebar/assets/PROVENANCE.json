@@ -1,16 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "5a0ab6bafa9bcccce04dbb332e27ed7c9a85d8d6",
-  "workflowRun": "https://github.com/JaceHwang/codex-usage-sidebar/actions/runs/31403439323",
-  "artifact": {
-    "id": 9068658292,
-    "name": "codex-usage-sidebar-release",
-    "digest": "sha256:b99d266dcc74fc08210625f38e196390953de98a70752bf0deb96acf5b24e10e",
-    "archiveSha256": "274246aba5f7722cb27621f6379425d110209975b84e997f34763c623fa65603"
+  "build": {
+    "kind": "local-unpublished"
   },
+  "sourceCommit": "204c88c0ad4b800c15cf55ab888e5cb40812012d",
   "companion": {
-    "executableSha256": "8e4a1d07afba93b986f5ac0cea29ea2dbabc1a50277f20c856f31d4cbb6c6e84",
-    "cdhashSha256": "3976893d93de437570cf794973758ffd11cfd350a7cc55be2b250929115af762",
+    "executableSha256": "605e4f888f4fbe063f7b73f4183806516cdeeadd980a9a68a40c1537f5d7c78d",
+    "cdhashSha256": "28be06c8f5053d9c4a25ff788bc34104a46c15664a5eab3007e20242aa876945",
     "signature": "local-signing"
   }
 }
