@@ -82,6 +82,10 @@ extract it and run:
 CodexUsageSidebar.Control.exe probe C:\Temp\codex-usage-sidebar-probe.json
 ```
 
+Use the exact privacy, checksum, layout, theme, language, DPI, screenshot, and handoff procedure in
+[Windows real-device diagnostic handoff](WINDOWS-DEVICE-HANDOFF.md). A Simplified Chinese version
+is available in [Windows 实机诊断交接手册](WINDOWS-DEVICE-HANDOFF.zh-CN.md).
+
 The default report assigns per-report random HMAC tokens to executable paths and UIA names, so
 equal values can be correlated only inside that single report. Add `--include-text` only when the person
 collecting the report intentionally agrees to include visible UI Automation names; conversation

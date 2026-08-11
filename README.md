@@ -38,6 +38,8 @@ Win32 window boundary, sanitized UI Automation probe, per-user installer backend
 verification, and Windows CI are implemented without changing the stable Mac payload. Publishing a
 Windows setup executable remains blocked until it passes the real Codex UIA, DPI, theme, layout,
 upgrade, and installer matrix. See [Windows beta development](docs/WINDOWS-BETA.md).
+The future test-machine procedure is documented separately in the
+[Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md).
 
 ## Actual appearance
 
@@ -259,6 +261,7 @@ CI. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 - [Agent installation playbook](docs/INSTALL_FOR_AGENTS.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Windows beta development](docs/WINDOWS-BETA.md)
+- [Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Privacy](docs/PRIVACY.md)
 - [Support](SUPPORT.md)
