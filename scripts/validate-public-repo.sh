@@ -10,8 +10,10 @@ companion="$plugin_root/assets/Codex Usage Sidebar.app"
 required=(
   README.md README.zh-CN.md LICENSE CHANGELOG.md CONTRIBUTING.md SECURITY.md SUPPORT.md
   CODE_OF_CONDUCT.md .agents/plugins/marketplace.json .github/workflows/ci.yml
+  .github/workflows/publish-installer.yml
   docs/INSTALL.md docs/INSTALL_FOR_AGENTS.md docs/ARCHITECTURE.md docs/TROUBLESHOOTING.md
   docs/PRIVACY.md docs/images/hero.svg docs/images/placement.svg docs/images/architecture.svg
+  scripts/finalize-installer-provenance.py scripts/verify-installer-package.sh
   plugins/codex-usage-sidebar/.codex-plugin/plugin.json
   plugins/codex-usage-sidebar/assets/PROVENANCE.json
   plugins/codex-usage-sidebar/assets/Codex\ Usage\ Sidebar.app/Contents/MacOS/CodexUsageSidebar
@@ -71,15 +73,89 @@ if os.environ.get("CUS_REBUILT_PAYLOAD") != "1":
         check=True,
         stdout=subprocess.DEVNULL,
     )
-    if os.environ.get("CUS_ALLOW_SOURCE_AHEAD") != "1":
-        subprocess.run(
-            [
-                "git", "-C", str(root), "diff", "--quiet", source_commit, "HEAD", "--",
-                "plugins/codex-usage-sidebar",
-                ":(exclude)plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app",
-                ":(exclude)plugins/codex-usage-sidebar/assets/PROVENANCE.json",
-            ],
-            check=True,
+    source_ahead = subprocess.check_output(
+        [
+            "git", "-C", str(root), "diff", "--name-only", source_commit, "HEAD", "--",
+            "plugins/codex-usage-sidebar",
+            ":(exclude)plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app",
+            ":(exclude)plugins/codex-usage-sidebar/assets/PROVENANCE.json",
+        ],
+        text=True,
+    ).splitlines()
+    installer_paths = (
+        "plugins/codex-usage-sidebar/native/Package.swift",
+        "plugins/codex-usage-sidebar/native/Sources/InstallerCore/",
+        "plugins/codex-usage-sidebar/native/Sources/CodexUsageSidebarInstaller/",
+        "plugins/codex-usage-sidebar/native/Tests/InstallerCoreTests/",
+    )
+    unexpected_paths = [
+        path for path in source_ahead
+        if path != installer_paths[0] and not path.startswith(installer_paths[1:])
+    ]
+    if unexpected_paths:
+        raise SystemExit(
+            "marketplace companion source differs from provenance outside the installer allowlist: "
+            + ", ".join(unexpected_paths)
+        )
+
+    source_package = subprocess.check_output(
+        [
+            "git", "-C", str(root), "show",
+            f"{source_commit}:plugins/codex-usage-sidebar/native/Package.swift",
+        ],
+        text=True,
+    )
+    expected_package = source_package.replace(
+        '        .library(name: "SidebarCore", targets: ["SidebarCore"]),\n',
+        '        .library(name: "SidebarCore", targets: ["SidebarCore"]),\n'
+        '        .library(name: "InstallerCore", targets: ["InstallerCore"]),\n',
+    ).replace(
+        '        .executable(\n'
+        '            name: "CodexUsageSidebar",\n'
+        '            targets: ["CodexUsageSidebar"]\n'
+        '        )\n',
+        '        .executable(\n'
+        '            name: "CodexUsageSidebar",\n'
+        '            targets: ["CodexUsageSidebar"]\n'
+        '        ),\n'
+        '        .executable(\n'
+        '            name: "CodexUsageSidebarInstaller",\n'
+        '            targets: ["CodexUsageSidebarInstaller"]\n'
+        '        )\n',
+    ).replace(
+        '        .target(name: "SidebarCore"),\n',
+        '        .target(name: "SidebarCore"),\n'
+        '        .target(name: "InstallerCore"),\n',
+    ).replace(
+        '        .executableTarget(\n'
+        '            name: "CodexUsageSidebar",\n'
+        '            dependencies: ["SidebarCore"]\n'
+        '        ),\n',
+        '        .executableTarget(\n'
+        '            name: "CodexUsageSidebar",\n'
+        '            dependencies: ["SidebarCore"]\n'
+        '        ),\n'
+        '        .executableTarget(\n'
+        '            name: "CodexUsageSidebarInstaller",\n'
+        '            dependencies: ["InstallerCore"]\n'
+        '        ),\n',
+    ).replace(
+        '        .testTarget(\n'
+        '            name: "SidebarCoreTests",\n'
+        '            dependencies: ["SidebarCore"]\n'
+        '        )\n',
+        '        .testTarget(\n'
+        '            name: "SidebarCoreTests",\n'
+        '            dependencies: ["SidebarCore"]\n'
+        '        ),\n'
+        '        .testTarget(\n'
+        '            name: "InstallerCoreTests",\n'
+        '            dependencies: ["InstallerCore", "CodexUsageSidebarInstaller"]\n'
+        '        )\n',
+    )
+    if (root / "plugins/codex-usage-sidebar/native/Package.swift").read_text() != expected_package:
+        raise SystemExit(
+            "marketplace package manifest differs from the installer-only allowlist"
         )
 
 forbidden = [
@@ -93,7 +169,7 @@ forbidden = [
 
 text_files = []
 generated_parts = {
-    ".git", ".build", ".dist", ".swiftpm", ".project-board", ".worktrees"
+    ".git", ".build", ".dist", ".swiftpm", ".project-board", ".superpowers", ".worktrees"
 }
 for path in root.rglob("*"):
     relative = path.relative_to(root)
@@ -130,17 +206,74 @@ for path, text in text_files:
             raise SystemExit(f"{path.relative_to(root)}: broken relative link: {target}")
 
 for forbidden_path in [root / ".superpowers", root / "docs/verification"]:
-    if forbidden_path.exists():
-        raise SystemExit(f"private development artifact present: {forbidden_path.relative_to(root)}")
+    if subprocess.run(
+        [
+            "git", "-C", str(root), "ls-files", "--error-unmatch",
+            str(forbidden_path.relative_to(root)),
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    ).returncode == 0:
+        raise SystemExit(f"tracked private development artifact: {forbidden_path.relative_to(root)}")
+
+publisher = (root / ".github/workflows/publish-installer.yml").read_text(encoding="utf-8")
+ci_workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+if '[[ "$ARTIFACT_DIGEST" =~ ^[0-9a-f]{64}$ ]]' not in ci_workflow:
+    raise SystemExit("CI workflow missing upload-artifact digest output validation")
+publisher_guards = {
+    "push event": "test \"$(jq -r '.event' <<<\"$run\")\" = push",
+    "same-repository head": "test \"$(jq -r '.head_repository.full_name' <<<\"$run\")\" = \"$REPOSITORY\"",
+    "CI workflow lookup": "repos/$REPOSITORY/actions/workflows/ci.yml",
+    "CI workflow ID": "jq -r '.workflow_id'",
+    "CI exact workflow path": '".github/workflows/ci.yml") ;;',
+    "CI optional workflow ref": '".github/workflows/ci.yml@"*) ;;',
+    "exact CI checkout": "ref: ${{ steps.trusted_ci.outputs.head_sha }}",
+    "artifact listing": "actions/runs/$CI_RUN_ID/artifacts",
+    "artifact ID download": "actions/artifacts/$ARTIFACT_ID/zip",
+    "artifact digest verification": 'test "sha256:$downloaded_digest" = "$ARTIFACT_DIGEST"',
+    "provenance finalizer": "scripts/finalize-installer-provenance.py",
+    "release tag binding": "--release-tag \"$RELEASE_TAG\"",
+    "SDK binding": "--sdk-version \"$INSTALLER_SDK\"",
+}
+for label, guard in publisher_guards.items():
+    if guard not in publisher:
+        raise SystemExit(f"publish installer workflow missing trusted CI run guard: {label}")
 
 print("JSON, privacy, placeholder, and Markdown link checks passed")
 PY
+
+release_url="https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.2.3/codex-usage-sidebar-v0.2.3-macos-arm64.dmg"
+/usr/bin/python3 - "$repo_root" "$release_url" <<'PY'
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+release_url = sys.argv[2]
+required_copy = {
+    "README.md": "right-click the installer in Finder and choose Open",
+    "README.zh-CN.md": "在 Finder 中右键点击安装器并选择“打开”",
+}
+for relative, gatekeeper_warning in required_copy.items():
+    text = (root / relative).read_text(encoding="utf-8")
+    if release_url not in text:
+        raise SystemExit(f"{relative}: missing v0.2.3 installer release URL")
+    if gatekeeper_warning not in text:
+        raise SystemExit(f"{relative}: missing Finder Open warning for the unsigned installer")
+PY
+
+/usr/bin/ruby -ryaml -e '
+  ARGV.each { |path| YAML.safe_load(File.read(path), [], [], false) }
+' "$repo_root/.github/workflows/ci.yml" "$repo_root/.github/workflows/publish-installer.yml"
 
 /usr/bin/plutil -lint "$companion/Contents/Info.plist" >/dev/null
 /usr/bin/codesign --verify --deep --strict "$companion"
 [[ -x "$companion/Contents/MacOS/CodexUsageSidebar" ]]
 [[ -x "$plugin_root/scripts/sidebar-control.sh" ]]
 [[ -x "$plugin_root/scripts/build-companion.sh" ]]
+[[ -x "$repo_root/scripts/build-installer.sh" ]]
+[[ -x "$repo_root/scripts/package-installer.sh" ]]
+[[ -x "$repo_root/scripts/verify-installer-package.sh" ]]
+[[ -x "$repo_root/scripts/finalize-installer-provenance.py" ]]
 
 for svg in "$repo_root"/docs/images/*.svg; do
   /usr/bin/xmllint --noout "$svg"

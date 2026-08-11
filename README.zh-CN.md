@@ -65,6 +65,19 @@ Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生�
 
 要求：macOS 14+、Apple Silicon、Codex 桌面版与 `codex` CLI。
 
+### 下载图形安装器
+
+1. 从 v0.2.3 Release 的 **Assets** 下载 [`codex-usage-sidebar-v0.2.3-macos-arm64.dmg`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.2.3/codex-usage-sidebar-v0.2.3-macos-arm64.dmg)。
+2. 打开 DMG，再打开 **Codex Usage Sidebar Installer**。
+3. 这是未经公证的原始下载；如果 macOS 阻止打开，请在 Finder 中右键点击安装器并选择“打开”。
+4. 点击 **安装**，按引导完成 Codex 登录，并在 macOS 提示时为 **Codex Usage Sidebar** 开启“辅助功能”。
+5. 点击安装器中的 **验证**，确认受管理的伴随程序正在运行。
+
+安装器会把文件放在 Codex 应用包之外，也绝不会复制普通 `~/.codex` 凭据。修复、更新和卸载行为请见
+[安装运维说明](docs/INSTALL.md)。
+
+### 高级：手动 Marketplace 安装
+
 ```bash
 codex plugin marketplace add JaceHwang/codex-usage-sidebar
 codex plugin add codex-usage-sidebar@codex-usage-sidebar

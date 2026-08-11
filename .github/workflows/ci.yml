@@ -30,8 +30,6 @@ jobs:
           xcodebuild -version
 
       - name: Validate public repository
-        env:
-          CUS_ALLOW_SOURCE_AHEAD: ${{ github.ref != 'refs/heads/main' && '1' || '0' }}
         run: bash scripts/validate-public-repo.sh
 
       - name: Build and test native companion
@@ -74,6 +72,12 @@ jobs:
             exit 1
           fi
 
+      - name: Test installer package
+        run: bash tests/test-installer-package.sh
+
+      - name: Verify installer package checksum
+        run: (cd .dist && shasum -a 256 -c INSTALLER-SHA256SUMS.txt)
+
       - name: Upload tested release payload
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -83,3 +87,22 @@ jobs:
             .dist/SHA256SUMS.txt
           include-hidden-files: true
           if-no-files-found: error
+
+      - name: Upload tested installer payload
+        id: upload_installer
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: codex-usage-sidebar-installer-v0.2.3
+          path: |
+            .dist/codex-usage-sidebar-v0.2.3-macos-arm64.dmg
+            .dist/INSTALLER-SHA256SUMS.txt
+            .dist/INSTALLER-PROVENANCE.json
+          if-no-files-found: error
+
+      - name: Verify installer artifact identity is available
+        env:
+          ARTIFACT_ID: ${{ steps.upload_installer.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload_installer.outputs.artifact-digest }}
+        run: |
+          test -n "$ARTIFACT_ID"
+          [[ "$ARTIFACT_DIGEST" =~ ^[0-9a-f]{64}$ ]]

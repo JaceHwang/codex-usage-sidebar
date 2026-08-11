@@ -77,6 +77,20 @@ quota control.
 
 Requirements: Codex desktop for macOS, macOS 14 or later, Apple Silicon, and the `codex` CLI.
 
+### Download the installer
+
+1. Download [`codex-usage-sidebar-v0.2.3-macos-arm64.dmg`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.2.3/codex-usage-sidebar-v0.2.3-macos-arm64.dmg) from the v0.2.3 release **Assets**.
+2. Open the DMG, then open **Codex Usage Sidebar Installer**.
+3. This raw download is not notarized. If macOS blocks it, right-click the installer in Finder and choose Open.
+4. Click **Install**, finish the guided Codex login, and enable Accessibility for **Codex Usage Sidebar** when macOS asks.
+5. Click **Verify** in the installer to confirm that the managed companion is running.
+
+The installer keeps its files outside the Codex application and never copies your normal `~/.codex`
+credentials. See [Installation and operations](docs/INSTALL.md) for repair, update, and uninstall
+behavior.
+
+### Advanced: manual marketplace installation
+
 ```bash
 codex plugin marketplace add JaceHwang/codex-usage-sidebar
 codex plugin add codex-usage-sidebar@codex-usage-sidebar
