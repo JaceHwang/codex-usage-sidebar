@@ -121,6 +121,44 @@ bash tests/test-installer-package.sh
 
 Expected: all commands exit zero; the DMG remains named `codex-usage-sidebar-v0.2.3-macos-arm64.dmg`.
 
+### Task 2: Bind installer payload to the tested source commit
+
+**Files:**
+- Modify: `scripts/build-installer.sh`
+- Modify: `scripts/package-installer.sh`
+- Modify: `.github/workflows/ci.yml`
+- Test: `tests/test-installer-package.sh`
+
+**Interfaces:**
+- Consumes: `CUS_INSTALLER_PAYLOAD_REF`, defaulting locally to `HEAD` and set in CI to the checkout SHA
+- Produces: `INSTALLER-PROVENANCE.json.payloadRef` and `.payloadCommit` matching the exact packaged commit
+
+- [x] **Step 1: Add a failing current-commit package assertion**
+
+After packaging, resolve `git rev-parse HEAD^{commit}` and assert both installer provenance
+`payloadCommit` and the embedded payload source match that commit. The existing default of
+`v0.2.3` must make the assertion fail on this branch.
+
+- [x] **Step 2: Default local packaging to HEAD**
+
+Change both installer build and package scripts to use `${CUS_INSTALLER_PAYLOAD_REF:-HEAD}` while
+preserving every v0.2.3 version and filename guard.
+
+- [x] **Step 3: Pin CI packaging to the immutable checkout SHA**
+
+Set `CUS_INSTALLER_PAYLOAD_REF` from `${{ github.sha }}` in the CI job so the uploaded DMG cannot
+depend on a movable branch name or historical release tag.
+
+- [x] **Step 4: Verify RED→GREEN and negative package cases**
+
+Run `bash tests/test-installer-package.sh`. Expected: the exact-current-commit assertion, mounted
+payload checks, checksum, signature, architecture, malformed package, and provenance mutation
+cases all pass.
+
+- [x] **Step 5: Commit the package-source binding**
+
+Commit only the scripts, workflow, test, and documentation changes for this task.
+
 ## Discovered scanner constraint (review follow-up)
 
 The resolver may now select a semantic Open Location anchor left of the whole-window midpoint.

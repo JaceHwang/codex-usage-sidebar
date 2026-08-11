@@ -47,6 +47,15 @@ It does not change quota
 data collection, UI appearance, versions, installer behavior, Accessibility permissions, or Codex
 application files. Runtime placement continues to refresh every 0.1 seconds.
 
+## Package source binding
+
+The graphical installer keeps the public v0.2.3 version and asset name, but its embedded payload
+must come from the exact source commit being packaged rather than the original `v0.2.3` tag. Local
+packaging defaults to `HEAD`; CI passes its immutable checkout SHA explicitly. Installer provenance
+records both the ref and resolved payload commit, and package tests reject a DMG whose payload
+commit differs from the requested source. This prevents a correct local companion from reverting
+to the original v0.2.3 binary after reinstall.
+
 ## Acceptance criteria
 
 - The screenshot layout resolves to Open Location instead of `fallback`.
@@ -55,3 +64,5 @@ application files. Runtime placement continues to refresh every 0.1 seconds.
 - A local companion build is installed and its runtime diagnostic reports a resolved local anchor
   in the reproduced layout.
 - The packaged plugin and macOS installer pass their existing validation gates before publication.
+- Installer provenance resolves its payload to the current source commit, never silently to the
+  historical v0.2.3 tag.
