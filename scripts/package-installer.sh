@@ -56,7 +56,7 @@ TEXT
 )
 
 source_commit="$(/usr/bin/git -C "$repo_root" rev-parse HEAD)"
-payload_ref="${CUS_INSTALLER_PAYLOAD_REF:-v0.2.3}"
+payload_ref="${CUS_INSTALLER_PAYLOAD_REF:-HEAD}"
 payload_commit="$(/usr/bin/git -C "$repo_root" rev-parse "$payload_ref^{commit}")"
 dmg_sha="$(/usr/bin/shasum -a 256 "$dmg" | /usr/bin/awk '{print $1}')"
 installer_sha="$(/usr/bin/shasum -a 256 "$app/Contents/MacOS/CodexUsageSidebarInstaller" | /usr/bin/awk '{print $1}')"

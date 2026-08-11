@@ -33,9 +33,13 @@ DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}" \
 (cd "$dist" && /usr/bin/shasum -a 256 -c "$(basename "$checksums")")
 
 mount_root="$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/cus-installer-mount.XXXXXX")"
+payload_compare_root=""
 cleanup() {
   /usr/sbin/diskutil eject "$mount_root" >/dev/null 2>&1 || true
   /bin/rmdir "$mount_root" >/dev/null 2>&1 || true
+  if [[ -n "$payload_compare_root" ]]; then
+    /bin/rm -rf "$payload_compare_root"
+  fi
 }
 trap cleanup EXIT
 /usr/sbin/diskutil image attach \
@@ -46,6 +50,24 @@ trap cleanup EXIT
 mounted_app="$mount_root/Codex Usage Sidebar Installer.app"
 [[ -d "$mounted_app" ]]
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$mounted_app/Contents/Info.plist")" == "0.2.3" ]]
+
+expected_payload_commit="$(/usr/bin/git -C "$repo_root" rev-parse 'HEAD^{commit}')"
+/usr/bin/python3 - "$provenance" "$expected_payload_commit" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["payloadCommit"] == sys.argv[2]
+PY
+
+payload_compare_root="$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/cus-installer-payload.XXXXXX")"
+expected_payload_root="$payload_compare_root/expected"
+/bin/mkdir "$expected_payload_root"
+/usr/bin/git -C "$repo_root" archive "$expected_payload_commit" \
+  .agents/plugins/marketplace.json \
+  plugins/codex-usage-sidebar |
+  /usr/bin/tar -xf - -C "$expected_payload_root"
+/usr/bin/diff -qr "$expected_payload_root" "$mounted_app/Contents/Resources/payload"
 
 if /usr/bin/find "$mounted_app/Contents/Resources/payload" \
   \( -name .git -o -name .build -o -name .dist -o -name .DS_Store -o -name __MACOSX \) \
@@ -83,6 +105,10 @@ expect_rejected() {
     exit 1
   fi
 }
+
+expect_rejected invalid-payload-ref \
+  /usr/bin/env CUS_INSTALLER_PAYLOAD_REF=missing-installer-payload-ref \
+  "$repo_root/scripts/build-installer.sh"
 
 wrong_version_app="$negative_root/Wrong Version.app"
 /usr/bin/ditto "$app" "$wrong_version_app"

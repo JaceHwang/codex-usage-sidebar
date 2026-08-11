@@ -7,7 +7,7 @@ native_root="$repo_root/plugins/codex-usage-sidebar/native"
 dist="$repo_root/.dist"
 output_root="$dist/installer"
 app="$output_root/Codex Usage Sidebar Installer.app"
-payload_ref="${CUS_INSTALLER_PAYLOAD_REF:-v0.2.3}"
+payload_ref="${CUS_INSTALLER_PAYLOAD_REF:-HEAD}"
 signing_identity="${CUS_INSTALLER_SIGN_IDENTITY:--}"
 version="$(/usr/bin/python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"].split("+")[0])' "$plugin_manifest")"
 

@@ -73,6 +73,8 @@ jobs:
           fi
 
       - name: Test installer package
+        env:
+          CUS_INSTALLER_PAYLOAD_REF: ${{ github.sha }}
         run: bash tests/test-installer-package.sh
 
       - name: Verify installer package checksum
