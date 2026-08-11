@@ -105,4 +105,4 @@ jobs:
           ARTIFACT_DIGEST: ${{ steps.upload_installer.outputs.artifact-digest }}
         run: |
           test -n "$ARTIFACT_ID"
-          case "$ARTIFACT_DIGEST" in sha256:*) ;; *) exit 1 ;; esac
+          [[ "$ARTIFACT_DIGEST" =~ ^[0-9a-f]{64}$ ]]

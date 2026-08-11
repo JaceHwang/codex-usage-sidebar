@@ -217,6 +217,9 @@ for forbidden_path in [root / ".superpowers", root / "docs/verification"]:
         raise SystemExit(f"tracked private development artifact: {forbidden_path.relative_to(root)}")
 
 publisher = (root / ".github/workflows/publish-installer.yml").read_text(encoding="utf-8")
+ci_workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+if '[[ "$ARTIFACT_DIGEST" =~ ^[0-9a-f]{64}$ ]]' not in ci_workflow:
+    raise SystemExit("CI workflow missing upload-artifact digest output validation")
 publisher_guards = {
     "push event": "test \"$(jq -r '.event' <<<\"$run\")\" = push",
     "same-repository head": "test \"$(jq -r '.head_repository.full_name' <<<\"$run\")\" = \"$REPOSITORY\"",
