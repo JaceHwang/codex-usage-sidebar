@@ -13,6 +13,7 @@ required=(
   .github/workflows/publish-installer.yml
   docs/INSTALL.md docs/INSTALL_FOR_AGENTS.md docs/ARCHITECTURE.md docs/TROUBLESHOOTING.md
   docs/PRIVACY.md docs/images/hero.svg docs/images/placement.svg docs/images/architecture.svg
+  scripts/finalize-installer-provenance.py scripts/verify-installer-package.sh
   plugins/codex-usage-sidebar/.codex-plugin/plugin.json
   plugins/codex-usage-sidebar/assets/PROVENANCE.json
   plugins/codex-usage-sidebar/assets/Codex\ Usage\ Sidebar.app/Contents/MacOS/CodexUsageSidebar
@@ -149,7 +150,7 @@ if os.environ.get("CUS_REBUILT_PAYLOAD") != "1":
         '        ),\n'
         '        .testTarget(\n'
         '            name: "InstallerCoreTests",\n'
-        '            dependencies: ["InstallerCore"]\n'
+        '            dependencies: ["InstallerCore", "CodexUsageSidebarInstaller"]\n'
         '        )\n',
     )
     if (root / "plugins/codex-usage-sidebar/native/Package.swift").read_text() != expected_package:
@@ -223,6 +224,13 @@ publisher_guards = {
     "CI workflow ID": "jq -r '.workflow_id'",
     "CI exact workflow path": '".github/workflows/ci.yml") ;;',
     "CI optional workflow ref": '".github/workflows/ci.yml@"*) ;;',
+    "exact CI checkout": "ref: ${{ steps.trusted_ci.outputs.head_sha }}",
+    "artifact listing": "actions/runs/$CI_RUN_ID/artifacts",
+    "artifact ID download": "actions/artifacts/$ARTIFACT_ID/zip",
+    "artifact digest verification": 'test "sha256:$downloaded_digest" = "$ARTIFACT_DIGEST"',
+    "provenance finalizer": "scripts/finalize-installer-provenance.py",
+    "release tag binding": "--release-tag \"$RELEASE_TAG\"",
+    "SDK binding": "--sdk-version \"$INSTALLER_SDK\"",
 }
 for label, guard in publisher_guards.items():
     if guard not in publisher:
@@ -261,6 +269,8 @@ PY
 [[ -x "$plugin_root/scripts/build-companion.sh" ]]
 [[ -x "$repo_root/scripts/build-installer.sh" ]]
 [[ -x "$repo_root/scripts/package-installer.sh" ]]
+[[ -x "$repo_root/scripts/verify-installer-package.sh" ]]
+[[ -x "$repo_root/scripts/finalize-installer-provenance.py" ]]
 
 for svg in "$repo_root"/docs/images/*.svg; do
   /usr/bin/xmllint --noout "$svg"

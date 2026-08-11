@@ -48,6 +48,12 @@ public struct InstallerPaths: Equatable, Sendable {
         installRoot.appendingPathComponent("sidebar-control.sh", isDirectory: false)
     }
 
+    public var installedCompanionExecutable: URL {
+        installRoot
+            .appendingPathComponent("Codex Usage Sidebar.app", isDirectory: true)
+            .appendingPathComponent("Contents/MacOS/CodexUsageSidebar", isDirectory: false)
+    }
+
     public var pluginData: URL {
         installRoot.appendingPathComponent("Data", isDirectory: true)
     }

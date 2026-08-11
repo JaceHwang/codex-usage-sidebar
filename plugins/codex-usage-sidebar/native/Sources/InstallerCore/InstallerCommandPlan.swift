@@ -8,6 +8,26 @@ public enum InstallerCommandPlan {
         paths: InstallerPaths,
         marketplaceAlreadyConfigured: Bool
     ) -> [CommandSpec] {
+        registrationCommands(
+            paths: paths,
+            marketplaceAlreadyConfigured: marketplaceAlreadyConfigured
+        ) + [companionCommand("ensure", paths: paths)]
+    }
+
+    public static func repairInstallation(
+        paths: InstallerPaths,
+        marketplaceAlreadyConfigured: Bool
+    ) -> [CommandSpec] {
+        registrationCommands(
+            paths: paths,
+            marketplaceAlreadyConfigured: marketplaceAlreadyConfigured
+        ) + [repair(paths: paths)]
+    }
+
+    private static func registrationCommands(
+        paths: InstallerPaths,
+        marketplaceAlreadyConfigured: Bool
+    ) -> [CommandSpec] {
         var commands: [CommandSpec] = []
         if !marketplaceAlreadyConfigured {
             commands.append(
@@ -27,7 +47,6 @@ public enum InstallerCommandPlan {
                 arguments: ["plugin", "add", pluginSelector, "--json"]
             )
         )
-        commands.append(companionCommand("ensure", paths: paths))
         return commands
     }
 
@@ -54,16 +73,25 @@ public enum InstallerCommandPlan {
         codexLoginCommand(["login"], paths: paths)
     }
 
+    public static func accessibilityStatus(paths: InstallerPaths) -> CommandSpec {
+        CommandSpec(
+            executable: paths.installedCompanionExecutable,
+            arguments: ["--diagnostic-once"]
+        )
+    }
+
     public static func uninstall(
         paths: InstallerPaths,
+        removePlugin: Bool = true,
         removeMarketplace: Bool
     ) -> [CommandSpec] {
-        var commands = [
-            CommandSpec(
+        var commands: [CommandSpec] = []
+        if removePlugin {
+            commands.append(CommandSpec(
                 executable: paths.codexExecutable,
                 arguments: ["plugin", "remove", pluginSelector, "--json"]
-            ),
-        ]
+            ))
+        }
         if removeMarketplace {
             commands.append(
                 CommandSpec(

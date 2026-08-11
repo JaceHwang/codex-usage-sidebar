@@ -12,6 +12,16 @@ final class InstallerPresentationTests: XCTestCase {
         XCTAssertFalse(state.completedSteps.contains(.accessibility))
     }
 
+    func testOpeningAccessibilitySettingsAdvancesToExplicitVerifyAction() {
+        var state = InstallerPresentationState.initial
+        state.waitForUser(.accessibility)
+
+        state.accessibilitySettingsOpened()
+
+        XCTAssertEqual(state.phase, .waiting(.verify))
+        XCTAssertFalse(state.completedSteps.contains(.accessibility))
+    }
+
     func testOnlyVerifiedStepsBecomeComplete() {
         var state = InstallerPresentationState.initial
 

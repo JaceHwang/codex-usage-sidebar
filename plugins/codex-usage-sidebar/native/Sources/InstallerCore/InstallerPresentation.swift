@@ -17,6 +17,11 @@ public struct InstallerPresentationState: Equatable, Sendable {
         phase = .waiting(step)
     }
 
+    public mutating func accessibilitySettingsOpened() {
+        guard phase == .waiting(.accessibility) else { return }
+        phase = .waiting(.verify)
+    }
+
     public mutating func complete(_ step: InstallerStep) {
         completedSteps.insert(step)
         phase = completedSteps.count == InstallerStep.allCases.count ? .succeeded : .ready

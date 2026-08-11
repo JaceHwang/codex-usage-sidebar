@@ -18,7 +18,7 @@ struct InstallerView: View {
             isPresented: $showUninstallConfirmation
         ) {
             Button(model.copy.uninstall, role: .destructive) {
-                model.uninstall()
+                Task { await model.uninstall() }
             }
         }
     }
@@ -101,7 +101,7 @@ struct InstallerView: View {
                 .disabled(model.isBusy)
 
                 Button(model.copy.repair) {
-                    model.repair()
+                    Task { await model.repair() }
                 }
                 .disabled(model.isBusy)
 
@@ -114,7 +114,7 @@ struct InstallerView: View {
                 }
 
                 Button(model.primaryTitle) {
-                    model.primaryAction()
+                    Task { await model.primaryAction() }
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)

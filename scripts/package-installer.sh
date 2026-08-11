@@ -10,13 +10,8 @@ dmg="$dist/$asset_name"
 checksums="$dist/INSTALLER-SHA256SUMS.txt"
 provenance="$dist/INSTALLER-PROVENANCE.json"
 staging_root=""
-mount_root=""
 
 cleanup() {
-  if [[ -n "$mount_root" ]]; then
-    /usr/sbin/diskutil eject "$mount_root" >/dev/null 2>&1 || true
-    /bin/rmdir "$mount_root" >/dev/null 2>&1 || true
-  fi
   if [[ -n "$staging_root" && "$staging_root" == "$dist"/.installer-package.* ]]; then
     /bin/rm -rf "$staging_root"
   fi
@@ -53,19 +48,7 @@ TEXT
   "$staging_root" \
   "$dmg" >/dev/null
 /usr/bin/hdiutil verify "$dmg" >/dev/null
-
-mount_root="$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/cus-installer-package.XXXXXX")"
-/usr/sbin/diskutil image attach \
-  --nobrowse \
-  --readOnly \
-  --mountPoint "$mount_root" \
-  "$dmg" >/dev/null
-[[ -d "$mount_root/Codex Usage Sidebar Installer.app" ]]
-/usr/bin/codesign --verify --deep --strict \
-  "$mount_root/Codex Usage Sidebar Installer.app"
-/usr/sbin/diskutil eject "$mount_root" >/dev/null
-/bin/rmdir "$mount_root"
-mount_root=""
+"$repo_root/scripts/verify-installer-package.sh" "$app" "$dmg"
 
 (
   cd "$dist"
@@ -79,6 +62,10 @@ dmg_sha="$(/usr/bin/shasum -a 256 "$dmg" | /usr/bin/awk '{print $1}')"
 installer_sha="$(/usr/bin/shasum -a 256 "$app/Contents/MacOS/CodexUsageSidebarInstaller" | /usr/bin/awk '{print $1}')"
 companion="$app/Contents/Resources/payload/plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app/Contents/MacOS/CodexUsageSidebar"
 companion_sha="$(/usr/bin/shasum -a 256 "$companion" | /usr/bin/awk '{print $1}')"
+sdk_version="$(
+  DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}" \
+    /usr/bin/xcrun --sdk macosx --show-sdk-version
+)"
 signature="adhoc"
 if /usr/bin/codesign -dv --verbose=4 "$app" 2>&1 | /usr/bin/grep -q '^TeamIdentifier='; then
   signature="developer-id"
@@ -86,7 +73,7 @@ fi
 
 /usr/bin/python3 - \
   "$provenance" "$asset_name" "$dmg_sha" "$installer_sha" "$companion_sha" \
-  "$source_commit" "$payload_ref" "$payload_commit" "$signature" <<'PY'
+  "$source_commit" "$payload_ref" "$payload_commit" "$signature" "$sdk_version" <<'PY'
 import json
 import sys
 
@@ -100,9 +87,10 @@ import sys
     payload_ref,
     payload_commit,
     signature,
+    sdk_version,
 ) = sys.argv[1:]
 data = {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "version": "0.2.3",
     "platform": "macos",
     "architecture": "arm64",
@@ -112,6 +100,7 @@ data = {
     "asset": {"name": asset_name, "sha256": dmg_sha},
     "installer": {"executableSha256": installer_sha, "signature": signature},
     "companion": {"executableSha256": companion_sha},
+    "sdk": {"name": "macosx", "version": sdk_version},
     "notarized": False,
 }
 with open(output, "w", encoding="utf-8") as handle:

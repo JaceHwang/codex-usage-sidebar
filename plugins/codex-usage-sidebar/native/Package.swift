@@ -33,7 +33,7 @@ let package = Package(
         ),
         .testTarget(
             name: "InstallerCoreTests",
-            dependencies: ["InstallerCore"]
+            dependencies: ["InstallerCore", "CodexUsageSidebarInstaller"]
         )
     ]
 )

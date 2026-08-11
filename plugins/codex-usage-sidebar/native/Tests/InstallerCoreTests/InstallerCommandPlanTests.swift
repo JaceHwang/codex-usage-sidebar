@@ -65,6 +65,13 @@ final class InstallerCommandPlanTests: XCTestCase {
         XCTAssertEqual(command.arguments, ["plugin", "marketplace", "list", "--json"])
     }
 
+    func testAccessibilityCheckRunsThroughTheInstalledCompanionIdentity() {
+        let command = InstallerCommandPlan.accessibilityStatus(paths: paths)
+
+        XCTAssertEqual(command.executable, paths.installedCompanionExecutable)
+        XCTAssertEqual(command.arguments, ["--diagnostic-once"])
+    }
+
     func testPlansNeverEvaluateShellSource() {
         let commands = InstallerCommandPlan.install(
             paths: paths,
@@ -74,6 +81,7 @@ final class InstallerCommandPlanTests: XCTestCase {
             InstallerCommandPlan.repair(paths: paths),
             InstallerCommandPlan.loginStatus(paths: paths),
             InstallerCommandPlan.login(paths: paths),
+            InstallerCommandPlan.accessibilityStatus(paths: paths),
         ] + InstallerCommandPlan.uninstall(paths: paths, removeMarketplace: true)
 
         XCTAssertFalse(commands.isEmpty)
