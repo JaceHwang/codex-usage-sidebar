@@ -84,6 +84,24 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
         XCTAssertEqual(anchor.source, .openLocation)
     }
 
+    func testOpenLocationLeftOfWindowMidpointUsesVisibleFreeSlot() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                control(x: 768, y: 1_012, width: 132, labels: ["打开位置"]),
+                control(x: 910, y: 1_012, width: 28, labels: ["环境信息"]),
+            ],
+            paneFrames: [CGRect(x: 955, y: 0, width: 965, height: 1_049)],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(anchor, ContentHeaderAnchor(trailingEdge: 768, source: .openLocation))
+        XCTAssertEqual(
+            OverlayLayout.indicatorFrame(in: wideWindow, contentTrailingEdge: anchor.trailingEdge),
+            CGRect(x: 596, y: 1_003, width: 164, height: 46)
+        )
+    }
+
     func testRightPaneBoundaryKeepsOverlayInsideCentralContent() {
         let anchor = ContentHeaderAnchorResolver.resolve(
             controls: [
@@ -97,6 +115,17 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
 
         XCTAssertEqual(anchor.trailingEdge, 1_604)
         XCTAssertEqual(anchor.source, .rightPaneBoundary)
+    }
+
+    func testRecognizesWideRightPaneBoundaryWithoutTreatingFullContentAsPane() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [],
+            paneFrames: [CGRect(x: 955, y: 0, width: 965, height: 1_049)],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(anchor, ContentHeaderAnchor(trailingEdge: 955, source: .rightPaneBoundary))
     }
 
     func testOpenLocationRemainsAnchorInsideRightPane() {

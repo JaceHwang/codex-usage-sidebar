@@ -104,18 +104,22 @@ public enum ContentHeaderAnchorResolver {
             )
         }
 
-        let headerControls = toolbarItems.filter { control in
+        let eligibleAnchorCandidates = toolbarItems.filter { control in
             let frame = control.frame
             return control.isAnchorCandidate
                 && frame.width <= maximumAnchorWidth
-                && frame.midX >= windowFrame.midX
+        }
+
+        let headerControls = eligibleAnchorCandidates.filter { control in
+            let frame = control.frame
+            return frame.midX >= windowFrame.midX
         }
 
         let centralHeaderControls = headerControls.filter {
             $0.frame.maxX <= contentLimit + 1
         }
 
-        if let openLocation = headerControls.filter(isOpenLocation).max(
+        if let openLocation = eligibleAnchorCandidates.filter(isOpenLocation).max(
             by: { $0.frame.minX < $1.frame.minX }
         ) {
             return collisionAwareAnchor(
@@ -236,7 +240,7 @@ public enum ContentHeaderAnchorResolver {
         paneFrames: [CGRect],
         windowFrame: CGRect
     ) -> CGFloat? {
-        let maximumPaneWidth = min(520, windowFrame.width * 0.42)
+        let maximumPaneWidth = windowFrame.width * 0.75
         let toolbarMinimumY = windowFrame.maxY - OverlayLayout.toolbarHeight
 
         return paneFrames.filter { frame in
