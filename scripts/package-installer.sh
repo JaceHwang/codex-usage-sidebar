@@ -24,6 +24,19 @@ if [[ "$version" != "0.2.3" || "$asset_name" != "codex-usage-sidebar-v0.2.3-maco
 fi
 [[ -d "$app" ]] || { printf 'installer app is missing: %s\n' "$app" >&2; exit 66; }
 /usr/bin/codesign --verify --deep --strict "$app"
+payload_ref="${CUS_INSTALLER_PAYLOAD_REF:-HEAD}"
+requested_payload_commit="$(/usr/bin/git -C "$repo_root" rev-parse "$payload_ref^{commit}")"
+payload_marker="$app/Contents/Resources/InstallerPayloadCommit"
+[[ -f "$payload_marker" ]] || {
+  printf 'installer payload commit marker is missing: %s\n' "$payload_marker" >&2
+  exit 67
+}
+payload_commit="$(/bin/cat "$payload_marker")"
+if [[ ! "$payload_commit" =~ ^[0-9a-f]{40}$ || "$payload_commit" != "$requested_payload_commit" ]]; then
+  printf 'installer payload commit mismatch: built %s, requested %s\n' \
+    "$payload_commit" "$requested_payload_commit" >&2
+  exit 67
+fi
 
 /bin/mkdir -p "$dist"
 staging_root="$(/usr/bin/mktemp -d "$dist/.installer-package.XXXXXX")"
@@ -56,8 +69,6 @@ TEXT
 )
 
 source_commit="$(/usr/bin/git -C "$repo_root" rev-parse HEAD)"
-payload_ref="${CUS_INSTALLER_PAYLOAD_REF:-HEAD}"
-payload_commit="$(/usr/bin/git -C "$repo_root" rev-parse "$payload_ref^{commit}")"
 dmg_sha="$(/usr/bin/shasum -a 256 "$dmg" | /usr/bin/awk '{print $1}')"
 installer_sha="$(/usr/bin/shasum -a 256 "$app/Contents/MacOS/CodexUsageSidebarInstaller" | /usr/bin/awk '{print $1}')"
 companion="$app/Contents/Resources/payload/plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app/Contents/MacOS/CodexUsageSidebar"

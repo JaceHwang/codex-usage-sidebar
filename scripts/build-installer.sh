@@ -16,6 +16,7 @@ if [[ "$version" != "0.2.3" ]]; then
   exit 65
 fi
 /usr/bin/git -C "$repo_root" cat-file -e "$payload_ref^{commit}"
+payload_commit="$(/usr/bin/git -C "$repo_root" rev-parse "$payload_ref^{commit}")"
 
 /bin/mkdir -p "$dist"
 /bin/rm -rf "$output_root"
@@ -43,10 +44,11 @@ bin_path="$(
 /bin/chmod 755 "$app/Contents/MacOS/CodexUsageSidebarInstaller"
 
 /usr/bin/git -C "$repo_root" archive \
-  "$payload_ref" \
+  "$payload_commit" \
   .agents/plugins/marketplace.json \
   plugins/codex-usage-sidebar |
   /usr/bin/tar -xf - -C "$app/Contents/Resources/payload"
+/usr/bin/printf '%s\n' "$payload_commit" >"$app/Contents/Resources/InstallerPayloadCommit"
 
 /bin/cat >"$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
