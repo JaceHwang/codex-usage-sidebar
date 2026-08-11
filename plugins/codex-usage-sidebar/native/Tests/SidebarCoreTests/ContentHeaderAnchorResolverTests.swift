@@ -102,6 +102,25 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
         )
     }
 
+    func testNearLeftOpenLocationFallsBackWhenClampedIndicatorOverlapsIt() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                control(x: 200, y: 1_012, width: 132, labels: ["打开位置"]),
+            ],
+            paneFrames: [],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(
+            anchor,
+            ContentHeaderAnchor(
+                trailingEdge: wideWindow.maxX - 168,
+                source: .fallback
+            )
+        )
+    }
+
     func testOpenLocationLeftOfWindowMidpointFallsBackAtStaticTitleBarrier() {
         let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
         let anchor = ContentHeaderAnchorResolver.resolve(
@@ -300,6 +319,23 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
         )
 
         XCTAssertEqual(anchor, ContentHeaderAnchor(trailingEdge: 955, source: .rightPaneBoundary))
+    }
+
+    func testPrefersRealRightPaneOverSimultaneousOuterContentSurface() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [],
+            paneFrames: [
+                CGRect(x: 551, y: 0, width: 1_369, height: 1_049),
+                CGRect(x: 955, y: 0, width: 965, height: 1_049),
+            ],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(
+            anchor,
+            ContentHeaderAnchor(trailingEdge: 955, source: .rightPaneBoundary)
+        )
     }
 
     func testOpenLocationRemainsAnchorInsideRightPane() {

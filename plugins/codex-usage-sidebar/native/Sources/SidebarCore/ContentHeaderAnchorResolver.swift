@@ -221,6 +221,15 @@ public enum ContentHeaderAnchorResolver {
                 in: windowFrame,
                 contentTrailingEdge: resolvedEdge
             )
+            if let selectedFrame {
+                let expectedMaximumX = resolvedEdge - OverlayLayout.indicatorGap
+                guard
+                    abs(candidate.maxX - expectedMaximumX) <= 0.5,
+                    !candidate.intersects(selectedFrame)
+                else {
+                    return trailingFallback(in: windowFrame)
+                }
+            }
             let collisions = obstacles.filter { item in
                 candidate.intersects(
                     item.frame.insetBy(
@@ -282,7 +291,7 @@ public enum ContentHeaderAnchorResolver {
         paneFrames: [CGRect],
         windowFrame: CGRect
     ) -> CGFloat? {
-        let maximumPaneWidth = windowFrame.width * 0.75
+        let maximumPaneWidth = windowFrame.width * 0.60
         let toolbarMinimumY = windowFrame.maxY - OverlayLayout.toolbarHeight
 
         return paneFrames.filter { frame in

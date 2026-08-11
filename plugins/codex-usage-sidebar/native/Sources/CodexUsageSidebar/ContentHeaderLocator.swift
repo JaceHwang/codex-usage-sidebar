@@ -62,6 +62,7 @@ final class ContentHeaderLocator {
             windowFrame: windowFrame
         )
         var scanPasses = 1
+        var totalVisited = scan.visited
         while
             scanPasses < maximumScanPasses,
             let expandedMinimumX = ContentHeaderAnchorResolver.expandedScanMinimumX(
@@ -76,6 +77,7 @@ final class ContentHeaderLocator {
                 windowFrame: windowFrame,
                 minimumX: scanMinimumX
             )
+            totalVisited += scan.visited
             scannedAnchor = ContentHeaderAnchorResolver.resolve(
                 controls: scan.controls,
                 paneFrames: scan.panes,
@@ -94,6 +96,7 @@ final class ContentHeaderLocator {
             scanned: scannedAnchor,
             cached: retainedAnchor
         )
+        let usedCachedAnchor = anchor != scannedAnchor
         if scannedAnchor.trailingEdge != nil, scannedAnchor.source != .fallback {
             cachedAnchor = CachedAnchor(
                 processIdentifier: processIdentifier,
@@ -108,10 +111,10 @@ final class ContentHeaderLocator {
         }
         let edge = anchor.trailingEdge.map { String(Int($0)) } ?? "fallback"
         latestDiagnosticDetail =
-            "anchor_scan=visited:\(scan.visited)," +
+            "anchor_scan=visited:\(totalVisited)," +
             "controls:\(scan.controls.count),panes:\(scan.panes.count)," +
             "passes:\(scanPasses),minimumX:\(Int(scanMinimumX))," +
-            "cached:false,source:\(anchor.source.rawValue),edge:\(edge)," +
+            "cached:\(usedCachedAnchor),source:\(anchor.source.rawValue),edge:\(edge)," +
             "window:\(Int(windowFrame.minX)),\(Int(windowFrame.minY))," +
             "\(Int(windowFrame.width)),\(Int(windowFrame.height))"
         return anchor

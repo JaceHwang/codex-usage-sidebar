@@ -30,9 +30,15 @@ direction.
 5. The established right-side fallback is used only when no complete collision-free local frame
    exists.
 6. Descendant scanning starts with the existing narrow right-side band, then expands only to the
-   resolved indicator frame's left edge when a semantic anchor or collision shift needs it. Each
+   resolved indicator frame's left edge minus the collision gap when a semantic anchor or
+   collision shift needs it. Each
    pass retains vertical pruning and element/depth limits; it stops on numeric fallback, once the
-   resolved range is covered, or after a bounded number of passes.
+   resolved range is covered, or after a bounded number of passes. Exhausting that bound while
+   more scanning is required produces an intentional numeric fallback.
+7. A local anchor is accepted only when the realized, clamped indicator still ends exactly eight
+   points before its selected control and does not overlap that control.
+8. Structural pane inference accepts right-anchored panes up to 60% of window width, rejecting
+   wider outer content surfaces even when a real nested pane is present.
 
 ## Scope and safety
 

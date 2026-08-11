@@ -28,7 +28,7 @@
 - Consumes: `ContentHeaderAnchorResolver.resolve(controls:paneFrames:windowFrame:)`
 - Produces: unchanged `ContentHeaderAnchor` API with `.openLocation` or `.rightPaneBoundary` for the reproduced wide-pane geometry
 
-- [ ] **Step 1: Write the failing semantic-anchor regression**
+- [x] **Step 1: Write the failing semantic-anchor regression**
 
 ```swift
 func testOpenLocationLeftOfWindowMidpointUsesVisibleFreeSlot() {
@@ -50,7 +50,7 @@ func testOpenLocationLeftOfWindowMidpointUsesVisibleFreeSlot() {
 }
 ```
 
-- [ ] **Step 2: Run the semantic-anchor test and verify RED**
+- [x] **Step 2: Run the semantic-anchor test and verify RED**
 
 Run:
 
@@ -63,15 +63,15 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 Expected: FAIL because the current resolver returns `.fallback`.
 
-- [ ] **Step 3: Admit semantic Open Location candidates independently of midpoint**
+- [x] **Step 3: Admit semantic Open Location candidates independently of midpoint**
 
 Create a shared eligible anchor-candidate collection, use all of it for `isOpenLocation`, and keep the whole-window midpoint restriction only for generic labeled fallback controls. Do not change collision handling.
 
-- [ ] **Step 4: Run the semantic-anchor test and verify GREEN**
+- [x] **Step 4: Run the semantic-anchor test and verify GREEN**
 
 Run the Step 2 command again. Expected: one passing test.
 
-- [ ] **Step 5: Write the failing wide-pane-boundary regression**
+- [x] **Step 5: Write the failing wide-pane-boundary regression**
 
 ```swift
 func testRecognizesWideRightPaneBoundaryWithoutTreatingFullContentAsPane() {
@@ -86,15 +86,15 @@ func testRecognizesWideRightPaneBoundaryWithoutTreatingFullContentAsPane() {
 }
 ```
 
-- [ ] **Step 6: Run the pane-boundary test and verify RED**
+- [x] **Step 6: Run the pane-boundary test and verify RED**
 
 Run the focused test by name. Expected: FAIL because the current structural pane ceiling is 520 points.
 
-- [ ] **Step 7: Replace the absolute pane ceiling with a proportional full-surface guard**
+- [x] **Step 7: Replace the absolute pane ceiling with a proportional full-surface guard**
 
-Accept right-anchored panes up to 75 percent of the window width. Keep the existing minimum width, height, right-edge, top/bottom, and toolbar-band checks so the 82-percent full content fixture remains rejected.
+Accept right-anchored panes up to 60 percent of the window width. Keep the existing minimum width, height, right-edge, top/bottom, and toolbar-band checks so simultaneous outer content surfaces and the 82-percent full content fixture remain rejected while the reproduced 965/1850 pane still qualifies.
 
-- [ ] **Step 8: Run focused and full Swift suites**
+- [x] **Step 8: Run focused and full Swift suites**
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
@@ -107,11 +107,11 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 Expected: all tests pass with zero failures.
 
-- [ ] **Step 9: Build, install, and inspect the local companion**
+- [x] **Step 9: Build, install, and inspect the local companion**
 
 Use the repository build/control scripts, preserve v0.2.3, and verify the installed runtime reports `anchor=openLocation` or `anchor=rightPaneBoundary` rather than `anchor=fallback` in the reproduced layout.
 
-- [ ] **Step 10: Validate and package**
+- [x] **Step 10: Validate and package**
 
 ```bash
 git diff --check
