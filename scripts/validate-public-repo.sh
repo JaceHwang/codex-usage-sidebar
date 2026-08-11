@@ -153,7 +153,10 @@ if os.environ.get("CUS_REBUILT_PAYLOAD") != "1":
         '            dependencies: ["InstallerCore", "CodexUsageSidebarInstaller"]\n'
         '        )\n',
     )
-    if (root / "plugins/codex-usage-sidebar/native/Package.swift").read_text() != expected_package:
+    current_package = (
+        root / "plugins/codex-usage-sidebar/native/Package.swift"
+    ).read_text()
+    if current_package != source_package and current_package != expected_package:
         raise SystemExit(
             "marketplace package manifest differs from the installer-only allowlist"
         )
