@@ -6,6 +6,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodexUsageSidebar.Core", "s
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodexUsageSidebar.Core.Tests", "tests\CodexUsageSidebar.Core.Tests\CodexUsageSidebar.Core.Tests.csproj", "{841D6D50-8F1E-463B-828C-D1F6730251B7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodexUsageSidebar.Windows", "src\CodexUsageSidebar.Windows\CodexUsageSidebar.Windows.csproj", "{7590C1A8-062E-48B0-A1F0-65E9254624CC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodexUsageSidebar.Windows.Tests", "tests\CodexUsageSidebar.Windows.Tests\CodexUsageSidebar.Windows.Tests.csproj", "{72BB1B30-4072-4D90-B233-1F6F623AF097}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodexUsageSidebar.Control", "src\CodexUsageSidebar.Control\CodexUsageSidebar.Control.csproj", "{C7AB70B0-F3B2-4E25-BE8D-20C9C7FBE544}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,5 +26,17 @@ Global
 		{841D6D50-8F1E-463B-828C-D1F6730251B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{841D6D50-8F1E-463B-828C-D1F6730251B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{841D6D50-8F1E-463B-828C-D1F6730251B7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7590C1A8-062E-48B0-A1F0-65E9254624CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7590C1A8-062E-48B0-A1F0-65E9254624CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7590C1A8-062E-48B0-A1F0-65E9254624CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7590C1A8-062E-48B0-A1F0-65E9254624CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72BB1B30-4072-4D90-B233-1F6F623AF097}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72BB1B30-4072-4D90-B233-1F6F623AF097}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72BB1B30-4072-4D90-B233-1F6F623AF097}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72BB1B30-4072-4D90-B233-1F6F623AF097}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C7AB70B0-F3B2-4E25-BE8D-20C9C7FBE544}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7AB70B0-F3B2-4E25-BE8D-20C9C7FBE544}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7AB70B0-F3B2-4E25-BE8D-20C9C7FBE544}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7AB70B0-F3B2-4E25-BE8D-20C9C7FBE544}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

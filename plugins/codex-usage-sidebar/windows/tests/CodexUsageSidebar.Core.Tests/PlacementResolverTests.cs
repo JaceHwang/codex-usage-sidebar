@@ -22,6 +22,7 @@ public sealed class PlacementResolverTests
 
         Assert.AreEqual(PlacementSurface.Content, result.Surface);
         Assert.AreEqual(fixture.Expected.X, result.Frame.X, 0.001);
+        Assert.AreEqual(4, result.Frame.Y, 0.001);
     }
 
     [TestMethod]

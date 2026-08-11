@@ -26,7 +26,7 @@ public static class PlacementResolver
 
         while (candidateX >= minimumContentX)
         {
-            var candidate = new RectD(candidateX, window.Bottom - 48, indicatorWidth, 40);
+            var candidate = new RectD(candidateX, window.Y + 4, indicatorWidth, 40);
             var collision = obstacles
                 .Where(candidate.IntersectsHorizontally)
                 .OrderBy(x => x.X)
@@ -40,6 +40,6 @@ public static class PlacementResolver
 
         return new PlacementResult(
             PlacementSurface.RightToolbar,
-            new RectD(window.Right - indicatorWidth - 16, window.Bottom - 48, indicatorWidth, 40));
+            new RectD(window.Right - indicatorWidth - 16, window.Y + 4, indicatorWidth, 40));
     }
 }
