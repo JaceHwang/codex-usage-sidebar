@@ -102,6 +102,31 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
         )
     }
 
+    func testOpenLocationLeftOfWindowMidpointFallsBackAtStaticTitleBarrier() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                ContentHeaderControl(
+                    frame: CGRect(x: 650, y: 1_012, width: 160, height: 28),
+                    labels: ["Thread title"],
+                    isAnchorCandidate: false
+                ),
+                control(x: 820, y: 1_012, width: 70, labels: ["Other action"]),
+                control(x: 905, y: 1_012, width: 132, labels: ["打开位置"]),
+            ],
+            paneFrames: [CGRect(x: 955, y: 0, width: 965, height: 1_049)],
+            windowFrame: wideWindow
+        )
+
+        XCTAssertEqual(
+            anchor,
+            ContentHeaderAnchor(
+                trailingEdge: wideWindow.maxX - 168,
+                source: .fallback
+            )
+        )
+    }
+
     func testRightPaneBoundaryKeepsOverlayInsideCentralContent() {
         let anchor = ContentHeaderAnchorResolver.resolve(
             controls: [
