@@ -7,12 +7,12 @@ if (args.Length < 2 || !string.Equals(args[0], "probe", StringComparison.Ordinal
     return 64;
 }
 
-var outputPath = Path.GetFullPath(args[1]);
-if (!Path.IsPathFullyQualified(outputPath))
+if (!Path.IsPathFullyQualified(args[1]))
 {
     Console.Error.WriteLine("The probe output path must be absolute.");
     return 64;
 }
+var outputPath = Path.GetFullPath(args[1]);
 
 var includeText = args.Skip(2).Any(value => string.Equals(value, "--include-text", StringComparison.OrdinalIgnoreCase));
 try

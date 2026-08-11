@@ -10,14 +10,16 @@ companion="$plugin_root/assets/Codex Usage Sidebar.app"
 required=(
   README.md README.zh-CN.md LICENSE CHANGELOG.md CONTRIBUTING.md SECURITY.md SUPPORT.md
   CODE_OF_CONDUCT.md .agents/plugins/marketplace.json .github/workflows/ci.yml
-  .github/workflows/publish-installer.yml
+  .github/workflows/publish-installer.yml .github/workflows/windows-beta.yml
   docs/INSTALL.md docs/INSTALL_FOR_AGENTS.md docs/ARCHITECTURE.md docs/TROUBLESHOOTING.md
   docs/PRIVACY.md docs/images/hero.svg docs/images/placement.svg docs/images/architecture.svg
   scripts/finalize-installer-provenance.py scripts/verify-installer-package.sh
+  scripts/build-windows-payload-manifest.py scripts/verify-windows-payload.py
   plugins/codex-usage-sidebar/.codex-plugin/plugin.json
   plugins/codex-usage-sidebar/assets/PROVENANCE.json
   plugins/codex-usage-sidebar/assets/Codex\ Usage\ Sidebar.app/Contents/MacOS/CodexUsageSidebar
   plugins/codex-usage-sidebar/hooks/hooks.json plugins/codex-usage-sidebar/native/Package.swift
+  plugins/codex-usage-sidebar/scripts/sidebar-control-windows.ps1
 )
 
 for relative in "${required[@]}"; do
@@ -49,7 +51,22 @@ assert manifest["name"] == "codex-usage-sidebar"
 assert manifest["version"].count("+codex.") == 1
 assert manifest["skills"] == "./skills/"
 
-json.loads((root / "plugins/codex-usage-sidebar/hooks/hooks.json").read_text())
+hooks = json.loads((root / "plugins/codex-usage-sidebar/hooks/hooks.json").read_text())
+session_hook = hooks["hooks"]["SessionStart"][0]["hooks"][0]
+expected_mac_hook = (
+    'bash "${PLUGIN_ROOT}/scripts/sidebar-control.sh" ensure '
+    '--plugin-root "${PLUGIN_ROOT}" --plugin-data "${PLUGIN_DATA}" '
+    '>/dev/null 2>&1 || true'
+)
+expected_windows_hook = (
+    'powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass '
+    '-File "${PLUGIN_ROOT}\\scripts\\sidebar-control-windows.ps1" ensure '
+    '-PluginRoot "${PLUGIN_ROOT}" -PluginData "${PLUGIN_DATA}"'
+)
+if session_hook.get("command") != expected_mac_hook:
+    raise SystemExit("macOS session hook changed outside its stable command boundary")
+if session_hook.get("commandWindows") != expected_windows_hook:
+    raise SystemExit("Windows session hook differs from the fixed PowerShell boundary")
 
 provenance_path = root / "plugins/codex-usage-sidebar/assets/PROVENANCE.json"
 provenance = json.loads(provenance_path.read_text())
@@ -88,17 +105,22 @@ if os.environ.get("CUS_REBUILT_PAYLOAD") != "1":
         "plugins/codex-usage-sidebar/native/Sources/CodexUsageSidebarInstaller/",
         "plugins/codex-usage-sidebar/native/Tests/InstallerCoreTests/",
     )
-    windows_only_paths = (
+    windows_only_prefixes = (
         "plugins/codex-usage-sidebar/contracts/",
         "plugins/codex-usage-sidebar/windows/",
+    )
+    windows_only_exact = (
         "plugins/codex-usage-sidebar/native/Tests/SidebarCoreTests/SharedContractFixtureTests.swift",
+        "plugins/codex-usage-sidebar/hooks/hooks.json",
+        "plugins/codex-usage-sidebar/scripts/sidebar-control-windows.ps1",
+        "plugins/codex-usage-sidebar/tests/test-windows-hook.sh",
     )
     unexpected_paths = [
         path for path in source_ahead
         if path != installer_paths[0]
-        and path != windows_only_paths[2]
+        and path not in windows_only_exact
         and not path.startswith(installer_paths[1:])
-        and not path.startswith(windows_only_paths[:2])
+        and not path.startswith(windows_only_prefixes)
     ]
     if unexpected_paths:
         raise SystemExit(
@@ -170,7 +192,7 @@ if os.environ.get("CUS_REBUILT_PAYLOAD") != "1":
         )
 
 forbidden = [
-    (re.compile(r"/Users/[^/\s]+"), "absolute macOS user path"),
+    (re.compile(r"(?<!:)/Users/[^/\s]+"), "absolute macOS user path"),
     (re.compile(r"(?:gho_|github_pat_)[A-Za-z0-9_]{20,}"), "GitHub token"),
     (re.compile(r"AKIA[0-9A-Z]{16}"), "AWS key"),
     (re.compile(r"sk-[A-Za-z0-9_-]{20,}"), "API key"),
@@ -280,7 +302,8 @@ PY
 
 /usr/bin/ruby -ryaml -e '
   ARGV.each { |path| YAML.safe_load(File.read(path), [], [], false) }
-' "$repo_root/.github/workflows/ci.yml" "$repo_root/.github/workflows/publish-installer.yml"
+' "$repo_root/.github/workflows/ci.yml" "$repo_root/.github/workflows/publish-installer.yml" \
+  "$repo_root/.github/workflows/windows-beta.yml"
 
 /usr/bin/plutil -lint "$companion/Contents/Info.plist" >/dev/null
 /usr/bin/codesign --verify --deep --strict "$companion"
@@ -291,6 +314,15 @@ PY
 [[ -x "$repo_root/scripts/package-installer.sh" ]]
 [[ -x "$repo_root/scripts/verify-installer-package.sh" ]]
 [[ -x "$repo_root/scripts/finalize-installer-provenance.py" ]]
+[[ -x "$repo_root/scripts/build-windows-payload-manifest.py" ]]
+[[ -x "$repo_root/scripts/verify-windows-payload.py" ]]
+[[ -x "$repo_root/tests/test-windows-beta-workflow.sh" ]]
+[[ -x "$repo_root/tests/test-windows-payload-manifest.sh" ]]
+[[ -x "$plugin_root/tests/test-windows-hook.sh" ]]
+
+bash "$repo_root/tests/test-windows-beta-workflow.sh"
+bash "$repo_root/tests/test-windows-payload-manifest.sh"
+bash "$plugin_root/tests/test-windows-hook.sh"
 
 for svg in "$repo_root"/docs/images/*.svg; do
   /usr/bin/xmllint --noout "$svg"

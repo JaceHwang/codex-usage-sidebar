@@ -1,0 +1,88 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true, Position = 0)]
+    [ValidateSet('ensure', 'status', 'probe')]
+    [string] $Command,
+    [string] $PluginRoot,
+    [string] $PluginData,
+    [string] $OutputPath,
+    [switch] $IncludeText
+)
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
+$localAppData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
+$installRoot = [IO.Path]::GetFullPath((Join-Path $localAppData 'CodexUsageSidebar'))
+$current = [IO.Path]::GetFullPath((Join-Path $installRoot 'Current'))
+$runtime = [IO.Path]::GetFullPath((Join-Path $current 'CodexUsageSidebar.Windows.exe'))
+$control = [IO.Path]::GetFullPath((Join-Path $current 'CodexUsageSidebar.Control.exe'))
+$selectors = [IO.Path]::GetFullPath((Join-Path $current 'selectors.json'))
+
+function Get-ManagedProcess {
+    if (-not (Test-Path -LiteralPath $runtime -PathType Leaf)) {
+        return $null
+    }
+    $expected = $runtime
+    return Get-CimInstance Win32_Process -Filter "Name = 'CodexUsageSidebar.Windows.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.ExecutablePath -and ([IO.Path]::GetFullPath($_.ExecutablePath) -eq $expected) } |
+        Select-Object -First 1
+}
+
+switch ($Command) {
+    'ensure' {
+        if (-not (Test-Path -LiteralPath $runtime -PathType Leaf) -or
+            -not (Test-Path -LiteralPath $selectors -PathType Leaf)) {
+            exit 0
+        }
+        if (Get-ManagedProcess) {
+            exit 0
+        }
+        $start = [Diagnostics.ProcessStartInfo]::new()
+        $start.FileName = $runtime
+        $start.UseShellExecute = $false
+        $start.CreateNoWindow = $true
+        $start.ArgumentList.Add('--background')
+        if ($PluginRoot) {
+            $start.ArgumentList.Add('--plugin-root')
+            $start.ArgumentList.Add([IO.Path]::GetFullPath($PluginRoot))
+        }
+        if ($PluginData) {
+            $start.ArgumentList.Add('--plugin-data')
+            $start.ArgumentList.Add([IO.Path]::GetFullPath($PluginData))
+        }
+        $process = [Diagnostics.Process]::Start($start)
+        if ($null -eq $process) {
+            throw 'Windows sidebar runtime did not start.'
+        }
+        $process.Dispose()
+        exit 0
+    }
+    'status' {
+        $managed = Get-ManagedProcess
+        if ($managed) {
+            Write-Output "runtime=running pid=$($managed.ProcessId) version=0.3.0-beta.1"
+            exit 0
+        }
+        if (-not (Test-Path -LiteralPath $runtime -PathType Leaf)) {
+            Write-Output 'runtime=unavailable reason=payload-not-installed version=0.3.0-beta.1'
+            exit 0
+        }
+        Write-Output 'runtime=stopped reason=device-validation-required version=0.3.0-beta.1'
+        exit 0
+    }
+    'probe' {
+        if (-not $OutputPath) {
+            throw 'probe requires -OutputPath.'
+        }
+        if (-not (Test-Path -LiteralPath $control -PathType Leaf)) {
+            throw 'CodexUsageSidebar.Control.exe is not installed.'
+        }
+        $arguments = @('probe', [IO.Path]::GetFullPath($OutputPath))
+        if ($IncludeText) {
+            $arguments += '--include-text'
+        }
+        & $control @arguments
+        exit $LASTEXITCODE
+    }
+}

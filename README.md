@@ -26,6 +26,19 @@
 > [!NOTE]
 > This is an independent community project and is not affiliated with or endorsed by OpenAI.
 
+## Platform status
+
+| Platform | Status | Distribution |
+| --- | --- | --- |
+| macOS 14+ Apple Silicon | Stable v0.2.3 | Signed companion plus v0.2.3 DMG |
+| Windows 11 x64 | v0.3.0-beta.1 development | Offline-tested core and diagnostic candidate; no public installer yet |
+
+Windows development lives on `codex/v0.3.0-beta.1`. The shared quota contracts, .NET core,
+Win32 window boundary, sanitized UI Automation probe, per-user installer backend, payload digest
+verification, and Windows CI are implemented without changing the stable Mac payload. Publishing a
+Windows setup executable remains blocked until it passes the real Codex UIA, DPI, theme, layout,
+upgrade, and installer matrix. See [Windows beta development](docs/WINDOWS-BETA.md).
+
 ## Actual appearance
 
 <p align="center">
@@ -245,6 +258,7 @@ CI. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 - [Human installation and operations](docs/INSTALL.md)
 - [Agent installation playbook](docs/INSTALL_FOR_AGENTS.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Windows beta development](docs/WINDOWS-BETA.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Privacy](docs/PRIVACY.md)
 - [Support](SUPPORT.md)
