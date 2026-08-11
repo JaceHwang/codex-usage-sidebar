@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fixture_root="$(mktemp -d)"
+trap 'rm -rf "$fixture_root"' EXIT
+payload="$fixture_root/payload"
+mkdir -p "$payload"
+
+printf 'host' > "$payload/CodexUsageSidebar.Windows.exe"
+printf 'control' > "$payload/CodexUsageSidebar.Control.exe"
+printf 'runtime' > "$payload/codex.exe"
+printf '{"schemaVersion":1,"builds":[]}' > "$payload/selectors.json"
+runtime_sha="$(shasum -a 256 "$payload/codex.exe" | awk '{print $1}')"
+source_commit="0123456789abcdef0123456789abcdef01234567"
+
+missing_payload="$fixture_root/missing-payload"
+mkdir -p "$missing_payload"
+cp "$payload/CodexUsageSidebar.Windows.exe" "$missing_payload/"
+if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
+  --payload-dir "$missing_payload" --version 0.3.0-beta.1 --architecture x64 \
+  --source-commit "$source_commit" --codex-source https://example.invalid/codex.exe \
+  --codex-sha256 "$runtime_sha" >/dev/null 2>&1; then
+  printf 'missing required payload unexpectedly succeeded\n' >&2
+  exit 1
+fi
+
+if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
+  --payload-dir "$payload" --version 0.3.0-beta.2 --architecture x64 \
+  --source-commit "$source_commit" --codex-source https://example.invalid/codex.exe \
+  --codex-sha256 "$runtime_sha" >/dev/null 2>&1; then
+  printf 'version mismatch unexpectedly succeeded\n' >&2
+  exit 1
+fi
+
+if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
+  --payload-dir "$payload" --version 0.3.0-beta.1 --architecture x64 \
+  --source-commit invalid --codex-source https://example.invalid/codex.exe \
+  --codex-sha256 "$runtime_sha" >/dev/null 2>&1; then
+  printf 'invalid source commit unexpectedly succeeded\n' >&2
+  exit 1
+fi
+
+if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
+  --payload-dir "$payload" --version 0.3.0-beta.1 --architecture x64 \
+  --source-commit "$source_commit" --codex-source https://example.invalid/codex.exe \
+  --codex-sha256 "$(printf '0%.0s' {1..64})" >/dev/null 2>&1; then
+  printf 'incorrect Codex runtime digest unexpectedly succeeded\n' >&2
+  exit 1
+fi
+
+outside="$fixture_root/outside.txt"
+printf 'outside' > "$outside"
+ln -s "$outside" "$payload/linked-outside.txt"
+if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
+  --payload-dir "$payload" --version 0.3.0-beta.1 --architecture x64 \
+  --source-commit "$source_commit" --codex-source https://example.invalid/codex.exe \
+  --codex-sha256 "$runtime_sha" >/dev/null 2>&1; then
+  printf 'linked payload escape unexpectedly succeeded\n' >&2
+  exit 1
+fi
+rm "$payload/linked-outside.txt"
+
+python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
+  --payload-dir "$payload" --version 0.3.0-beta.1 --architecture x64 \
+  --source-commit "$source_commit" --codex-source https://example.invalid/codex.exe \
+  --codex-sha256 "$runtime_sha"
+python3 "$repo_root/scripts/verify-windows-payload.py" "$payload"
+
+printf 'tampered' > "$payload/CodexUsageSidebar.Control.exe"
+if python3 "$repo_root/scripts/verify-windows-payload.py" "$payload" >/dev/null 2>&1; then
+  printf 'digest mismatch unexpectedly succeeded\n' >&2
+  exit 1
+fi
+
+printf 'PASS: Windows payload negative and positive manifest tests\n'
