@@ -88,9 +88,17 @@ if os.environ.get("CUS_REBUILT_PAYLOAD") != "1":
         "plugins/codex-usage-sidebar/native/Sources/CodexUsageSidebarInstaller/",
         "plugins/codex-usage-sidebar/native/Tests/InstallerCoreTests/",
     )
+    windows_only_paths = (
+        "plugins/codex-usage-sidebar/contracts/",
+        "plugins/codex-usage-sidebar/windows/",
+        "plugins/codex-usage-sidebar/native/Tests/SidebarCoreTests/SharedContractFixtureTests.swift",
+    )
     unexpected_paths = [
         path for path in source_ahead
-        if path != installer_paths[0] and not path.startswith(installer_paths[1:])
+        if path != installer_paths[0]
+        and path != windows_only_paths[2]
+        and not path.startswith(installer_paths[1:])
+        and not path.startswith(windows_only_paths[:2])
     ]
     if unexpected_paths:
         raise SystemExit(
@@ -171,12 +179,18 @@ forbidden = [
 ]
 
 text_files = []
-generated_parts = {
-    ".git", ".build", ".dist", ".swiftpm", ".project-board", ".superpowers", ".worktrees"
-}
-for path in root.rglob("*"):
-    relative = path.relative_to(root)
-    if not path.is_file() or generated_parts.intersection(relative.parts):
+publishable_files = subprocess.check_output(
+    [
+        "git", "-C", str(root), "ls-files", "--cached", "--others",
+        "--exclude-standard", "-z",
+    ]
+).decode("utf-8").split("\0")
+for raw_relative in publishable_files:
+    if not raw_relative:
+        continue
+    relative = Path(raw_relative)
+    path = root / relative
+    if not path.is_file():
         continue
     try:
         text = path.read_text(encoding="utf-8")
