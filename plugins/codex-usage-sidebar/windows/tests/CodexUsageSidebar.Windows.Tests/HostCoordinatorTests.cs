@@ -47,6 +47,21 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public async Task KeepsOverlayAttachedWhenForegroundDetectionTemporarilyReturnsFalse()
+    {
+        var window = Window("codex-build-a") with { IsForeground = false };
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(window), new StubScanner(), overlay);
+
+        var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(HostRuntimeState.Visible, result);
+        Assert.IsNotNull(overlay.LastPresentation);
+        Assert.AreEqual(window.Handle, overlay.LastPresentation.OwnerHandle);
+    }
+
+    [TestMethod]
     public async Task HostBuildChangeInvalidatesScannerBeforeNextSnapshot()
     {
         var locator = new SequencedLocator(

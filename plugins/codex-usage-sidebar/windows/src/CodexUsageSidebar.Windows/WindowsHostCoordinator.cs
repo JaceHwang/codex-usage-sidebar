@@ -42,7 +42,11 @@ public sealed class WindowsHostCoordinator
         }
         lastBuildIdentity = host.BuildIdentity;
 
-        if (!host.IsForeground || snapshot is null)
+        // Foreground detection can transiently return no window while Codex is
+        // still visible (for example across shell/tool transitions). The WPF
+        // surface is owned by the validated Codex HWND, so Windows keeps it in
+        // the owner's z-order without a brittle foreground visibility gate.
+        if (snapshot is null)
         {
             await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
             return HostRuntimeState.Hidden;
