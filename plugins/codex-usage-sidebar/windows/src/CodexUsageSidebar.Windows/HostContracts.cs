@@ -12,7 +12,15 @@ public sealed record HostWindowSnapshot(
 public sealed record TitlebarSnapshot(
     double PreferredAnchorTrailingEdge,
     IReadOnlyList<RectD> Obstacles,
-    RectD ToolbarBounds = default);
+    RectD ToolbarBounds = default,
+    RectD OpenLocationBounds = default,
+    RectD TitleBounds = default,
+    RectD RightToolbarBounds = default,
+    IReadOnlyList<RectD>? ValidatedRightObstacles = null)
+{
+    public IReadOnlyList<RectD> RightObstacles =>
+        ValidatedRightObstacles ?? Array.Empty<RectD>();
+}
 
 public sealed record OverlayPresentation(
     IntPtr OwnerHandle,

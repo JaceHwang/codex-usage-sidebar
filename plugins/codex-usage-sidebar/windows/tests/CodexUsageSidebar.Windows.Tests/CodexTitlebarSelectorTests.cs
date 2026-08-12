@@ -21,6 +21,33 @@ public sealed class CodexTitlebarSelectorTests
         Assert.AreEqual(fixture.Expected.PreferredAnchorTrailingEdge, result.PreferredAnchorTrailingEdge, 0.001);
         Assert.AreEqual(fixture.Expected.ObstacleCount, result.Obstacles.Count);
         Assert.AreEqual(fixture.Expected.ToolbarBounds, result.ToolbarBounds);
+        Assert.AreEqual(fixture.Expected.OpenLocationBounds, result.OpenLocationBounds);
+        Assert.AreEqual(fixture.Expected.TitleBounds, result.TitleBounds);
+        Assert.AreEqual(fixture.Expected.RightToolbarBounds, result.RightToolbarBounds);
+        Assert.AreEqual(fixture.Expected.RightObstacleCount, result.RightObstacles.Count);
+    }
+
+    [TestMethod]
+    public void ResolvesTheValidatedNarrowRightToolbarWithoutUsingTheOuterCaption()
+    {
+        var fixture = LoadFixture("windows-codex-151.0.7922.76-narrow-200.json");
+
+        var result = CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity,
+            fixture.DpiScale,
+            fixture.HostBounds,
+            fixture.Nodes);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(new RectD(1069, 88, 183, 56), result.OpenLocationBounds);
+        Assert.AreEqual(new RectD(494, 88, 533, 56), result.TitleBounds);
+        Assert.AreEqual(new RectD(1395, 70, 1461, 92), result.RightToolbarBounds);
+        CollectionAssert.AreEqual(
+            new[] { new RectD(2856, 88, 56, 56) },
+            result.RightObstacles.ToArray());
+        Assert.AreNotEqual(
+            fixture.Nodes.Single(node => node.ClassName == "ChromeNodeCaptionButtonContainer").Bounds,
+            result.RightToolbarBounds);
     }
 
     [TestMethod]
@@ -81,6 +108,49 @@ public sealed class CodexTitlebarSelectorTests
                 Bounds = new RectD(1600, 88, 183, 56),
             },
         ]).ToArray();
+
+        Assert.IsNull(CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, missing));
+        Assert.IsNull(CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, duplicate));
+    }
+
+    [TestMethod]
+    public void RejectsMissingAmbiguousAndOffHostRightToolbarStructures()
+    {
+        var fixture = LoadFixture("windows-codex-151.0.7922.76-narrow-200.json");
+        var rightToolbar = fixture.Nodes.Single(node =>
+            node.ClassName.Contains("hide-scrollbar flex h-full", StringComparison.Ordinal));
+        var missing = fixture.Nodes.Where(node => node != rightToolbar).ToArray();
+        var duplicate = fixture.Nodes.Append(rightToolbar with
+        {
+            Bounds = rightToolbar.Bounds with { X = rightToolbar.Bounds.X + 10 },
+        }).ToArray();
+        var offHost = fixture.Nodes.Select(node => node == rightToolbar
+            ? node with { Bounds = node.Bounds with { X = 10_000 } }
+            : node).ToArray();
+
+        Assert.IsNull(CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, missing));
+        Assert.IsNull(CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, duplicate));
+        Assert.IsNull(CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, offHost));
+    }
+
+    [TestMethod]
+    public void RejectsMissingOrAmbiguousMeasuredTitleChildren()
+    {
+        var fixture = LoadFixture("windows-codex-151.0.7922.76-narrow-200.json");
+        var titleChild = fixture.Nodes.Single(node =>
+            node.Depth == 17
+            && node.ControlType == "ControlType.Group"
+            && node.ClassName.Contains("max-w-[320px]", StringComparison.Ordinal));
+        var missing = fixture.Nodes.Where(node => node != titleChild).ToArray();
+        var duplicate = fixture.Nodes.Append(titleChild with
+        {
+            Bounds = titleChild.Bounds with { X = titleChild.Bounds.X + 1 },
+        }).ToArray();
 
         Assert.IsNull(CodexTitlebarSelector.TryResolve(
             fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, missing));
@@ -166,12 +236,14 @@ public sealed class CodexTitlebarSelectorTests
             0.001);
     }
 
-    private static SelectorFixture LoadFixture() => JsonSerializer.Deserialize<SelectorFixture>(
+    private static SelectorFixture LoadFixture(
+        string name = "windows-codex-151.0.7922.76-default-200.json") =>
+        JsonSerializer.Deserialize<SelectorFixture>(
         File.ReadAllText(Path.Combine(
             AppContext.BaseDirectory,
             "contracts",
             "uia",
-            "windows-codex-151.0.7922.76-default-200.json")),
+            name)),
         new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
 
     private sealed record SelectorFixture(
@@ -184,5 +256,9 @@ public sealed class CodexTitlebarSelectorTests
     private sealed record ExpectedFixture(
         double PreferredAnchorTrailingEdge,
         int ObstacleCount,
-        RectD ToolbarBounds);
+        RectD ToolbarBounds,
+        RectD OpenLocationBounds,
+        RectD TitleBounds,
+        RectD RightToolbarBounds,
+        int RightObstacleCount);
 }

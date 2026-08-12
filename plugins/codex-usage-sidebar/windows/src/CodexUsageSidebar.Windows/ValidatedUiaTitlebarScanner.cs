@@ -8,6 +8,10 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
 {
     private const string CaptionContainerClass = "ChromeNodeCaptionButtonContainer";
     private const int MaximumDirectChildren = 64;
+    private const int MaximumCandidateGroups = 1024;
+    private const string TitleGroupClassMarker = "text-md flex min-w-0 items-center";
+    private const string RightToolbarClassMarker = "hide-scrollbar flex h-full min-w-0 flex-1";
+    private const string RightToolbarOverflowMarker = "overflow-x-auto overflow-y-hidden";
     private static readonly TimeSpan ScanTimeout = TimeSpan.FromSeconds(2);
     private static readonly Condition CaptionContainerCondition = new AndCondition(
         new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Pane),
@@ -20,6 +24,9 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
                 name,
                 PropertyConditionFlags.IgnoreCase))
             .ToArray()));
+    private static readonly Condition GroupCondition = new PropertyCondition(
+        AutomationElement.ControlTypeProperty,
+        ControlType.Group);
     private readonly ValidatedTitlebarCache cache = new();
     private readonly object scanGate = new();
     private InFlightScan? inFlight;
@@ -130,9 +137,78 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
             AddNode(toolbar, 14, nodes);
             AddNode(contentGroup, 15, nodes);
             AddDirectChildren(contentGroup, 16, nodes, cancellationToken);
+            AddTitleChildren(contentGroup, nodes, cancellationToken);
         }
 
+        AddRightPaneStructures(root, nodes, cancellationToken);
+
         return nodes;
+    }
+
+    private static void AddTitleChildren(
+        AutomationElement contentGroup,
+        List<UiaStructureNode> nodes,
+        CancellationToken cancellationToken)
+    {
+        var titleGroups = DirectChildren(contentGroup, cancellationToken)
+            .Where(element => ClassNameContains(element, TitleGroupClassMarker))
+            .ToArray();
+        foreach (var titleGroup in titleGroups)
+        {
+            AddDirectChildren(titleGroup, 17, nodes, cancellationToken);
+        }
+    }
+
+    private static void AddRightPaneStructures(
+        AutomationElement root,
+        List<UiaStructureNode> nodes,
+        CancellationToken cancellationToken)
+    {
+        AutomationElementCollection groups;
+        try
+        {
+            groups = root.FindAll(TreeScope.Descendants, GroupCondition);
+        }
+        catch (ElementNotAvailableException)
+        {
+            return;
+        }
+        if (groups.Count > MaximumCandidateGroups)
+        {
+            return;
+        }
+        foreach (AutomationElement header in groups)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!ClassNameContains(header, RightToolbarClassMarker)
+                || !ClassNameContains(header, RightToolbarOverflowMarker))
+            {
+                continue;
+            }
+            var surface = TryGetParent(header);
+            var container = surface is null ? null : TryGetParent(surface);
+            var rightPane = container is null ? null : TryGetParent(container);
+            if (surface is null || container is null || rightPane is null)
+            {
+                continue;
+            }
+            AddNode(rightPane, 15, nodes);
+            AddNode(container, 16, nodes);
+            AddNode(surface, 17, nodes);
+            AddDirectChildren(surface, 18, nodes, cancellationToken);
+        }
+    }
+
+    private static bool ClassNameContains(AutomationElement element, string marker)
+    {
+        try
+        {
+            return (element.Current.ClassName ?? string.Empty).Contains(marker, StringComparison.Ordinal);
+        }
+        catch (ElementNotAvailableException)
+        {
+            return false;
+        }
     }
 
     private static AutomationElement? TryGetParent(AutomationElement element)
@@ -153,6 +229,17 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         List<UiaStructureNode> nodes,
         CancellationToken cancellationToken)
     {
+        foreach (var child in DirectChildren(parent, cancellationToken))
+        {
+            AddNode(child, depth, nodes);
+        }
+    }
+
+    private static IReadOnlyList<AutomationElement> DirectChildren(
+        AutomationElement parent,
+        CancellationToken cancellationToken)
+    {
+        var children = new List<AutomationElement>();
         AutomationElement? child;
         try
         {
@@ -160,13 +247,12 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         }
         catch (ElementNotAvailableException)
         {
-            return;
+            return children;
         }
-        var count = 0;
-        while (child is not null && count++ < MaximumDirectChildren)
+        while (child is not null && children.Count < MaximumDirectChildren)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            AddNode(child, depth, nodes);
+            children.Add(child);
             try
             {
                 child = TreeWalker.RawViewWalker.GetNextSibling(child);
@@ -176,6 +262,7 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
                 break;
             }
         }
+        return children;
     }
 
     private static void AddNode(
