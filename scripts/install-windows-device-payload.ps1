@@ -110,19 +110,10 @@ try {
             throw "The downloaded Codex x64 runtime digest is invalid: $actualRuntimeSha256"
         }
 
-        $selectorsJson = [ordered]@{
-            schemaVersion = 1
-            status = 'device-test'
-            realDeviceValidated = $false
-            publishableInstaller = $false
-            builds = @(
-                [ordered]@{
-                    buildIdentity = '151.0.7922.76'
-                    fixture = 'windows-codex-151.0.7922.76-default-200.json'
-                    sourceReportSha256 = '65e519a71da6c7dc422253a33f30ecaabe175499a51254f9c6eb00983f721f7c'
-                }
-            )
-        } | ConvertTo-Json -Depth 5
+        $wideFixture = Join-Path $repoRoot 'plugins\codex-usage-sidebar\contracts\uia\windows-codex-151.0.7922.76-default-200.json'
+        $narrowFixture = Join-Path $repoRoot 'plugins\codex-usage-sidebar\contracts\uia\windows-codex-151.0.7922.76-narrow-200.json'
+        $selectorsJson = New-WindowsDeviceSelectorsDocument -FixturePaths @($wideFixture, $narrowFixture) |
+            ConvertTo-Json -Depth 5
         [IO.File]::WriteAllText(
             (Join-Path $stagedPayload 'selectors.json'),
             $selectorsJson + [Environment]::NewLine,

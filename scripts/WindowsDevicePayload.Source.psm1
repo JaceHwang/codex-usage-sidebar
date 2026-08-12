@@ -144,4 +144,50 @@ function Enter-WindowsDeviceInstallLock {
         [IO.FileShare]::None)
 }
 
-Export-ModuleMember -Function Assert-WindowsDeviceSourceState, Assert-WindowsDevicePlatform, Wait-WindowsDeviceCondition, Copy-WindowsDeviceRuntimeFromCache, Enter-WindowsDeviceInstallLock
+function New-WindowsDeviceSelectorsDocument {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateCount(2, 2)]
+        [string[]] $FixturePaths
+    )
+
+    $builds = foreach ($fixturePath in $FixturePaths) {
+        if (-not (Test-Path -LiteralPath $fixturePath -PathType Leaf)) {
+            throw [IO.FileNotFoundException]::new('A pinned Windows UIA fixture is missing.', $fixturePath)
+        }
+        $fixtureName = [IO.Path]::GetFileName($fixturePath)
+        $match = [regex]::Match(
+            $fixtureName,
+            '^windows-codex-(?<build>\d+\.\d+\.\d+\.\d+)-(?<layout>default|narrow)-200\.json$')
+        if (-not $match.Success) {
+            throw [IO.InvalidDataException]::new('The Windows UIA fixture name is not recognized.')
+        }
+        $fixture = Get-Content -Raw -LiteralPath $fixturePath | ConvertFrom-Json
+        if ($fixture.schemaVersion -ne 3 -or
+            $fixture.buildIdentity -cne $match.Groups['build'].Value -or
+            $fixture.sourceReportSha256 -notmatch '^[0-9a-f]{64}$') {
+            throw [IO.InvalidDataException]::new('The Windows UIA fixture provenance is invalid.')
+        }
+        [pscustomobject][ordered]@{
+            buildIdentity = $fixture.buildIdentity
+            layout = if ($match.Groups['layout'].Value -eq 'default') { 'wide' } else { 'narrow' }
+            fixture = $fixtureName
+            sourceReportSha256 = $fixture.sourceReportSha256
+        }
+    }
+    if (@($builds | Select-Object -ExpandProperty layout -Unique).Count -ne 2 -or
+        @($builds | Select-Object -ExpandProperty buildIdentity -Unique).Count -ne 1) {
+        throw [IO.InvalidDataException]::new('The selector document requires one wide and one narrow fixture for the same Codex build.')
+    }
+
+    return [pscustomobject][ordered]@{
+        schemaVersion = 1
+        status = 'device-test'
+        realDeviceValidated = $false
+        publishableInstaller = $false
+        builds = @($builds | Sort-Object layout -Descending)
+    }
+}
+
+Export-ModuleMember -Function Assert-WindowsDeviceSourceState, Assert-WindowsDevicePlatform, Wait-WindowsDeviceCondition, Copy-WindowsDeviceRuntimeFromCache, Enter-WindowsDeviceInstallLock, New-WindowsDeviceSelectorsDocument
