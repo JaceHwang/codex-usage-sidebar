@@ -86,22 +86,23 @@ public sealed class WindowsHostCoordinator
             }
         }
         var scale = host.DpiScale;
-        var placement = PlacementResolver.Resolve(
+        var placement = PlacementResolver.ResolveResponsive(
             titlebar.ToolbarBounds,
-            titlebar.PreferredAnchorTrailingEdge,
+            titlebar.OpenLocationBounds,
+            titlebar.TitleBounds,
             OverlayVisualMetrics.IndicatorWidth * scale,
             IndicatorGap * scale,
             titlebar.Obstacles,
-            verticalInset: 0,
-            indicatorHeight: OverlayVisualMetrics.IndicatorHeight * scale);
-        if (placement.Surface != PlacementSurface.Content)
+            titlebar.RightToolbarBounds,
+            titlebar.RightObstacles);
+        if (placement is null)
         {
             await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
             return HostRuntimeState.Hidden;
         }
 
         await overlay.ShowAsync(
-            new OverlayPresentation(host.Handle, host.DpiScale, snapshot, placement, freshness),
+            new OverlayPresentation(host.Handle, host.DpiScale, snapshot, placement.Value, freshness),
             cancellationToken).ConfigureAwait(false);
         return HostRuntimeState.Visible;
     }

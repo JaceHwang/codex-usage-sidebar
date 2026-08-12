@@ -1,4 +1,3 @@
-using System.Text.Json;
 using CodexUsageSidebar.Core;
 
 namespace CodexUsageSidebar.Core.Tests;
@@ -7,51 +6,118 @@ namespace CodexUsageSidebar.Core.Tests;
 public sealed class PlacementResolverTests
 {
     [TestMethod]
-    public void UsesContentToolbarWhenPreferredSlotFits()
+    public void UsesTheExactOpenLocationSlotWhenTheCompleteFrameClearsTheTitle()
     {
-        var fixture = JsonSerializer.Deserialize<PlacementFixture>(
-            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "contracts", "placement", "content-toolbar.json")),
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+        var result = PlacementResolver.ResolveResponsive(
+            toolbarBounds: new RectD(478, 70, 2522, 92),
+            openLocationBounds: new RectD(2620, 88, 182, 56),
+            titleBounds: new RectD(494, 88, 542, 56),
+            indicatorWidth: 328,
+            gap: 16,
+            localObstacles:
+            [
+                new RectD(2620, 88, 182, 56),
+                new RectD(2802, 88, 46, 56),
+                new RectD(2860, 88, 56, 56),
+            ],
+            rightToolbarBounds: default,
+            rightObstacles: []);
 
-        var result = PlacementResolver.Resolve(
-            fixture.Window,
-            fixture.PreferredAnchorTrailingEdge,
-            fixture.Indicator.Width,
-            fixture.Indicator.Gap,
-            fixture.Obstacles);
-
-        Assert.AreEqual(PlacementSurface.Content, result.Surface);
-        Assert.AreEqual(fixture.Expected.X, result.Frame.X, 0.001);
-        Assert.AreEqual(4, result.Frame.Y, 0.001);
+        Assert.IsNotNull(result);
+        Assert.AreEqual(PlacementSurface.Content, result.Value.Surface);
+        Assert.AreEqual(new RectD(2276, 88, 328, 56), result.Value.Frame);
     }
 
     [TestMethod]
-    public void MovesToRightToolbarOnlyWhenNoCollisionFreeContentSlotRemains()
+    public void UsesValidatedRightToolbarWhenTheLocalFrameWouldOverlapTheTitle()
     {
-        var window = new RectD(0, 0, 1200, 800);
-        var obstacles = new[] { new RectD(0, 750, 1_000, 50) };
-        var result = PlacementResolver.Resolve(window, 950, 208, 8, obstacles);
-        Assert.AreEqual(PlacementSurface.RightToolbar, result.Surface);
+        var result = ResolveNarrow();
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(PlacementSurface.RightToolbar, result.Value.Surface);
+        Assert.AreEqual(new RectD(2512, 88, 328, 56), result.Value.Frame);
     }
 
     [TestMethod]
-    public void UsesFreeContentSpaceLeftOfWindowMidpointBeforeFallingBack()
+    public void HidesWhenTheRightToolbarCannotContainTheFallback()
     {
-        var window = new RectD(0, 0, 1200, 800);
-        var obstacles = new[] { new RectD(650, 0, 250, 48) };
+        var result = PlacementResolver.ResolveResponsive(
+            new RectD(478, 70, 1000, 92),
+            new RectD(1069, 88, 183, 56),
+            new RectD(494, 88, 533, 56),
+            328,
+            16,
+            [new RectD(1069, 88, 183, 56)],
+            new RectD(2700, 70, 140, 92),
+            [new RectD(2856, 88, 56, 56)]);
 
-        var result = PlacementResolver.Resolve(window, 900, 208, 8, obstacles);
-
-        Assert.AreEqual(PlacementSurface.Content, result.Surface);
-        Assert.AreEqual(434, result.Frame.X, 0.001);
+        Assert.IsNull(result);
     }
 
-    public sealed record PlacementFixture(
-        RectD Window,
-        IndicatorFixture Indicator,
-        double PreferredAnchorTrailingEdge,
-        IReadOnlyList<RectD> Obstacles,
-        ExpectedFixture Expected);
-    public sealed record IndicatorFixture(double Width, double Gap);
-    public sealed record ExpectedFixture(string Surface, double X);
+    [TestMethod]
+    public void UsesTheLeftmostRightObstacleAsTheFallbackBoundary()
+    {
+        var result = PlacementResolver.ResolveResponsive(
+            new RectD(478, 70, 2522, 92),
+            new RectD(1069, 88, 183, 56),
+            new RectD(494, 88, 533, 56),
+            328,
+            16,
+            [new RectD(1069, 88, 183, 56)],
+            new RectD(1395, 70, 1461, 92),
+            [new RectD(2600, 88, 40, 56), new RectD(2856, 88, 56, 56)]);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(new RectD(2256, 88, 328, 56), result.Value.Frame);
+    }
+
+    [TestMethod]
+    public void HidesWhenResponsiveGeometryIsMissingOrNonFinite()
+    {
+        Assert.IsNull(PlacementResolver.ResolveResponsive(
+            new RectD(0, 0, 1000, 92), default, default, 328, 16, [], default, []));
+        Assert.IsNull(PlacementResolver.ResolveResponsive(
+            new RectD(0, 0, 1000, 92),
+            new RectD(double.NaN, 18, 182, 56),
+            new RectD(10, 18, 100, 56),
+            328,
+            16,
+            [],
+            default,
+            []));
+    }
+
+    [TestMethod]
+    public void RecomputingAfterSpaceReturnsRestoresTheLocalPlacement()
+    {
+        Assert.AreEqual(PlacementSurface.RightToolbar, ResolveNarrow()!.Value.Surface);
+
+        var restored = PlacementResolver.ResolveResponsive(
+            new RectD(478, 70, 2522, 92),
+            new RectD(2620, 88, 182, 56),
+            new RectD(494, 88, 542, 56),
+            328,
+            16,
+            [new RectD(2620, 88, 182, 56)],
+            default,
+            []);
+
+        Assert.AreEqual(PlacementSurface.Content, restored!.Value.Surface);
+        Assert.AreEqual(new RectD(2276, 88, 328, 56), restored.Value.Frame);
+    }
+
+    private static PlacementResult? ResolveNarrow() => PlacementResolver.ResolveResponsive(
+        toolbarBounds: new RectD(478, 70, 2522, 92),
+        openLocationBounds: new RectD(1069, 88, 183, 56),
+        titleBounds: new RectD(494, 88, 533, 56),
+        indicatorWidth: 328,
+        gap: 16,
+        localObstacles:
+        [
+            new RectD(1069, 88, 183, 56),
+            new RectD(1251, 88, 47, 56),
+            new RectD(1309, 88, 57, 56),
+        ],
+        rightToolbarBounds: new RectD(1395, 70, 1461, 92),
+        rightObstacles: [new RectD(2856, 88, 56, 56)]);
 }

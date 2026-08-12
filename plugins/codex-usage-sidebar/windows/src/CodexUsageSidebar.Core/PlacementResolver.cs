@@ -4,8 +4,6 @@ public readonly record struct RectD(double X, double Y, double Width, double Hei
 {
     public double Right => X + Width;
     public double Bottom => Y + Height;
-
-    public bool IntersectsHorizontally(RectD other) => X < other.Right && Right > other.X;
 }
 
 public enum PlacementSurface { Content, RightToolbar }
@@ -14,45 +12,80 @@ public readonly record struct PlacementResult(PlacementSurface Surface, RectD Fr
 
 public static class PlacementResolver
 {
-    public static PlacementResult Resolve(
-        RectD window,
-        double preferredAnchorTrailingEdge,
+    public static PlacementResult? ResolveResponsive(
+        RectD toolbarBounds,
+        RectD openLocationBounds,
+        RectD titleBounds,
         double indicatorWidth,
         double gap,
-        IReadOnlyList<RectD> obstacles,
-        double verticalInset = 4,
-        double indicatorHeight = 40)
+        IReadOnlyList<RectD> localObstacles,
+        RectD rightToolbarBounds,
+        IReadOnlyList<RectD> rightObstacles)
     {
-        // The center of the host window is not a layout boundary. A wide right
-        // pane can move the semantic toolbar anchor left of center while still
-        // leaving a complete, collision-free title-bar slot.
-        var minimumContentX = window.X + gap;
-        var candidateX = Math.Min(preferredAnchorTrailingEdge - gap - indicatorWidth, window.Right - indicatorWidth - gap);
-
-        while (candidateX >= minimumContentX)
+        if (!IsUsable(toolbarBounds)
+            || !IsUsable(openLocationBounds)
+            || !IsUsable(titleBounds)
+            || !double.IsFinite(indicatorWidth)
+            || indicatorWidth <= 0
+            || !double.IsFinite(gap)
+            || gap < 0
+            || !Contains(toolbarBounds, openLocationBounds)
+            || !Contains(toolbarBounds, titleBounds))
         {
-            var candidate = new RectD(
-                candidateX,
-                window.Y + verticalInset,
-                indicatorWidth,
-                indicatorHeight);
-            var collision = obstacles
-                .Where(candidate.IntersectsHorizontally)
-                .OrderBy(x => x.X)
-                .FirstOrDefault();
-            if (collision.Width <= 0)
-            {
-                return new PlacementResult(PlacementSurface.Content, candidate);
-            }
-            candidateX = collision.X - gap - indicatorWidth;
+            return null;
         }
 
-        return new PlacementResult(
-            PlacementSurface.RightToolbar,
-            new RectD(
-                window.Right - indicatorWidth - (2 * gap),
-                window.Y + verticalInset,
-                indicatorWidth,
-                indicatorHeight));
+        var local = new RectD(
+            openLocationBounds.X - gap - indicatorWidth,
+            openLocationBounds.Y,
+            indicatorWidth,
+            openLocationBounds.Height);
+        if (Contains(toolbarBounds, local)
+            && local.X >= titleBounds.Right + gap
+            && !IntersectsAny(local, localObstacles))
+        {
+            return new PlacementResult(PlacementSurface.Content, local);
+        }
+
+        if (!IsUsable(rightToolbarBounds)
+            || rightObstacles.Count == 0
+            || !Contains(toolbarBounds, rightToolbarBounds)
+            || rightObstacles.Any(obstacle => !IsUsable(obstacle)))
+        {
+            return null;
+        }
+        var trailingObstacle = rightObstacles.OrderBy(obstacle => obstacle.X).First();
+        var fallback = new RectD(
+            trailingObstacle.X - gap - indicatorWidth,
+            openLocationBounds.Y,
+            indicatorWidth,
+            openLocationBounds.Height);
+        if (!Contains(rightToolbarBounds, fallback)
+            || IntersectsAny(fallback, rightObstacles))
+        {
+            return null;
+        }
+        return new PlacementResult(PlacementSurface.RightToolbar, fallback);
     }
+
+    private static bool IntersectsAny(RectD candidate, IReadOnlyList<RectD> obstacles) =>
+        obstacles.Any(obstacle => IsUsable(obstacle)
+            && candidate.X < obstacle.Right
+            && candidate.Right > obstacle.X
+            && candidate.Y < obstacle.Bottom
+            && candidate.Bottom > obstacle.Y);
+
+    private static bool Contains(RectD container, RectD child) =>
+        child.X >= container.X
+        && child.Y >= container.Y
+        && child.Right <= container.Right
+        && child.Bottom <= container.Bottom;
+
+    private static bool IsUsable(RectD bounds) =>
+        double.IsFinite(bounds.X)
+        && double.IsFinite(bounds.Y)
+        && double.IsFinite(bounds.Width)
+        && double.IsFinite(bounds.Height)
+        && bounds.Width > 0
+        && bounds.Height > 0;
 }

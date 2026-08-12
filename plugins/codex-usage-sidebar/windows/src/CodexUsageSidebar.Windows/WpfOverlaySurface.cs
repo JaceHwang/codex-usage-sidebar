@@ -57,7 +57,6 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         };
         indicator = CreatePassiveWindow(indicatorSurface);
         indicator.Width = OverlayVisualMetrics.IndicatorWidth;
-        indicator.Height = OverlayVisualMetrics.IndicatorHeight;
         detail = CreatePassiveWindow(new Border());
         detail.Width = OverlayVisualMetrics.DetailWidth;
         detail.MaxHeight = 480;
@@ -93,6 +92,8 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             SetOwner(detail, presentation.OwnerHandle);
             var frame = presentation.Placement.Frame;
             UpdateIndicator(presentation.Snapshot);
+            indicator.Width = frame.Width / presentation.DpiScale;
+            indicator.Height = frame.Height / presentation.DpiScale;
             if (!indicator.IsVisible) new WindowInteropHelper(indicator).EnsureHandle();
             PositionPhysical(indicator, frame);
             if (!indicator.IsVisible) indicator.Show();

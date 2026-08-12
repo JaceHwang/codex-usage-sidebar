@@ -28,7 +28,10 @@ public sealed class HostCoordinatorTests
         {
             new RectD(1516, 1052, 116, 36),
             new RectD(1900, 1052, 132, 36),
-        }, new RectD(400, 80, 1600, 92)));
+        },
+        new RectD(400, 80, 1600, 92),
+        new RectD(1500, 98, 180, 56),
+        new RectD(420, 98, 300, 56)));
         var overlay = new RecordingOverlay();
         var coordinator = new WindowsHostCoordinator(new StubLocator(window), scanner, overlay);
 
@@ -37,9 +40,9 @@ public sealed class HostCoordinatorTests
         Assert.AreEqual(HostRuntimeState.Visible, result);
         Assert.AreEqual(PlacementSurface.Content, overlay.LastPresentation?.Placement.Surface);
         Assert.AreEqual(1156, overlay.LastPresentation?.Placement.Frame.X);
-        Assert.AreEqual(80, overlay.LastPresentation?.Placement.Frame.Y);
+        Assert.AreEqual(98, overlay.LastPresentation?.Placement.Frame.Y);
         Assert.AreEqual(328, overlay.LastPresentation?.Placement.Frame.Width);
-        Assert.AreEqual(92, overlay.LastPresentation?.Placement.Frame.Height);
+        Assert.AreEqual(56, overlay.LastPresentation?.Placement.Frame.Height);
         Assert.AreEqual(76, overlay.LastPresentation?.Snapshot.RemainingPercent);
     }
 
@@ -78,8 +81,10 @@ public sealed class HostCoordinatorTests
         var overlay = new RecordingOverlay();
         var scanner = new StubScanner(new TitlebarSnapshot(
             300,
-            [new RectD(0, 0, 300, 48)],
-            new RectD(0, 60, 400, 46)));
+            [new RectD(300, 60, 80, 28)],
+            new RectD(0, 60, 400, 46),
+            new RectD(300, 69, 80, 28),
+            new RectD(8, 69, 280, 28)));
         var coordinator = new WindowsHostCoordinator(
             new StubLocator(new HostWindowSnapshot(
                 new IntPtr(42), new RectD(0, 0, 400, 800), true, 1, "codex-build-a")),
@@ -91,6 +96,29 @@ public sealed class HostCoordinatorTests
         Assert.AreEqual(HostRuntimeState.Hidden, result);
         Assert.AreEqual(1, overlay.HideCount);
         Assert.IsNull(overlay.LastPresentation);
+    }
+
+    [TestMethod]
+    public async Task UsesValidatedRightToolbarWhenTheMeasuredLocalGapIsTooNarrow()
+    {
+        var window = new HostWindowSnapshot(
+            new IntPtr(42), new RectD(-13, -13, 3026, 1930), true, 2, "codex-build-a");
+        var scanner = new StubScanner(new TitlebarSnapshot(
+            1069,
+            [new RectD(1069, 88, 183, 56), new RectD(1251, 88, 47, 56)],
+            new RectD(478, 70, 2522, 92),
+            new RectD(1069, 88, 183, 56),
+            new RectD(494, 88, 533, 56),
+            new RectD(1395, 70, 1461, 92),
+            [new RectD(2856, 88, 56, 56)]));
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(new StubLocator(window), scanner, overlay);
+
+        var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(HostRuntimeState.Visible, result);
+        Assert.AreEqual(PlacementSurface.RightToolbar, overlay.LastPresentation?.Placement.Surface);
+        Assert.AreEqual(new RectD(2512, 88, 328, 56), overlay.LastPresentation?.Placement.Frame);
     }
 
     [TestMethod]
@@ -116,7 +144,9 @@ public sealed class HostCoordinatorTests
         var scanner = new StubScanner(new TitlebarSnapshot(
             500,
             [],
-            new RectD(-2600, 70, 3600, 92)));
+            new RectD(-2600, 70, 3600, 92),
+            new RectD(500, 88, 183, 56),
+            new RectD(-2500, 88, 500, 56)));
         var overlay = new RecordingOverlay();
         var coordinator = new WindowsHostCoordinator(new StubLocator(window), scanner, overlay);
 
@@ -124,8 +154,8 @@ public sealed class HostCoordinatorTests
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
         Assert.AreEqual(328, overlay.LastPresentation?.Placement.Frame.Width);
-        Assert.AreEqual(92, overlay.LastPresentation?.Placement.Frame.Height);
-        Assert.AreEqual(70, overlay.LastPresentation?.Placement.Frame.Y);
+        Assert.AreEqual(56, overlay.LastPresentation?.Placement.Frame.Height);
+        Assert.AreEqual(88, overlay.LastPresentation?.Placement.Frame.Y);
     }
 
     [TestMethod]
@@ -281,7 +311,9 @@ public sealed class HostCoordinatorTests
         var retained = new TitlebarSnapshot(
             1000,
             [],
-            new RectD(200, 60, 1100, 46));
+            new RectD(200, 60, 1100, 46),
+            new RectD(1000, 69, 180, 28),
+            new RectD(220, 69, 300, 28));
         var overlay = new RecordingOverlay();
         var coordinator = new WindowsHostCoordinator(
             new StubLocator(window),
@@ -328,9 +360,19 @@ public sealed class HostCoordinatorTests
         public void Invalidate() => InvalidateCount++;
 
         private static TitlebarSnapshot SnapshotFor(HostWindowSnapshot host) => new(
-            host.Bounds.Right,
+            host.Bounds.Right - 100,
             Array.Empty<RectD>(),
-            new RectD(host.Bounds.X, host.Bounds.Y + 60, host.Bounds.Width, 46 * host.DpiScale));
+            new RectD(host.Bounds.X, host.Bounds.Y + 60, host.Bounds.Width, 46 * host.DpiScale),
+            new RectD(
+                host.Bounds.Right - 100,
+                host.Bounds.Y + 69,
+                80,
+                28 * host.DpiScale),
+            new RectD(
+                host.Bounds.X + 8,
+                host.Bounds.Y + 69,
+                200,
+                28 * host.DpiScale));
     }
 
     private sealed class RejectingScanner : ITitlebarScanner
