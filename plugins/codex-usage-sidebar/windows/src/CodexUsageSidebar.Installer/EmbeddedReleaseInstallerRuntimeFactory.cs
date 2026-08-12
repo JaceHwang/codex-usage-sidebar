@@ -44,13 +44,50 @@ public static class EmbeddedReleaseInstallerRuntimeFactory
         string architecture,
         int windowsBuild)
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException("The embedded release installer requires Windows 11.");
+        }
+        var bundle = TryCreateBundle(
+            assembly, assemblyMetadata, localAppData, architecture, windowsBuild);
+        if (bundle is null) return null;
+        var (plan, source) = bundle.Value;
+        var autostartPlan = AutostartPlan.Create(plan.ManagedHostExecutable);
+        return new DeviceTestInstallerUiActions(
+            plan.Paths,
+            new FileManagedInstallLock(plan.Paths.InstallRoot),
+            new EmbeddedManagedPayloadOperations(source, plan),
+            new ManagedAutostart(autostartPlan, new WindowsCurrentUserRunStore()),
+            new ManagedHostLifecycle(plan.ManagedHostExecutable, new WindowsManagedProcessCatalog()));
+    }
+
+    public static void VerifyEmbeddedPayload(
+        Assembly assembly,
+        IReadOnlyDictionary<string, string?> assemblyMetadata,
+        string localAppData,
+        string architecture,
+        int windowsBuild)
+    {
+        var bundle = TryCreateBundle(
+            assembly, assemblyMetadata, localAppData, architecture, windowsBuild)
+            ?? throw new InvalidOperationException(
+                "The release installer is missing embedded payload trust metadata.");
+        new EmbeddedManagedPayloadOperations(bundle.Source, bundle.Plan).Validate();
+    }
+
+    private static (EmbeddedReleaseInstallerPlan Plan, EmbeddedPayloadSource Source)? TryCreateBundle(
+        Assembly assembly,
+        IReadOnlyDictionary<string, string?> assemblyMetadata,
+        string localAppData,
+        string architecture,
+        int windowsBuild)
+    {
         var metadata = EmbeddedReleaseInstallerMetadata.TryCreate(assemblyMetadata);
         if (metadata is null) return null;
         if (!OperatingSystem.IsWindows())
         {
             throw new PlatformNotSupportedException("The embedded release installer requires Windows 11.");
         }
-
         var plan = EmbeddedReleaseInstallerPlan.Create(
             localAppData,
             architecture,
@@ -64,12 +101,6 @@ public static class EmbeddedReleaseInstallerRuntimeFactory
             assembly,
             PayloadResourcePrefix,
             metadata.PayloadManifestSha256);
-        var autostartPlan = AutostartPlan.Create(plan.ManagedHostExecutable);
-        return new DeviceTestInstallerUiActions(
-            plan.Paths,
-            new FileManagedInstallLock(plan.Paths.InstallRoot),
-            new EmbeddedManagedPayloadOperations(source, plan),
-            new ManagedAutostart(autostartPlan, new WindowsCurrentUserRunStore()),
-            new ManagedHostLifecycle(plan.ManagedHostExecutable, new WindowsManagedProcessCatalog()));
+        return (plan, source);
     }
 }

@@ -50,6 +50,29 @@ public sealed class InstallerUiControllerTests
         StringAssert.Contains(english.Status, "Local authorization and state data were kept");
     }
 
+    [DataTestMethod]
+    [DataRow("zh-Hans-CN", InstallerUiMode.Install, "为当前 Windows 用户安装", "不可发布")]
+    [DataRow("zh-Hant-TW", InstallerUiMode.Repair, "驗證並修復目前使用者", "不可發佈")]
+    [DataRow("en-US", InstallerUiMode.Uninstall, "Uninstall Codex Usage Sidebar", "not publishable")]
+    public void PublishedReleaseCopyIsLocalizedWithoutDeviceTestWarnings(
+        string locale,
+        InstallerUiMode mode,
+        string expectedDescription,
+        string forbiddenDeviceTestWarning)
+    {
+        var model = InstallerUiModel.Create(
+            locale,
+            mode,
+            InstallerUiState.Ready,
+            flavor: InstallerUiFlavor.PublishedRelease,
+            displayVersion: "0.3.0");
+
+        StringAssert.Contains(model.Description, expectedDescription);
+        Assert.AreEqual("0.3.0", model.DisplayVersion);
+        Assert.IsFalse(model.Description.Contains(forbiddenDeviceTestWarning, StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(model.Description.Contains("device-test", StringComparison.OrdinalIgnoreCase));
+    }
+
     [TestMethod]
     public async Task RunsTheSelectedOperationOnceAndReportsSuccess()
     {

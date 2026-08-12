@@ -26,6 +26,18 @@ public static class InstallerApplication
         try
         {
             payloadMode = InstallerPayloadModeParser.Parse(metadata.GetValueOrDefault("InstallerPayloadMode"));
+            if (EmbeddedReleaseVerificationCommand.TryRun(
+                payloadMode,
+                args,
+                () => EmbeddedReleaseInstallerRuntimeFactory.VerifyEmbeddedPayload(
+                    executingAssembly,
+                    metadata,
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    architecture,
+                    Environment.OSVersion.Version.Build)))
+            {
+                return 0;
+            }
             var deviceInstall = DevicePayloadInstallCommand.TryCreate(
                 payloadMode,
                 args,
@@ -76,7 +88,13 @@ public static class InstallerApplication
         var controller = new InstallerUiController(
             CultureInfo.CurrentUICulture.Name,
             mode,
-            actions ?? new UnavailableInstallerUiActions());
+            actions ?? new UnavailableInstallerUiActions(),
+            payloadMode == InstallerPayloadMode.EmbeddedRelease
+                ? InstallerUiFlavor.PublishedRelease
+                : InstallerUiFlavor.DeviceTest,
+            metadata.GetValueOrDefault("InstallerDisplayVersion")
+                ?? metadata.GetValueOrDefault(EmbeddedReleaseInstallerMetadata.VersionKey)
+                ?? "0.3.0-beta.1");
         var application = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
         return application.Run(new InstallerWindow(controller));
     }
@@ -135,7 +153,7 @@ public sealed class InstallerWindow : Window
             VerticalAlignment = VerticalAlignment.Center,
             Child = new TextBlock
             {
-                Text = "0.3.0-beta.1",
+                Text = controller.Model.DisplayVersion,
                 Foreground = SystemColors.HighlightBrush,
                 FontSize = 11,
                 FontWeight = FontWeights.SemiBold,

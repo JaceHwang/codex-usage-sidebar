@@ -54,6 +54,7 @@ public sealed class EmbeddedManagedPayloadOperationsTests
                 ["codex.exe"] = Encoding.UTF8.GetBytes("runtime"),
                 ["selectors.json"] = Encoding.UTF8.GetBytes("{}"),
                 ["marker.txt"] = Encoding.UTF8.GetBytes("release"),
+                ["windows-validation.json"] = Encoding.UTF8.GetBytes("validation-evidence"),
             };
             var digests = files.ToDictionary(
                 pair => pair.Key,
@@ -69,6 +70,7 @@ public sealed class EmbeddedManagedPayloadOperationsTests
                 realDeviceValidated = true,
                 publishableInstaller = publishable,
                 codexRuntime = new { source = RuntimeSource, sha256 = digests["codex.exe"] },
+                realDeviceValidation = new { sha256 = digests["windows-validation.json"] },
                 files = digests,
             });
             Resources = files.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);

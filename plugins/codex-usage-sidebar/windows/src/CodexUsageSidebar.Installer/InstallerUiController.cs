@@ -15,9 +15,16 @@ public enum InstallerUiState
     Failed,
 }
 
+public enum InstallerUiFlavor
+{
+    DeviceTest,
+    PublishedRelease,
+}
+
 public sealed record InstallerUiModel(
     InstallerUiMode Mode,
     InstallerUiState State,
+    string DisplayVersion,
     string Title,
     string Description,
     string PrimaryAction,
@@ -30,10 +37,13 @@ public sealed record InstallerUiModel(
         string? locale,
         InstallerUiMode mode,
         InstallerUiState state,
-        string? error = null)
+        string? error = null,
+        InstallerUiFlavor flavor = InstallerUiFlavor.DeviceTest,
+        string displayVersion = "0.3.0-beta.1")
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(displayVersion);
         var language = ResolveLanguage(locale);
-        var copy = Copy.For(language, mode);
+        var copy = Copy.For(language, mode, flavor);
         var status = state switch
         {
             InstallerUiState.Ready => copy.Ready,
@@ -45,6 +55,7 @@ public sealed record InstallerUiModel(
         return new InstallerUiModel(
             mode,
             state,
+            displayVersion,
             copy.Title,
             copy.Description,
             copy.Primary,
@@ -86,8 +97,12 @@ public sealed record InstallerUiModel(
         string Succeeded,
         string Failed)
     {
-        public static Copy For(InstallerLanguage language, InstallerUiMode mode) =>
-            (language, mode) switch
+        public static Copy For(
+            InstallerLanguage language,
+            InstallerUiMode mode,
+            InstallerUiFlavor flavor)
+        {
+            Copy copy = (language, mode) switch
             {
                 (InstallerLanguage.SimplifiedChinese, InstallerUiMode.Install) => new(
                     "Codex Usage Sidebar 安装程序", "本机设备测试版本（不可发布）。为当前 Windows 用户安装 Codex Usage Sidebar。",
@@ -117,6 +132,33 @@ public sealed record InstallerUiModel(
                     "Codex Usage Sidebar Setup", "Local device-test build (not publishable). Uninstall Codex Usage Sidebar for the current Windows user.",
                     "Uninstall", "Cancel", "Ready to uninstall.", "Uninstalling…", "Uninstall complete. Local authorization and state data were kept.", "Operation failed:"),
             };
+            if (flavor == InstallerUiFlavor.DeviceTest) return copy;
+            if (flavor != InstallerUiFlavor.PublishedRelease)
+            {
+                throw new ArgumentOutOfRangeException(nameof(flavor));
+            }
+            var description = (language, mode) switch
+            {
+                (InstallerLanguage.SimplifiedChinese, InstallerUiMode.Install) =>
+                    "为当前 Windows 用户安装 Codex Usage Sidebar。",
+                (InstallerLanguage.SimplifiedChinese, InstallerUiMode.Repair) =>
+                    "验证并修复当前用户的 Codex Usage Sidebar 安装。",
+                (InstallerLanguage.SimplifiedChinese, InstallerUiMode.Uninstall) =>
+                    "从当前 Windows 用户卸载 Codex Usage Sidebar。",
+                (InstallerLanguage.TraditionalChinese, InstallerUiMode.Install) =>
+                    "為目前 Windows 使用者安裝 Codex Usage Sidebar。",
+                (InstallerLanguage.TraditionalChinese, InstallerUiMode.Repair) =>
+                    "驗證並修復目前使用者的 Codex Usage Sidebar 安裝。",
+                (InstallerLanguage.TraditionalChinese, InstallerUiMode.Uninstall) =>
+                    "從目前 Windows 使用者解除安裝 Codex Usage Sidebar。",
+                (InstallerLanguage.English, InstallerUiMode.Install) =>
+                    "Install Codex Usage Sidebar for the current Windows user.",
+                (InstallerLanguage.English, InstallerUiMode.Repair) =>
+                    "Verify and repair the current user's Codex Usage Sidebar installation.",
+                _ => "Uninstall Codex Usage Sidebar for the current Windows user.",
+            };
+            return copy with { Description = description };
+        }
     }
 }
 
@@ -128,17 +170,24 @@ public interface IInstallerUiActions
 public sealed class InstallerUiController
 {
     private readonly string? locale;
+    private readonly InstallerUiFlavor flavor;
+    private readonly string displayVersion;
     private readonly IInstallerUiActions actions;
     private int isExecuting;
 
     public InstallerUiController(
         string? locale,
         InstallerUiMode mode,
-        IInstallerUiActions actions)
+        IInstallerUiActions actions,
+        InstallerUiFlavor flavor = InstallerUiFlavor.DeviceTest,
+        string displayVersion = "0.3.0-beta.1")
     {
         this.locale = locale;
+        this.flavor = flavor;
+        this.displayVersion = displayVersion;
         this.actions = actions;
-        Model = InstallerUiModel.Create(locale, mode, InstallerUiState.Ready);
+        Model = InstallerUiModel.Create(
+            locale, mode, InstallerUiState.Ready, flavor: flavor, displayVersion: displayVersion);
     }
 
     public InstallerUiModel Model { get; private set; }
@@ -173,7 +222,7 @@ public sealed class InstallerUiController
 
     private void Update(InstallerUiState state, string? error = null)
     {
-        Model = InstallerUiModel.Create(locale, Model.Mode, state, error);
+        Model = InstallerUiModel.Create(locale, Model.Mode, state, error, flavor, displayVersion);
         Changed?.Invoke(this, Model);
     }
 }

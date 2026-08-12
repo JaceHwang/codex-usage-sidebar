@@ -168,9 +168,7 @@ public sealed class AtomicPayloadInstallerTests
     {
         using var fixture = Fixture.Create();
         fixture.WritePayload(ExpectedVersion, "new");
-        fixture.SetManifestString("status", "release");
-        fixture.SetManifestBoolean("realDeviceValidated", true);
-        fixture.SetManifestBoolean("publishableInstaller", true);
+        fixture.MakePublishedRelease(publishable: true);
         fixture.WriteExistingPayload("old");
 
         Assert.ThrowsException<InvalidDataException>(() =>
@@ -186,9 +184,23 @@ public sealed class AtomicPayloadInstallerTests
     {
         using var fixture = Fixture.Create();
         fixture.WritePayload(ExpectedVersion, "new");
-        fixture.SetManifestString("status", "release");
-        fixture.SetManifestBoolean("realDeviceValidated", true);
-        fixture.SetManifestBoolean("publishableInstaller", false);
+        fixture.MakePublishedRelease(publishable: false);
+        fixture.WriteExistingPayload("old");
+
+        Assert.ThrowsException<InvalidDataException>(() =>
+            fixture.Installer(PayloadManifestPolicy.PublishedRelease)
+                .Install(fixture.Source, fixture.Destination));
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
+    [TestMethod]
+    public void PublishedReleaseTrustPolicyRejectsPayloadWithoutBoundValidationEvidence()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.MakePublishedRelease(publishable: true);
+        File.Delete(Path.Combine(fixture.Source, "windows-validation.json"));
+        fixture.RemoveDeclaredFile("windows-validation.json");
         fixture.WriteExistingPayload("old");
 
         Assert.ThrowsException<InvalidDataException>(() =>
@@ -386,6 +398,25 @@ public sealed class AtomicPayloadInstallerTests
             var path = Path.Combine(Source, "windows-payload.json");
             var document = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
             document[property] = value;
+            File.WriteAllText(path, document.ToJsonString());
+        }
+
+        public void MakePublishedRelease(bool publishable)
+        {
+            var evidencePath = Path.Combine(Source, "windows-validation.json");
+            File.WriteAllText(evidencePath, "validation-evidence");
+            var evidenceSha256 = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(evidencePath))).ToLowerInvariant();
+            var path = Path.Combine(Source, "windows-payload.json");
+            var document = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+            document["status"] = "release";
+            document["realDeviceValidated"] = true;
+            document["publishableInstaller"] = publishable;
+            document["files"]!["windows-validation.json"] = evidenceSha256;
+            document["realDeviceValidation"] = new JsonObject
+            {
+                ["sha256"] = evidenceSha256,
+            };
             File.WriteAllText(path, document.ToJsonString());
         }
 

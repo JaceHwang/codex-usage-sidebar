@@ -211,6 +211,25 @@ public sealed class AtomicPayloadInstaller
             {
                 throw new InvalidDataException("The Windows payload is incomplete or its Codex runtime binding is invalid.");
             }
+            if (trustedIdentity.Policy == PayloadManifestPolicy.PublishedRelease)
+            {
+                const string validationFile = "windows-validation.json";
+                if (!declared.Contains(validationFile)
+                    || !files.TryGetProperty(validationFile, out var declaredValidationDigest)
+                    || declaredValidationDigest.ValueKind != JsonValueKind.String
+                    || !root.TryGetProperty("realDeviceValidation", out var validation)
+                    || validation.ValueKind != JsonValueKind.Object
+                    || !validation.TryGetProperty("sha256", out var trustedValidationDigest)
+                    || trustedValidationDigest.ValueKind != JsonValueKind.String
+                    || !string.Equals(
+                        trustedValidationDigest.GetString(),
+                        declaredValidationDigest.GetString(),
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidDataException(
+                        "A published Windows payload must bind its complete real-device validation evidence.");
+                }
+            }
 
             var actualFiles = Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories)
                 .Select(path => Path.GetRelativePath(source, path))

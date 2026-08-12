@@ -13,6 +13,7 @@
     <AssemblyMetadata Include="DeviceSourceCommit" Value="$(DeviceSourceCommit)" Condition="'$(DeviceSourceCommit)' != ''" />
     <AssemblyMetadata Include="DevicePayloadManifestSha256" Value="$(DevicePayloadManifestSha256)" Condition="'$(DevicePayloadManifestSha256)' != ''" />
     <AssemblyMetadata Include="InstallerPayloadMode" Value="$(InstallerPayloadMode)" Condition="'$(InstallerPayloadMode)' != ''" />
+    <AssemblyMetadata Include="InstallerDisplayVersion" Value="$(InstallerDisplayVersion)" Condition="'$(InstallerDisplayVersion)' != ''" />
     <AssemblyMetadata Include="EmbeddedPayloadVersion" Value="$(EmbeddedPayloadVersion)" Condition="'$(EmbeddedPayloadVersion)' != ''" />
     <AssemblyMetadata Include="EmbeddedSourceCommit" Value="$(EmbeddedSourceCommit)" Condition="'$(EmbeddedSourceCommit)' != ''" />
     <AssemblyMetadata Include="EmbeddedPayloadManifestSha256" Value="$(EmbeddedPayloadManifestSha256)" Condition="'$(EmbeddedPayloadManifestSha256)' != ''" />
