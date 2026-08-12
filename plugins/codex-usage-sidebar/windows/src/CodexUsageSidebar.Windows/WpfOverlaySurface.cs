@@ -63,7 +63,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         indicator.MouseLeftButtonUp += (_, eventArgs) =>
         {
             if (eventArgs.ChangedButton != MouseButton.Left) return;
-            interaction = interaction.TogglePinned(indicator.IsMouseOver || detail.IsMouseOver);
+            interaction = interaction.TogglePinned(IsPointerInsideOverlay());
             RefreshInteraction();
         };
         hoverTimer = new DispatcherTimer(
@@ -118,14 +118,14 @@ public sealed class WpfOverlaySurface : IOverlaySurface
 
     private void PollPointer()
     {
-        var inside = indicator.IsMouseOver || detail.IsMouseOver;
+        var inside = IsPointerInsideOverlay();
         interaction = interaction.PointerChanged(inside);
         RefreshInteraction();
     }
 
     private void RefreshInteraction()
     {
-        var highlighted = indicator.IsMouseOver || interaction.IsPinned;
+        var highlighted = IsPointerInside(indicator) || interaction.IsPinned;
         var color = SystemColors.WindowTextColor;
         indicatorSurface.Background = new SolidColorBrush(Color.FromArgb(
             IndicatorHitTestPolicy.BackgroundAlpha(highlighted),
@@ -142,6 +142,29 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         {
             detail.Hide();
         }
+    }
+
+    private bool IsPointerInsideOverlay() =>
+        IsPointerInside(indicator) || IsPointerInside(detail);
+
+    private static bool IsPointerInside(Window window)
+    {
+        if (!window.IsVisible || !GetCursorPos(out var cursor))
+        {
+            return false;
+        }
+        var handle = new WindowInteropHelper(window).Handle;
+        if (handle == IntPtr.Zero || !GetWindowRect(handle, out var bounds))
+        {
+            return false;
+        }
+        return OverlayPointerPolicy.IsInside(
+            new PointD(cursor.X, cursor.Y),
+            new RectD(
+                bounds.Left,
+                bounds.Top,
+                bounds.Right - bounds.Left,
+                bounds.Bottom - bounds.Top));
     }
 
     private void UpdateIndicator(AllowanceSnapshot snapshot)
@@ -453,6 +476,21 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(IntPtr window, out NativeRect rectangle);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        internal int X;
+        internal int Y;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativeRect

@@ -9,6 +9,25 @@ public sealed record HostWindowSnapshot(
     double DpiScale,
     string BuildIdentity);
 
+public readonly record struct PointD(double X, double Y);
+
+public static class OverlayPointerPolicy
+{
+    public static bool IsInside(PointD point, RectD bounds) =>
+        double.IsFinite(point.X)
+        && double.IsFinite(point.Y)
+        && double.IsFinite(bounds.X)
+        && double.IsFinite(bounds.Y)
+        && double.IsFinite(bounds.Width)
+        && double.IsFinite(bounds.Height)
+        && bounds.Width > 0
+        && bounds.Height > 0
+        && point.X >= bounds.X
+        && point.X < bounds.Right
+        && point.Y >= bounds.Y
+        && point.Y < bounds.Bottom;
+}
+
 public sealed record TitlebarSnapshot(
     double PreferredAnchorTrailingEdge,
     IReadOnlyList<RectD> Obstacles,

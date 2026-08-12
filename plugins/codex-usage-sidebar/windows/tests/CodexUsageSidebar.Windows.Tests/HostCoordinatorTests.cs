@@ -263,6 +263,19 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public void PassiveOverlayPointerHitTestingUsesPhysicalWindowRectangles()
+    {
+        var indicator = new RectD(2512, 88, 328, 56);
+        var detail = new RectD(2240, 156, 600, 400);
+
+        Assert.IsTrue(OverlayPointerPolicy.IsInside(new PointD(2676, 116), indicator));
+        Assert.IsTrue(OverlayPointerPolicy.IsInside(new PointD(2300, 200), detail));
+        Assert.IsFalse(OverlayPointerPolicy.IsInside(new PointD(2511, 116), indicator));
+        Assert.IsFalse(OverlayPointerPolicy.IsInside(new PointD(2840, 116), indicator));
+        Assert.IsFalse(OverlayPointerPolicy.IsInside(new PointD(double.NaN, 116), indicator));
+    }
+
+    [TestMethod]
     public void HostSingletonRefusesASecondLeaseUntilTheFirstIsDisposed()
     {
         var identity = $"test-{Guid.NewGuid():N}";
