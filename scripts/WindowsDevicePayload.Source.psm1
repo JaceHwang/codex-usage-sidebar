@@ -51,4 +51,21 @@ function Assert-WindowsDeviceSourceState {
     return $sourceCommit
 }
 
-Export-ModuleMember -Function Assert-WindowsDeviceSourceState
+function Assert-WindowsDevicePlatform {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [bool] $IsWindows,
+        [Parameter(Mandatory = $true)]
+        [string] $Architecture,
+        [Parameter(Mandatory = $true)]
+        [int] $WindowsBuild
+    )
+
+    if (-not $IsWindows -or $Architecture -ne 'x64' -or $WindowsBuild -lt 22000) {
+        throw [PlatformNotSupportedException]::new(
+            'Windows v0.3.0-beta.1 device payloads require Windows 11 AMD64/x64 build 22000 or newer.')
+    }
+}
+
+Export-ModuleMember -Function Assert-WindowsDeviceSourceState, Assert-WindowsDevicePlatform

@@ -30,6 +30,20 @@ if ($plan.artifactName -match 'setup|release') {
 
 $sourceGateModule = Join-Path $repoRoot 'scripts\WindowsDevicePayload.Source.psm1'
 Import-Module $sourceGateModule -Force
+Assert-WindowsDevicePlatform -IsWindows $true -Architecture 'x64' -WindowsBuild 22000
+Assert-WindowsDevicePlatform -IsWindows $true -Architecture 'x64' -WindowsBuild 26200
+try {
+    Assert-WindowsDevicePlatform -IsWindows $true -Architecture 'arm64' -WindowsBuild 26200
+    throw 'ARM64 unexpectedly passed the device platform gate.'
+}
+catch [PlatformNotSupportedException] {
+}
+try {
+    Assert-WindowsDevicePlatform -IsWindows $true -Architecture 'x64' -WindowsBuild 19045
+    throw 'Windows 10 unexpectedly passed the device platform gate.'
+}
+catch [PlatformNotSupportedException] {
+}
 $fixture = Join-Path ([IO.Path]::GetTempPath()) ('cus-source-gate-' + [Guid]::NewGuid().ToString('N'))
 try {
     New-Item -ItemType Directory -Force -Path (Join-Path $fixture 'src\bin') | Out-Null

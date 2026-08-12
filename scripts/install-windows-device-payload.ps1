@@ -36,16 +36,12 @@ if ($PlanOnly) {
     exit 0
 }
 
-if (-not [OperatingSystem]::IsWindows() -or
-    [Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne [Runtime.InteropServices.Architecture]::X64) {
-    throw 'Windows v0.3.0-beta.1 device payloads require Windows 11 AMD64/x64.'
-}
-if ([Environment]::OSVersion.Version.Build -lt $plan.minimumWindowsBuild) {
-    throw 'Windows v0.3.0-beta.1 device payloads require Windows 11 build 22000 or newer.'
-}
-
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $PSScriptRoot 'WindowsDevicePayload.Source.psm1') -Force
+Assert-WindowsDevicePlatform `
+    -IsWindows ([Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([Runtime.InteropServices.OSPlatform]::Windows)) `
+    -Architecture ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()) `
+    -WindowsBuild ([Environment]::OSVersion.Version.Build)
 $sourceCommit = Assert-WindowsDeviceSourceState -RepositoryRoot $repoRoot -BuildInputRoots @('.')
 
 $distRoot = Join-Path $repoRoot '.dist\windows-device-test'
