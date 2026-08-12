@@ -8,7 +8,7 @@ namespace CodexUsageSidebar.Installer.Tests;
 [TestClass]
 public sealed class AtomicPayloadInstallerTests
 {
-    private const string ExpectedVersion = "0.3.0-beta.1";
+    private const string ExpectedVersion = "0.3.0";
 
     [TestMethod]
     public void InstallsAndAtomicallyReplacesVersionMatchedPayload()

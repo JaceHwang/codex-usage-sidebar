@@ -5,7 +5,7 @@ public sealed record DevicePayloadInstallPlan(
     string DestinationPayload,
     TrustedPayloadIdentity TrustedIdentity)
 {
-    private const string Version = "0.3.0-beta.1";
+    private const string Version = "0.3.0";
     private const string CodexRuntimeSource =
         "https://github.com/openai/codex/releases/download/rust-v0.147.0/codex-x86_64-pc-windows-msvc.exe";
     private const string CodexRuntimeSha256 =
@@ -22,12 +22,12 @@ public sealed record DevicePayloadInstallPlan(
         if (!string.Equals(architecture, "x64", StringComparison.Ordinal))
         {
             throw new PlatformNotSupportedException(
-                "Windows v0.3.0-beta.1 device payloads support AMD64/x64 only.");
+                "Windows v0.3.0 device payloads support AMD64/x64 only.");
         }
         if (windowsBuild < 22_000)
         {
             throw new PlatformNotSupportedException(
-                "Windows v0.3.0-beta.1 device payloads require Windows 11 build 22000 or newer.");
+                "Windows v0.3.0 device payloads require Windows 11 build 22000 or newer.");
         }
         var source = WindowsPath.Normalize(sourcePayload);
         if (sourceCommit.Length != 40 || !sourceCommit.All(character =>

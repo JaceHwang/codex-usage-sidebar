@@ -116,7 +116,7 @@ internal sealed class WindowsOverlayRuntime : IDisposable
             {
                 var session = new AppServerSession(
                     new AppServerProcessConnectionFactory(launchPlan),
-                    new AppServerProtocol("codex-usage-sidebar", "0.3.0-beta.1"),
+                    new AppServerProtocol("codex-usage-sidebar", "0.3.0"),
                     () => DateTimeOffset.Now);
                 await session.RunAsync(snapshot =>
                 {

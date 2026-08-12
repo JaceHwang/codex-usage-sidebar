@@ -255,7 +255,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             VerticalAlignment = VerticalAlignment.Center,
             Child = new TextBlock
             {
-                Text = "v0.3.0-beta.1",
+                Text = "v0.3.0",
                 FontFamily = new FontFamily("Segoe UI"),
                 FontSize = OverlayVisualMetrics.VersionBadgeFontSize,
                 FontWeight = FontWeights.Medium,

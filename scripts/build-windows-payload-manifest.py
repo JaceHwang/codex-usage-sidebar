@@ -12,7 +12,7 @@ import tempfile
 from pathlib import Path
 
 
-EXPECTED_VERSION = "0.3.0-beta.1"
+EXPECTED_VERSION = "0.3.0"
 OFFICIAL_CODEX_RELEASE_PREFIX = "https://github.com/openai/codex/releases/download/"
 REQUIRED_FILES = {
     "CodexUsageSidebar.Windows.exe",

@@ -57,6 +57,41 @@ plugin_version="$(/usr/bin/python3 -c 'import json,sys; print(json.load(open(sys
 }
 
 DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}" \
+  /bin/bash "$source_root/plugins/codex-usage-sidebar/scripts/build-companion.sh"
+rebuilt_companion="$source_root/plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app"
+rebuilt_executable="$rebuilt_companion/Contents/MacOS/CodexUsageSidebar"
+[[ -x "$rebuilt_executable" ]] || { printf 'rebuilt v0.3.0 companion is missing\n' >&2; exit 66; }
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$rebuilt_companion/Contents/Info.plist")" == "$version" ]]
+[[ "$(/usr/bin/lipo -archs "$rebuilt_executable")" == "arm64" ]]
+companion_sha="$(/usr/bin/shasum -a 256 "$rebuilt_executable" | /usr/bin/awk '{print $1}')"
+cdhash="$(/usr/bin/codesign -dv --verbose=4 "$rebuilt_companion" 2>&1 | /usr/bin/awk -F= '/^CDHash=/{print $2; exit}')"
+cdhash_sha="$(/usr/bin/printf '%s' "$cdhash" | /usr/bin/shasum -a 256 | /usr/bin/awk '{print $1}')"
+companion_signature="adhoc"
+if /usr/bin/codesign -dv --verbose=4 "$rebuilt_companion" 2>&1 | /usr/bin/grep -q '^TeamIdentifier='; then
+  companion_signature="developer-id"
+fi
+/usr/bin/python3 - \
+  "$source_root/plugins/codex-usage-sidebar/assets/PROVENANCE.json" \
+  "$source_commit" "$companion_sha" "$cdhash_sha" "$companion_signature" <<'PY'
+import json
+import sys
+
+output, commit, executable_sha, cdhash_sha, signature = sys.argv[1:]
+with open(output, "w", encoding="utf-8") as handle:
+    json.dump({
+        "schemaVersion": 1,
+        "build": {"kind": "v0.3.0-release-candidate"},
+        "sourceCommit": commit,
+        "companion": {
+            "executableSha256": executable_sha,
+            "cdhashSha256": cdhash_sha,
+            "signature": signature,
+        },
+    }, handle, indent=2, sort_keys=True)
+    handle.write("\n")
+PY
+
+DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}" \
   /usr/bin/xcrun swift build \
     --package-path "$native_root" \
     --configuration release \
@@ -77,6 +112,13 @@ bin_path="$(
   "$source_commit" \
   .agents/plugins/marketplace.json \
   plugins/codex-usage-sidebar | /usr/bin/tar -xf - -C "$app/Contents/Resources/payload"
+/bin/rm -rf "$app/Contents/Resources/payload/plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app"
+/usr/bin/ditto \
+  "$rebuilt_companion" \
+  "$app/Contents/Resources/payload/plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app"
+/bin/cp \
+  "$source_root/plugins/codex-usage-sidebar/assets/PROVENANCE.json" \
+  "$app/Contents/Resources/payload/plugins/codex-usage-sidebar/assets/PROVENANCE.json"
 /usr/bin/printf '%s\n' "$source_commit" >"$app/Contents/Resources/InstallerPayloadCommit"
 
 /bin/cat >"$app/Contents/Info.plist" <<PLIST

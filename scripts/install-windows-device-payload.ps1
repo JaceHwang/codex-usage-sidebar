@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$version = '0.3.0-beta.1'
+$version = '0.3.0'
 $architecture = 'x64'
 $runtimeIdentifier = 'win-x64'
 $codexRuntimeSource = 'https://github.com/openai/codex/releases/download/rust-v0.147.0/codex-x86_64-pc-windows-msvc.exe'
@@ -195,7 +195,7 @@ try {
             return $null -ne $managed
         } | Out-Null
         $runtimeStatus = (& $controlScript status | Out-String).Trim()
-        if ($LASTEXITCODE -ne 0 -or $runtimeStatus -notmatch '^runtime=running pid=\d+ version=0\.3\.0-beta\.1$') {
+        if ($LASTEXITCODE -ne 0 -or $runtimeStatus -notmatch '^runtime=running pid=\d+ version=0\.3\.0$') {
             throw "The Windows overlay host is not running: $runtimeStatus"
         }
         Write-Output $runtimeStatus

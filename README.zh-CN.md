@@ -21,9 +21,9 @@
 | 平台 | 状态 | 分发方式 |
 | --- | --- | --- |
 | macOS 14+ Apple Silicon | 正式版 v0.2.3 | 已签名伴随程序与 v0.2.3 DMG |
-| Windows 11 AMD64（`x64`） | v0.3.0-beta.1 开发中 | 跨平台核心与诊断候选物已离线验证，尚无公开安装包；Windows ARM64 不在本版本范围内 |
+| Windows 11 AMD64（`x64`） | v0.3.0 发布候选版 | 正在进行实机验证；Windows ARM64 不在本版本范围内 |
 
-Windows 开发位于 `codex/v0.3.0-beta.1`。共享额度契约、.NET 核心、Win32 窗口边界、默认脱敏
+Windows v0.3.0 发布工作位于精确的 `v0.3.0` 分支。共享额度契约、.NET 核心、Win32 窗口边界、默认脱敏
 的 UI Automation 探针、用户级安装器后端、载荷摘要校验与 Windows CI 均已建立，同时不改变
 稳定的 Mac 载荷。Windows 安装程序只有通过真实 Codex 客户端的 UIA、DPI、主题、布局、升级与
 安装矩阵后才允许发布。详见 [Windows Beta 开发说明](docs/WINDOWS-BETA.md)。

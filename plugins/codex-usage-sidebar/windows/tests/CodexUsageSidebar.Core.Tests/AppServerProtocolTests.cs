@@ -9,7 +9,7 @@ public sealed class AppServerProtocolTests
     [TestMethod]
     public void BuildsInitializeInitializedAndRateLimitReadMessagesWithIncreasingIds()
     {
-        var protocol = new AppServerProtocol("codex_usage_sidebar_windows", "0.3.0-beta.1");
+        var protocol = new AppServerProtocol("codex_usage_sidebar_windows", "0.3.0");
 
         using var initialize = JsonDocument.Parse(protocol.CreateInitializeRequest());
         using var initialized = JsonDocument.Parse(protocol.CreateInitializedNotification());
