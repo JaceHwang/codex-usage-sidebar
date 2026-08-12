@@ -28,6 +28,9 @@ Windows 开发位于 `codex/v0.3.0-beta.1`。共享额度契约、.NET 核心、
 稳定的 Mac 载荷。Windows 安装程序只有通过真实 Codex 客户端的 UIA、DPI、主题、布局、升级与
 安装矩阵后才允许发布。详见 [Windows Beta 开发说明](docs/WINDOWS-BETA.md)。
 后续测试电脑的完整操作步骤见 [Windows 实机诊断交接手册](docs/WINDOWS-DEVICE-HANDOFF.zh-CN.md)。
+准备在 Windows Codex 中继续开发时，请从
+[Windows Codex 开发接力手册](docs/WINDOWS-CODEX-CONTINUATION.zh-CN.md)开始；Git 分支和经过
+验证的提交历史是跨电脑接力的唯一源码依据。
 
 ## 当前实际效果
 

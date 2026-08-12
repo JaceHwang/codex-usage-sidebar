@@ -91,6 +91,12 @@ equal values can be correlated only inside that single report. Add `--include-te
 collecting the report intentionally agrees to include visible UI Automation names; conversation
 content should be closed or replaced with a disposable task first.
 
+To continue the implementation in Codex on a Windows computer, use the tracked
+[Windows Codex continuation guide](WINDOWS-CODEX-CONTINUATION.md) or its
+[Simplified Chinese version](WINDOWS-CODEX-CONTINUATION.zh-CN.md). It records the exact branch,
+approved macOS visual baseline, environment checks, first prompt, baseline commands, and safe
+cross-machine Git workflow.
+
 ## Required real-device gate
 
 The setup package remains blocked until all of these pass on the real Windows Codex client:

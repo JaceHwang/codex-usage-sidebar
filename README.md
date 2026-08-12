@@ -40,6 +40,9 @@ Windows setup executable remains blocked until it passes the real Codex UIA, DPI
 upgrade, and installer matrix. See [Windows beta development](docs/WINDOWS-BETA.md).
 The future test-machine procedure is documented separately in the
 [Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md).
+To move the active work into Codex on a Windows computer, follow the
+[Windows Codex continuation guide](docs/WINDOWS-CODEX-CONTINUATION.md); the Git branch and its
+verified commit history are the handoff source of truth.
 
 ## Actual appearance
 
