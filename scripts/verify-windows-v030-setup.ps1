@@ -5,7 +5,11 @@ param(
 
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^[0-9a-f]{40}$')]
-    [string] $SourceCommit
+    [string] $SourceCommit,
+
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern('^[0-9a-f]{40}$')]
+    [string] $PackagingCommit
 )
 
 $ErrorActionPreference = 'Stop'
@@ -54,6 +58,8 @@ if ($provenance.schemaVersion -ne 1 -or
     $provenance.architecture -ne 'x64' -or
     $provenance.runtimeIdentifier -ne 'win-x64' -or
     $provenance.sourceCommit -ne $SourceCommit -or
+    $provenance.validatedSourceCommit -ne $SourceCommit -or
+    $provenance.packagingCommit -ne $PackagingCommit -or
     $provenance.artifact -ne $artifactName -or
     $provenance.sha256 -ne $actualSha256 -or
     $provenance.realDeviceValidated -ne $true -or

@@ -17,10 +17,13 @@ if ($plan.version -ne '0.3.0' -or
 $content = Get-Content -Raw -LiteralPath $script
 foreach ($required in @(
     'verify-windows-v030-validation.py',
+    'verify-v030-packaging-delta.py',
     'build-windows-v030-release-manifest.py',
     'verify-windows-v030-release-payload.py',
     '--verify-embedded',
     'InstallerPayloadMode=embedded-release',
+    'validatedSourceCommit',
+    'packagingCommit',
     'status --porcelain=v1 --untracked-files=all',
     "'v0.3.0'"
 )) {

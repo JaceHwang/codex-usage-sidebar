@@ -56,7 +56,7 @@ $porcelain = (& git -C $repoRoot status --porcelain=v1 --untracked-files=all | O
 if ($LASTEXITCODE -ne 0 -or $porcelain.Length -ne 0) {
     throw 'Windows v0.3.0 setup requires a completely clean worktree, including untracked files.'
 }
-$sourceCommit = Assert-WindowsDeviceSourceState -RepositoryRoot $repoRoot -BuildInputRoots @('.')
+$packagingCommit = Assert-WindowsDeviceSourceState -RepositoryRoot $repoRoot -BuildInputRoots @('.')
 
 $evidencePath = (Resolve-Path -LiteralPath $ValidationEvidence).Path
 $evidenceFull = [IO.Path]::GetFullPath($evidencePath)
@@ -65,9 +65,23 @@ if (-not $evidenceFull.StartsWith($repoPrefix, [StringComparison]::OrdinalIgnore
     throw 'Windows validation evidence must be a committed file inside the repository.'
 }
 $evidenceRelative = $evidenceFull.Substring($repoPrefix.Length).Replace('\', '/')
+if ($evidenceRelative -ne 'docs/validation/windows-v0.3.0.json') {
+    throw 'Windows v0.3.0 setup requires the canonical committed validation evidence path.'
+}
 & git -C $repoRoot ls-files --error-unmatch -- $evidenceRelative | Out-Null
 if ($LASTEXITCODE -ne 0) {
     throw 'Windows validation evidence must be tracked by Git at HEAD.'
+}
+$evidenceDocument = Get-Content -Raw -LiteralPath $evidenceFull | ConvertFrom-Json
+$sourceCommit = [string] $evidenceDocument.sourceCommit
+$deltaVerifier = Join-Path $repoRoot 'scripts\verify-v030-packaging-delta.py'
+& python $deltaVerifier `
+    --repository $repoRoot `
+    --validated-source-commit $sourceCommit `
+    --packaging-commit $packagingCommit `
+    --allowed-path $evidenceRelative
+if ($LASTEXITCODE -ne 0) {
+    throw 'The Windows packaging commit changed files after real-device validation.'
 }
 
 $validationVerifier = Join-Path $repoRoot 'scripts\verify-windows-v030-validation.py'
@@ -108,6 +122,7 @@ try {
         '-p:PublishTrimmed=false',
         '-p:DebugType=None',
         '-p:DebugSymbols=false',
+        "-p:SourceRevisionId=$sourceCommit",
         '--nologo'
     )
     $controlProject = Join-Path $repoRoot 'plugins\codex-usage-sidebar\windows\src\CodexUsageSidebar.Control\CodexUsageSidebar.Control.csproj'
@@ -190,6 +205,8 @@ try {
         architecture = $architecture
         runtimeIdentifier = $runtimeIdentifier
         sourceCommit = $sourceCommit
+        validatedSourceCommit = $sourceCommit
+        packagingCommit = $packagingCommit
         artifact = $artifactName
         sha256 = $setupSha256
         payloadManifestSha256 = $manifestSha256
@@ -214,7 +231,10 @@ try {
         [Text.UTF8Encoding]::new($false))
 
     $setupVerifier = Join-Path $repoRoot 'scripts\verify-windows-v030-setup.ps1'
-    & $setupVerifier -CandidateDirectory $output -SourceCommit $sourceCommit
+    & $setupVerifier `
+        -CandidateDirectory $output `
+        -SourceCommit $sourceCommit `
+        -PackagingCommit $packagingCommit
     if ($LASTEXITCODE -ne 0) {
         throw 'The copied Windows v0.3.0 setup candidate failed final verification.'
     }
@@ -224,6 +244,7 @@ try {
         provenance = $provenancePath
         checksums = $checksumsPath
         sourceCommit = $sourceCommit
+        packagingCommit = $packagingCommit
         sha256 = $setupSha256
         authenticodeStatus = $authenticode.Status.ToString()
     } | ConvertTo-Json -Depth 3

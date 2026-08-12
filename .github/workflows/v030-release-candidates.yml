@@ -1,0 +1,191 @@
+name: v0.3.0 release candidates
+
+on:
+  push:
+    branches: [v0.3.0]
+
+permissions:
+  contents: read
+
+jobs:
+  windows-x64:
+    name: Windows 11 x64 setup candidate
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Test Windows implementation and setup gates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet test plugins/codex-usage-sidebar/windows/CodexUsageSidebar.Windows.sln --configuration Release --nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet format plugins/codex-usage-sidebar/windows/CodexUsageSidebar.Windows.sln --verify-no-changes --no-restore
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & tests/test-windows-device-payload.ps1
+          & tests/test-windows-v030-setup.ps1
+          & tests/test-windows-embedded-setup-integration.ps1
+
+      - name: Verify complete real-device evidence
+        shell: pwsh
+        run: |
+          $evidence = Get-Content -Raw docs/validation/windows-v0.3.0.json | ConvertFrom-Json
+          python scripts/verify-windows-v030-validation.py `
+            docs/validation/windows-v0.3.0.json `
+            --source-commit $evidence.sourceCommit
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build evidence-bound setup outside the repository
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $evidence = Get-Content -Raw docs/validation/windows-v0.3.0.json | ConvertFrom-Json
+          $output = Join-Path $env:RUNNER_TEMP 'codex-usage-sidebar-v030-windows'
+          & scripts/build-windows-v030-setup.ps1 `
+            -ValidationEvidence docs/validation/windows-v0.3.0.json `
+            -OutputDirectory $output
+          & scripts/verify-windows-v030-setup.ps1 `
+            -CandidateDirectory $output `
+            -SourceCommit $evidence.sourceCommit `
+            -PackagingCommit '${{ github.sha }}'
+
+      - name: Upload Windows x64 candidate
+        id: upload_windows
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: codex-usage-sidebar-v0.3.0-windows-x64-candidate
+          path: |
+            ${{ runner.temp }}/codex-usage-sidebar-v030-windows/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe
+            ${{ runner.temp }}/codex-usage-sidebar-v030-windows/WINDOWS-V030-PROVENANCE.json
+            ${{ runner.temp }}/codex-usage-sidebar-v030-windows/WINDOWS-V030-SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Finalize Windows candidate provenance
+        shell: pwsh
+        env:
+          ARTIFACT_ID: ${{ steps.upload_windows.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload_windows.outputs.artifact-digest }}
+        run: |
+          $evidence = Get-Content -Raw docs/validation/windows-v0.3.0.json | ConvertFrom-Json
+          $digest = $env:ARTIFACT_DIGEST
+          if ($digest -notmatch '^sha256:') { $digest = "sha256:$digest" }
+          $candidate = Join-Path $env:RUNNER_TEMP 'codex-usage-sidebar-v030-windows'
+          python scripts/finalize-windows-v030-provenance.py `
+            --input (Join-Path $candidate 'WINDOWS-V030-PROVENANCE.json') `
+            --output (Join-Path $candidate 'WINDOWS-V030-PROVENANCE.final.json') `
+            --expected-repository '${{ github.repository }}' `
+            --run-repository '${{ github.repository }}' `
+            --run-id '${{ github.run_id }}' `
+            --run-url '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' `
+            --head-sha '${{ github.sha }}' `
+            --validated-source-sha $evidence.sourceCommit `
+            --workflow-path .github/workflows/v030-release-candidates.yml `
+            --event push `
+            --branch v0.3.0 `
+            --artifact-id $env:ARTIFACT_ID `
+            --artifact-name codex-usage-sidebar-v0.3.0-windows-x64-candidate `
+            --artifact-digest $digest `
+            --release-tag v0.3.0
+
+      - name: Upload finalized Windows provenance
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: codex-usage-sidebar-v0.3.0-windows-x64-provenance
+          path: ${{ runner.temp }}/codex-usage-sidebar-v030-windows/WINDOWS-V030-PROVENANCE.final.json
+          if-no-files-found: error
+
+  macos-arm64:
+    name: macOS arm64 DMG candidate
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify pinned arm64 toolchain
+        run: |
+          test "$(uname -m)" = arm64
+          test "$(xcrun --sdk macosx --show-sdk-version)" = 26.5
+          xcodebuild -version
+
+      - name: Bind candidate to validated source
+        run: |
+          validated_source="$(python3 -c 'import json; print(json.load(open("docs/validation/windows-v0.3.0.json"))["sourceCommit"])')"
+          python3 scripts/verify-windows-v030-validation.py \
+            docs/validation/windows-v0.3.0.json \
+            --source-commit "$validated_source"
+          printf 'CUS_V030_SOURCE_COMMIT=%s\n' "$validated_source" >>"$GITHUB_ENV"
+
+      - name: Test native implementation and release boundaries
+        run: |
+          xcrun swift test \
+            --package-path plugins/codex-usage-sidebar/native \
+            --configuration release \
+            --arch arm64
+          bash tests/test-macos-v030-release-pipeline.sh
+          bash tests/test-v023-publish-freeze.sh
+
+      - name: Build and verify macOS arm64 candidate
+        run: |
+          bash scripts/build-macos-v030-installer.sh
+          bash scripts/package-macos-v030-installer.sh
+          bash scripts/verify-macos-v030-installer-package.sh \
+            '.dist/v0.3.0/macos/Codex Usage Sidebar Installer.app' \
+            .dist/v0.3.0/macos/codex-usage-sidebar-v0.3.0-macos-arm64.dmg
+          (cd .dist/v0.3.0/macos && shasum -a 256 -c MACOS-V030-SHA256SUMS.txt)
+
+      - name: Upload macOS arm64 candidate
+        id: upload_macos
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: codex-usage-sidebar-v0.3.0-macos-arm64-candidate
+          path: |
+            .dist/v0.3.0/macos/codex-usage-sidebar-v0.3.0-macos-arm64.dmg
+            .dist/v0.3.0/macos/MACOS-V030-PROVENANCE.json
+            .dist/v0.3.0/macos/MACOS-V030-SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Finalize macOS candidate provenance
+        env:
+          ARTIFACT_ID: ${{ steps.upload_macos.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload_macos.outputs.artifact-digest }}
+        run: |
+          digest="$ARTIFACT_DIGEST"
+          [[ "$digest" == sha256:* ]] || digest="sha256:$digest"
+          python3 scripts/finalize-macos-v030-provenance.py \
+            --input .dist/v0.3.0/macos/MACOS-V030-PROVENANCE.json \
+            --output .dist/v0.3.0/macos/MACOS-V030-PROVENANCE.final.json \
+            --expected-repository '${{ github.repository }}' \
+            --run-repository '${{ github.repository }}' \
+            --run-id '${{ github.run_id }}' \
+            --run-url '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' \
+            --head-sha '${{ github.sha }}' \
+            --validated-source-sha "$CUS_V030_SOURCE_COMMIT" \
+            --workflow-path .github/workflows/v030-release-candidates.yml \
+            --event push \
+            --branch v0.3.0 \
+            --artifact-id "$ARTIFACT_ID" \
+            --artifact-name codex-usage-sidebar-v0.3.0-macos-arm64-candidate \
+            --artifact-digest "$digest" \
+            --release-tag v0.3.0 \
+            --sdk-version "$(xcrun --sdk macosx --show-sdk-version)"
+
+      - name: Upload finalized macOS provenance
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: codex-usage-sidebar-v0.3.0-macos-arm64-provenance
+          path: .dist/v0.3.0/macos/MACOS-V030-PROVENANCE.final.json
+          if-no-files-found: error
