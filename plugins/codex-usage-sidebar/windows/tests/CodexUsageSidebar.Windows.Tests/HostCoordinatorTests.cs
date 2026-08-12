@@ -91,6 +91,40 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public async Task KnownBuildUsesAWindowRelativeFallbackWhenUiaIsUnavailable()
+    {
+        var window = new HostWindowSnapshot(
+            new IntPtr(42), new RectD(-13, -13, 3026, 1930), true, 2, "151.0.7922.76");
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(window),
+            new RejectingScanner(),
+            overlay);
+
+        var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(HostRuntimeState.Visible, result);
+        Assert.AreEqual(PlacementSurface.Content, overlay.LastPresentation?.Placement.Surface);
+        Assert.AreEqual(new RectD(1336, 88, 328, 56), overlay.LastPresentation?.Placement.Frame);
+        Assert.AreEqual(window.Handle, overlay.LastPresentation?.OwnerHandle);
+    }
+
+    [TestMethod]
+    public async Task UnknownBuildStillHidesWhenUiaIsUnavailable()
+    {
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(Window("151.0.7922.77")),
+            new RejectingScanner(),
+            overlay);
+
+        var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(HostRuntimeState.DeviceValidationRequired, result);
+        Assert.AreEqual(1, overlay.HideCount);
+    }
+
+    [TestMethod]
     public async Task HidesOverlayWhenNoCollisionFreeTitlebarSlotExists()
     {
         var overlay = new RecordingOverlay();

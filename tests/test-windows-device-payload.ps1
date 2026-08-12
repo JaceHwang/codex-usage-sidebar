@@ -101,23 +101,30 @@ if ($plan.artifactName -match 'setup|release') {
 $sourceGateModule = Join-Path $repoRoot 'scripts\WindowsDevicePayload.Source.psm1'
 Import-Module $sourceGateModule -Force
 $wideFixturePath = Join-Path $repoRoot 'plugins\codex-usage-sidebar\contracts\uia\windows-codex-151.0.7922.76-default-200.json'
+$flatFixturePath = Join-Path $repoRoot 'plugins\codex-usage-sidebar\contracts\uia\windows-codex-151.0.7922.76-default-flat-200.json'
 $narrowFixturePath = Join-Path $repoRoot 'plugins\codex-usage-sidebar\contracts\uia\windows-codex-151.0.7922.76-narrow-200.json'
-$selectors = New-WindowsDeviceSelectorsDocument -FixturePaths @($wideFixturePath, $narrowFixturePath)
+$selectors = New-WindowsDeviceSelectorsDocument -FixturePaths @($wideFixturePath, $flatFixturePath, $narrowFixturePath)
 if ($selectors.schemaVersion -ne 1 -or
     $selectors.status -ne 'device-test' -or
     $selectors.realDeviceValidated -ne $false -or
     $selectors.publishableInstaller -ne $false) {
     throw 'The selector payload must remain explicitly nonpublishable.'
 }
-if ($selectors.builds.Count -ne 2) {
-    throw 'The selector payload must include both wide and narrow real-device fixtures.'
+if ($selectors.builds.Count -ne 3) {
+    throw 'The selector payload must include wrapped-wide, flat-wide, and narrow real-device fixtures.'
 }
 $wideSelector = @($selectors.builds | Where-Object { $_.layout -eq 'wide' })
+$flatSelector = @($selectors.builds | Where-Object { $_.layout -eq 'wide-flat' })
 $narrowSelector = @($selectors.builds | Where-Object { $_.layout -eq 'narrow' })
 if ($wideSelector.Count -ne 1 -or
     $wideSelector[0].fixture -ne 'windows-codex-151.0.7922.76-default-200.json' -or
     $wideSelector[0].sourceReportSha256 -ne '91974840970bde79b21760aac92fd35b85a7d872058fdf04cd05d824c4f14632') {
     throw 'The wide selector fixture provenance is not pinned.'
+}
+if ($flatSelector.Count -ne 1 -or
+    $flatSelector[0].fixture -ne 'windows-codex-151.0.7922.76-default-flat-200.json' -or
+    $flatSelector[0].sourceReportSha256 -ne '385871394861f49437b7b8e5e446d4d5c1eaf14b2d41a70adea6d68647c5d840') {
+    throw 'The flat wide selector fixture provenance is not pinned.'
 }
 if ($narrowSelector.Count -ne 1 -or
     $narrowSelector[0].fixture -ne 'windows-codex-151.0.7922.76-narrow-200.json' -or

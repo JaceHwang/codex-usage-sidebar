@@ -4,6 +4,7 @@ namespace CodexUsageSidebar.Windows;
 
 public sealed class WindowsHostCoordinator
 {
+    private const string FallbackBuildIdentity = "151.0.7922.76";
     private const double IndicatorGap = 8;
     private readonly IHostWindowLocator locator;
     private readonly ITitlebarScanner scanner;
@@ -71,8 +72,8 @@ public sealed class WindowsHostCoordinator
                 titlebar = scanner.TryGetRetained(host);
                 if (titlebar is null)
                 {
-                    await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
-                    return HostRuntimeState.DeviceValidationRequired;
+                    return await ShowKnownBuildFallbackAsync(
+                        host, snapshot, freshness, cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -84,8 +85,8 @@ public sealed class WindowsHostCoordinator
                 titlebar = scanner.TryGetRetained(host);
                 if (titlebar is null)
                 {
-                    await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
-                    return HostRuntimeState.DeviceValidationRequired;
+                    return await ShowKnownBuildFallbackAsync(
+                        host, snapshot, freshness, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -115,6 +116,48 @@ public sealed class WindowsHostCoordinator
                 new PointD(
                     titlebar.ToolbarBounds.X + (4 * scale),
                     titlebar.ToolbarBounds.Y + (4 * scale))),
+            cancellationToken).ConfigureAwait(false);
+        return HostRuntimeState.Visible;
+    }
+
+    private async ValueTask<HostRuntimeState> ShowKnownBuildFallbackAsync(
+        HostWindowSnapshot host,
+        AllowanceSnapshot snapshot,
+        SnapshotFreshness freshness,
+        CancellationToken cancellationToken)
+    {
+        var scale = host.DpiScale;
+        var width = OverlayVisualMetrics.IndicatorWidth * scale;
+        var height = 28 * scale;
+        if (!string.Equals(host.BuildIdentity, FallbackBuildIdentity, StringComparison.Ordinal)
+            || !double.IsFinite(scale)
+            || scale <= 0
+            || !double.IsFinite(host.Bounds.X)
+            || !double.IsFinite(host.Bounds.Y)
+            || !double.IsFinite(host.Bounds.Width)
+            || !double.IsFinite(host.Bounds.Height)
+            || host.Bounds.Width < width + (32 * scale)
+            || host.Bounds.Height < 300 * scale)
+        {
+            await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
+            return HostRuntimeState.DeviceValidationRequired;
+        }
+
+        var placement = new PlacementResult(
+            PlacementSurface.Content,
+            new RectD(
+                host.Bounds.X + ((host.Bounds.Width - width) / 2),
+                host.Bounds.Y + (50.5 * scale),
+                width,
+                height));
+        await overlay.ShowAsync(
+            new OverlayPresentation(
+                host.Handle,
+                scale,
+                snapshot,
+                placement,
+                freshness,
+                new PointD(host.Bounds.X + (4 * scale), host.Bounds.Y + (42 * scale))),
             cancellationToken).ConfigureAwait(false);
         return HostRuntimeState.Visible;
     }

@@ -51,6 +51,71 @@ public sealed class CodexTitlebarSelectorTests
     }
 
     [TestMethod]
+    public void ResolvesTheMeasuredFlatTitleChildrenForTheValidatedBuild()
+    {
+        var fixture = LoadFixture("windows-codex-151.0.7922.76-default-flat-200.json");
+
+        var result = CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity,
+            fixture.DpiScale,
+            fixture.HostBounds,
+            fixture.Nodes);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(fixture.Expected.ToolbarBounds, result.ToolbarBounds);
+        Assert.AreEqual(fixture.Expected.OpenLocationBounds, result.OpenLocationBounds);
+        Assert.AreEqual(fixture.Expected.TitleBounds, result.TitleBounds);
+        Assert.AreEqual(fixture.Expected.RightToolbarBounds, result.RightToolbarBounds);
+    }
+
+    [TestMethod]
+    public void RejectsIncompleteOrAmbiguousFlatTitleChildren()
+    {
+        var fixture = LoadFixture("windows-codex-151.0.7922.76-default-flat-200.json");
+        var titleText = fixture.Nodes.Single(node =>
+            node.Depth == 16
+            && node.ControlType == "ControlType.Group"
+            && node.ClassName.Contains("max-w-[320px]", StringComparison.Ordinal));
+        var missing = fixture.Nodes.Where(node => node != titleText).ToArray();
+        var duplicate = fixture.Nodes.Append(titleText with
+        {
+            Bounds = titleText.Bounds with { X = titleText.Bounds.X + 1 },
+        }).ToArray();
+
+        Assert.IsNull(CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, missing));
+        Assert.IsNull(CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, duplicate));
+    }
+
+    [TestMethod]
+    public void RejectsAFlatTitleActionThatSubstantiallyOverlapsTheTitleText()
+    {
+        var fixture = LoadFixture("windows-codex-151.0.7922.76-default-flat-200.json");
+        var titleText = fixture.Nodes.Single(node =>
+            node.Depth == 16
+            && node.ControlType == "ControlType.Group"
+            && node.ClassName.Contains("max-w-[320px]", StringComparison.Ordinal));
+        var titleAction = fixture.Nodes.Single(node =>
+            node.Depth == 16
+            && node.ControlType == "ControlType.Button"
+            && node.ClassName.Contains("rounded-full", StringComparison.Ordinal));
+        var overlapping = fixture.Nodes.Select(node => node == titleAction
+            ? node with
+            {
+                Bounds = node.Bounds with
+                {
+                    X = titleText.Bounds.X + 20,
+                    Width = titleText.Bounds.Width,
+                },
+            }
+            : node).ToArray();
+
+        Assert.IsNull(CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, overlapping));
+    }
+
+    [TestMethod]
     public void RightToolbarDiscoveryOnlyStartsFromAlignedTrailingComposerButtons()
     {
         var openLocation = new RectD(1069, 88, 183, 56);

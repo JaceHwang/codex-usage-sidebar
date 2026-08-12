@@ -148,7 +148,7 @@ function New-WindowsDeviceSelectorsDocument {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateCount(2, 2)]
+        [ValidateCount(3, 3)]
         [string[]] $FixturePaths
     )
 
@@ -159,7 +159,7 @@ function New-WindowsDeviceSelectorsDocument {
         $fixtureName = [IO.Path]::GetFileName($fixturePath)
         $match = [regex]::Match(
             $fixtureName,
-            '^windows-codex-(?<build>\d+\.\d+\.\d+\.\d+)-(?<layout>default|narrow)-200\.json$')
+            '^windows-codex-(?<build>\d+\.\d+\.\d+\.\d+)-(?<layout>default|default-flat|narrow)-200\.json$')
         if (-not $match.Success) {
             throw [IO.InvalidDataException]::new('The Windows UIA fixture name is not recognized.')
         }
@@ -171,14 +171,20 @@ function New-WindowsDeviceSelectorsDocument {
         }
         [pscustomobject][ordered]@{
             buildIdentity = $fixture.buildIdentity
-            layout = if ($match.Groups['layout'].Value -eq 'default') { 'wide' } else { 'narrow' }
+            layout = switch ($match.Groups['layout'].Value) {
+                'default' { 'wide' }
+                'default-flat' { 'wide-flat' }
+                default { 'narrow' }
+            }
             fixture = $fixtureName
             sourceReportSha256 = $fixture.sourceReportSha256
         }
     }
-    if (@($builds | Select-Object -ExpandProperty layout -Unique).Count -ne 2 -or
+    $layouts = @($builds | Select-Object -ExpandProperty layout | Sort-Object)
+    if ($layouts.Count -ne 3 -or
+        ($layouts -join ',') -cne 'narrow,wide,wide-flat' -or
         @($builds | Select-Object -ExpandProperty buildIdentity -Unique).Count -ne 1) {
-        throw [IO.InvalidDataException]::new('The selector document requires one wide and one narrow fixture for the same Codex build.')
+        throw [IO.InvalidDataException]::new('The selector document requires one wrapped-wide, one flat-wide, and one narrow fixture for the same Codex build.')
     }
 
     return [pscustomobject][ordered]@{

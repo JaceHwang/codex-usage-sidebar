@@ -153,8 +153,9 @@ try {
     }
 
     $wideFixture = Join-Path $repoRoot 'plugins\codex-usage-sidebar\contracts\uia\windows-codex-151.0.7922.76-default-200.json'
+    $flatFixture = Join-Path $repoRoot 'plugins\codex-usage-sidebar\contracts\uia\windows-codex-151.0.7922.76-default-flat-200.json'
     $narrowFixture = Join-Path $repoRoot 'plugins\codex-usage-sidebar\contracts\uia\windows-codex-151.0.7922.76-narrow-200.json'
-    $selectorsJson = New-WindowsDeviceSelectorsDocument -FixturePaths @($wideFixture, $narrowFixture) |
+    $selectorsJson = New-WindowsDeviceSelectorsDocument -FixturePaths @($wideFixture, $flatFixture, $narrowFixture) |
         ConvertTo-Json -Depth 5
     [IO.File]::WriteAllText(
         (Join-Path $payload 'selectors.json'),

@@ -136,34 +136,16 @@ public static class CodexTitlebarSelector
             && node.Depth == contentGroup.Depth + 1
             && node.ClassName.Contains(TitleGroupClassMarker, StringComparison.Ordinal)
             && Contains(contentGroup.Bounds, node.Bounds)).ToArray();
-        if (titleGroups.Length != 1)
+        var titleBounds = titleGroups.Length switch
+        {
+            1 => TryResolveTitleChildren(nodes, titleGroups[0].Bounds, titleGroups[0].Depth + 1, dpiScale),
+            0 => TryResolveTitleChildren(nodes, contentGroup.Bounds, contentGroup.Depth + 1, dpiScale),
+            _ => null,
+        };
+        if (titleBounds is null)
         {
             return null;
         }
-        var titleGroup = titleGroups[0];
-        var expandedTitleGroup = Expand(titleGroup.Bounds, 2 * dpiScale);
-        var titleLeading = nodes.Where(node =>
-            node.ControlType == ButtonControlType
-            && node.Depth == titleGroup.Depth + 1
-            && node.ClassName.Contains("h-token-button-composer", StringComparison.Ordinal)
-            && node.ClassName.Contains("aspect-square", StringComparison.Ordinal)
-            && Contains(expandedTitleGroup, node.Bounds)).ToArray();
-        var titleTexts = nodes.Where(node =>
-            node.ControlType == GroupControlType
-            && node.Depth == titleGroup.Depth + 1
-            && node.ClassName.Contains(TitleTextClassMarker, StringComparison.Ordinal)
-            && Contains(expandedTitleGroup, node.Bounds)).ToArray();
-        var titleActions = nodes.Where(node =>
-            node.ControlType == ButtonControlType
-            && node.Depth == titleGroup.Depth + 1
-            && node.ClassName.Contains("rounded-full", StringComparison.Ordinal)
-            && node.ClassName.Contains("cursor-interaction", StringComparison.Ordinal)
-            && Contains(expandedTitleGroup, node.Bounds)).ToArray();
-        if (titleLeading.Length != 1 || titleTexts.Length != 1 || titleActions.Length != 1)
-        {
-            return null;
-        }
-        var titleBounds = Union(titleLeading[0].Bounds, titleTexts[0].Bounds, titleActions[0].Bounds);
         var openLocationButtons = nodes.Where(node =>
             node.ControlType == ButtonControlType
             && node.Depth == contentGroup.Depth + 1
@@ -239,7 +221,7 @@ public static class CodexTitlebarSelector
             obstacles,
             toolbar.Bounds,
             openLocation.Bounds,
-            titleBounds,
+            titleBounds.Value,
             rightToolbarBounds,
             rightObstacles);
     }
@@ -265,5 +247,51 @@ public static class CodexTitlebarSelector
         var right = bounds.Max(item => item.Right);
         var bottom = bounds.Max(item => item.Bottom);
         return new RectD(left, top, right - left, bottom - top);
+    }
+
+    private static RectD? TryResolveTitleChildren(
+        IReadOnlyList<UiaStructureNode> nodes,
+        RectD parentBounds,
+        int childDepth,
+        double dpiScale)
+    {
+        var expandedParent = Expand(parentBounds, 2 * dpiScale);
+        var titleTexts = nodes.Where(node =>
+            node.ControlType == GroupControlType
+            && node.Depth == childDepth
+            && node.ClassName.Contains(TitleTextClassMarker, StringComparison.Ordinal)
+            && Contains(expandedParent, node.Bounds)).ToArray();
+        if (titleTexts.Length != 1)
+        {
+            return null;
+        }
+        var titleText = titleTexts[0];
+        var titleLeading = nodes.Where(node =>
+            node.ControlType == ButtonControlType
+            && node.Depth == childDepth
+            && node.ClassName.Contains(ComposerButtonClassMarker, StringComparison.Ordinal)
+            && node.ClassName.Contains("aspect-square", StringComparison.Ordinal)
+            && node.Bounds.Right <= titleText.Bounds.X
+            && titleText.Bounds.X - node.Bounds.Right <= 4 * dpiScale
+            && Contains(expandedParent, node.Bounds)).ToArray();
+        var titleActions = nodes.Where(node =>
+            node.ControlType == ButtonControlType
+            && node.Depth == childDepth
+            && node.ClassName.Contains("rounded-full", StringComparison.Ordinal)
+            && node.ClassName.Contains("cursor-interaction", StringComparison.Ordinal)
+            && !node.ClassName.Contains(ComposerButtonClassMarker, StringComparison.Ordinal)
+            && node.Bounds.X >= titleText.Bounds.Right - dpiScale
+            && node.Bounds.X - titleText.Bounds.Right <= 2 * dpiScale
+            && Contains(expandedParent, node.Bounds)).ToArray();
+        if (titleLeading.Length != 1 || titleActions.Length != 1)
+        {
+            return null;
+        }
+        if (titleLeading[0].Bounds.Right > titleTexts[0].Bounds.Right
+            || titleText.Bounds.Right > titleActions[0].Bounds.Right)
+        {
+            return null;
+        }
+        return Union(titleLeading[0].Bounds, titleText.Bounds, titleActions[0].Bounds);
     }
 }
