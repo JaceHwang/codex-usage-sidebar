@@ -51,6 +51,25 @@ public sealed class CodexTitlebarSelectorTests
     }
 
     [TestMethod]
+    public void RightToolbarDiscoveryOnlyStartsFromAlignedTrailingComposerButtons()
+    {
+        var openLocation = new RectD(1069, 88, 183, 56);
+        var candidate = new UiaStructureNode(
+            18,
+            "ControlType.Button",
+            "",
+            "h-token-button-composer aspect-square shrink-0",
+            new RectD(2856, 88, 56, 56),
+            4);
+
+        Assert.IsTrue(RightToolbarCandidatePolicy.IsCandidate(openLocation, candidate.Bounds, candidate.ControlType, candidate.ClassName, 2));
+        Assert.IsFalse(RightToolbarCandidatePolicy.IsCandidate(openLocation, candidate.Bounds with { X = 1200 }, candidate.ControlType, candidate.ClassName, 2));
+        Assert.IsFalse(RightToolbarCandidatePolicy.IsCandidate(openLocation, candidate.Bounds with { Y = 120 }, candidate.ControlType, candidate.ClassName, 2));
+        Assert.IsFalse(RightToolbarCandidatePolicy.IsCandidate(openLocation, candidate.Bounds, candidate.ControlType, "h-token-button-composer", 2));
+        Assert.IsFalse(RightToolbarCandidatePolicy.IsCandidate(openLocation, candidate.Bounds, "ControlType.Group", candidate.ClassName, 2));
+    }
+
+    [TestMethod]
     public void RejectsUnknownBuilds()
     {
         var fixture = LoadFixture();

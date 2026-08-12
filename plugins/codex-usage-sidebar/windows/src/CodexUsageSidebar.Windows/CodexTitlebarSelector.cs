@@ -11,6 +11,26 @@ public sealed record UiaStructureNode(
     int NameLength,
     string SemanticRole = "");
 
+public static class RightToolbarCandidatePolicy
+{
+    public static bool IsCandidate(
+        RectD openLocationBounds,
+        RectD candidateBounds,
+        string controlType,
+        string className,
+        double dpiScale) =>
+        controlType == "ControlType.Button"
+        && className.Contains("h-token-button-composer", StringComparison.Ordinal)
+        && className.Contains("aspect-square", StringComparison.Ordinal)
+        && double.IsFinite(dpiScale)
+        && dpiScale > 0
+        && candidateBounds.Width > 0
+        && candidateBounds.Height > 0
+        && candidateBounds.X >= openLocationBounds.Right
+        && Math.Abs(candidateBounds.Y - openLocationBounds.Y) <= 2 * dpiScale
+        && Math.Abs(candidateBounds.Height - openLocationBounds.Height) <= 2 * dpiScale;
+}
+
 public static class CodexTitlebarSelector
 {
     private const string ValidatedBuildIdentity = "151.0.7922.76";

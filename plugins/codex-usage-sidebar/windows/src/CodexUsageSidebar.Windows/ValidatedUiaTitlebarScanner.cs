@@ -8,7 +8,7 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
 {
     private const string CaptionContainerClass = "ChromeNodeCaptionButtonContainer";
     private const int MaximumDirectChildren = 64;
-    private const int MaximumCandidateGroups = 1024;
+    private const int MaximumCandidateButtons = 1024;
     private const string TitleGroupClassMarker = "text-md flex min-w-0 items-center";
     private const string RightToolbarClassMarker = "hide-scrollbar flex h-full min-w-0 flex-1";
     private const string RightToolbarOverflowMarker = "overflow-x-auto overflow-y-hidden";
@@ -24,9 +24,9 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
                 name,
                 PropertyConditionFlags.IgnoreCase))
             .ToArray()));
-    private static readonly Condition GroupCondition = new PropertyCondition(
+    private static readonly Condition ButtonCondition = new PropertyCondition(
         AutomationElement.ControlTypeProperty,
-        ControlType.Group);
+        ControlType.Button);
     private readonly ValidatedTitlebarCache cache = new();
     private readonly object scanGate = new();
     private InFlightScan? inFlight;
@@ -102,7 +102,7 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
             throw new WindowsDeviceValidationRequiredException(host.BuildIdentity);
         }
 
-        var nodes = QueryValidatedStructure(root, cancellationToken);
+        var nodes = QueryValidatedStructure(root, host.DpiScale, cancellationToken);
         var snapshot = CodexTitlebarSelector.TryResolve(
             host.BuildIdentity,
             host.DpiScale,
@@ -113,6 +113,7 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
 
     private static IReadOnlyList<UiaStructureNode> QueryValidatedStructure(
         AutomationElement root,
+        double dpiScale,
         CancellationToken cancellationToken)
     {
         var nodes = new List<UiaStructureNode>();
@@ -140,7 +141,7 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
             AddTitleChildren(contentGroup, nodes, cancellationToken);
         }
 
-        AddRightPaneStructures(root, nodes, cancellationToken);
+        AddRightPaneStructures(root, openLocationButtons, dpiScale, nodes, cancellationToken);
 
         return nodes;
     }
@@ -161,41 +162,85 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
 
     private static void AddRightPaneStructures(
         AutomationElement root,
+        AutomationElementCollection openLocationButtons,
+        double dpiScale,
         List<UiaStructureNode> nodes,
         CancellationToken cancellationToken)
     {
-        AutomationElementCollection groups;
+        AutomationElementCollection buttons;
         try
         {
-            groups = root.FindAll(TreeScope.Descendants, GroupCondition);
+            buttons = root.FindAll(TreeScope.Descendants, ButtonCondition);
         }
         catch (ElementNotAvailableException)
         {
             return;
         }
-        if (groups.Count > MaximumCandidateGroups)
+        if (buttons.Count > MaximumCandidateButtons)
         {
             return;
         }
-        foreach (AutomationElement header in groups)
+        foreach (AutomationElement openLocation in openLocationButtons)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!ClassNameContains(header, RightToolbarClassMarker)
-                || !ClassNameContains(header, RightToolbarOverflowMarker))
+            RectD openLocationBounds;
+            try
+            {
+                var bounds = openLocation.Current.BoundingRectangle;
+                openLocationBounds = new RectD(bounds.X, bounds.Y, bounds.Width, bounds.Height);
+            }
+            catch (ElementNotAvailableException)
             {
                 continue;
             }
-            var surface = TryGetParent(header);
-            var container = surface is null ? null : TryGetParent(surface);
-            var rightPane = container is null ? null : TryGetParent(container);
-            if (surface is null || container is null || rightPane is null)
+            foreach (AutomationElement button in buttons)
             {
-                continue;
+                cancellationToken.ThrowIfCancellationRequested();
+                RectD buttonBounds;
+                string controlType;
+                string className;
+                try
+                {
+                    var current = button.Current;
+                    var bounds = current.BoundingRectangle;
+                    buttonBounds = new RectD(bounds.X, bounds.Y, bounds.Width, bounds.Height);
+                    controlType = current.ControlType?.ProgrammaticName ?? string.Empty;
+                    className = current.ClassName ?? string.Empty;
+                }
+                catch (ElementNotAvailableException)
+                {
+                    continue;
+                }
+                if (!RightToolbarCandidatePolicy.IsCandidate(
+                    openLocationBounds, buttonBounds, controlType, className, dpiScale))
+                {
+                    continue;
+                }
+                var surface = TryGetParent(button);
+                if (surface is null)
+                {
+                    continue;
+                }
+                var surfaceChildren = DirectChildren(surface, cancellationToken);
+                if (surfaceChildren.Count(child =>
+                        ClassNameContains(child, RightToolbarClassMarker)
+                        && ClassNameContains(child, RightToolbarOverflowMarker)) != 1)
+                {
+                    continue;
+                }
+                var container = TryGetParent(surface);
+                var rightPane = container is null ? null : TryGetParent(container);
+                if (container is null || rightPane is null)
+                {
+                    continue;
+                }
+                AddNode(rightPane, 15, nodes);
+                AddNode(container, 16, nodes);
+                AddNode(surface, 17, nodes);
+                foreach (var child in surfaceChildren)
+                {
+                    AddNode(child, 18, nodes);
+                }
             }
-            AddNode(rightPane, 15, nodes);
-            AddNode(container, 16, nodes);
-            AddNode(surface, 17, nodes);
-            AddDirectChildren(surface, 18, nodes, cancellationToken);
         }
     }
 
