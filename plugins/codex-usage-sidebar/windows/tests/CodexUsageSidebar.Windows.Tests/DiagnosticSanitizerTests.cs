@@ -29,6 +29,9 @@ public sealed class DiagnosticSanitizerTests
     [TestMethod]
     public void ClassifiesKnownOpenLocationLabelsWithoutPersistingTheirText()
     {
+        CollectionAssert.AreEquivalent(
+            new[] { "打开位置", "開啟位置", "Open Location" },
+            UiaSemanticRoleClassifier.SupportedExactNames.ToArray());
         Assert.AreEqual(UiaSemanticRoles.OpenLocation, UiaSemanticRoleClassifier.Classify("打开位置"));
         Assert.AreEqual(UiaSemanticRoles.OpenLocation, UiaSemanticRoleClassifier.Classify("開啟位置"));
         Assert.AreEqual(UiaSemanticRoles.OpenLocation, UiaSemanticRoleClassifier.Classify("Open Location"));

@@ -6,9 +6,20 @@ namespace CodexUsageSidebar.Windows;
 
 public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
 {
-    private const int MaximumNodes = UiaTraversalBudget.ProductionMaximumNodes;
-    private const int MaximumDepth = UiaTraversalBudget.ProductionMaximumDepth;
+    private const string CaptionContainerClass = "ChromeNodeCaptionButtonContainer";
+    private const int MaximumDirectChildren = 64;
     private static readonly TimeSpan ScanTimeout = TimeSpan.FromSeconds(2);
+    private static readonly Condition CaptionContainerCondition = new AndCondition(
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Pane),
+        new PropertyCondition(AutomationElement.ClassNameProperty, CaptionContainerClass));
+    private static readonly Condition OpenLocationCondition = new AndCondition(
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+        new OrCondition(UiaSemanticRoleClassifier.SupportedExactNames
+            .Select(name => (Condition)new PropertyCondition(
+                AutomationElement.NameProperty,
+                name,
+                PropertyConditionFlags.IgnoreCase))
+            .ToArray()));
     private readonly ValidatedTitlebarCache cache = new();
     private readonly object scanGate = new();
     private InFlightScan? inFlight;
@@ -84,8 +95,7 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
             throw new WindowsDeviceValidationRequiredException(host.BuildIdentity);
         }
 
-        var nodes = new List<UiaStructureNode>();
-        Append(root, 0, nodes, cancellationToken);
+        var nodes = QueryValidatedStructure(root, cancellationToken);
         var snapshot = CodexTitlebarSelector.TryResolve(
             host.BuildIdentity,
             host.DpiScale,
@@ -94,52 +104,69 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         return snapshot ?? throw new WindowsDeviceValidationRequiredException(host.BuildIdentity);
     }
 
-    private static void Append(
-        AutomationElement element,
+    private static IReadOnlyList<UiaStructureNode> QueryValidatedStructure(
+        AutomationElement root,
+        CancellationToken cancellationToken)
+    {
+        var nodes = new List<UiaStructureNode>();
+        var captionContainers = root.FindAll(TreeScope.Descendants, CaptionContainerCondition);
+        foreach (AutomationElement container in captionContainers)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            AddNode(container, 3, nodes);
+            AddDirectChildren(container, 4, nodes, cancellationToken);
+        }
+
+        var openLocationButtons = root.FindAll(TreeScope.Descendants, OpenLocationCondition);
+        foreach (AutomationElement openLocation in openLocationButtons)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var contentGroup = TryGetParent(openLocation);
+            var toolbar = contentGroup is null ? null : TryGetParent(contentGroup);
+            if (contentGroup is null || toolbar is null)
+            {
+                continue;
+            }
+            AddNode(toolbar, 14, nodes);
+            AddNode(contentGroup, 15, nodes);
+            AddDirectChildren(contentGroup, 16, nodes, cancellationToken);
+        }
+
+        return nodes;
+    }
+
+    private static AutomationElement? TryGetParent(AutomationElement element)
+    {
+        try
+        {
+            return TreeWalker.RawViewWalker.GetParent(element);
+        }
+        catch (ElementNotAvailableException)
+        {
+            return null;
+        }
+    }
+
+    private static void AddDirectChildren(
+        AutomationElement parent,
         int depth,
         List<UiaStructureNode> nodes,
         CancellationToken cancellationToken)
     {
-        if (depth > MaximumDepth || nodes.Count >= MaximumNodes)
-        {
-            return;
-        }
-        cancellationToken.ThrowIfCancellationRequested();
-        try
-        {
-            var current = element.Current;
-            var bounds = current.BoundingRectangle;
-            var name = current.Name ?? string.Empty;
-            var nodeBounds = new RectD(bounds.X, bounds.Y, bounds.Width, bounds.Height);
-            if (UiaTraversalBudget.HasFiniteBounds(nodeBounds))
-            {
-                nodes.Add(new UiaStructureNode(
-                    depth,
-                    current.ControlType?.ProgrammaticName ?? string.Empty,
-                    current.AutomationId ?? string.Empty,
-                    current.ClassName ?? string.Empty,
-                    nodeBounds,
-                    name.Length,
-                    UiaSemanticRoleClassifier.Classify(name)));
-            }
-        }
-        catch (ElementNotAvailableException)
-        {
-            return;
-        }
-
         AutomationElement? child;
         try
         {
-            child = TreeWalker.RawViewWalker.GetFirstChild(element);
+            child = TreeWalker.RawViewWalker.GetFirstChild(parent);
         }
         catch (ElementNotAvailableException)
         {
             return;
         }
-        while (child is not null && nodes.Count < MaximumNodes)
+        var count = 0;
+        while (child is not null && count++ < MaximumDirectChildren)
         {
-            Append(child, depth + 1, nodes, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            AddNode(child, depth, nodes);
             try
             {
                 child = TreeWalker.RawViewWalker.GetNextSibling(child);
@@ -148,6 +175,35 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
             {
                 break;
             }
+        }
+    }
+
+    private static void AddNode(
+        AutomationElement element,
+        int depth,
+        List<UiaStructureNode> nodes)
+    {
+        try
+        {
+            var current = element.Current;
+            var bounds = current.BoundingRectangle;
+            var name = current.Name ?? string.Empty;
+            var nodeBounds = new RectD(bounds.X, bounds.Y, bounds.Width, bounds.Height);
+            if (!UiaTraversalBudget.HasFiniteBounds(nodeBounds))
+            {
+                return;
+            }
+            nodes.Add(new UiaStructureNode(
+                depth,
+                current.ControlType?.ProgrammaticName ?? string.Empty,
+                current.AutomationId ?? string.Empty,
+                current.ClassName ?? string.Empty,
+                nodeBounds,
+                name.Length,
+                UiaSemanticRoleClassifier.Classify(name)));
+        }
+        catch (ElementNotAvailableException)
+        {
         }
     }
 }

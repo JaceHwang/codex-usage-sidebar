@@ -8,6 +8,10 @@ public static class UiaSemanticRoles
 
 public static class UiaSemanticRoleClassifier
 {
+    private static readonly string[] ExactNames = ["打开位置", "開啟位置", "Open Location"];
+
+    public static IReadOnlyList<string> SupportedExactNames => ExactNames;
+
     public static string Classify(string? name)
     {
         var normalized = (name ?? string.Empty)
