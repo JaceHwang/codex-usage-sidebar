@@ -276,6 +276,14 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public void OverlayThemeFollowsTheValidatedTitlebarPixelAndHighContrastOverride()
+    {
+        Assert.AreEqual(OverlayThemeKind.Dark, OverlayThemePolicy.Resolve(6, 4, 1, highContrast: false));
+        Assert.AreEqual(OverlayThemeKind.Light, OverlayThemePolicy.Resolve(248, 248, 248, highContrast: false));
+        Assert.AreEqual(OverlayThemeKind.HighContrast, OverlayThemePolicy.Resolve(248, 248, 248, highContrast: true));
+    }
+
+    [TestMethod]
     public void HostSingletonRefusesASecondLeaseUntilTheFirstIsDisposed()
     {
         var identity = $"test-{Guid.NewGuid():N}";

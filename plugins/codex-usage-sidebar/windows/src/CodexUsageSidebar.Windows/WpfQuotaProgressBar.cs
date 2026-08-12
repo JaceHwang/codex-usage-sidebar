@@ -7,6 +7,8 @@ namespace CodexUsageSidebar.Windows;
 
 internal sealed class WpfQuotaProgressBar : FrameworkElement
 {
+    internal Brush TrackBrush { get; init; } = SystemColors.ControlBrush;
+
     public static readonly DependencyProperty RemainingPercentProperty = DependencyProperty.Register(
         nameof(RemainingPercent),
         typeof(int),
@@ -27,15 +29,8 @@ internal sealed class WpfQuotaProgressBar : FrameworkElement
         if (width <= 0 || height <= 0) return;
 
         var radius = Math.Min(2, height / 2);
-        var trackColor = SystemColors.GrayTextColor;
-        var trackBrush = new SolidColorBrush(Color.FromArgb(
-            32,
-            trackColor.R,
-            trackColor.G,
-            trackColor.B));
-        trackBrush.Freeze();
         var track = new Rect(0, 0, width, height);
-        drawingContext.DrawRoundedRectangle(trackBrush, null, track, radius, radius);
+        drawingContext.DrawRoundedRectangle(TrackBrush, null, track, radius, radius);
 
         var geometry = QuotaProgressGeometry.Create(width, RemainingPercent);
         if (geometry.ClipWidth <= 0) return;

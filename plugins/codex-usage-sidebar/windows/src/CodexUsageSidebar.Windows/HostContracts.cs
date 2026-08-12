@@ -28,6 +28,18 @@ public static class OverlayPointerPolicy
         && point.Y < bounds.Bottom;
 }
 
+public enum OverlayThemeKind { Light, Dark, HighContrast }
+
+public static class OverlayThemePolicy
+{
+    public static OverlayThemeKind Resolve(byte red, byte green, byte blue, bool highContrast)
+    {
+        if (highContrast) return OverlayThemeKind.HighContrast;
+        var luminance = ((0.2126 * red) + (0.7152 * green) + (0.0722 * blue)) / 255;
+        return luminance < 0.5 ? OverlayThemeKind.Dark : OverlayThemeKind.Light;
+    }
+}
+
 public sealed record TitlebarSnapshot(
     double PreferredAnchorTrailingEdge,
     IReadOnlyList<RectD> Obstacles,
@@ -46,7 +58,8 @@ public sealed record OverlayPresentation(
     double DpiScale,
     AllowanceSnapshot Snapshot,
     PlacementResult Placement,
-    SnapshotFreshness Freshness);
+    SnapshotFreshness Freshness,
+    PointD ThemeProbePoint);
 
 public enum HostRuntimeState
 {

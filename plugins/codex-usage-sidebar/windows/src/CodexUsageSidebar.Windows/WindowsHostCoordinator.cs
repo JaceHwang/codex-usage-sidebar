@@ -106,7 +106,15 @@ public sealed class WindowsHostCoordinator
         }
 
         await overlay.ShowAsync(
-            new OverlayPresentation(host.Handle, host.DpiScale, snapshot, placement.Value, freshness),
+            new OverlayPresentation(
+                host.Handle,
+                host.DpiScale,
+                snapshot,
+                placement.Value,
+                freshness,
+                new PointD(
+                    titlebar.ToolbarBounds.X + (4 * scale),
+                    titlebar.ToolbarBounds.Y + (4 * scale))),
             cancellationToken).ConfigureAwait(false);
         return HostRuntimeState.Visible;
     }

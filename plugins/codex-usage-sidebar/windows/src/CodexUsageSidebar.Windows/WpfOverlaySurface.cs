@@ -28,6 +28,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     private DetailInteractionState interaction = DetailInteractionState.Initial;
     private OverlayPresentation? latestPresentation;
     private QuotaDetailContent? latestContent;
+    private WpfOverlayPalette palette = WpfOverlayPalette.Light;
 
     public WpfOverlaySurface(DisplayLanguage language, TimeZoneInfo timeZone)
     {
@@ -38,10 +39,10 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             FontFamily = new FontFamily("Segoe UI"),
             FontSize = 13,
             FontWeight = FontWeights.SemiBold,
-            Foreground = SystemColors.WindowTextBrush,
             TextAlignment = TextAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
+            Foreground = palette.Primary,
         };
         var indicatorColor = SystemColors.WindowTextColor;
         indicatorSurface = new Border
@@ -81,6 +82,8 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         return OnUiAsync(() =>
         {
             latestPresentation = presentation;
+            palette = ResolvePalette(presentation.ThemeProbePoint);
+            indicatorText.Foreground = palette.Primary;
             indicator.Opacity = presentation.Freshness == SnapshotFreshness.Dimmed ? 0.58 : 1;
             detail.Opacity = presentation.Freshness == SnapshotFreshness.Dimmed ? 0.58 : 1;
             latestContent = QuotaDetailFormatter.Format(
@@ -126,7 +129,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     private void RefreshInteraction()
     {
         var highlighted = IsPointerInside(indicator) || interaction.IsPinned;
-        var color = SystemColors.WindowTextColor;
+        var color = palette.PrimaryColor;
         indicatorSurface.Background = new SolidColorBrush(Color.FromArgb(
             IndicatorHitTestPolicy.BackgroundAlpha(highlighted),
             color.R,
@@ -178,16 +181,17 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             Foreground = new SolidColorBrush(accent),
         });
         var compact = QuotaDetailFormatter.FormatCompact(snapshot, language, timeZone);
+        var separator = compact.IndexOf('·');
         indicatorText.Inlines.Add(new System.Windows.Documents.Run(
-            compact[(compact.IndexOf('·') - 1)..])
+            separator > 0 ? compact[(separator - 1)..] : string.Empty)
         {
-            Foreground = SystemColors.WindowTextBrush,
+            Foreground = palette.Primary,
         });
     }
 
     private void ShowDetail(OverlayPresentation presentation, QuotaDetailContent content)
     {
-        detail.Content = BuildDetailCard(content);
+        detail.Content = BuildDetailCard(content, palette);
         detail.SizeToContent = SizeToContent.Height;
         detail.UpdateLayout();
         var indicatorFrame = presentation.Placement.Frame;
@@ -213,7 +217,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         if (!detail.IsVisible) detail.Show();
     }
 
-    private static Border BuildDetailCard(QuotaDetailContent content)
+    private static Border BuildDetailCard(QuotaDetailContent content, WpfOverlayPalette palette)
     {
         var accent = WpfQuotaColors.ForRemainingPercent(content.RemainingPercent);
         var body = new StackPanel();
@@ -231,10 +235,11 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             MaxWidth = OverlayVisualMetrics.HeaderTitleMaximumWidth,
             VerticalAlignment = VerticalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
+            Foreground = palette.Primary,
         };
         Grid.SetColumn(title, 0);
         header.Children.Add(title);
-        var highlight = SystemColors.HighlightColor;
+        var highlight = palette.BadgeColor;
         var badge = new Border
         {
             BorderBrush = new SolidColorBrush(Color.FromArgb(
@@ -254,7 +259,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
                 FontFamily = new FontFamily("Segoe UI"),
                 FontSize = OverlayVisualMetrics.VersionBadgeFontSize,
                 FontWeight = FontWeights.Medium,
-                Foreground = SystemColors.HighlightBrush,
+                Foreground = palette.Badge,
                 TextWrapping = TextWrapping.NoWrap,
                 VerticalAlignment = VerticalAlignment.Center,
             },
@@ -278,11 +283,12 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             Height = OverlayVisualMetrics.ProgressTrackHeight,
             Margin = new Thickness(12, 0, 12, 11),
             RemainingPercent = content.RemainingPercent,
+            TrackBrush = palette.Track,
         });
         body.Children.Add(new Border
         {
             Height = 1,
-            Background = SystemColors.ActiveBorderBrush,
+            Background = palette.Border,
             Opacity = 0.55,
         });
 
@@ -297,11 +303,11 @@ public sealed class WpfOverlaySurface : IOverlaySurface
                 Text = row.Label,
                 FontFamily = new FontFamily("Segoe UI"),
                 FontSize = 12,
-                Foreground = SystemColors.GrayTextBrush,
+                Foreground = palette.Secondary,
                 TextWrapping = TextWrapping.Wrap,
             };
             grid.Children.Add(label);
-            var value = BuildDetailValue(row.Value, accent);
+            var value = BuildDetailValue(row.Value, accent, palette);
             Grid.SetColumn(value, 1);
             grid.Children.Add(value);
             rows.Children.Add(grid);
@@ -316,15 +322,15 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         return new Border
         {
             Width = OverlayVisualMetrics.DetailWidth,
-            Background = SystemColors.WindowBrush,
-            BorderBrush = SystemColors.ActiveBorderBrush,
+            Background = palette.Surface,
+            BorderBrush = palette.Border,
             BorderThickness = new Thickness(0.5),
             CornerRadius = new CornerRadius(12),
             Child = body,
         };
     }
 
-    private static TextBlock BuildDetailValue(string value, Color accent)
+    private static TextBlock BuildDetailValue(string value, Color accent, WpfOverlayPalette palette)
     {
         var text = new TextBlock
         {
@@ -349,18 +355,18 @@ public sealed class WpfOverlaySurface : IOverlaySurface
                 case QuotaCountdownSegmentRole.Unit:
                     run.FontSize = OverlayVisualMetrics.CountdownUnitFontSize;
                     run.FontWeight = FontWeights.Medium;
-                    run.Foreground = SystemColors.GrayTextBrush;
+                    run.Foreground = palette.Secondary;
                     break;
                 case QuotaCountdownSegmentRole.Punctuation:
                 case QuotaCountdownSegmentRole.Suffix:
                     run.FontSize = OverlayVisualMetrics.CountdownUnitFontSize;
                     run.FontWeight = FontWeights.Normal;
-                    run.Foreground = SystemColors.GrayTextBrush;
+                    run.Foreground = palette.Secondary;
                     break;
                 default:
                     run.FontSize = OverlayVisualMetrics.DetailValueFontSize;
                     run.FontWeight = FontWeights.Normal;
-                    run.Foreground = SystemColors.WindowTextBrush;
+                    run.Foreground = palette.Primary;
                     break;
             }
             text.Inlines.Add(run);
@@ -453,6 +459,42 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             info.Work.Bottom - info.Work.Top);
     }
 
+    private static WpfOverlayPalette ResolvePalette(PointD probePoint)
+    {
+        if (SystemParameters.HighContrast)
+        {
+            return WpfOverlayPalette.HighContrast;
+        }
+        var screen = GetDC(IntPtr.Zero);
+        if (screen == IntPtr.Zero)
+        {
+            return WpfOverlayPalette.Light;
+        }
+        try
+        {
+            var color = GetPixel(
+                screen,
+                checked((int)Math.Round(probePoint.X)),
+                checked((int)Math.Round(probePoint.Y)));
+            if (color == uint.MaxValue)
+            {
+                return WpfOverlayPalette.Light;
+            }
+            var kind = OverlayThemePolicy.Resolve(
+                (byte)(color & 0xff),
+                (byte)((color >> 8) & 0xff),
+                (byte)((color >> 16) & 0xff),
+                highContrast: false);
+            return kind == OverlayThemeKind.Dark
+                ? WpfOverlayPalette.Dark
+                : WpfOverlayPalette.Light;
+        }
+        finally
+        {
+            ReleaseDC(IntPtr.Zero, screen);
+        }
+    }
+
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
 
@@ -485,6 +527,15 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetWindowRect(IntPtr window, out NativeRect rectangle);
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetDC(IntPtr window);
+
+    [DllImport("user32.dll")]
+    private static extern int ReleaseDC(IntPtr window, IntPtr deviceContext);
+
+    [DllImport("gdi32.dll")]
+    private static extern uint GetPixel(IntPtr deviceContext, int x, int y);
+
     [StructLayout(LayoutKind.Sequential)]
     private struct NativePoint
     {
@@ -508,6 +559,66 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         internal NativeRect Monitor;
         internal NativeRect Work;
         internal uint Flags;
+    }
+}
+
+internal sealed record WpfOverlayPalette(
+    Color PrimaryColor,
+    Color BadgeColor,
+    Brush Primary,
+    Brush Secondary,
+    Brush Surface,
+    Brush Border,
+    Brush Track,
+    Brush Badge)
+{
+    internal static WpfOverlayPalette Light { get; } = Create(
+        Color.FromRgb(23, 23, 23),
+        Color.FromRgb(112, 112, 112),
+        Color.FromRgb(250, 250, 250),
+        Color.FromRgb(208, 208, 208),
+        Color.FromRgb(231, 231, 231),
+        Color.FromRgb(0, 122, 255));
+
+    internal static WpfOverlayPalette Dark { get; } = Create(
+        Color.FromRgb(230, 230, 230),
+        Color.FromRgb(154, 154, 154),
+        Color.FromRgb(30, 30, 30),
+        Color.FromRgb(63, 63, 63),
+        Color.FromRgb(58, 58, 58),
+        Color.FromRgb(10, 132, 255));
+
+    internal static WpfOverlayPalette HighContrast { get; } = new(
+        SystemColors.WindowTextColor,
+        SystemColors.HighlightColor,
+        SystemColors.WindowTextBrush,
+        SystemColors.GrayTextBrush,
+        SystemColors.WindowBrush,
+        SystemColors.ActiveBorderBrush,
+        SystemColors.ControlBrush,
+        SystemColors.HighlightBrush);
+
+    private static WpfOverlayPalette Create(
+        Color primary,
+        Color secondary,
+        Color surface,
+        Color border,
+        Color track,
+        Color badge) => new(
+            primary,
+            badge,
+            Brush(primary),
+            Brush(secondary),
+            Brush(surface),
+            Brush(border),
+            Brush(track),
+            Brush(badge));
+
+    private static SolidColorBrush Brush(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
     }
 }
 #endif
