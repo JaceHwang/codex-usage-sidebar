@@ -208,6 +208,12 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public void PassiveOverlayReassertsNativeVisibilityWithoutActivation()
+    {
+        Assert.AreEqual(0x0250u, OverlayWindowPolicy.PositionFlags);
+    }
+
+    [TestMethod]
     public void HostSingletonRefusesASecondLeaseUntilTheFirstIsDisposed()
     {
         var identity = $"test-{Guid.NewGuid():N}";

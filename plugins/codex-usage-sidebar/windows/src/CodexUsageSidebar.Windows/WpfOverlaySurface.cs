@@ -18,8 +18,6 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     private const int ToolWindowStyle = 0x00000080;
     private const int MouseActivateMessage = 0x0021;
     private const int MouseActivateNoActivate = 3;
-    private const uint SetWindowPosNoActivate = 0x0010;
-    private const uint SetWindowPosNoOwnerZOrder = 0x0200;
     private readonly DisplayLanguage language;
     private readonly TimeZoneInfo timeZone;
     private readonly Window indicator;
@@ -361,7 +359,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             checked((int)Math.Round(frame.Y)),
             checked((int)Math.Round(frame.Width)),
             checked((int)Math.Round(frame.Height)),
-            SetWindowPosNoActivate | SetWindowPosNoOwnerZOrder))
+            OverlayWindowPolicy.PositionFlags))
         {
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Unable to position the overlay window.");
         }
