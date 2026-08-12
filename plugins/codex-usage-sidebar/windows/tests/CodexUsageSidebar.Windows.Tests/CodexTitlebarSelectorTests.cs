@@ -125,6 +125,24 @@ public sealed class CodexTitlebarSelectorTests
     }
 
     [TestMethod]
+    public void AcceptsTheMeasuredTwoPixelRestoreButtonOverlapInWindowedMode()
+    {
+        var fixture = LoadFixture();
+        var windowed = fixture.Nodes.Select(node =>
+            node.ClassName == "ChromeNodeCaptionButtonContainer"
+                ? node with { Bounds = node.Bounds with { Height = 70 } }
+                : node).ToArray();
+
+        var result = CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity,
+            fixture.DpiScale,
+            fixture.HostBounds,
+            windowed);
+
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
     public void PreservesPhysicalCoordinatesOnANegativeOriginHighDpiMonitor()
     {
         var fixture = LoadFixture();

@@ -50,6 +50,7 @@ public static class CodexTitlebarSelector
         }
 
         var containerNode = containers[0];
+        var captionIdentityBounds = Expand(containerNode.Bounds, 2 * dpiScale);
         var captionButtons = new List<UiaStructureNode>();
         foreach (var automationId in RequiredCaptionButtonIds)
         {
@@ -58,7 +59,7 @@ public static class CodexTitlebarSelector
                 && node.ClassName == CaptionButtonClass
                 && node.AutomationId == automationId
                 && node.Depth == containerNode.Depth + 1
-                && Contains(containerNode.Bounds, node.Bounds)).ToArray();
+                && Contains(captionIdentityBounds, node.Bounds)).ToArray();
             if (matches.Length != 1)
             {
                 return null;
@@ -141,4 +142,10 @@ public static class CodexTitlebarSelector
         && child.Y >= container.Y
         && child.Right <= container.Right
         && child.Bottom <= container.Bottom;
+
+    private static RectD Expand(RectD bounds, double amount) => new(
+        bounds.X - amount,
+        bounds.Y - amount,
+        bounds.Width + (2 * amount),
+        bounds.Height + (2 * amount));
 }
