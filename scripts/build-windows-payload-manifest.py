@@ -77,6 +77,9 @@ def main() -> None:
         "version": arguments.version,
         "architecture": arguments.architecture,
         "sourceCommit": arguments.source_commit,
+        "status": "device-test",
+        "realDeviceValidated": False,
+        "publishableInstaller": False,
         "codexRuntime": {
             "source": arguments.codex_source,
             "sha256": arguments.codex_sha256,

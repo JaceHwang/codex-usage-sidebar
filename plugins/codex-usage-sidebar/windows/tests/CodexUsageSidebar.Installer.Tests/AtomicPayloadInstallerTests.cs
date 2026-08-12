@@ -137,10 +137,64 @@ public sealed class AtomicPayloadInstallerTests
         Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
     }
 
+    [TestMethod]
+    public void PublishablePayloadCannotUseTheDeviceTestInstaller()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.SetManifestBoolean("publishableInstaller", true);
+        fixture.WriteExistingPayload("old");
+
+        Assert.ThrowsException<InvalidDataException>(() =>
+            fixture.Installer().Install(fixture.Source, fixture.Destination));
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
+    [TestMethod]
+    public void PayloadWithoutDeviceTestStatusCannotUseTheDeviceTestInstaller()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.RemoveManifestProperty("status");
+        fixture.WriteExistingPayload("old");
+
+        Assert.ThrowsException<InvalidDataException>(() =>
+            fixture.Installer().Install(fixture.Source, fixture.Destination));
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
+    [TestMethod]
+    public void RejectsAStageTamperedAfterCopyBeforeActivation()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.WriteExistingPayload("old");
+        var validator = new TamperingStageValidator();
+
+        Assert.ThrowsException<InvalidDataException>(() =>
+            fixture.Installer(stageValidator: validator).Install(fixture.Source, fixture.Destination));
+
+        Assert.AreEqual(1, validator.CallCount);
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
     private sealed class RejectingBackupCleaner : IBackupCleaner
     {
         public int Attempts { get; private set; }
         public bool TryDelete(string path) { Attempts++; return false; }
+    }
+
+    private sealed class TamperingStageValidator : IPayloadStageValidator
+    {
+        private readonly PayloadStageValidator inner = new();
+        public int CallCount { get; private set; }
+
+        public void Validate(string stage, TrustedPayloadIdentity trustedIdentity)
+        {
+            CallCount++;
+            File.WriteAllText(Path.Combine(stage, "marker.txt"), "tampered-after-copy");
+            inner.Validate(stage, trustedIdentity);
+        }
     }
 
     private sealed class Fixture : IDisposable
@@ -169,9 +223,12 @@ public sealed class AtomicPayloadInstallerTests
             return new Fixture(root);
         }
 
-        public AtomicPayloadInstaller Installer(IBackupCleaner? cleaner = null) => new(
-            new TrustedPayloadIdentity(ExpectedVersion, SourceCommit, CodexSource, RuntimeSha256),
-            cleaner);
+        public AtomicPayloadInstaller Installer(
+            IBackupCleaner? cleaner = null,
+            IPayloadStageValidator? stageValidator = null) => new(
+                new TrustedPayloadIdentity(ExpectedVersion, SourceCommit, CodexSource, RuntimeSha256),
+                cleaner,
+                stageValidator);
 
         public void WritePayload(string version, string marker)
         {
@@ -197,6 +254,9 @@ public sealed class AtomicPayloadInstallerTests
                 version,
                 architecture = "x64",
                 sourceCommit = SourceCommit,
+                status = "device-test",
+                realDeviceValidated = false,
+                publishableInstaller = false,
                 codexRuntime = new
                 {
                     source = CodexSource,
@@ -281,6 +341,14 @@ public sealed class AtomicPayloadInstallerTests
             var path = Path.Combine(Source, "windows-payload.json");
             var document = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
             document["codexRuntime"]!["source"] = source;
+            File.WriteAllText(path, document.ToJsonString());
+        }
+
+        public void SetManifestBoolean(string property, bool value)
+        {
+            var path = Path.Combine(Source, "windows-payload.json");
+            var document = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+            document[property] = value;
             File.WriteAllText(path, document.ToJsonString());
         }
 

@@ -76,6 +76,34 @@ python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
   --codex-sha256 "$runtime_sha"
 python3 "$repo_root/scripts/verify-windows-payload.py" "$payload"
 
+python3 - "$payload/windows-payload.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert manifest["status"] == "device-test"
+assert manifest["realDeviceValidated"] is False
+assert manifest["publishableInstaller"] is False
+PY
+
+cp "$payload/windows-payload.json" "$fixture_root/valid-manifest.json"
+python3 - "$payload/windows-payload.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+manifest = json.loads(path.read_text(encoding="utf-8"))
+manifest["publishableInstaller"] = True
+path.write_text(json.dumps(manifest), encoding="utf-8")
+PY
+if python3 "$repo_root/scripts/verify-windows-payload.py" "$payload" >/dev/null 2>&1; then
+  printf 'publishable device payload unexpectedly succeeded\n' >&2
+  exit 1
+fi
+cp "$fixture_root/valid-manifest.json" "$payload/windows-payload.json"
+
 printf 'tampered' > "$payload/CodexUsageSidebar.Control.exe"
 if python3 "$repo_root/scripts/verify-windows-payload.py" "$payload" >/dev/null 2>&1; then
   printf 'digest mismatch unexpectedly succeeded\n' >&2

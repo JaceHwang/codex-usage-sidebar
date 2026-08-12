@@ -45,6 +45,12 @@ def main() -> None:
         raise SystemExit("unsupported Windows payload schema")
     if manifest.get("version") != EXPECTED_VERSION or manifest.get("architecture") != "x64":
         raise SystemExit("Windows payload version or architecture mismatch")
+    if (
+        manifest.get("status") != "device-test"
+        or manifest.get("realDeviceValidated") is not False
+        or manifest.get("publishableInstaller") is not False
+    ):
+        raise SystemExit("Windows device payload must remain explicitly nonpublishable")
     if not re.fullmatch(r"[0-9a-f]{40}", manifest.get("sourceCommit", "")):
         raise SystemExit("invalid Windows payload source commit")
     files = manifest.get("files")

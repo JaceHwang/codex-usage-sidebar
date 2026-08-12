@@ -10,5 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Using Include="System.IO" />
+    <AssemblyMetadata Include="DeviceSourceCommit" Value="$(DeviceSourceCommit)" Condition="'$(DeviceSourceCommit)' != ''" />
+    <AssemblyMetadata Include="DevicePayloadManifestSha256" Value="$(DevicePayloadManifestSha256)" Condition="'$(DevicePayloadManifestSha256)' != ''" />
   </ItemGroup>
 </Project>

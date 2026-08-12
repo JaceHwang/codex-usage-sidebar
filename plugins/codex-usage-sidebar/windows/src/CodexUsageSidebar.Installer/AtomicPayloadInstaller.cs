@@ -17,14 +17,17 @@ public sealed class AtomicPayloadInstaller
 
     private readonly TrustedPayloadIdentity trustedIdentity;
     private readonly IBackupCleaner backupCleaner;
+    private readonly IPayloadStageValidator stageValidator;
 
     public AtomicPayloadInstaller(
         TrustedPayloadIdentity trustedIdentity,
-        IBackupCleaner? backupCleaner = null)
+        IBackupCleaner? backupCleaner = null,
+        IPayloadStageValidator? stageValidator = null)
     {
         ValidateTrustedIdentity(trustedIdentity);
         this.trustedIdentity = trustedIdentity;
         this.backupCleaner = backupCleaner ?? new BackupCleaner();
+        this.stageValidator = stageValidator ?? new PayloadStageValidator();
     }
 
     public void Install(string source, string destination)
@@ -45,8 +48,6 @@ public sealed class AtomicPayloadInstaller
         {
             ValidateExistingAncestors(Path.GetDirectoryName(destinationPath)!);
         }
-        ValidateManifest(sourcePath, trustedIdentity);
-
         var parent = Path.GetDirectoryName(destinationPath)
             ?? throw new InvalidDataException("The destination must have a parent directory.");
         Directory.CreateDirectory(parent);
@@ -62,6 +63,7 @@ public sealed class AtomicPayloadInstaller
             using (new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
             {
                 CopyDirectory(sourcePath, temporary);
+                stageValidator.Validate(temporary, trustedIdentity);
                 if (Directory.Exists(destinationPath))
                 {
                     Directory.Move(destinationPath, backup);
@@ -94,7 +96,7 @@ public sealed class AtomicPayloadInstaller
         }
     }
 
-    private static void ValidateManifest(string source, TrustedPayloadIdentity trustedIdentity)
+    internal static void ValidateManifest(string source, TrustedPayloadIdentity trustedIdentity)
     {
         var manifestPath = Path.Combine(source, ManifestName);
         if (!File.Exists(manifestPath))
@@ -103,6 +105,15 @@ public sealed class AtomicPayloadInstaller
         }
         try
         {
+            if (trustedIdentity.PayloadManifestSha256 is { } trustedManifestDigest)
+            {
+                using var manifestStream = File.OpenRead(manifestPath);
+                var actualManifestDigest = Convert.ToHexString(SHA256.HashData(manifestStream)).ToLowerInvariant();
+                if (!string.Equals(actualManifestDigest, trustedManifestDigest, StringComparison.Ordinal))
+                {
+                    throw new InvalidDataException("The Windows payload manifest digest is not trusted by this installer.");
+                }
+            }
             using var document = JsonDocument.Parse(File.ReadAllText(manifestPath));
             var root = document.RootElement;
             if (!root.TryGetProperty("schemaVersion", out var schemaVersion)
@@ -128,6 +139,16 @@ public sealed class AtomicPayloadInstaller
                 || !string.Equals(sourceCommit.GetString(), trustedIdentity.SourceCommit, StringComparison.Ordinal))
             {
                 throw new InvalidDataException("The Windows payload source commit is not trusted by this installer.");
+            }
+            if (!root.TryGetProperty("status", out var status)
+                || status.ValueKind != JsonValueKind.String
+                || status.GetString() != "device-test"
+                || !root.TryGetProperty("realDeviceValidated", out var realDeviceValidated)
+                || realDeviceValidated.ValueKind is not JsonValueKind.False
+                || !root.TryGetProperty("publishableInstaller", out var publishableInstaller)
+                || publishableInstaller.ValueKind is not JsonValueKind.False)
+            {
+                throw new InvalidDataException("The Windows device payload must remain explicitly nonpublishable.");
             }
             if (!root.TryGetProperty("codexRuntime", out var codexRuntime)
                 || codexRuntime.ValueKind != JsonValueKind.Object
@@ -213,6 +234,10 @@ public sealed class AtomicPayloadInstaller
         {
             throw new ArgumentException("The trusted Codex runtime digest must be lowercase SHA-256.", nameof(identity));
         }
+        if (identity.PayloadManifestSha256 is { } manifestDigest && !IsLowerHex(manifestDigest, 64))
+        {
+            throw new ArgumentException("The trusted payload manifest digest must be lowercase SHA-256.", nameof(identity));
+        }
     }
 
     private static bool IsLowerHex(string value, int length) =>
@@ -232,7 +257,7 @@ public sealed class AtomicPayloadInstaller
         }
     }
 
-    private static void ValidateNoLinks(string root)
+    internal static void ValidateNoLinks(string root)
     {
         foreach (var path in Directory.EnumerateFileSystemEntries(root, "*", SearchOption.AllDirectories).Prepend(root))
         {
@@ -296,7 +321,22 @@ public sealed record TrustedPayloadIdentity(
     string Version,
     string SourceCommit,
     string CodexRuntimeSource,
-    string CodexRuntimeSha256);
+    string CodexRuntimeSha256,
+    string? PayloadManifestSha256 = null);
+
+public interface IPayloadStageValidator
+{
+    void Validate(string stage, TrustedPayloadIdentity trustedIdentity);
+}
+
+public sealed class PayloadStageValidator : IPayloadStageValidator
+{
+    public void Validate(string stage, TrustedPayloadIdentity trustedIdentity)
+    {
+        AtomicPayloadInstaller.ValidateNoLinks(stage);
+        AtomicPayloadInstaller.ValidateManifest(stage, trustedIdentity);
+    }
+}
 
 public interface IBackupCleaner
 {
