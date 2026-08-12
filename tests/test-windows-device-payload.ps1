@@ -10,6 +10,9 @@ if ($plan.architecture -ne 'x64' -or $plan.runtimeIdentifier -ne 'win-x64') {
     throw 'The device payload must target Windows AMD64/x64 only.'
 }
 if ($plan.minimumWindowsBuild -ne 22000) { throw 'The device payload must require Windows 11.' }
+if ($plan.hostControlSingleFile -ne $false) {
+    throw 'UI Automation capable Host/Control payloads must use a multi-file self-contained publish.'
+}
 if ($plan.codexRuntime.source -ne 'https://github.com/openai/codex/releases/download/rust-v0.147.0/codex-x86_64-pc-windows-msvc.exe') {
     throw 'The Codex runtime source is not the pinned official x64 release asset.'
 }

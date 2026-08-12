@@ -21,6 +21,7 @@ $plan = [ordered]@{
     architecture = $architecture
     runtimeIdentifier = $runtimeIdentifier
     minimumWindowsBuild = 22000
+    hostControlSingleFile = $false
     artifactName = "codex-usage-sidebar-$version-windows-x64-device-test"
     installTarget = $installTarget
     codexRuntime = [ordered]@{
@@ -47,26 +48,22 @@ $sourceCommit = Assert-WindowsDeviceSourceState -RepositoryRoot $repoRoot -Build
 $distRoot = Join-Path $repoRoot '.dist\windows-device-test'
 $payload = Join-Path $distRoot $sourceCommit
 $operationRoot = Join-Path $distRoot ('.stage-' + [Guid]::NewGuid().ToString('N'))
-$hostOutput = Join-Path $operationRoot 'host'
-$controlOutput = Join-Path $operationRoot 'control'
 $installerOutput = Join-Path $operationRoot 'installer'
 $stagedPayload = Join-Path $operationRoot 'payload'
-New-Item -ItemType Directory -Force -Path $hostOutput, $controlOutput, $installerOutput, $stagedPayload | Out-Null
+New-Item -ItemType Directory -Force -Path $installerOutput, $stagedPayload | Out-Null
 
 try {
     $framework = 'net8.0-windows10.0.19041.0'
-    $publishProperties = @(
+    $commonPublishProperties = @(
         '--configuration', 'Release',
         '--framework', $framework,
         '--runtime', $runtimeIdentifier,
         '--self-contained', 'true',
-        '-p:PublishSingleFile=true',
         '-p:PublishTrimmed=false',
         '-p:DebugType=None',
         '-p:DebugSymbols=false',
         '--nologo'
     )
-    $hostProject = Join-Path $repoRoot 'plugins\codex-usage-sidebar\windows\src\CodexUsageSidebar.Windows\CodexUsageSidebar.Windows.csproj'
     $controlProject = Join-Path $repoRoot 'plugins\codex-usage-sidebar\windows\src\CodexUsageSidebar.Control\CodexUsageSidebar.Control.csproj'
     $manifestBuilder = Join-Path $repoRoot 'scripts\build-windows-payload-manifest.py'
     $manifestVerifier = Join-Path $repoRoot 'scripts\verify-windows-payload.py'
@@ -82,13 +79,18 @@ try {
         $actualRuntimeSha256 = (Get-FileHash -LiteralPath (Join-Path $payload 'codex.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
     }
     else {
-        & dotnet publish $hostProject @publishProperties --output $hostOutput
-        if ($LASTEXITCODE -ne 0) { throw 'The Windows overlay host publish failed.' }
-        & dotnet publish $controlProject @publishProperties --output $controlOutput
-        if ($LASTEXITCODE -ne 0) { throw 'The Windows control publish failed.' }
-
-        Copy-Item -LiteralPath (Join-Path $hostOutput 'CodexUsageSidebar.Windows.exe') -Destination $stagedPayload
-        Copy-Item -LiteralPath (Join-Path $controlOutput 'CodexUsageSidebar.Control.exe') -Destination $stagedPayload
+        & dotnet publish $controlProject @commonPublishProperties `
+            '-p:PublishSingleFile=false' --output $stagedPayload
+        if ($LASTEXITCODE -ne 0) { throw 'The Windows Host/Control publish failed.' }
+        if (-not (Test-Path -LiteralPath (Join-Path $stagedPayload 'CodexUsageSidebar.Windows.exe')) -or
+            -not (Test-Path -LiteralPath (Join-Path $stagedPayload 'CodexUsageSidebar.Control.exe'))) {
+            throw 'The Windows Host/Control publish is incomplete.'
+        }
+        $smokeReport = Join-Path $operationRoot 'uia-smoke.json'
+        & (Join-Path $stagedPayload 'CodexUsageSidebar.Control.exe') probe $smokeReport
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $smokeReport)) {
+            throw 'The default-redacted Windows UI Automation smoke probe failed.'
+        }
 
         $runtimePath = Join-Path $stagedPayload 'codex.exe'
         Invoke-WebRequest -Uri $codexRuntimeSource -OutFile $runtimePath -UseBasicParsing
@@ -134,7 +136,8 @@ try {
             ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop }
 
         $installerProject = Join-Path $repoRoot 'plugins\codex-usage-sidebar\windows\src\CodexUsageSidebar.Installer\CodexUsageSidebar.Installer.csproj'
-        & dotnet publish $installerProject @publishProperties `
+        & dotnet publish $installerProject @commonPublishProperties `
+            '-p:PublishSingleFile=true' `
             "-p:DeviceSourceCommit=$sourceCommit" `
             "-p:DevicePayloadManifestSha256=$manifestSha256" `
             --output $installerOutput
