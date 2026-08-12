@@ -140,6 +140,43 @@ try {
 
     $manifestSha256 = (Get-FileHash -LiteralPath (Join-Path $payload 'windows-payload.json') -Algorithm SHA256).Hash.ToLowerInvariant()
 
+    $deviceBundle = Join-Path $distRoot ($plan.artifactName + '-' + $sourceCommit)
+    $bundlePayload = Join-Path $deviceBundle 'payload'
+    $installer = Join-Path $deviceBundle 'CodexUsageSidebar.Installer.exe'
+    if (Test-Path -LiteralPath $deviceBundle) {
+        if (-not (Test-Path -LiteralPath $installer -PathType Leaf) -or
+            -not (Test-Path -LiteralPath (Join-Path $bundlePayload 'windows-payload.json') -PathType Leaf)) {
+            throw 'The existing device-test manager bundle is incomplete.'
+        }
+        $bundledManifestSha256 = (Get-FileHash -LiteralPath (Join-Path $bundlePayload 'windows-payload.json') -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($bundledManifestSha256 -ne $manifestSha256) {
+            throw 'The existing device-test manager bundle has a different provenance identity.'
+        }
+        & python $manifestVerifier $bundlePayload
+        if ($LASTEXITCODE -ne 0) { throw 'The existing device-test manager payload is invalid.' }
+    }
+    else {
+        $installerProject = Join-Path $repoRoot 'plugins\codex-usage-sidebar\windows\src\CodexUsageSidebar.Installer\CodexUsageSidebar.Installer.csproj'
+        & dotnet publish $installerProject @commonPublishProperties `
+            '-p:PublishSingleFile=true' `
+            "-p:DeviceSourceCommit=$sourceCommit" `
+            "-p:DevicePayloadManifestSha256=$manifestSha256" `
+            --output $installerOutput
+        if ($LASTEXITCODE -ne 0) { throw 'The provenance-bound device-test manager publish failed.' }
+        if (-not (Test-Path -LiteralPath (Join-Path $installerOutput 'CodexUsageSidebar.Installer.exe') -PathType Leaf)) {
+            throw 'The provenance-bound device-test manager output is incomplete.'
+        }
+        $stagedBundlePayload = Join-Path $installerOutput 'payload'
+        New-Item -ItemType Directory -Force -Path $stagedBundlePayload | Out-Null
+        Get-ChildItem -LiteralPath $payload | Copy-Item -Destination $stagedBundlePayload -Recurse
+        & python $manifestVerifier $stagedBundlePayload
+        if ($LASTEXITCODE -ne 0) { throw 'The staged device-test manager payload is invalid.' }
+        if (Get-ChildItem -LiteralPath $installerOutput -Recurse -File | Where-Object { $_.Name -match 'setup|release' }) {
+            throw 'The device-test manager must not emit setup or release artifacts.'
+        }
+        Move-Item -LiteralPath $installerOutput -Destination $deviceBundle
+    }
+
     if (-not $BuildOnly) {
         $installLock = Enter-WindowsDeviceInstallLock -LockPath $installLockPath
         $managedRuntime = Join-Path $installTarget 'CodexUsageSidebar.Windows.exe'
@@ -147,14 +184,6 @@ try {
             Where-Object { $_.ExecutablePath -and ([IO.Path]::GetFullPath($_.ExecutablePath) -eq [IO.Path]::GetFullPath($managedRuntime)) } |
             ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop }
 
-        $installerProject = Join-Path $repoRoot 'plugins\codex-usage-sidebar\windows\src\CodexUsageSidebar.Installer\CodexUsageSidebar.Installer.csproj'
-        & dotnet publish $installerProject @commonPublishProperties `
-            '-p:PublishSingleFile=true' `
-            "-p:DeviceSourceCommit=$sourceCommit" `
-            "-p:DevicePayloadManifestSha256=$manifestSha256" `
-            --output $installerOutput
-        if ($LASTEXITCODE -ne 0) { throw 'The provenance-bound device installer helper publish failed.' }
-        $installer = Join-Path $installerOutput 'CodexUsageSidebar.Installer.exe'
         $installerExitCode = Invoke-WindowsProcessAndWait `
             -FileName $installer `
             -Arguments @('--device-install', $payload)
@@ -181,6 +210,7 @@ try {
 
     [ordered]@{
         payload = $payload
+        deviceTestManager = $deviceBundle
         installTarget = $installTarget
         sourceCommit = $sourceCommit
         payloadManifestSha256 = $manifestSha256

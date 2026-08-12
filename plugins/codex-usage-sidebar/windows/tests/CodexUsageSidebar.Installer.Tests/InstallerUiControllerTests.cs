@@ -28,6 +28,26 @@ public sealed class InstallerUiControllerTests
         StringAssert.Contains(model.Title, expectedTitleFragment);
         Assert.IsTrue(model.CanExecute);
         Assert.IsTrue(model.CanCancel);
+        var nonpublishable = locale.StartsWith("zh-Hant", StringComparison.Ordinal)
+            ? "不可發佈"
+            : locale.StartsWith("zh", StringComparison.Ordinal) ? "不可发布" : "not publishable";
+        StringAssert.Contains(model.Description, nonpublishable);
+    }
+
+    [TestMethod]
+    public void UninstallSuccessExplainsThatLocalDataWasPreserved()
+    {
+        var simplified = InstallerUiModel.Create(
+            "zh-Hans-CN",
+            InstallerUiMode.Uninstall,
+            InstallerUiState.Succeeded);
+        var english = InstallerUiModel.Create(
+            "en-US",
+            InstallerUiMode.Uninstall,
+            InstallerUiState.Succeeded);
+
+        StringAssert.Contains(simplified.Status, "已保留本地授权和状态数据");
+        StringAssert.Contains(english.Status, "Local authorization and state data were kept");
     }
 
     [TestMethod]

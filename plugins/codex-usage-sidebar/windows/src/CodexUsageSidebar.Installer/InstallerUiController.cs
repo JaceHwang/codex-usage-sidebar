@@ -90,32 +90,32 @@ public sealed record InstallerUiModel(
             (language, mode) switch
             {
                 (InstallerLanguage.SimplifiedChinese, InstallerUiMode.Install) => new(
-                    "Codex Usage Sidebar 安装程序", "为当前 Windows 用户安装 Codex Usage Sidebar。",
+                    "Codex Usage Sidebar 安装程序", "本机设备测试版本（不可发布）。为当前 Windows 用户安装 Codex Usage Sidebar。",
                     "安装", "取消", "准备安装。", "正在安装…", "安装完成。", "操作失败："),
                 (InstallerLanguage.SimplifiedChinese, InstallerUiMode.Repair) => new(
-                    "Codex Usage Sidebar 安装程序", "验证并修复当前用户的安装。",
+                    "Codex Usage Sidebar 安装程序", "本机设备测试版本（不可发布）。验证并修复当前用户的安装。",
                     "修复", "取消", "准备修复。", "正在修复…", "修复完成。", "操作失败："),
                 (InstallerLanguage.SimplifiedChinese, InstallerUiMode.Uninstall) => new(
-                    "Codex Usage Sidebar 安装程序", "从当前 Windows 用户卸载 Codex Usage Sidebar。",
-                    "卸载", "取消", "准备卸载。", "正在卸载…", "卸载完成。", "操作失败："),
+                    "Codex Usage Sidebar 安装程序", "本机设备测试版本（不可发布）。从当前 Windows 用户卸载 Codex Usage Sidebar。",
+                    "卸载", "取消", "准备卸载。", "正在卸载…", "卸载完成。已保留本地授权和状态数据。", "操作失败："),
                 (InstallerLanguage.TraditionalChinese, InstallerUiMode.Install) => new(
-                    "Codex Usage Sidebar 安裝程式", "為目前 Windows 使用者安裝 Codex Usage Sidebar。",
+                    "Codex Usage Sidebar 安裝程式", "本機裝置測試版本（不可發佈）。為目前 Windows 使用者安裝 Codex Usage Sidebar。",
                     "安裝", "取消", "準備安裝。", "正在安裝…", "安裝完成。", "操作失敗："),
                 (InstallerLanguage.TraditionalChinese, InstallerUiMode.Repair) => new(
-                    "Codex Usage Sidebar 安裝程式", "驗證並修復目前使用者的安裝。",
+                    "Codex Usage Sidebar 安裝程式", "本機裝置測試版本（不可發佈）。驗證並修復目前使用者的安裝。",
                     "修復", "取消", "準備修復。", "正在修復…", "修復完成。", "操作失敗："),
                 (InstallerLanguage.TraditionalChinese, InstallerUiMode.Uninstall) => new(
-                    "Codex Usage Sidebar 安裝程式", "從目前 Windows 使用者解除安裝 Codex Usage Sidebar。",
-                    "解除安裝", "取消", "準備解除安裝。", "正在解除安裝…", "解除安裝完成。", "操作失敗："),
+                    "Codex Usage Sidebar 安裝程式", "本機裝置測試版本（不可發佈）。從目前 Windows 使用者解除安裝 Codex Usage Sidebar。",
+                    "解除安裝", "取消", "準備解除安裝。", "正在解除安裝…", "解除安裝完成。已保留本機授權和狀態資料。", "操作失敗："),
                 (InstallerLanguage.English, InstallerUiMode.Install) => new(
-                    "Codex Usage Sidebar Setup", "Install Codex Usage Sidebar for the current Windows user.",
+                    "Codex Usage Sidebar Setup", "Local device-test build (not publishable). Install Codex Usage Sidebar for the current Windows user.",
                     "Install", "Cancel", "Ready to install.", "Installing…", "Installation complete.", "Operation failed:"),
                 (InstallerLanguage.English, InstallerUiMode.Repair) => new(
-                    "Codex Usage Sidebar Setup", "Verify and repair the current user's installation.",
+                    "Codex Usage Sidebar Setup", "Local device-test build (not publishable). Verify and repair the current user's installation.",
                     "Repair", "Cancel", "Ready to repair.", "Repairing…", "Repair complete.", "Operation failed:"),
                 _ => new(
-                    "Codex Usage Sidebar Setup", "Uninstall Codex Usage Sidebar for the current Windows user.",
-                    "Uninstall", "Cancel", "Ready to uninstall.", "Uninstalling…", "Uninstall complete.", "Operation failed:"),
+                    "Codex Usage Sidebar Setup", "Local device-test build (not publishable). Uninstall Codex Usage Sidebar for the current Windows user.",
+                    "Uninstall", "Cancel", "Ready to uninstall.", "Uninstalling…", "Uninstall complete. Local authorization and state data were kept.", "Operation failed:"),
             };
     }
 }

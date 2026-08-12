@@ -15,14 +15,14 @@ public static class InstallerApplication
     [STAThread]
     public static int Main(string[] args)
     {
+        var architecture = RuntimeInformation.OSArchitecture == Architecture.X64
+            ? "x64"
+            : RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant();
+        var metadata = Assembly.GetExecutingAssembly()
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .ToDictionary(attribute => attribute.Key, attribute => attribute.Value, StringComparer.Ordinal);
         try
         {
-            var architecture = RuntimeInformation.OSArchitecture == Architecture.X64
-                ? "x64"
-                : RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant();
-            var metadata = Assembly.GetExecutingAssembly()
-                .GetCustomAttributes<AssemblyMetadataAttribute>()
-                .ToDictionary(attribute => attribute.Key, attribute => attribute.Value, StringComparer.Ordinal);
             var deviceInstall = DevicePayloadInstallCommand.TryCreate(
                 args,
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -55,7 +55,14 @@ public static class InstallerApplication
         var controller = new InstallerUiController(
             CultureInfo.CurrentUICulture.Name,
             mode,
-            new UnavailableInstallerUiActions());
+            DeviceTestInstallerRuntimeFactory.TryCreate(
+                AppContext.BaseDirectory,
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                architecture,
+                Environment.OSVersion.Version.Build,
+                metadata.GetValueOrDefault("DeviceSourceCommit"),
+                metadata.GetValueOrDefault("DevicePayloadManifestSha256"))
+            ?? new UnavailableInstallerUiActions());
         var application = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
         return application.Run(new InstallerWindow(controller));
     }
