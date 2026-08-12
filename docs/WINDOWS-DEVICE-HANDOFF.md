@@ -6,7 +6,8 @@ and do not publish any resulting report or screenshot.
 
 ## 1. Prepare a disposable Codex task
 
-1. Use Windows 11 x64 with the current Codex desktop client installed and signed in.
+1. Use Windows 11 on AMD64 (`x64` in artifact metadata) with the current Codex desktop client
+   installed and signed in. Windows ARM64 is outside the v0.3.0-beta.1 validation scope.
 2. Close conversations that contain private material.
 3. Create a disposable task containing only non-sensitive placeholder text.
 4. Keep the Codex window visible while capturing each state.

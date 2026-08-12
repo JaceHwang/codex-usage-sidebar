@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "sourceReportSha256": "51f4ce5235996b6a9f04139b104446ce76dd6a552b8ea6cc9f2adcc34d5eda59",
+  "buildIdentity": "151.0.7922.76",
+  "dpiScale": 2.0,
+  "hostBounds": { "x": -13, "y": -13, "width": 3026, "height": 1930 },
+  "nodes": [
+    { "depth": 2, "controlType": "ControlType.Pane", "automationId": "", "className": "RootView", "bounds": { "x": 2726, "y": -2, "width": 274, "height": 72 }, "nameLength": 0 },
+    { "depth": 3, "controlType": "ControlType.Pane", "automationId": "", "className": "ChromeNodeCaptionButtonContainer", "bounds": { "x": 2726, "y": -2, "width": 274, "height": 72 }, "nameLength": 0 },
+    { "depth": 4, "controlType": "ControlType.Button", "automationId": "view_1", "className": "ChromeNodeCaptionButton", "bounds": { "x": 2726, "y": -2, "width": 90, "height": 72 }, "nameLength": 3 },
+    { "depth": 4, "controlType": "ControlType.Button", "automationId": "view_2", "className": "ChromeNodeCaptionButton", "bounds": { "x": 2816, "y": -2, "width": 92, "height": 70 }, "nameLength": 3 },
+    { "depth": 4, "controlType": "ControlType.Button", "automationId": "view_3", "className": "ChromeNodeCaptionButton", "bounds": { "x": 2816, "y": -2, "width": 92, "height": 72 }, "nameLength": 2 },
+    { "depth": 4, "controlType": "ControlType.Button", "automationId": "view_4", "className": "ChromeNodeCaptionButton", "bounds": { "x": 2908, "y": -2, "width": 92, "height": 72 }, "nameLength": 2 }
+  ],
+  "expected": {
+    "preferredAnchorTrailingEdge": 2726,
+    "obstacleCount": 1
+  }
+}

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
@@ -39,13 +40,13 @@ public sealed class AtomicPayloadInstallerTests
     }
 
     [TestMethod]
-    public void RejectsPayloadSymlinksBeforeReplacingDestination()
+    public void RejectsPayloadReparsePointsBeforeReplacingDestination()
     {
         using var fixture = Fixture.Create();
         fixture.WritePayload(ExpectedVersion, "new");
         Directory.CreateDirectory(fixture.Destination);
         File.WriteAllText(Path.Combine(fixture.Destination, "marker.txt"), "old");
-        File.CreateSymbolicLink(Path.Combine(fixture.Source, "redirect"), fixture.Destination);
+        fixture.CreatePayloadDirectoryLink("redirect", fixture.Destination);
 
         Assert.ThrowsException<InvalidDataException>(() =>
             fixture.Installer().Install(fixture.Source, fixture.Destination));
@@ -148,6 +149,7 @@ public sealed class AtomicPayloadInstallerTests
         private const string CodexSource = "https://github.com/openai/codex/releases/download/rust-v0.147.0/codex-x86_64-pc-windows-msvc.exe";
         private static readonly string RuntimeSha256 = Convert.ToHexString(
             SHA256.HashData(System.Text.Encoding.UTF8.GetBytes("runtime"))).ToLowerInvariant();
+        private readonly List<string> directoryLinks = [];
 
         private Fixture(string root)
         {
@@ -210,6 +212,45 @@ public sealed class AtomicPayloadInstallerTests
             File.WriteAllText(Path.Combine(Destination, "marker.txt"), marker);
         }
 
+        public void CreatePayloadDirectoryLink(string name, string target)
+        {
+            var link = Path.Combine(Source, name);
+            if (!OperatingSystem.IsWindows())
+            {
+                Directory.CreateSymbolicLink(link, target);
+                directoryLinks.Add(link);
+                return;
+            }
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.System),
+                    "cmd.exe"),
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            foreach (var argument in new[] { "/d", "/c", "mklink", "/J", link, target })
+            {
+                startInfo.ArgumentList.Add(argument);
+            }
+
+            using var process = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Could not start the Windows junction helper.");
+            var standardOutput = process.StandardOutput.ReadToEnd();
+            var standardError = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+            {
+                throw new IOException(
+                    $"Could not create a Windows test junction (exit {process.ExitCode}): "
+                    + standardError + standardOutput);
+            }
+            directoryLinks.Add(link);
+        }
+
         public void RemoveManifestProperty(string property)
         {
             var path = Path.Combine(Source, "windows-payload.json");
@@ -243,6 +284,13 @@ public sealed class AtomicPayloadInstallerTests
             File.WriteAllText(path, document.ToJsonString());
         }
 
-        public void Dispose() => Directory.Delete(Root, recursive: true);
+        public void Dispose()
+        {
+            foreach (var link in directoryLinks)
+            {
+                if (Directory.Exists(link)) Directory.Delete(link);
+            }
+            Directory.Delete(Root, recursive: true);
+        }
     }
 }

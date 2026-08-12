@@ -17,7 +17,8 @@ public sealed record OverlayPresentation(
     IntPtr OwnerHandle,
     double DpiScale,
     AllowanceSnapshot Snapshot,
-    PlacementResult Placement);
+    PlacementResult Placement,
+    SnapshotFreshness Freshness);
 
 public enum HostRuntimeState
 {
@@ -43,6 +44,7 @@ public interface IHostWindowLocator
 
 public interface ITitlebarScanner
 {
+    TitlebarSnapshot? TryGetCurrent(HostWindowSnapshot host) => null;
     ValueTask<TitlebarSnapshot> ScanAsync(HostWindowSnapshot host, CancellationToken cancellationToken);
     void Invalidate();
 }

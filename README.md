@@ -31,7 +31,7 @@
 | Platform | Status | Distribution |
 | --- | --- | --- |
 | macOS 14+ Apple Silicon | Stable v0.2.3 | Signed companion plus v0.2.3 DMG |
-| Windows 11 x64 | v0.3.0-beta.1 development | Offline-tested core and diagnostic candidate; no public installer yet |
+| Windows 11 AMD64 (`x64`) | v0.3.0-beta.1 development | Offline-tested core and diagnostic candidate; no public installer yet; Windows ARM64 is out of scope |
 
 Windows development lives on `codex/v0.3.0-beta.1`. The shared quota contracts, .NET core,
 Win32 window boundary, sanitized UI Automation probe, per-user installer backend, payload digest

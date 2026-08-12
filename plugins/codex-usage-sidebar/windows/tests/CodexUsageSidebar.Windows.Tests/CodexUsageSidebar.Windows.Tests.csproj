@@ -11,5 +11,6 @@
   <ItemGroup>
     <ProjectReference Include="../../src/CodexUsageSidebar.Windows/CodexUsageSidebar.Windows.csproj" />
     <ProjectReference Include="../CodexUsageSidebar.ProcessFixture/CodexUsageSidebar.ProcessFixture.csproj" />
+    <None Include="../../../contracts/**/*.json" Link="contracts/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -23,7 +23,16 @@ public sealed class Win32CodexWindowLocator : IHostWindowLocator
             try
             {
                 using var process = Process.GetProcessById(checked((int)processId));
-                if (!string.Equals(process.ProcessName, "Codex", StringComparison.OrdinalIgnoreCase))
+                var versionInfo = SafeFileVersionInfo(process);
+                var executablePath = SafeExecutablePath(process);
+                if (!CodexProcessIdentity.IsSupported(
+                    process.ProcessName,
+                    versionInfo?.ProductName,
+                    versionInfo?.CompanyName,
+                    executablePath,
+                    Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                        "WindowsApps")))
                 {
                     return true;
                 }
@@ -33,7 +42,7 @@ public sealed class Win32CodexWindowLocator : IHostWindowLocator
                 {
                     return true;
                 }
-                var version = SafeFileVersion(process) ?? "unknown";
+                var version = versionInfo?.FileVersion ?? "unknown";
                 var dpiScale = Math.Max(1, NativeMethods.GetDpiForWindow(handle)) / 96d;
                 candidates.Add((new HostWindowSnapshot(
                     handle,
@@ -73,11 +82,23 @@ public sealed class Win32CodexWindowLocator : IHostWindowLocator
         }
     }
 
-    private static string? SafeFileVersion(Process process)
+    private static FileVersionInfo? SafeFileVersionInfo(Process process)
     {
         try
         {
-            return process.MainModule?.FileVersionInfo.FileVersion;
+            return process.MainModule?.FileVersionInfo;
+        }
+        catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            return null;
+        }
+    }
+
+    private static string? SafeExecutablePath(Process process)
+    {
+        try
+        {
+            return process.MainModule?.FileName;
         }
         catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception)
         {

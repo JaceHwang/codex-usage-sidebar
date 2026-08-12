@@ -19,7 +19,9 @@ public static class PlacementResolver
         double preferredAnchorTrailingEdge,
         double indicatorWidth,
         double gap,
-        IReadOnlyList<RectD> obstacles)
+        IReadOnlyList<RectD> obstacles,
+        double verticalInset = 4,
+        double indicatorHeight = 40)
     {
         // The center of the host window is not a layout boundary. A wide right
         // pane can move the semantic toolbar anchor left of center while still
@@ -29,7 +31,11 @@ public static class PlacementResolver
 
         while (candidateX >= minimumContentX)
         {
-            var candidate = new RectD(candidateX, window.Y + 4, indicatorWidth, 40);
+            var candidate = new RectD(
+                candidateX,
+                window.Y + verticalInset,
+                indicatorWidth,
+                indicatorHeight);
             var collision = obstacles
                 .Where(candidate.IntersectsHorizontally)
                 .OrderBy(x => x.X)
@@ -43,6 +49,10 @@ public static class PlacementResolver
 
         return new PlacementResult(
             PlacementSurface.RightToolbar,
-            new RectD(window.Right - indicatorWidth - 16, window.Y + 4, indicatorWidth, 40));
+            new RectD(
+                window.Right - indicatorWidth - (2 * gap),
+                window.Y + verticalInset,
+                indicatorWidth,
+                indicatorHeight));
     }
 }

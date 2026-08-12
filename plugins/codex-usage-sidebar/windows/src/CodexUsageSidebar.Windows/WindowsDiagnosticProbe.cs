@@ -4,25 +4,6 @@ using CodexUsageSidebar.Core;
 
 namespace CodexUsageSidebar.Windows;
 
-public sealed record WindowsProbeReport(
-    string SchemaVersion,
-    DateTimeOffset CapturedAt,
-    string OsVersion,
-    bool IncludesText,
-    HostWindowSnapshot Host,
-    string? ExecutablePathToken,
-    IReadOnlyList<UiaProbeNode> Nodes);
-
-public sealed record UiaProbeNode(
-    int Depth,
-    string ControlType,
-    string AutomationId,
-    string ClassName,
-    RectD Bounds,
-    int NameLength,
-    string NameToken,
-    string? Name);
-
 public sealed class WindowsDiagnosticProbe(IHostWindowLocator locator)
 {
     private const int MaximumNodes = 600;
@@ -40,14 +21,26 @@ public sealed class WindowsDiagnosticProbe(IHostWindowLocator locator)
         var nodes = new List<UiaProbeNode>();
         Append(root, 0, includeText, redactor, nodes, cancellationToken);
         var executablePath = Win32CodexWindowLocator.ExecutablePath(host.Handle);
+        var titlebar = CodexTitlebarSelector.TryResolve(
+            host.BuildIdentity,
+            host.DpiScale,
+            host.Bounds,
+            nodes.Select(node => new UiaStructureNode(
+                node.Depth,
+                node.ControlType,
+                node.AutomationId,
+                node.ClassName,
+                node.Bounds,
+                node.NameLength)).ToArray());
         return new WindowsProbeReport(
             "1",
             DateTimeOffset.UtcNow,
             Environment.OSVersion.VersionString,
             includeText,
-            host,
+            WindowsProbeHost.From(host),
             executablePath is null ? null : redactor.Token(executablePath),
-            nodes);
+            nodes,
+            titlebar);
     }
 
     private static void Append(

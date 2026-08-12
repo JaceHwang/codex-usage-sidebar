@@ -7,9 +7,14 @@
 
 - 开发分支：`codex/v0.3.0-beta.1`
 - 稳定 macOS 版本：`v0.2.3`，不得改写或重新上传其 Release Assets
+- Windows 支持范围：Windows 11 AMD64（.NET、payload 和产物命名使用 `x64`）；本版本不构建、
+  不测试、不打包 Windows ARM64，ARM64 也不属于 `v0.3.0-beta.1` 发布门禁
 - Windows 阶段：跨平台核心、Win32/UIA 诊断边界、安装器后端、完整性校验和诊断 CI 已完成
-- 下一个实现任务：在 Windows 实机上绑定当前 Codex UIA 结构，并开发/验证 WPF 浮层与本地化
-  安装器界面
+- 已绑定的实机样本：`OpenAI.Codex` 包的可见宿主进程为 `ChatGPT.exe`，产品身份为 Codex，
+  文件 build `151.0.7922.76`；已在还原窗口、200% DPI、PMv2 物理像素坐标的默认脱敏报告上
+  绑定语义标题栏选择器（SHA-256：`51f4ce5235996b6a9f04139b104446ce76dd6a552b8ea6cc9f2adcc34d5eda59`）
+- 当前实现：未知 build/不完整 UIA/无安全空位均隐藏浮层；非激活 WPF 浮层和简中/繁中/英文
+  安装器壳已可构建，但尚未完成视觉、焦点、生命周期和安装矩阵
 - 发布状态：诊断候选物，不是安装器；真实 UI、DPI、生命周期和安装矩阵通过前禁止发布 setup
 
 ## 视觉基线
@@ -61,7 +66,7 @@ git switch --track origin/codex/v0.3.0-beta.1
 
 安装以下组件后重新打开 PowerShell：
 
-- Windows 11 x64 和已登录的 Codex 桌面客户端；
+- Windows 11 AMD64（工具链标记为 `x64`）和已登录的 Codex 桌面客户端；
 - Git for Windows；
 - .NET 8 SDK（不是只安装 Runtime）；
 - Visual Studio 2022 Build Tools 或 Visual Studio 2022，包含“.NET 桌面开发”工作负载；

@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using CodexUsageSidebar.Core;
 
 namespace CodexUsageSidebar.Core.Tests;
@@ -66,6 +67,49 @@ public sealed class AppServerSessionTests
         Assert.AreEqual(2, snapshots[^1].Bank?.AvailableCount);
     }
 
+    [TestMethod]
+    public async Task PollsAgainOnAnIdleConnectedSession()
+    {
+        var connection = new IdleConnection([
+            "{\"id\":1,\"result\":{}}",
+            File.ReadAllText(ContractPath("read-response.json")),
+        ]);
+        var session = new AppServerSession(
+            new StubConnectionFactory(connection),
+            new AppServerProtocol("test", "1"),
+            () => DateTimeOffset.UnixEpoch,
+            TimeSpan.FromMilliseconds(20));
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+
+        var run = session.RunAsync(_ => ValueTask.CompletedTask, cancellation.Token);
+        await connection.WaitForWritesAsync(4, cancellation.Token);
+        cancellation.Cancel();
+        await Assert.ThrowsExceptionAsync<TaskCanceledException>(async () => await run);
+
+        CollectionAssert.AreEqual(
+            new[] { "initialize", "initialized", "account/rateLimits/read", "account/rateLimits/read" },
+            connection.WrittenMethods.ToArray());
+    }
+
+    [TestMethod]
+    public async Task MissingReadResponseTimesOutSoTheRuntimeCanReconnect()
+    {
+        var connection = new IdleConnection(["{\"id\":1,\"result\":{}}"]);
+        var session = new AppServerSession(
+            new StubConnectionFactory(connection),
+            new AppServerProtocol("test", "1"),
+            () => DateTimeOffset.UnixEpoch,
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromMilliseconds(25));
+
+        await Assert.ThrowsExceptionAsync<TimeoutException>(async () =>
+            await session.RunAsync(_ => ValueTask.CompletedTask, CancellationToken.None));
+
+        CollectionAssert.AreEqual(
+            new[] { "initialize", "initialized", "account/rateLimits/read" },
+            connection.WrittenMethods.ToArray());
+    }
+
     private static string ContractPath(string file) =>
         Path.Combine(AppContext.BaseDirectory, "contracts", "rate-limits", file);
 
@@ -95,6 +139,44 @@ public sealed class AppServerSessionTests
                 yield return line;
                 await Task.Yield();
             }
+        }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class IdleConnection(IReadOnlyList<string> initialLines) : IJsonLineConnection
+    {
+        private readonly Channel<bool> writes = Channel.CreateUnbounded<bool>();
+        public List<string> WrittenMethods { get; } = new();
+
+        public ValueTask WriteLineAsync(string line, CancellationToken cancellationToken)
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(line);
+            lock (WrittenMethods)
+            {
+                WrittenMethods.Add(document.RootElement.GetProperty("method").GetString()!);
+            }
+            writes.Writer.TryWrite(true);
+            return ValueTask.CompletedTask;
+        }
+
+        public async Task WaitForWritesAsync(int count, CancellationToken cancellationToken)
+        {
+            while (true)
+            {
+                lock (WrittenMethods)
+                {
+                    if (WrittenMethods.Count >= count) return;
+                }
+                await writes.Reader.ReadAsync(cancellationToken);
+            }
+        }
+
+        public async IAsyncEnumerable<string> ReadLinesAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            foreach (var line in initialLines) yield return line;
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
         }
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
