@@ -127,4 +127,21 @@ function Copy-WindowsDeviceRuntimeFromCache {
     return $false
 }
 
-Export-ModuleMember -Function Assert-WindowsDeviceSourceState, Assert-WindowsDevicePlatform, Wait-WindowsDeviceCondition, Copy-WindowsDeviceRuntimeFromCache
+function Enter-WindowsDeviceInstallLock {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $LockPath
+    )
+
+    $resolvedLockPath = [IO.Path]::GetFullPath($LockPath)
+    $parent = Split-Path -Parent $resolvedLockPath
+    New-Item -ItemType Directory -Force -Path $parent | Out-Null
+    return [IO.File]::Open(
+        $resolvedLockPath,
+        [IO.FileMode]::OpenOrCreate,
+        [IO.FileAccess]::ReadWrite,
+        [IO.FileShare]::None)
+}
+
+Export-ModuleMember -Function Assert-WindowsDeviceSourceState, Assert-WindowsDevicePlatform, Wait-WindowsDeviceCondition, Copy-WindowsDeviceRuntimeFromCache, Enter-WindowsDeviceInstallLock

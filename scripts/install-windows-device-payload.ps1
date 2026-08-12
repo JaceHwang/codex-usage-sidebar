@@ -13,6 +13,7 @@ $runtimeIdentifier = 'win-x64'
 $codexRuntimeSource = 'https://github.com/openai/codex/releases/download/rust-v0.147.0/codex-x86_64-pc-windows-msvc.exe'
 $codexRuntimeSha256 = '935a1911ed2556e4ffcec995f4886ac2ac425863ba26fed264df62e30272ad9d'
 $installTarget = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)) 'CodexUsageSidebar\Current'
+$installLockPath = Join-Path (Split-Path -Parent $installTarget) 'install.lock'
 
 $plan = [ordered]@{
     schemaVersion = 1
@@ -39,6 +40,7 @@ if ($PlanOnly) {
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $PSScriptRoot 'WindowsDevicePayload.Source.psm1') -Force
+Import-Module (Join-Path $repoRoot 'plugins\codex-usage-sidebar\scripts\WindowsProcessCommandLine.psm1') -Force
 Assert-WindowsDevicePlatform `
     -IsWindows ([Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([Runtime.InteropServices.OSPlatform]::Windows)) `
     -Architecture ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()) `
@@ -51,6 +53,7 @@ $operationRoot = Join-Path $distRoot ('.stage-' + [Guid]::NewGuid().ToString('N'
 $installerOutput = Join-Path $operationRoot 'installer'
 $stagedPayload = Join-Path $operationRoot 'payload'
 New-Item -ItemType Directory -Force -Path $installerOutput, $stagedPayload | Out-Null
+$installLock = $null
 
 try {
     $framework = 'net8.0-windows10.0.19041.0'
@@ -138,6 +141,7 @@ try {
     $manifestSha256 = (Get-FileHash -LiteralPath (Join-Path $payload 'windows-payload.json') -Algorithm SHA256).Hash.ToLowerInvariant()
 
     if (-not $BuildOnly) {
+        $installLock = Enter-WindowsDeviceInstallLock -LockPath $installLockPath
         $managedRuntime = Join-Path $installTarget 'CodexUsageSidebar.Windows.exe'
         Get-CimInstance Win32_Process -Filter "Name = 'CodexUsageSidebar.Windows.exe'" -ErrorAction SilentlyContinue |
             Where-Object { $_.ExecutablePath -and ([IO.Path]::GetFullPath($_.ExecutablePath) -eq [IO.Path]::GetFullPath($managedRuntime)) } |
@@ -151,8 +155,13 @@ try {
             --output $installerOutput
         if ($LASTEXITCODE -ne 0) { throw 'The provenance-bound device installer helper publish failed.' }
         $installer = Join-Path $installerOutput 'CodexUsageSidebar.Installer.exe'
-        & $installer --device-install $payload
-        if ($LASTEXITCODE -ne 0) { throw "The atomic device payload installation failed with exit code $LASTEXITCODE." }
+        $installerExitCode = Invoke-WindowsProcessAndWait `
+            -FileName $installer `
+            -Arguments @('--device-install', $payload)
+        if ($installerExitCode -ne 0) { throw "The atomic device payload installation failed with exit code $installerExitCode." }
+
+        $installLock.Dispose()
+        $installLock = $null
 
         $controlScript = Join-Path $repoRoot 'plugins\codex-usage-sidebar\scripts\sidebar-control-windows.ps1'
         & $controlScript ensure -PluginRoot (Join-Path $repoRoot 'plugins\codex-usage-sidebar')
@@ -181,6 +190,9 @@ try {
     } | ConvertTo-Json -Depth 3
 }
 finally {
+    if ($null -ne $installLock) {
+        $installLock.Dispose()
+    }
     if (Test-Path -LiteralPath $operationRoot) {
         $resolvedDistRoot = [IO.Path]::GetFullPath($distRoot).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
         $resolvedOperationRoot = [IO.Path]::GetFullPath($operationRoot)

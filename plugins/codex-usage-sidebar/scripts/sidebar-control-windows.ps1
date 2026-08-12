@@ -19,6 +19,7 @@ $current = [IO.Path]::GetFullPath((Join-Path $installRoot 'Current'))
 $runtime = [IO.Path]::GetFullPath((Join-Path $current 'CodexUsageSidebar.Windows.exe'))
 $control = [IO.Path]::GetFullPath((Join-Path $current 'CodexUsageSidebar.Control.exe'))
 $selectors = [IO.Path]::GetFullPath((Join-Path $current 'selectors.json'))
+$installLock = [IO.Path]::GetFullPath((Join-Path $installRoot 'install.lock'))
 
 function Get-ManagedProcess {
     if (-not (Test-Path -LiteralPath $runtime -PathType Leaf)) {
@@ -32,6 +33,9 @@ function Get-ManagedProcess {
 
 switch ($Command) {
     'ensure' {
+        if (Test-WindowsSidebarInstallInProgress -LockPath $installLock) {
+            exit 0
+        }
         if (-not (Test-Path -LiteralPath $runtime -PathType Leaf) -or
             -not (Test-Path -LiteralPath $selectors -PathType Leaf)) {
             exit 0

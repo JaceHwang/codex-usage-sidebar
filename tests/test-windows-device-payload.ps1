@@ -62,6 +62,13 @@ for ($index = 0; $index -lt $commandLineArguments.Count; $index++) {
         throw "The Windows process command line changed argument $index."
     }
 }
+$processStopwatch = [Diagnostics.Stopwatch]::StartNew()
+$deviceProcessExitCode = Invoke-WindowsProcessAndWait `
+    -FileName 'powershell.exe' `
+    -Arguments @('-NoProfile', '-NonInteractive', '-Command', 'Start-Sleep -Milliseconds 200; exit 23')
+if ($deviceProcessExitCode -ne 23 -or $processStopwatch.ElapsedMilliseconds -lt 150) {
+    throw 'The Windows device process runner did not wait for and propagate the child exit code.'
+}
 
 $plan = & $script -PlanOnly | ConvertFrom-Json
 
@@ -125,6 +132,19 @@ catch [TimeoutException] {
 $runtimeCacheFixture = Join-Path ([IO.Path]::GetTempPath()) ('cus-runtime-cache-' + [Guid]::NewGuid().ToString('N'))
 try {
     New-Item -ItemType Directory -Force -Path $runtimeCacheFixture | Out-Null
+    $installLockPath = Join-Path $runtimeCacheFixture 'install.lock'
+    $installLock = Enter-WindowsDeviceInstallLock -LockPath $installLockPath
+    try {
+        if (-not (Test-WindowsSidebarInstallInProgress -LockPath $installLockPath)) {
+            throw 'The sidebar control did not detect the active device installation lock.'
+        }
+    }
+    finally {
+        $installLock.Dispose()
+    }
+    if (Test-WindowsSidebarInstallInProgress -LockPath $installLockPath) {
+        throw 'The sidebar control treated a released device installation lock as active.'
+    }
     $badRuntime = Join-Path $runtimeCacheFixture 'bad.exe'
     $goodRuntime = Join-Path $runtimeCacheFixture 'good.exe'
     $cachedRuntime = Join-Path $runtimeCacheFixture 'copied.exe'
