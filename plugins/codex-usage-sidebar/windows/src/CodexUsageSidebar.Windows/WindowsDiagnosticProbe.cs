@@ -6,8 +6,8 @@ namespace CodexUsageSidebar.Windows;
 
 public sealed class WindowsDiagnosticProbe(IHostWindowLocator locator)
 {
-    private const int MaximumNodes = 600;
-    private const int MaximumDepth = 10;
+    private const int MaximumNodes = UiaTraversalBudget.DiagnosticMaximumNodes;
+    private const int MaximumDepth = UiaTraversalBudget.DiagnosticMaximumDepth;
 
     public async ValueTask<WindowsProbeReport> CaptureAsync(
         bool includeText,
@@ -31,7 +31,8 @@ public sealed class WindowsDiagnosticProbe(IHostWindowLocator locator)
                 node.AutomationId,
                 node.ClassName,
                 node.Bounds,
-                node.NameLength)).ToArray());
+                node.NameLength,
+                node.SemanticRole)).ToArray());
         return new WindowsProbeReport(
             "1",
             DateTimeOffset.UtcNow,
@@ -61,15 +62,20 @@ public sealed class WindowsDiagnosticProbe(IHostWindowLocator locator)
             var current = element.Current;
             var name = current.Name ?? string.Empty;
             var bounds = current.BoundingRectangle;
-            nodes.Add(new UiaProbeNode(
-                depth,
-                current.ControlType?.ProgrammaticName ?? string.Empty,
-                current.AutomationId ?? string.Empty,
-                current.ClassName ?? string.Empty,
-                new RectD(bounds.X, bounds.Y, bounds.Width, bounds.Height),
-                name.Length,
-                redactor.Token(name),
-                includeText ? name : null));
+            var resolvedBounds = new RectD(bounds.X, bounds.Y, bounds.Width, bounds.Height);
+            if (UiaTraversalBudget.HasFiniteBounds(resolvedBounds))
+            {
+                nodes.Add(new UiaProbeNode(
+                    depth,
+                    current.ControlType?.ProgrammaticName ?? string.Empty,
+                    current.AutomationId ?? string.Empty,
+                    current.ClassName ?? string.Empty,
+                    resolvedBounds,
+                    name.Length,
+                    redactor.Token(name),
+                    UiaSemanticRoleClassifier.Classify(name),
+                    includeText ? name : null));
+            }
         }
         catch (ElementNotAvailableException)
         {

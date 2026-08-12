@@ -58,10 +58,10 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             Child = indicatorText,
         };
         indicator = CreatePassiveWindow(indicatorSurface);
-        indicator.Width = 208;
-        indicator.Height = 40;
+        indicator.Width = OverlayVisualMetrics.IndicatorWidth;
+        indicator.Height = OverlayVisualMetrics.IndicatorHeight;
         detail = CreatePassiveWindow(new Border());
-        detail.Width = 300;
+        detail.Width = OverlayVisualMetrics.DetailWidth;
         detail.MaxHeight = 480;
         indicator.MouseLeftButtonUp += (_, eventArgs) =>
         {
@@ -195,16 +195,18 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     {
         var accent = ColorFor(content.RemainingPercent);
         var body = new StackPanel();
-        var header = new Grid { Margin = new Thickness(12, 10, 12, 8) };
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var header = new Grid { Margin = new Thickness(14, 11, 14, 9) };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var title = new TextBlock
         {
             Text = content.Title,
             FontFamily = new FontFamily("Segoe UI"),
-            FontSize = 13,
+            FontSize = OverlayVisualMetrics.HeaderTitleFontSize,
             FontWeight = FontWeights.SemiBold,
+            MaxWidth = OverlayVisualMetrics.HeaderTitleMaximumWidth,
             VerticalAlignment = VerticalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
         };
@@ -221,9 +223,10 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             {
                 Text = "v0.3.0-beta.1",
                 FontFamily = new FontFamily("Segoe UI"),
-                FontSize = 8,
+                FontSize = OverlayVisualMetrics.VersionBadgeFontSize,
                 FontWeight = FontWeights.Medium,
                 Foreground = SystemColors.HighlightBrush,
+                TextWrapping = TextWrapping.NoWrap,
             },
         };
         Grid.SetColumn(badge, 1);
@@ -232,11 +235,11 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         {
             Text = $"{content.RemainingPercent}%",
             FontFamily = new FontFamily("Segoe UI"),
-            FontSize = 17,
+            FontSize = OverlayVisualMetrics.RemainingPercentFontSize,
             FontWeight = FontWeights.SemiBold,
             Foreground = new SolidColorBrush(accent),
         };
-        Grid.SetColumn(remaining, 2);
+        Grid.SetColumn(remaining, 3);
         header.Children.Add(remaining);
         body.Children.Add(header);
 
@@ -301,7 +304,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         });
         return new Border
         {
-            Width = 300,
+            Width = OverlayVisualMetrics.DetailWidth,
             Background = SystemColors.WindowBrush,
             BorderBrush = SystemColors.ActiveBorderBrush,
             BorderThickness = new Thickness(0.5),

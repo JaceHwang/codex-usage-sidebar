@@ -6,14 +6,15 @@ namespace CodexUsageSidebar.Windows;
 
 public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
 {
-    private const int MaximumNodes = 600;
-    private const int MaximumDepth = 10;
+    private const int MaximumNodes = UiaTraversalBudget.ProductionMaximumNodes;
+    private const int MaximumDepth = UiaTraversalBudget.ProductionMaximumDepth;
     private static readonly TimeSpan ScanTimeout = TimeSpan.FromSeconds(2);
     private readonly ValidatedTitlebarCache cache = new();
     private readonly object scanGate = new();
     private InFlightScan? inFlight;
 
     public TitlebarSnapshot? TryGetCurrent(HostWindowSnapshot host) => cache.TryGet(host);
+    public TitlebarSnapshot? TryGetRetained(HostWindowSnapshot host) => cache.TryGetRetained(host);
 
     public async ValueTask<TitlebarSnapshot> ScanAsync(
         HostWindowSnapshot host,
@@ -108,13 +109,19 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         {
             var current = element.Current;
             var bounds = current.BoundingRectangle;
-            nodes.Add(new UiaStructureNode(
-                depth,
-                current.ControlType?.ProgrammaticName ?? string.Empty,
-                current.AutomationId ?? string.Empty,
-                current.ClassName ?? string.Empty,
-                new RectD(bounds.X, bounds.Y, bounds.Width, bounds.Height),
-                (current.Name ?? string.Empty).Length));
+            var name = current.Name ?? string.Empty;
+            var nodeBounds = new RectD(bounds.X, bounds.Y, bounds.Width, bounds.Height);
+            if (UiaTraversalBudget.HasFiniteBounds(nodeBounds))
+            {
+                nodes.Add(new UiaStructureNode(
+                    depth,
+                    current.ControlType?.ProgrammaticName ?? string.Empty,
+                    current.AutomationId ?? string.Empty,
+                    current.ClassName ?? string.Empty,
+                    nodeBounds,
+                    name.Length,
+                    UiaSemanticRoleClassifier.Classify(name)));
+            }
         }
         catch (ElementNotAvailableException)
         {

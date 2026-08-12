@@ -56,7 +56,7 @@ internal sealed class WindowsOverlayRuntime : IDisposable
             paths.CodexExecutable,
             paths.IsolatedCodexHome);
         reconcileTimer = new DispatcherTimer(
-            TimeSpan.FromMilliseconds(250),
+            TimeSpan.FromMilliseconds(100),
             DispatcherPriority.Background,
             async (_, _) => await ReconcileAsync(),
             Dispatcher.CurrentDispatcher);

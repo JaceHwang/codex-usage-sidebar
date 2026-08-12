@@ -7,7 +7,7 @@ namespace CodexUsageSidebar.Windows.Tests;
 public sealed class CodexTitlebarSelectorTests
 {
     [TestMethod]
-    public void ResolvesTheMeasuredCaptionBoundaryForTheValidatedBuild()
+    public void ResolvesTheMeasuredOpenLocationBoundaryForTheValidatedBuild()
     {
         var fixture = LoadFixture();
 
@@ -20,6 +20,7 @@ public sealed class CodexTitlebarSelectorTests
         Assert.IsNotNull(result);
         Assert.AreEqual(fixture.Expected.PreferredAnchorTrailingEdge, result.PreferredAnchorTrailingEdge, 0.001);
         Assert.AreEqual(fixture.Expected.ObstacleCount, result.Obstacles.Count);
+        Assert.AreEqual(fixture.Expected.ToolbarBounds, result.ToolbarBounds);
     }
 
     [TestMethod]
@@ -49,6 +50,42 @@ public sealed class CodexTitlebarSelectorTests
             incomplete);
 
         Assert.IsNull(result);
+    }
+
+    [TestMethod]
+    public void RejectsCaptionOnlyTreesInsteadOfUsingTheOuterWindowsTitlebar()
+    {
+        var fixture = LoadFixture();
+        var captionOnly = fixture.Nodes.Where(node => node.Depth <= 4).ToArray();
+
+        var result = CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity,
+            fixture.DpiScale,
+            fixture.HostBounds,
+            captionOnly);
+
+        Assert.IsNull(result);
+    }
+
+    [TestMethod]
+    public void RejectsMissingAndAmbiguousOpenLocationControls()
+    {
+        var fixture = LoadFixture();
+        var missing = fixture.Nodes.Select(node =>
+            node.SemanticRole == UiaSemanticRoles.OpenLocation
+                ? node with { SemanticRole = UiaSemanticRoles.None }
+                : node).ToArray();
+        var duplicate = fixture.Nodes.Concat([
+            fixture.Nodes.Single(node => node.SemanticRole == UiaSemanticRoles.OpenLocation) with
+            {
+                Bounds = new RectD(1600, 88, 183, 56),
+            },
+        ]).ToArray();
+
+        Assert.IsNull(CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, missing));
+        Assert.IsNull(CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, duplicate));
     }
 
     [TestMethod]
@@ -128,5 +165,6 @@ public sealed class CodexTitlebarSelectorTests
 
     private sealed record ExpectedFixture(
         double PreferredAnchorTrailingEdge,
-        int ObstacleCount);
+        int ObstacleCount,
+        RectD ToolbarBounds);
 }

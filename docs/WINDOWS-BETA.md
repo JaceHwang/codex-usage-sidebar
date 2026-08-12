@@ -124,7 +124,7 @@ and request a new diagnostic capture instead of guessing a coordinate or overlap
 The first sanitized fixture records one Windows 11 sample from the `OpenAI.Codex` package: the
 visible host process is `ChatGPT.exe` with Codex product identity, file build `151.0.7922.76`, at
 200% scaling. The PMv2-aware default-redacted report uses physical screen pixels end to end and has
-SHA-256 `51f4ce5235996b6a9f04139b104446ce76dd6a552b8ea6cc9f2adcc34d5eda59`.
+SHA-256 `65e519a71da6c7dc422253a33f30ecaabe175499a51254f9c6eb00983f721f7c`.
 This is enough to exercise the build-gated selector, but it is not evidence for the
 remaining sidebar, window, theme, language, scaling, focus, lifecycle, or installer matrix.
 

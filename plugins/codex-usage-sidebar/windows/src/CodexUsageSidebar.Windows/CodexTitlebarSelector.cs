@@ -8,15 +8,22 @@ public sealed record UiaStructureNode(
     string AutomationId,
     string ClassName,
     RectD Bounds,
-    int NameLength);
+    int NameLength,
+    string SemanticRole = "");
 
 public static class CodexTitlebarSelector
 {
     private const string ValidatedBuildIdentity = "151.0.7922.76";
     private const string PaneControlType = "ControlType.Pane";
     private const string ButtonControlType = "ControlType.Button";
+    private const string GroupControlType = "ControlType.Group";
     private const string CaptionContainerClass = "ChromeNodeCaptionButtonContainer";
     private const string CaptionButtonClass = "ChromeNodeCaptionButton";
+    private const string ToolbarClassMarker = "fixed z-30 flex h-toolbar";
+    private const string ToolbarPositionMarker = "top-toolbar-sm";
+    private const string ContentGroupClassMarker = "flex h-full min-w-0 flex-1";
+    private const string ComposerButtonClassMarker = "h-token-button-composer";
+    private const string OpenLocationEndClassMarker = "rounded-e-none";
     private static readonly string[] RequiredCaptionButtonIds =
         ["view_1", "view_2", "view_3", "view_4"];
 
@@ -75,7 +82,56 @@ public static class CodexTitlebarSelector
             return null;
         }
 
-        return new TitlebarSnapshot(container.X, [container]);
+        var toolbars = nodes.Where(node =>
+            node.ControlType == GroupControlType
+            && node.ClassName.Contains(ToolbarClassMarker, StringComparison.Ordinal)
+            && node.ClassName.Contains(ToolbarPositionMarker, StringComparison.Ordinal)
+            && Contains(hostBounds, node.Bounds)).ToArray();
+        if (toolbars.Length != 1)
+        {
+            return null;
+        }
+
+        var toolbar = toolbars[0];
+        var contentGroups = nodes.Where(node =>
+            node.ControlType == GroupControlType
+            && node.Depth == toolbar.Depth + 1
+            && node.ClassName.Contains(ContentGroupClassMarker, StringComparison.Ordinal)
+            && Contains(toolbar.Bounds, node.Bounds)).ToArray();
+        if (contentGroups.Length != 1)
+        {
+            return null;
+        }
+
+        var contentGroup = contentGroups[0];
+        var openLocationButtons = nodes.Where(node =>
+            node.ControlType == ButtonControlType
+            && node.Depth == contentGroup.Depth + 1
+            && node.SemanticRole == UiaSemanticRoles.OpenLocation
+            && node.ClassName.Contains(ComposerButtonClassMarker, StringComparison.Ordinal)
+            && node.ClassName.Contains(OpenLocationEndClassMarker, StringComparison.Ordinal)
+            && Contains(contentGroup.Bounds, node.Bounds)).ToArray();
+        if (openLocationButtons.Length != 1)
+        {
+            return null;
+        }
+
+        var openLocation = openLocationButtons[0];
+        var obstacles = nodes.Where(node =>
+                node.ControlType == ButtonControlType
+                && node.Depth == openLocation.Depth
+                && node.ClassName.Contains(ComposerButtonClassMarker, StringComparison.Ordinal)
+                && node.Bounds.X >= openLocation.Bounds.X
+                && Contains(contentGroup.Bounds, node.Bounds))
+            .OrderBy(node => node.Bounds.X)
+            .Select(node => node.Bounds)
+            .ToArray();
+        if (obstacles.Length == 0 || obstacles[0] != openLocation.Bounds)
+        {
+            return null;
+        }
+
+        return new TitlebarSnapshot(openLocation.Bounds.X, obstacles, toolbar.Bounds);
     }
 
     private static bool Contains(RectD container, RectD child) =>

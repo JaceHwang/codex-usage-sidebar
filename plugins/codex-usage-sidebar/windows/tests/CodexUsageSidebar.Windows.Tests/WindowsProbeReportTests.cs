@@ -23,7 +23,10 @@ public sealed class WindowsProbeReportTests
             WindowsProbeHost.From(host),
             "path-token",
             [],
-            new TitlebarSnapshot(1363, [new RectD(1363, -1, 137, 36)]));
+            new TitlebarSnapshot(
+                1363,
+                [new RectD(1363, -1, 137, 36)],
+                new RectD(500, 70, 1000, 92)));
 
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(report));
         var serializedHost = document.RootElement.GetProperty("Host");
@@ -36,5 +39,8 @@ public sealed class WindowsProbeReportTests
         Assert.AreEqual(
             1363,
             document.RootElement.GetProperty("Titlebar").GetProperty("PreferredAnchorTrailingEdge").GetDouble());
+        Assert.AreEqual(
+            70,
+            document.RootElement.GetProperty("Titlebar").GetProperty("ToolbarBounds").GetProperty("Y").GetDouble());
     }
 }

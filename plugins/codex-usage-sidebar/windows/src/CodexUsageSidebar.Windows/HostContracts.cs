@@ -11,7 +11,8 @@ public sealed record HostWindowSnapshot(
 
 public sealed record TitlebarSnapshot(
     double PreferredAnchorTrailingEdge,
-    IReadOnlyList<RectD> Obstacles);
+    IReadOnlyList<RectD> Obstacles,
+    RectD ToolbarBounds = default);
 
 public sealed record OverlayPresentation(
     IntPtr OwnerHandle,
@@ -45,6 +46,7 @@ public interface IHostWindowLocator
 public interface ITitlebarScanner
 {
     TitlebarSnapshot? TryGetCurrent(HostWindowSnapshot host) => null;
+    TitlebarSnapshot? TryGetRetained(HostWindowSnapshot host) => null;
     ValueTask<TitlebarSnapshot> ScanAsync(HostWindowSnapshot host, CancellationToken cancellationToken);
     void Invalidate();
 }

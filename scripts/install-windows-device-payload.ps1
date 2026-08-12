@@ -119,7 +119,7 @@ try {
                 [ordered]@{
                     buildIdentity = '151.0.7922.76'
                     fixture = 'windows-codex-151.0.7922.76-default-200.json'
-                    sourceReportSha256 = '51f4ce5235996b6a9f04139b104446ce76dd6a552b8ea6cc9f2adcc34d5eda59'
+                    sourceReportSha256 = '65e519a71da6c7dc422253a33f30ecaabe175499a51254f9c6eb00983f721f7c'
                 }
             )
         } | ConvertTo-Json -Depth 5

@@ -28,7 +28,7 @@ public sealed class HostCoordinatorTests
         {
             new RectD(1516, 1052, 116, 36),
             new RectD(1900, 1052, 132, 36),
-        }));
+        }, new RectD(400, 80, 1600, 92)));
         var overlay = new RecordingOverlay();
         var coordinator = new WindowsHostCoordinator(new StubLocator(window), scanner, overlay);
 
@@ -36,7 +36,10 @@ public sealed class HostCoordinatorTests
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
         Assert.AreEqual(PlacementSurface.Content, overlay.LastPresentation?.Placement.Surface);
-        Assert.AreEqual(1068, overlay.LastPresentation?.Placement.Frame.X);
+        Assert.AreEqual(1156, overlay.LastPresentation?.Placement.Frame.X);
+        Assert.AreEqual(80, overlay.LastPresentation?.Placement.Frame.Y);
+        Assert.AreEqual(328, overlay.LastPresentation?.Placement.Frame.Width);
+        Assert.AreEqual(92, overlay.LastPresentation?.Placement.Frame.Height);
         Assert.AreEqual(76, overlay.LastPresentation?.Snapshot.RemainingPercent);
     }
 
@@ -73,7 +76,10 @@ public sealed class HostCoordinatorTests
     public async Task HidesOverlayWhenNoCollisionFreeTitlebarSlotExists()
     {
         var overlay = new RecordingOverlay();
-        var scanner = new StubScanner(new TitlebarSnapshot(300, [new RectD(0, 0, 300, 48)]));
+        var scanner = new StubScanner(new TitlebarSnapshot(
+            300,
+            [new RectD(0, 0, 300, 48)],
+            new RectD(0, 60, 400, 46)));
         var coordinator = new WindowsHostCoordinator(
             new StubLocator(new HostWindowSnapshot(
                 new IntPtr(42), new RectD(0, 0, 400, 800), true, 1, "codex-build-a")),
@@ -107,16 +113,19 @@ public sealed class HostCoordinatorTests
     {
         var window = new HostWindowSnapshot(
             new IntPtr(42), new RectD(-3000, 0, 4096, 2200), true, 2, "codex-build-a");
-        var scanner = new StubScanner(new TitlebarSnapshot(500, []));
+        var scanner = new StubScanner(new TitlebarSnapshot(
+            500,
+            [],
+            new RectD(-2600, 70, 3600, 92)));
         var overlay = new RecordingOverlay();
         var coordinator = new WindowsHostCoordinator(new StubLocator(window), scanner, overlay);
 
         var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
-        Assert.AreEqual(416, overlay.LastPresentation?.Placement.Frame.Width);
-        Assert.AreEqual(80, overlay.LastPresentation?.Placement.Frame.Height);
-        Assert.AreEqual(8, overlay.LastPresentation?.Placement.Frame.Y);
+        Assert.AreEqual(328, overlay.LastPresentation?.Placement.Frame.Width);
+        Assert.AreEqual(92, overlay.LastPresentation?.Placement.Frame.Height);
+        Assert.AreEqual(70, overlay.LastPresentation?.Placement.Frame.Y);
     }
 
     [TestMethod]
@@ -188,6 +197,17 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public void OverlayVisualMetricsMatchTheMacOsV023Baseline()
+    {
+        Assert.AreEqual(164, OverlayVisualMetrics.IndicatorWidth);
+        Assert.AreEqual(46, OverlayVisualMetrics.IndicatorHeight);
+        Assert.AreEqual(300, OverlayVisualMetrics.DetailWidth);
+        Assert.AreEqual(14, OverlayVisualMetrics.HeaderTitleFontSize);
+        Assert.AreEqual(9, OverlayVisualMetrics.VersionBadgeFontSize);
+        Assert.AreEqual(18, OverlayVisualMetrics.RemainingPercentFontSize);
+    }
+
+    [TestMethod]
     public void HostSingletonRefusesASecondLeaseUntilTheFirstIsDisposed()
     {
         var identity = $"test-{Guid.NewGuid():N}";
@@ -202,13 +222,14 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
-    public void ValidatedTitlebarCacheIsKeyedByHandleBuildDpiAndPhysicalGeometry()
+    public void ValidatedTitlebarCacheHasA100MillisecondFreshWindowAnd750MillisecondRetentionWindow()
     {
         long timestamp = 10_000;
         var cache = new ValidatedTitlebarCache(
             () => timestamp,
             timestampFrequency: 1_000,
-            TimeSpan.FromSeconds(1));
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(750));
         var host = new HostWindowSnapshot(
             new IntPtr(9), new RectD(-2000, 0, 1600, 1200), true, 1.5, "build-a");
         var snapshot = new TitlebarSnapshot(-500, []);
@@ -219,15 +240,19 @@ public sealed class HostCoordinatorTests
         Assert.IsNull(cache.TryGet(host with { DpiScale = 2 }));
         Assert.IsNull(cache.TryGet(host with { BuildIdentity = "build-b" }));
 
-        timestamp += 1_000;
+        timestamp += 100;
         Assert.IsNull(cache.TryGet(host));
+        Assert.AreSame(snapshot, cache.TryGetRetained(host));
+
+        timestamp += 650;
+        Assert.IsNull(cache.TryGetRetained(host));
 
         cache.Invalidate();
         Assert.IsNull(cache.TryGet(host));
     }
 
     [TestMethod]
-    public async Task HidesBeforeRevalidatingAnExpiredUiaStructure()
+    public async Task RevalidatesAnExpiredUiaStructureWithoutHidingAVisibleOverlayFirst()
     {
         var overlay = new RecordingOverlay();
         var scanner = new StubScanner { ValidationCurrent = false };
@@ -236,7 +261,27 @@ public sealed class HostCoordinatorTests
 
         await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
 
-        CollectionAssert.AreEqual(new[] { "hide", "show" }, overlay.Events.ToArray());
+        CollectionAssert.AreEqual(new[] { "show" }, overlay.Events.ToArray());
+    }
+
+    [TestMethod]
+    public async Task RetainsTheLastSafePlacementDuringATransientUiaFailure()
+    {
+        var window = Window("codex-build-a");
+        var retained = new TitlebarSnapshot(
+            1000,
+            [],
+            new RectD(200, 60, 1100, 46));
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(window),
+            new RetainingFailingScanner(retained),
+            overlay);
+
+        var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(HostRuntimeState.Visible, result);
+        CollectionAssert.AreEqual(new[] { "show" }, overlay.Events.ToArray());
     }
 
     private static HostWindowSnapshot Window(string build) =>
@@ -265,12 +310,17 @@ public sealed class HostCoordinatorTests
         public ValueTask<TitlebarSnapshot> ScanAsync(HostWindowSnapshot host, CancellationToken cancellationToken)
         {
             ScanCount++;
-            return ValueTask.FromResult(value ?? new TitlebarSnapshot(host.Bounds.Right, Array.Empty<RectD>()));
+            return ValueTask.FromResult(value ?? SnapshotFor(host));
         }
         public TitlebarSnapshot? TryGetCurrent(HostWindowSnapshot host) => ValidationCurrent
-            ? value ?? new TitlebarSnapshot(host.Bounds.Right, Array.Empty<RectD>())
+            ? value ?? SnapshotFor(host)
             : null;
         public void Invalidate() => InvalidateCount++;
+
+        private static TitlebarSnapshot SnapshotFor(HostWindowSnapshot host) => new(
+            host.Bounds.Right,
+            Array.Empty<RectD>(),
+            new RectD(host.Bounds.X, host.Bounds.Y + 60, host.Bounds.Width, 46 * host.DpiScale));
     }
 
     private sealed class RejectingScanner : ITitlebarScanner
@@ -284,6 +334,14 @@ public sealed class HostCoordinatorTests
     {
         public ValueTask<TitlebarSnapshot> ScanAsync(HostWindowSnapshot host, CancellationToken cancellationToken) =>
             ValueTask.FromException<TitlebarSnapshot>(new InvalidOperationException("UIA unavailable"));
+        public void Invalidate() { }
+    }
+
+    private sealed class RetainingFailingScanner(TitlebarSnapshot retained) : ITitlebarScanner
+    {
+        public TitlebarSnapshot? TryGetRetained(HostWindowSnapshot host) => retained;
+        public ValueTask<TitlebarSnapshot> ScanAsync(HostWindowSnapshot host, CancellationToken cancellationToken) =>
+            ValueTask.FromException<TitlebarSnapshot>(new WindowsDeviceValidationRequiredException(host.BuildIdentity));
         public void Invalidate() { }
     }
 

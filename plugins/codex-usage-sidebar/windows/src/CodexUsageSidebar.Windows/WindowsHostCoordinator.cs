@@ -4,7 +4,6 @@ namespace CodexUsageSidebar.Windows;
 
 public sealed class WindowsHostCoordinator
 {
-    private const double IndicatorWidth = 208;
     private const double IndicatorGap = 8;
     private readonly IHostWindowLocator locator;
     private readonly ITitlebarScanner scanner;
@@ -59,14 +58,18 @@ public sealed class WindowsHostCoordinator
         var titlebar = scanner.TryGetCurrent(host);
         if (titlebar is null)
         {
-            await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 titlebar = await scanner.ScanAsync(host, cancellationToken).ConfigureAwait(false);
             }
             catch (WindowsDeviceValidationRequiredException)
             {
-                return HostRuntimeState.DeviceValidationRequired;
+                titlebar = scanner.TryGetRetained(host);
+                if (titlebar is null)
+                {
+                    await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
+                    return HostRuntimeState.DeviceValidationRequired;
+                }
             }
             catch (OperationCanceledException)
             {
@@ -74,18 +77,23 @@ public sealed class WindowsHostCoordinator
             }
             catch (Exception)
             {
-                return HostRuntimeState.DeviceValidationRequired;
+                titlebar = scanner.TryGetRetained(host);
+                if (titlebar is null)
+                {
+                    await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
+                    return HostRuntimeState.DeviceValidationRequired;
+                }
             }
         }
         var scale = host.DpiScale;
         var placement = PlacementResolver.Resolve(
-            host.Bounds,
+            titlebar.ToolbarBounds,
             titlebar.PreferredAnchorTrailingEdge,
-            IndicatorWidth * scale,
+            OverlayVisualMetrics.IndicatorWidth * scale,
             IndicatorGap * scale,
             titlebar.Obstacles,
-            verticalInset: 4 * scale,
-            indicatorHeight: 40 * scale);
+            verticalInset: 0,
+            indicatorHeight: OverlayVisualMetrics.IndicatorHeight * scale);
         if (placement.Surface != PlacementSurface.Content)
         {
             await overlay.HideAsync(cancellationToken).ConfigureAwait(false);

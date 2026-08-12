@@ -33,4 +33,5 @@ public sealed record UiaProbeNode(
     RectD Bounds,
     int NameLength,
     string NameToken,
+    string SemanticRole,
     string? Name);
