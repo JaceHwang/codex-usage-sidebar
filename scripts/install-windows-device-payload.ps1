@@ -152,6 +152,7 @@ try {
             '-p:PublishSingleFile=true' `
             "-p:DeviceSourceCommit=$sourceCommit" `
             "-p:DevicePayloadManifestSha256=$manifestSha256" `
+            '-p:InstallerPayloadMode=device-test' `
             --output $installerOutput
         if ($LASTEXITCODE -ne 0) { throw 'The provenance-bound device-test manager publish failed.' }
         if (-not (Test-Path -LiteralPath (Join-Path $installerOutput 'CodexUsageSidebar.Installer.exe') -PathType Leaf)) {

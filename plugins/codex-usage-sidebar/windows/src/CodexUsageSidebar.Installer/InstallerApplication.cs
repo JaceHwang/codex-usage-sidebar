@@ -21,9 +21,12 @@ public static class InstallerApplication
         var metadata = Assembly.GetExecutingAssembly()
             .GetCustomAttributes<AssemblyMetadataAttribute>()
             .ToDictionary(attribute => attribute.Key, attribute => attribute.Value, StringComparer.Ordinal);
+        InstallerPayloadMode payloadMode;
         try
         {
+            payloadMode = InstallerPayloadModeParser.Parse(metadata.GetValueOrDefault("InstallerPayloadMode"));
             var deviceInstall = DevicePayloadInstallCommand.TryCreate(
+                payloadMode,
                 args,
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 architecture,
@@ -55,13 +58,15 @@ public static class InstallerApplication
         var controller = new InstallerUiController(
             CultureInfo.CurrentUICulture.Name,
             mode,
-            DeviceTestInstallerRuntimeFactory.TryCreate(
+            (payloadMode == InstallerPayloadMode.DeviceTest
+                ? DeviceTestInstallerRuntimeFactory.TryCreate(
                 AppContext.BaseDirectory,
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 architecture,
                 Environment.OSVersion.Version.Build,
                 metadata.GetValueOrDefault("DeviceSourceCommit"),
                 metadata.GetValueOrDefault("DevicePayloadManifestSha256"))
+                : null)
             ?? new UnavailableInstallerUiActions());
         var application = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
         return application.Run(new InstallerWindow(controller));

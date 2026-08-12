@@ -3,6 +3,7 @@ namespace CodexUsageSidebar.Installer;
 public static class DevicePayloadInstallCommand
 {
     public static DevicePayloadInstallPlan? TryCreate(
+        InstallerPayloadMode payloadMode,
         IReadOnlyList<string> arguments,
         string localAppData,
         string architecture,
@@ -14,6 +15,12 @@ public static class DevicePayloadInstallCommand
             || !string.Equals(arguments[0], "--device-install", StringComparison.Ordinal))
         {
             return null;
+        }
+        if (payloadMode != InstallerPayloadMode.DeviceTest)
+        {
+            throw new ArgumentException(
+                "Only an explicitly marked device-test installer accepts an external payload path.",
+                nameof(arguments));
         }
         if (arguments.Count != 2)
         {
