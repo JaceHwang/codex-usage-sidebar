@@ -93,7 +93,15 @@ try {
         }
 
         $runtimePath = Join-Path $stagedPayload 'codex.exe'
-        Invoke-WebRequest -Uri $codexRuntimeSource -OutFile $runtimePath -UseBasicParsing
+        $runtimeCandidates = @(Get-ChildItem -Path (Join-Path $distRoot '*\codex.exe') -File -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty FullName)
+        $runtimeReused = Copy-WindowsDeviceRuntimeFromCache `
+            -Candidates $runtimeCandidates `
+            -Destination $runtimePath `
+            -ExpectedSha256 $codexRuntimeSha256
+        if (-not $runtimeReused) {
+            Invoke-WebRequest -Uri $codexRuntimeSource -OutFile $runtimePath -UseBasicParsing
+        }
         $actualRuntimeSha256 = (Get-FileHash -LiteralPath $runtimePath -Algorithm SHA256).Hash.ToLowerInvariant()
         if ($actualRuntimeSha256 -ne $codexRuntimeSha256) {
             throw "The downloaded Codex x64 runtime digest is invalid: $actualRuntimeSha256"
@@ -149,7 +157,12 @@ try {
         $controlScript = Join-Path $repoRoot 'plugins\codex-usage-sidebar\scripts\sidebar-control-windows.ps1'
         & $controlScript ensure -PluginRoot (Join-Path $repoRoot 'plugins\codex-usage-sidebar')
         if ($LASTEXITCODE -ne 0) { throw 'The Windows overlay host did not start.' }
-        Start-Sleep -Milliseconds 750
+        Wait-WindowsDeviceCondition -TimeoutMilliseconds 10000 -PollMilliseconds 200 -Condition {
+            $managed = Get-CimInstance Win32_Process -Filter "Name = 'CodexUsageSidebar.Windows.exe'" -ErrorAction SilentlyContinue |
+                Where-Object { $_.ExecutablePath -and ([IO.Path]::GetFullPath($_.ExecutablePath) -eq [IO.Path]::GetFullPath($managedRuntime)) } |
+                Select-Object -First 1
+            return $null -ne $managed
+        } | Out-Null
         $runtimeStatus = (& $controlScript status | Out-String).Trim()
         if ($LASTEXITCODE -ne 0 -or $runtimeStatus -notmatch '^runtime=running pid=\d+ version=0\.3\.0-beta\.1$') {
             throw "The Windows overlay host is not running: $runtimeStatus"

@@ -45,9 +45,14 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             VerticalAlignment = VerticalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
         };
+        var indicatorColor = SystemColors.WindowTextColor;
         indicatorSurface = new Border
         {
-            Background = Brushes.Transparent,
+            Background = new SolidColorBrush(Color.FromArgb(
+                IndicatorHitTestPolicy.BackgroundAlpha(highlighted: false),
+                indicatorColor.R,
+                indicatorColor.G,
+                indicatorColor.B)),
             CornerRadius = new CornerRadius(10),
             Padding = new Thickness(8, 0, 8, 0),
             Child = indicatorText,
@@ -123,9 +128,11 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     {
         var highlighted = indicator.IsMouseOver || interaction.IsPinned;
         var color = SystemColors.WindowTextColor;
-        indicatorSurface.Background = highlighted
-            ? new SolidColorBrush(Color.FromArgb(18, color.R, color.G, color.B))
-            : Brushes.Transparent;
+        indicatorSurface.Background = new SolidColorBrush(Color.FromArgb(
+            IndicatorHitTestPolicy.BackgroundAlpha(highlighted),
+            color.R,
+            color.G,
+            color.B));
         if (interaction.ShouldShowDetail
             && latestPresentation is not null
             && latestContent is not null)

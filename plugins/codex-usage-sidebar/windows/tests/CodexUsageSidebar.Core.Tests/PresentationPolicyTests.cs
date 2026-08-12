@@ -44,6 +44,13 @@ public sealed class PresentationPolicyTests
     }
 
     [TestMethod]
+    public void IdleIndicatorRetainsAnInvisibleHitTestSurface()
+    {
+        Assert.AreEqual((byte)1, IndicatorHitTestPolicy.BackgroundAlpha(highlighted: false));
+        Assert.AreEqual((byte)18, IndicatorHitTestPolicy.BackgroundAlpha(highlighted: true));
+    }
+
+    [TestMethod]
     public void RefreshPolicyUsesOneSecondForegroundAndFiveSecondBackgroundIntervals()
     {
         Assert.AreEqual(TimeSpan.FromSeconds(1), RefreshPolicy.Interval(true));

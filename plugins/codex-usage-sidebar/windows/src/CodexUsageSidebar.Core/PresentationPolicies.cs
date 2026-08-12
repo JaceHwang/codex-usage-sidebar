@@ -84,6 +84,11 @@ public static class QuotaColorScale
     }
 }
 
+public static class IndicatorHitTestPolicy
+{
+    public static byte BackgroundAlpha(bool highlighted) => highlighted ? (byte)18 : (byte)1;
+}
+
 public readonly record struct DetailInteractionState(bool IsPinned, bool IsPointerInside, bool SuppressHoverUntilExit)
 {
     public static DetailInteractionState Initial => new(false, false, false);

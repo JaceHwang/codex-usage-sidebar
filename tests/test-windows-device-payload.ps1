@@ -3,6 +3,66 @@ Set-StrictMode -Version Latest
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $script = Join-Path $repoRoot 'scripts\install-windows-device-payload.ps1'
+$commandLineModule = Join-Path $repoRoot 'plugins\codex-usage-sidebar\scripts\WindowsProcessCommandLine.psm1'
+Import-Module $commandLineModule -Force
+
+if (-not ('WindowsCommandLineTest.NativeMethods' -as [type])) {
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+namespace WindowsCommandLineTest
+{
+    public static class NativeMethods
+    {
+        [DllImport("shell32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern IntPtr CommandLineToArgvW(string commandLine, out int argumentCount);
+
+        [DllImport("kernel32.dll")]
+        private static extern IntPtr LocalFree(IntPtr memory);
+
+        public static string[] Parse(string commandLine)
+        {
+            int count;
+            var pointer = CommandLineToArgvW(commandLine, out count);
+            if (pointer == IntPtr.Zero) throw new InvalidOperationException("CommandLineToArgvW failed.");
+            try
+            {
+                var result = new string[count];
+                for (var index = 0; index < count; index++)
+                {
+                    result[index] = Marshal.PtrToStringUni(Marshal.ReadIntPtr(pointer, index * IntPtr.Size));
+                }
+                return result;
+            }
+            finally
+            {
+                LocalFree(pointer);
+            }
+        }
+    }
+}
+'@
+}
+$commandLineArguments = @(
+    '--background',
+    '--plugin-root',
+    'C:\Users\Device Test\plugin\',
+    '--plugin-data',
+    'C:\data\with"quote\last\',
+    ''
+)
+$parsedCommandLine = [WindowsCommandLineTest.NativeMethods]::Parse(
+    'device-test.exe ' + (Join-WindowsProcessArguments -Arguments $commandLineArguments))
+if ($parsedCommandLine.Count -ne ($commandLineArguments.Count + 1)) {
+    throw 'The Windows process command line did not preserve the argument count.'
+}
+for ($index = 0; $index -lt $commandLineArguments.Count; $index++) {
+    if ($parsedCommandLine[$index + 1] -cne $commandLineArguments[$index]) {
+        throw "The Windows process command line changed argument $index."
+    }
+}
+
 $plan = & $script -PlanOnly | ConvertFrom-Json
 
 if ($plan.version -ne '0.3.0-beta.1') { throw 'Unexpected device payload version.' }
@@ -46,6 +106,55 @@ try {
     throw 'Windows 10 unexpectedly passed the device platform gate.'
 }
 catch [PlatformNotSupportedException] {
+}
+$attempts = 0
+$conditionResult = Wait-WindowsDeviceCondition -TimeoutMilliseconds 1000 -PollMilliseconds 1 -Condition {
+    $script:attempts++
+    if ($script:attempts -ge 3) { return 'running' }
+    return $null
+}
+if ($conditionResult -ne 'running' -or $attempts -ne 3) {
+    throw 'The device condition wait did not return the first successful observation.'
+}
+try {
+    Wait-WindowsDeviceCondition -TimeoutMilliseconds 5 -PollMilliseconds 1 -Condition { $null } | Out-Null
+    throw 'A device condition timeout unexpectedly succeeded.'
+}
+catch [TimeoutException] {
+}
+$runtimeCacheFixture = Join-Path ([IO.Path]::GetTempPath()) ('cus-runtime-cache-' + [Guid]::NewGuid().ToString('N'))
+try {
+    New-Item -ItemType Directory -Force -Path $runtimeCacheFixture | Out-Null
+    $badRuntime = Join-Path $runtimeCacheFixture 'bad.exe'
+    $goodRuntime = Join-Path $runtimeCacheFixture 'good.exe'
+    $cachedRuntime = Join-Path $runtimeCacheFixture 'copied.exe'
+    [IO.File]::WriteAllBytes($badRuntime, [byte[]](1, 2, 3))
+    [IO.File]::WriteAllBytes($goodRuntime, [byte[]](4, 5, 6, 7))
+    $goodRuntimeSha256 = (Get-FileHash -LiteralPath $goodRuntime -Algorithm SHA256).Hash.ToLowerInvariant()
+    if (-not (Copy-WindowsDeviceRuntimeFromCache `
+        -Candidates @($badRuntime, $goodRuntime) `
+        -Destination $cachedRuntime `
+        -ExpectedSha256 $goodRuntimeSha256)) {
+        throw 'A digest-matching device runtime cache entry was not reused.'
+    }
+    if ((Get-FileHash -LiteralPath $cachedRuntime -Algorithm SHA256).Hash.ToLowerInvariant() -ne $goodRuntimeSha256) {
+        throw 'The reused device runtime did not preserve the pinned digest.'
+    }
+    Remove-Item -LiteralPath $cachedRuntime
+    if (Copy-WindowsDeviceRuntimeFromCache `
+        -Candidates @($badRuntime) `
+        -Destination $cachedRuntime `
+        -ExpectedSha256 $goodRuntimeSha256) {
+        throw 'A mismatched device runtime cache entry was reused.'
+    }
+}
+finally {
+    $expectedParent = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar)
+    if ((Split-Path -Parent ([IO.Path]::GetFullPath($runtimeCacheFixture))).TrimEnd([IO.Path]::DirectorySeparatorChar) -ne $expectedParent -or
+        -not (Split-Path -Leaf $runtimeCacheFixture).StartsWith('cus-runtime-cache-', [StringComparison]::Ordinal)) {
+        throw 'Refusing to clean an unexpected runtime-cache fixture path.'
+    }
+    if (Test-Path -LiteralPath $runtimeCacheFixture) { Remove-Item -LiteralPath $runtimeCacheFixture -Recurse -Force }
 }
 $fixture = Join-Path ([IO.Path]::GetTempPath()) ('cus-source-gate-' + [Guid]::NewGuid().ToString('N'))
 try {

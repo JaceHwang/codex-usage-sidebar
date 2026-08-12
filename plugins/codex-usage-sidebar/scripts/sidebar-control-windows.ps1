@@ -11,6 +11,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+Import-Module (Join-Path $PSScriptRoot 'WindowsProcessCommandLine.psm1') -Force
 
 $localAppData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
 $installRoot = [IO.Path]::GetFullPath((Join-Path $localAppData 'CodexUsageSidebar'))
@@ -42,14 +43,22 @@ switch ($Command) {
         $start.FileName = $runtime
         $start.UseShellExecute = $false
         $start.CreateNoWindow = $true
-        $start.ArgumentList.Add('--background')
+        $runtimeArguments = @('--background')
         if ($PluginRoot) {
-            $start.ArgumentList.Add('--plugin-root')
-            $start.ArgumentList.Add([IO.Path]::GetFullPath($PluginRoot))
+            $runtimeArguments += '--plugin-root'
+            $runtimeArguments += [IO.Path]::GetFullPath($PluginRoot)
         }
         if ($PluginData) {
-            $start.ArgumentList.Add('--plugin-data')
-            $start.ArgumentList.Add([IO.Path]::GetFullPath($PluginData))
+            $runtimeArguments += '--plugin-data'
+            $runtimeArguments += [IO.Path]::GetFullPath($PluginData)
+        }
+        if ($null -ne $start.PSObject.Properties['ArgumentList']) {
+            foreach ($argument in $runtimeArguments) {
+                $start.ArgumentList.Add($argument)
+            }
+        }
+        else {
+            $start.Arguments = Join-WindowsProcessArguments -Arguments $runtimeArguments
         }
         $process = [Diagnostics.Process]::Start($start)
         if ($null -eq $process) {

@@ -68,4 +68,63 @@ function Assert-WindowsDevicePlatform {
     }
 }
 
-Export-ModuleMember -Function Assert-WindowsDeviceSourceState, Assert-WindowsDevicePlatform
+function Wait-WindowsDeviceCondition {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [scriptblock] $Condition,
+        [int] $TimeoutMilliseconds = 5000,
+        [int] $PollMilliseconds = 100
+    )
+
+    if ($TimeoutMilliseconds -le 0 -or $PollMilliseconds -le 0) {
+        throw [ArgumentOutOfRangeException]::new('Timeout and poll intervals must be positive.')
+    }
+    $stopwatch = [Diagnostics.Stopwatch]::StartNew()
+    while ($true) {
+        $result = & $Condition
+        if ($null -ne $result -and $result -ne $false) {
+            return $result
+        }
+        if ($stopwatch.ElapsedMilliseconds -ge $TimeoutMilliseconds) {
+            throw [TimeoutException]::new(
+                "The device condition was not satisfied within $TimeoutMilliseconds milliseconds.")
+        }
+        Start-Sleep -Milliseconds $PollMilliseconds
+    }
+}
+
+function Copy-WindowsDeviceRuntimeFromCache {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [string[]] $Candidates,
+        [Parameter(Mandatory = $true)]
+        [string] $Destination,
+        [Parameter(Mandatory = $true)]
+        [ValidatePattern('^[0-9a-fA-F]{64}$')]
+        [string] $ExpectedSha256
+    )
+
+    $expected = $ExpectedSha256.ToLowerInvariant()
+    foreach ($candidate in $Candidates) {
+        if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+            continue
+        }
+        $candidateSha256 = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($candidateSha256 -ne $expected) {
+            continue
+        }
+        Copy-Item -LiteralPath $candidate -Destination $Destination -Force
+        $destinationSha256 = (Get-FileHash -LiteralPath $Destination -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($destinationSha256 -ne $expected) {
+            Remove-Item -LiteralPath $Destination -Force -ErrorAction SilentlyContinue
+            throw [IO.InvalidDataException]::new('The copied device runtime does not match the pinned digest.')
+        }
+        return $true
+    }
+    return $false
+}
+
+Export-ModuleMember -Function Assert-WindowsDeviceSourceState, Assert-WindowsDevicePlatform, Wait-WindowsDeviceCondition, Copy-WindowsDeviceRuntimeFromCache
