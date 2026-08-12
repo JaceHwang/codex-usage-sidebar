@@ -200,11 +200,15 @@ public sealed class HostCoordinatorTests
     public void OverlayVisualMetricsMatchTheMacOsV023Baseline()
     {
         Assert.AreEqual(164, OverlayVisualMetrics.IndicatorWidth);
-        Assert.AreEqual(46, OverlayVisualMetrics.IndicatorHeight);
         Assert.AreEqual(300, OverlayVisualMetrics.DetailWidth);
         Assert.AreEqual(14, OverlayVisualMetrics.HeaderTitleFontSize);
-        Assert.AreEqual(9, OverlayVisualMetrics.VersionBadgeFontSize);
+        Assert.AreEqual(8, OverlayVisualMetrics.VersionBadgeFontSize);
+        Assert.AreEqual(14, OverlayVisualMetrics.VersionBadgeHeight);
         Assert.AreEqual(18, OverlayVisualMetrics.RemainingPercentFontSize);
+        Assert.AreEqual(12, OverlayVisualMetrics.DetailValueFontSize);
+        Assert.AreEqual(14, OverlayVisualMetrics.CountdownDigitFontSize);
+        Assert.AreEqual(10, OverlayVisualMetrics.CountdownUnitFontSize);
+        Assert.AreEqual(4, OverlayVisualMetrics.ProgressTrackHeight);
     }
 
     [TestMethod]

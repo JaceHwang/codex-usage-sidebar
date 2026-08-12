@@ -7,8 +7,13 @@ public static class OverlayVisualMetrics
     public const double DetailWidth = 300;
     public const double HeaderTitleFontSize = 14;
     public const double HeaderTitleMaximumWidth = 145;
-    public const double VersionBadgeFontSize = 9;
+    public const double VersionBadgeFontSize = 8;
+    public const double VersionBadgeHeight = 14;
     public const double RemainingPercentFontSize = 18;
+    public const double DetailValueFontSize = 12;
+    public const double CountdownDigitFontSize = 14;
+    public const double CountdownUnitFontSize = 10;
+    public const double ProgressTrackHeight = 4;
 }
 
 public static class OverlayWindowPolicy

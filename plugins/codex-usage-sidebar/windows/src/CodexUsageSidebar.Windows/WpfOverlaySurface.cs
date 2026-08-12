@@ -146,7 +146,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     private void UpdateIndicator(AllowanceSnapshot snapshot)
     {
         indicatorText.Inlines.Clear();
-        var accent = ColorFor(snapshot.RemainingPercent);
+        var accent = WpfQuotaColors.ForRemainingPercent(snapshot.RemainingPercent);
         indicatorText.Inlines.Add(new System.Windows.Documents.Run($"{snapshot.RemainingPercent}%")
         {
             FontSize = 14,
@@ -191,7 +191,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
 
     private static Border BuildDetailCard(QuotaDetailContent content)
     {
-        var accent = ColorFor(content.RemainingPercent);
+        var accent = WpfQuotaColors.ForRemainingPercent(content.RemainingPercent);
         var body = new StackPanel();
         var header = new Grid { Margin = new Thickness(14, 11, 14, 9) };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -210,13 +210,20 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         };
         Grid.SetColumn(title, 0);
         header.Children.Add(title);
+        var highlight = SystemColors.HighlightColor;
         var badge = new Border
         {
-            BorderBrush = SystemColors.HighlightBrush,
+            BorderBrush = new SolidColorBrush(Color.FromArgb(
+                133,
+                highlight.R,
+                highlight.G,
+                highlight.B)),
             BorderThickness = new Thickness(0.75),
             CornerRadius = new CornerRadius(7),
             Margin = new Thickness(6, 0, 8, 0),
-            Padding = new Thickness(5, 1, 5, 1),
+            Padding = new Thickness(5, 0, 5, 0),
+            Height = OverlayVisualMetrics.VersionBadgeHeight,
+            VerticalAlignment = VerticalAlignment.Center,
             Child = new TextBlock
             {
                 Text = "v0.3.0-beta.1",
@@ -225,6 +232,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
                 FontWeight = FontWeights.Medium,
                 Foreground = SystemColors.HighlightBrush,
                 TextWrapping = TextWrapping.NoWrap,
+                VerticalAlignment = VerticalAlignment.Center,
             },
         };
         Grid.SetColumn(badge, 1);
@@ -241,24 +249,12 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         header.Children.Add(remaining);
         body.Children.Add(header);
 
-        var progress = new Grid { Height = 4, Margin = new Thickness(12, 0, 12, 11) };
-        progress.ColumnDefinitions.Add(new ColumnDefinition
+        body.Children.Add(new WpfQuotaProgressBar
         {
-            Width = new GridLength(Math.Max(0.001, content.RemainingPercent), GridUnitType.Star),
+            Height = OverlayVisualMetrics.ProgressTrackHeight,
+            Margin = new Thickness(12, 0, 12, 11),
+            RemainingPercent = content.RemainingPercent,
         });
-        progress.ColumnDefinitions.Add(new ColumnDefinition
-        {
-            Width = new GridLength(Math.Max(0.001, 100 - content.RemainingPercent), GridUnitType.Star),
-        });
-        var spectrum = new Border
-        {
-            CornerRadius = new CornerRadius(2),
-            Background = new LinearGradientBrush(
-                ColorFor(0), ColorFor(100), new Point(0, 0.5), new Point(1, 0.5)),
-        };
-        Grid.SetColumn(spectrum, 0);
-        progress.Children.Add(spectrum);
-        body.Children.Add(progress);
         body.Children.Add(new Border
         {
             Height = 1,
@@ -281,14 +277,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
                 TextWrapping = TextWrapping.Wrap,
             };
             grid.Children.Add(label);
-            var value = new TextBlock
-            {
-                Text = row.Value,
-                FontFamily = new FontFamily("Segoe UI"),
-                FontSize = 12,
-                TextAlignment = TextAlignment.Right,
-                TextWrapping = TextWrapping.Wrap,
-            };
+            var value = BuildDetailValue(row.Value, accent);
             Grid.SetColumn(value, 1);
             grid.Children.Add(value);
             rows.Children.Add(grid);
@@ -309,6 +298,50 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             CornerRadius = new CornerRadius(12),
             Child = body,
         };
+    }
+
+    private static TextBlock BuildDetailValue(string value, Color accent)
+    {
+        var text = new TextBlock
+        {
+            FontFamily = new FontFamily("Segoe UI"),
+            FontSize = OverlayVisualMetrics.DetailValueFontSize,
+            TextAlignment = TextAlignment.Right,
+            TextWrapping = TextWrapping.Wrap,
+        };
+        foreach (var segment in QuotaCountdownSegmenter.Segments(value))
+        {
+            var run = new System.Windows.Documents.Run(segment.Text)
+            {
+                BaselineAlignment = BaselineAlignment.Baseline,
+            };
+            switch (segment.Role)
+            {
+                case QuotaCountdownSegmentRole.Digits:
+                    run.FontSize = OverlayVisualMetrics.CountdownDigitFontSize;
+                    run.FontWeight = FontWeights.SemiBold;
+                    run.Foreground = new SolidColorBrush(accent);
+                    break;
+                case QuotaCountdownSegmentRole.Unit:
+                    run.FontSize = OverlayVisualMetrics.CountdownUnitFontSize;
+                    run.FontWeight = FontWeights.Medium;
+                    run.Foreground = SystemColors.GrayTextBrush;
+                    break;
+                case QuotaCountdownSegmentRole.Punctuation:
+                case QuotaCountdownSegmentRole.Suffix:
+                    run.FontSize = OverlayVisualMetrics.CountdownUnitFontSize;
+                    run.FontWeight = FontWeights.Normal;
+                    run.Foreground = SystemColors.GrayTextBrush;
+                    break;
+                default:
+                    run.FontSize = OverlayVisualMetrics.DetailValueFontSize;
+                    run.FontWeight = FontWeights.Normal;
+                    run.Foreground = SystemColors.WindowTextBrush;
+                    break;
+            }
+            text.Inlines.Add(run);
+        }
+        return text;
     }
 
     private static Window CreatePassiveWindow(UIElement content)
@@ -380,28 +413,6 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         }
         return new ValueTask(indicator.Dispatcher.InvokeAsync(action).Task);
     }
-
-    private static Color ColorFor(int remainingPercent)
-    {
-        var hsb = QuotaColorScale.ForRemainingPercent(remainingPercent);
-        var hue = (hsb.Hue - Math.Floor(hsb.Hue)) * 6;
-        var chroma = hsb.Brightness * hsb.Saturation;
-        var x = chroma * (1 - Math.Abs(hue % 2 - 1));
-        var m = hsb.Brightness - chroma;
-        var (red, green, blue) = hue switch
-        {
-            < 1 => (chroma, x, 0d),
-            < 2 => (x, chroma, 0d),
-            < 3 => (0d, chroma, x),
-            < 4 => (0d, x, chroma),
-            < 5 => (x, 0d, chroma),
-            _ => (chroma, 0d, x),
-        };
-        return Color.FromRgb(ToByte(red + m), ToByte(green + m), ToByte(blue + m));
-    }
-
-    private static byte ToByte(double value) =>
-        (byte)Math.Round(Math.Clamp(value, 0, 1) * 255, MidpointRounding.AwayFromZero);
 
     private static RectD? WorkAreaFor(IntPtr owner)
     {
