@@ -18,7 +18,8 @@ public static class InstallerApplication
         var architecture = RuntimeInformation.OSArchitecture == Architecture.X64
             ? "x64"
             : RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant();
-        var metadata = Assembly.GetExecutingAssembly()
+        var executingAssembly = Assembly.GetExecutingAssembly();
+        var metadata = executingAssembly
             .GetCustomAttributes<AssemblyMetadataAttribute>()
             .ToDictionary(attribute => attribute.Key, attribute => attribute.Value, StringComparer.Ordinal);
         InstallerPayloadMode payloadMode;
@@ -55,19 +56,27 @@ public static class InstallerApplication
             return 64;
         }
 
-        var controller = new InstallerUiController(
-            CultureInfo.CurrentUICulture.Name,
-            mode,
-            (payloadMode == InstallerPayloadMode.DeviceTest
-                ? DeviceTestInstallerRuntimeFactory.TryCreate(
+        var actions = payloadMode switch
+        {
+            InstallerPayloadMode.DeviceTest => DeviceTestInstallerRuntimeFactory.TryCreate(
                 AppContext.BaseDirectory,
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 architecture,
                 Environment.OSVersion.Version.Build,
                 metadata.GetValueOrDefault("DeviceSourceCommit"),
-                metadata.GetValueOrDefault("DevicePayloadManifestSha256"))
-                : null)
-            ?? new UnavailableInstallerUiActions());
+                metadata.GetValueOrDefault("DevicePayloadManifestSha256")),
+            InstallerPayloadMode.EmbeddedRelease => EmbeddedReleaseInstallerRuntimeFactory.TryCreate(
+                executingAssembly,
+                metadata,
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                architecture,
+                Environment.OSVersion.Version.Build),
+            _ => null,
+        };
+        var controller = new InstallerUiController(
+            CultureInfo.CurrentUICulture.Name,
+            mode,
+            actions ?? new UnavailableInstallerUiActions());
         var application = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
         return application.Run(new InstallerWindow(controller));
     }

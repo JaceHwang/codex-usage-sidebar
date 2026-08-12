@@ -8,6 +8,29 @@ namespace CodexUsageSidebar.Installer.Tests;
 public sealed class EmbeddedPayloadSourceTests
 {
     [TestMethod]
+    public void ExtractsResourcesEnumeratedFromARealAssembly()
+    {
+        var assembly = typeof(EmbeddedPayloadSourceTests).Assembly;
+        using var manifest = assembly.GetManifestResourceStream("Test.Payload.windows-payload.json")
+            ?? throw new AssertFailedException("Missing embedded fixture manifest.");
+        var trustedManifestSha256 = Convert.ToHexString(SHA256.HashData(manifest)).ToLowerInvariant();
+        var stageParent = Path.Combine(Path.GetTempPath(), "cus-assembly-embedded-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var source = EmbeddedPayloadSource.FromAssembly(assembly, "Test.Payload.", trustedManifestSha256);
+
+            using var lease = source.Extract(stageParent);
+
+            Assert.AreEqual("host-fixture\n", File.ReadAllText(Path.Combine(lease.PayloadDirectory, "host.bin")).Replace("\r\n", "\n"));
+            Assert.AreEqual("{}\n", File.ReadAllText(Path.Combine(lease.PayloadDirectory, "selectors.json")).Replace("\r\n", "\n"));
+        }
+        finally
+        {
+            if (Directory.Exists(stageParent)) Directory.Delete(stageParent, recursive: true);
+        }
+    }
+
+    [TestMethod]
     public void ExtractsOnlyManifestBoundResourcesIntoAPrivateStage()
     {
         using var fixture = Fixture.Create();

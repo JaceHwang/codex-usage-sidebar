@@ -13,5 +13,14 @@
     <AssemblyMetadata Include="DeviceSourceCommit" Value="$(DeviceSourceCommit)" Condition="'$(DeviceSourceCommit)' != ''" />
     <AssemblyMetadata Include="DevicePayloadManifestSha256" Value="$(DevicePayloadManifestSha256)" Condition="'$(DevicePayloadManifestSha256)' != ''" />
     <AssemblyMetadata Include="InstallerPayloadMode" Value="$(InstallerPayloadMode)" Condition="'$(InstallerPayloadMode)' != ''" />
+    <AssemblyMetadata Include="EmbeddedPayloadVersion" Value="$(EmbeddedPayloadVersion)" Condition="'$(EmbeddedPayloadVersion)' != ''" />
+    <AssemblyMetadata Include="EmbeddedSourceCommit" Value="$(EmbeddedSourceCommit)" Condition="'$(EmbeddedSourceCommit)' != ''" />
+    <AssemblyMetadata Include="EmbeddedPayloadManifestSha256" Value="$(EmbeddedPayloadManifestSha256)" Condition="'$(EmbeddedPayloadManifestSha256)' != ''" />
+    <AssemblyMetadata Include="EmbeddedCodexRuntimeSource" Value="$(EmbeddedCodexRuntimeSource)" Condition="'$(EmbeddedCodexRuntimeSource)' != ''" />
+    <AssemblyMetadata Include="EmbeddedCodexRuntimeSha256" Value="$(EmbeddedCodexRuntimeSha256)" Condition="'$(EmbeddedCodexRuntimeSha256)' != ''" />
+    <EmbeddedResource Include="$(EmbeddedPayloadDirectory)\**\*"
+                      Condition="'$(InstallerPayloadMode)' == 'embedded-release' and Exists('$(EmbeddedPayloadDirectory)')">
+      <LogicalName>CodexUsageSidebar.Payload.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>

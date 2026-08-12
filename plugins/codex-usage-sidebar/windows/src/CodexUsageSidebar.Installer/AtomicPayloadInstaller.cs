@@ -140,15 +140,23 @@ public sealed class AtomicPayloadInstaller
             {
                 throw new InvalidDataException("The Windows payload source commit is not trusted by this installer.");
             }
+            var expectedPolicy = trustedIdentity.Policy switch
+            {
+                PayloadManifestPolicy.DeviceTest => (Status: "device-test", Validated: false, Publishable: false),
+                PayloadManifestPolicy.PublishedRelease => (Status: "release", Validated: true, Publishable: true),
+                _ => throw new InvalidDataException("The trusted Windows payload policy is unsupported."),
+            };
             if (!root.TryGetProperty("status", out var status)
                 || status.ValueKind != JsonValueKind.String
-                || status.GetString() != "device-test"
+                || status.GetString() != expectedPolicy.Status
                 || !root.TryGetProperty("realDeviceValidated", out var realDeviceValidated)
-                || realDeviceValidated.ValueKind is not JsonValueKind.False
+                || !TryReadBoolean(realDeviceValidated, out var actualValidated)
+                || actualValidated != expectedPolicy.Validated
                 || !root.TryGetProperty("publishableInstaller", out var publishableInstaller)
-                || publishableInstaller.ValueKind is not JsonValueKind.False)
+                || !TryReadBoolean(publishableInstaller, out var actualPublishable)
+                || actualPublishable != expectedPolicy.Publishable)
             {
-                throw new InvalidDataException("The Windows device payload must remain explicitly nonpublishable.");
+                throw new InvalidDataException("The Windows payload publication state does not match this installer.");
             }
             if (!root.TryGetProperty("codexRuntime", out var codexRuntime)
                 || codexRuntime.ValueKind != JsonValueKind.Object
@@ -238,6 +246,26 @@ public sealed class AtomicPayloadInstaller
         {
             throw new ArgumentException("The trusted payload manifest digest must be lowercase SHA-256.", nameof(identity));
         }
+        if (!Enum.IsDefined(identity.Policy))
+        {
+            throw new ArgumentException("The trusted payload publication policy is unsupported.", nameof(identity));
+        }
+    }
+
+    private static bool TryReadBoolean(JsonElement element, out bool value)
+    {
+        if (element.ValueKind == JsonValueKind.True)
+        {
+            value = true;
+            return true;
+        }
+        if (element.ValueKind == JsonValueKind.False)
+        {
+            value = false;
+            return true;
+        }
+        value = false;
+        return false;
     }
 
     private static bool IsLowerHex(string value, int length) =>
@@ -322,7 +350,14 @@ public sealed record TrustedPayloadIdentity(
     string SourceCommit,
     string CodexRuntimeSource,
     string CodexRuntimeSha256,
-    string? PayloadManifestSha256 = null);
+    string? PayloadManifestSha256 = null,
+    PayloadManifestPolicy Policy = PayloadManifestPolicy.DeviceTest);
+
+public enum PayloadManifestPolicy
+{
+    DeviceTest,
+    PublishedRelease,
+}
 
 public interface IPayloadStageValidator
 {

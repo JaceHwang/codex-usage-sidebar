@@ -4,4 +4,5 @@
 *.json text eol=lf
 *.yml text eol=lf
 *.svg text eol=lf
+plugins/codex-usage-sidebar/windows/tests/CodexUsageSidebar.Installer.Tests/Fixtures/embedded/host.bin text eol=lf
 "plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app/Contents/MacOS/CodexUsageSidebar" binary

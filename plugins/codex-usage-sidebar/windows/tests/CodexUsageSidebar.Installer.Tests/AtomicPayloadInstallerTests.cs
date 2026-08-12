@@ -164,6 +164,40 @@ public sealed class AtomicPayloadInstallerTests
     }
 
     [TestMethod]
+    public void PublishedReleasePayloadRequiresAnExplicitPublishedReleaseTrustPolicy()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.SetManifestString("status", "release");
+        fixture.SetManifestBoolean("realDeviceValidated", true);
+        fixture.SetManifestBoolean("publishableInstaller", true);
+        fixture.WriteExistingPayload("old");
+
+        Assert.ThrowsException<InvalidDataException>(() =>
+            fixture.Installer().Install(fixture.Source, fixture.Destination));
+        fixture.Installer(PayloadManifestPolicy.PublishedRelease)
+            .Install(fixture.Source, fixture.Destination);
+
+        Assert.AreEqual("new", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
+    [TestMethod]
+    public void PublishedReleaseTrustPolicyRejectsAnUnvalidatedOrNonpublishablePayload()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.SetManifestString("status", "release");
+        fixture.SetManifestBoolean("realDeviceValidated", true);
+        fixture.SetManifestBoolean("publishableInstaller", false);
+        fixture.WriteExistingPayload("old");
+
+        Assert.ThrowsException<InvalidDataException>(() =>
+            fixture.Installer(PayloadManifestPolicy.PublishedRelease)
+                .Install(fixture.Source, fixture.Destination));
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
+    [TestMethod]
     public void RejectsAStageTamperedAfterCopyBeforeActivation()
     {
         using var fixture = Fixture.Create();
@@ -229,6 +263,9 @@ public sealed class AtomicPayloadInstallerTests
                 new TrustedPayloadIdentity(ExpectedVersion, SourceCommit, CodexSource, RuntimeSha256),
                 cleaner,
                 stageValidator);
+
+        public AtomicPayloadInstaller Installer(PayloadManifestPolicy policy) => new(
+            new TrustedPayloadIdentity(ExpectedVersion, SourceCommit, CodexSource, RuntimeSha256, Policy: policy));
 
         public void WritePayload(string version, string marker)
         {

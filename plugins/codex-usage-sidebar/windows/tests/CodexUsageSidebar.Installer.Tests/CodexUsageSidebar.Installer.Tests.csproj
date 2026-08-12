@@ -11,4 +11,9 @@
   <ItemGroup>
     <ProjectReference Include="../../src/CodexUsageSidebar.Installer/CodexUsageSidebar.Installer.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures/embedded/*">
+      <LogicalName>Test.Payload.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>
