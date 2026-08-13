@@ -85,11 +85,14 @@ Set-Location .\diagnostic
 | `07-narrow-window` | Narrowest practical restored window |
 | `08-maximized` | Maximized window |
 | `09-fullscreen` | Fullscreen window |
-| `10-second-monitor` | Window on another monitor, when available |
 
 For every state, save a matching PNG screenshot using the same prefix. The disposable task must be
 visible, and the screenshot must not include notifications, account names, unrelated windows, or
 private task titles.
+
+The v0.3.0 release matrix is single-monitor. Do not add a cross-monitor result, skip, or waiver:
+cross-monitor movement, cross-monitor DPI transitions, and negative-coordinate placement are not
+claimed by this release evidence.
 
 ## 4. Capture theme, language, and scaling variants
 

@@ -16,7 +16,7 @@
 - 当前实现：Windows 11 AMD64/x64 实机上已显示非激活 WPF 浮层，能够跟随窗口移动和缩放；
   Codex 文件 build `151.0.7922.76` 可使用受控窗口相对回退，其他未知 build/不完整 UIA/无安全
   空位仍隐藏浮层
-- 发布状态：本地 `device-test` 管理器可安装验证，但仍不可发布；131 项真实 UI、DPI、生命周期
+- 发布状态：本地 `device-test` 管理器可安装验证，但仍不可发布；130 项单显示器真实 UI、DPI、生命周期
   和安装矩阵完成并提交 canonical 证据前禁止发布 setup
 
 ## 视觉基线
@@ -164,7 +164,7 @@ dotnet build `
 .\CodexUsageSidebar.Control.exe probe C:\Temp\codex-usage-sidebar-probe.json
 ```
 
-4. 完成左/右/下侧栏、窄窗、最大化、全屏、多显示器、主题、语言和 DPI 矩阵。
+4. 完成左/右/下侧栏、窄窗、最大化、全屏、单显示器、主题、语言和 DPI 矩阵；本版本不声明跨显示器移动、跨显示器 DPI 切换或负坐标行为。
 5. 将脱敏报告转成版本化 UIA/布局夹具，先写失败测试，再绑定生产选择器和显示浮层。
 
 ## 6. Windows 实现顺序
@@ -172,7 +172,7 @@ dotnet build `
 1. 真实 UIA 树与窗口/DPI 证据；
 2. 可版本化的语义选择器和布局夹具；
 3. 非激活 WPF 紧凑按钮与浮窗，达到 macOS 视觉/交互基线；
-4. 主题、三语言、DPI、多显示器、侧栏和窗口状态回归；
+4. 主题、三语言、DPI、单显示器、侧栏和窗口状态回归；
 5. 本地化 WPF 安装器壳、安装/修复/卸载实测；
 6. 签名、provenance、setup 负向验证和 Windows prerelease。
 

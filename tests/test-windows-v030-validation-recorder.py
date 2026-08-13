@@ -71,6 +71,23 @@ def main() -> None:
     with tempfile.TemporaryDirectory() as temporary_directory:
         directory = Path(temporary_directory)
         evidence = create_template(directory, "single-case.json")
+        pending = load_document(evidence)
+        pending_cases = pending["cases"]  # type: ignore[index]
+        assert len(pending_cases["visual"]) == 108
+        assert len(pending_cases["geometry"]) == 9
+        assert len(pending_cases["interaction"]) == 6
+        assert len(pending_cases["lifecycle"]) == 7
+        assert sum(len(group) for group in pending_cases.values()) == 130
+        assert all(
+            case["state"] != "second-monitor"
+            for case in pending_cases["geometry"]
+        )
+        assert run(
+            str(evidence),
+            "geometry",
+            "--state",
+            "second-monitor",
+        ).returncode != 0
 
         assert_success(
             run(
@@ -169,6 +186,19 @@ def main() -> None:
             [sys.executable, str(VERIFIER), str(complete), "--source-commit", COMMIT],
             check=True,
         )
+        completed["cases"]["geometry"].append(  # type: ignore[index]
+            {"state": "second-monitor", "result": "pass"}
+        )
+        complete.write_text(
+            json.dumps(completed, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        assert subprocess.run(
+            [sys.executable, str(VERIFIER), str(complete), "--source-commit", COMMIT],
+            check=False,
+            text=True,
+            capture_output=True,
+        ).returncode != 0
 
         rollback = create_template(directory, "rollback.json")
         rollback_document = load_document(rollback)

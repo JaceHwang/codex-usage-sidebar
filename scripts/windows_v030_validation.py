@@ -26,7 +26,6 @@ GEOMETRY_STATES = (
     "narrow-window",
     "maximized",
     "fullscreen",
-    "second-monitor",
 )
 INTERACTION_STATES = (
     "hover",

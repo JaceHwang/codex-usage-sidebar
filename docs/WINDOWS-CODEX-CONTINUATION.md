@@ -11,8 +11,9 @@ is required.
 - Windows status: the non-activating WPF overlay is visible on the Windows 11 AMD64/x64 validation
   device and follows movement and resizing. Exact Codex file build `151.0.7922.76` may use its
   controlled relative fallback; unknown builds and unsafe UIA input remain hidden.
-- Next phase: complete the canonical 131-case real-device matrix and bind both release candidates to
-  its immutable source/evidence identities.
+- Next phase: complete the canonical 130-case single-monitor real-device matrix and bind both
+  release candidates to its immutable source/evidence identities. This release evidence does not
+  claim cross-monitor movement, cross-monitor DPI transitions, or negative-coordinate placement.
 - Distribution status: the local device-test manager is installable but nonpublishable; no setup may
   ship before the complete release gate passes.
 
