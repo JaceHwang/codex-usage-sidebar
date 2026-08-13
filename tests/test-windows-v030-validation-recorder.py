@@ -10,6 +10,8 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -187,6 +189,34 @@ def main() -> None:
         else:
             raise AssertionError("completion accepted a verifier failure")
         assert rollback.read_bytes() == original_rollback
+
+        verifier_exception = create_template(directory, "verifier-exception.json")
+        exception_document = load_document(verifier_exception)
+        for group in exception_document["cases"].values():  # type: ignore[index]
+            for case in group:
+                case["result"] = "pass"
+        verifier_exception.write_text(
+            json.dumps(exception_document, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        original_exception = verifier_exception.read_bytes()
+        module.verify_completed = lambda path, source_commit: (_ for _ in ()).throw(
+            OSError("verifier unavailable")
+        )
+        try:
+            module.complete(verifier_exception)
+        except OSError as error:
+            assert str(error) == "verifier unavailable"
+        else:
+            raise AssertionError("completion swallowed a verifier exception")
+        assert verifier_exception.read_bytes() == original_exception
+
+        class ReparsePoint:
+            def lstat(self) -> SimpleNamespace:
+                return SimpleNamespace(st_file_attributes=0x400)
+
+        with patch.object(module.os, "name", "nt"):
+            assert module.is_windows_reparse_point(ReparsePoint())
 
     print("PASS: Windows v0.3.0 recorder updates exactly one case atomically")
 

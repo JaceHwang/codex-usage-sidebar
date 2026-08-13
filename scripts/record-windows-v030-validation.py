@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 import tempfile
@@ -51,7 +52,7 @@ def fail(message: str) -> None:
 
 
 def read_document(path: Path) -> tuple[Path, bytes, dict[str, object]]:
-    if path.is_symlink():
+    if path.is_symlink() or is_windows_reparse_point(path):
         fail("Windows validation evidence cannot be a link")
     resolved = path.resolve(strict=True)
     contents = resolved.read_bytes()
@@ -63,6 +64,15 @@ def read_document(path: Path) -> tuple[Path, bytes, dict[str, object]]:
         fail("Windows validation evidence has an unexpected top-level shape")
     validate_document(document)
     return resolved, contents, document
+
+
+def is_windows_reparse_point(path: Path) -> bool:
+    """Reject Windows junctions and other reparse points, not only symlinks."""
+    if os.name != "nt":
+        return False
+    attributes = getattr(path.lstat(), "st_file_attributes", 0)
+    reparse_point = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    return bool(attributes & reparse_point)
 
 
 def validate_document(document: dict[str, object]) -> None:
@@ -185,7 +195,12 @@ def complete(path: Path) -> None:
     write_document(resolved, document)
     source_commit = document["sourceCommit"]
     assert isinstance(source_commit, str)
-    if not verify_completed(resolved, source_commit):
+    try:
+        verified = verify_completed(resolved, source_commit)
+    except BaseException:
+        atomic_write(resolved, original_contents)
+        raise
+    if not verified:
         atomic_write(resolved, original_contents)
         fail("Windows validation evidence failed final verification")
 
