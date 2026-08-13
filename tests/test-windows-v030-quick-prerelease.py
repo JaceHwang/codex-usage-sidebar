@@ -86,6 +86,8 @@ def main() -> None:
 
         mutations: tuple[tuple[str, object], ...] = (
             ("unknown key", ("unexpected", True)),
+            ("boolean schema version", ("schemaVersion", True)),
+            ("floating schema version", ("schemaVersion", 1.0)),
             ("invalid source", ("sourceCommit", "ABCDEF")),
             ("wrong source argument", None),
             ("Windows ARM64", ("architecture", "arm64")),
@@ -96,6 +98,8 @@ def main() -> None:
             ("manager failure", ("manager", "pending")),
             ("runtime failure", ("runtime", "skip")),
             ("probe includes text", ("includesText", True)),
+            ("probe has boolean raw names", ("rawNodeNameCount", False)),
+            ("probe has floating raw names", ("rawNodeNameCount", 0.0)),
             ("probe has raw names", ("rawNodeNameCount", 1)),
         )
         for label, mutation in mutations:

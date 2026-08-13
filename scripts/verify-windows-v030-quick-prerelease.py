@@ -79,7 +79,9 @@ def read_document(evidence: Path) -> dict[str, object]:
 def validate_document(document: dict[str, object], source_commit: str, *, completed: bool) -> None:
     if set(document) != TOP_LEVEL_KEYS:
         fail("quick prerelease evidence has an unexpected top-level shape")
-    if document.get("schemaVersion") != SCHEMA_VERSION:
+    schema_version = document.get("schemaVersion")
+    if not isinstance(schema_version, int) or isinstance(schema_version, bool) \
+            or schema_version != SCHEMA_VERSION:
         fail("quick prerelease evidence schema is unsupported")
     if document.get("releaseProfile") != RELEASE_PROFILE or document.get("version") != VERSION:
         fail("quick prerelease evidence profile or version is invalid")
@@ -122,7 +124,9 @@ def validate_document(document: dict[str, object], source_commit: str, *, comple
         fail("quick prerelease redacted probe must pass")
     if probe.get("includesText") is not False:
         fail("quick prerelease redacted probe must not include text")
-    if probe.get("rawNodeNameCount") != 0:
+    raw_node_name_count = probe.get("rawNodeNameCount")
+    if not isinstance(raw_node_name_count, int) or isinstance(raw_node_name_count, bool) \
+            or raw_node_name_count != 0:
         fail("quick prerelease redacted probe must not include raw node names")
 
 

@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 VERSION = "0.3.0"
 sys.path.insert(0, str(ROOT / "scripts"))
-from v030_release_profiles import FORMAL, QUICK_PRERELEASE
+from v030_release_profiles import FORMAL, QUICK_PRERELEASE, profile
 
 
 def text(relative: str) -> str:
@@ -41,6 +41,15 @@ if QUICK_PRERELEASE != {
     "realDeviceValidated": False,
 }:
     raise SystemExit("v0.3.0 rc.1 quick prerelease profile is inconsistent")
+quick_profile_copy = profile("quick-prerelease")
+quick_profile_copy["tag"] = "unexpected"
+if profile("quick-prerelease") != {
+    "releaseProfile": "quick-prerelease",
+    "tag": "v0.3.0-rc.1",
+    "evidencePath": "docs/validation/windows-v0.3.0-quick-prerelease.json",
+    "realDeviceValidated": False,
+}:
+    raise SystemExit("release profile lookup leaked a mutable canonical descriptor")
 
 manifest = json.loads(text("plugins/codex-usage-sidebar/.codex-plugin/plugin.json"))
 match = re.fullmatch(r"0\.3\.0\+codex\.(\d{14})", manifest.get("version", ""))
