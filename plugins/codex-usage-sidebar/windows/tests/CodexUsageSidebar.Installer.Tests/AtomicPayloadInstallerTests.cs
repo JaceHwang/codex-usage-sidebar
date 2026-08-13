@@ -542,19 +542,19 @@ public sealed class AtomicPayloadInstallerTests
         {
             var visual = new JsonArray();
             foreach (var layout in new[] { "restored-collapsed", "right-wide", "left-right-expanded" })
-            foreach (var theme in new[] { "light", "dark", "system" })
-            foreach (var language in new[] { "zh-CN", "zh-TW", "en-US" })
-            foreach (var scale in new[] { 100, 125, 150, 200 })
-            {
-                visual.Add(new JsonObject
-                {
-                    ["layout"] = layout,
-                    ["theme"] = theme,
-                    ["language"] = language,
-                    ["scale"] = scale,
-                    ["result"] = "pass",
-                });
-            }
+                foreach (var theme in new[] { "light", "dark", "system" })
+                    foreach (var language in new[] { "zh-CN", "zh-TW", "en-US" })
+                        foreach (var scale in new[] { 100, 125, 150, 200 })
+                        {
+                            visual.Add(new JsonObject
+                            {
+                                ["layout"] = layout,
+                                ["theme"] = theme,
+                                ["language"] = language,
+                                ["scale"] = scale,
+                                ["result"] = "pass",
+                            });
+                        }
             static JsonArray States(string key, IEnumerable<string> names) =>
                 new(names.Select(name => (JsonNode)new JsonObject
                 {

@@ -546,12 +546,12 @@ public sealed class AtomicPayloadInstaller
         }
         var expected = new HashSet<string>(StringComparer.Ordinal);
         foreach (var layout in new[] { "restored-collapsed", "right-wide", "left-right-expanded" })
-        foreach (var theme in new[] { "light", "dark", "system" })
-        foreach (var language in new[] { "zh-CN", "zh-TW", "en-US" })
-        foreach (var scale in new[] { 100, 125, 150, 200 })
-        {
-            expected.Add($"{layout}\0{theme}\0{language}\0{scale}");
-        }
+            foreach (var theme in new[] { "light", "dark", "system" })
+                foreach (var language in new[] { "zh-CN", "zh-TW", "en-US" })
+                    foreach (var scale in new[] { 100, 125, 150, 200 })
+                    {
+                        expected.Add($"{layout}\0{theme}\0{language}\0{scale}");
+                    }
         return cases.GetArrayLength() == expected.Count && actual.SetEquals(expected);
     }
 
