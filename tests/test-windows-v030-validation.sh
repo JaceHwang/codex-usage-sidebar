@@ -13,6 +13,15 @@ python3 "$repo_root/scripts/new-windows-v030-validation-template.py" \
   --codex-file-build 151.0.7922.76 \
   --output "$evidence"
 
+python3 "$repo_root/scripts/record-windows-v030-validation.py" "$evidence" \
+  visual --layout restored-collapsed --theme light --language zh-CN --scale 100
+if python3 "$repo_root/scripts/record-windows-v030-validation.py" "$evidence" \
+  visual --layout restored-collapsed --theme light --language zh-CN --scale 100 \
+  >/dev/null 2>&1; then
+  printf 'duplicate Windows visual validation case unexpectedly passed\n' >&2
+  exit 1
+fi
+
 if python3 "$repo_root/scripts/verify-windows-v030-validation.py" \
   "$evidence" --source-commit "$commit" >/dev/null 2>&1; then
   printf 'pending Windows validation evidence unexpectedly passed\n' >&2
