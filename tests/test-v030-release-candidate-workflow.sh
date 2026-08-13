@@ -116,6 +116,27 @@ def step_run(step):
     return result
 
 
+def executable_shell_lines(lines):
+    heredoc_pattern = re.compile(
+        r"<<(?P<tabs>-)?\s*(?:'(?P<single>[^']+)'|\"(?P<double>[^\"]+)\"|(?P<bare>[A-Za-z_][A-Za-z0-9_]*))"
+    )
+    result = []
+    pending_heredocs = []
+    for line in lines:
+        if pending_heredocs:
+            delimiter, strip_tabs = pending_heredocs[0]
+            candidate = line.lstrip("\t") if strip_tabs else line
+            if candidate == delimiter:
+                pending_heredocs.pop(0)
+            continue
+        result.append(line)
+        for match in heredoc_pattern.finditer(line):
+            delimiter = match.group("single") or match.group("double") or match.group("bare")
+            pending_heredocs.append((delimiter, match.group("tabs") is not None))
+    require(not pending_heredocs, "stage-and-verify run block contains an unterminated heredoc")
+    return result
+
+
 def logical_shell_lines(lines):
     result = []
     pending = ""
@@ -254,8 +275,15 @@ require(
 stage_steps = [item for item in parsed_steps if item[1].get("name") == "Stage and verify exact release bundle"]
 require(len(stage_steps) == 1, "release-bundle must contain one stage-and-verify step")
 stage = stage_steps[0]
-require(stage[1].get("shell") == "bash", "stage-and-verify step must use bash")
-run = step_run(stage[0])
+require(
+    stage[1] == {
+        "name": "Stage and verify exact release bundle",
+        "shell": "bash",
+        "run": "|",
+    },
+    "stage-and-verify step must contain only its exact name, shell, and run fields",
+)
+run = executable_shell_lines(step_run(stage[0]))
 logical = logical_shell_lines(run)
 run_text = "\n".join(run)
 function_match = re.search(r"(?ms)^require_exact_files\(\) \{\n(?P<body>.*?)^\}$", run_text)
@@ -316,7 +344,12 @@ PY
 if [[ "${V030_SKIP_MUTATION_TESTS:-0}" != 1 ]]; then
   mutation_root="$(mktemp -d)"
   trap 'rm -rf "$mutation_root"' EXIT
-  python3 - "$workflow" "$mutation_root/comment.yml" "$mutation_root/run-scalar.yml" <<'PY'
+  python3 - \
+    "$workflow" \
+    "$mutation_root/comment.yml" \
+    "$mutation_root/run-scalar.yml" \
+    "$mutation_root/continue-error.yml" \
+    "$mutation_root/heredoc.yml" <<'PY'
 import sys
 from pathlib import Path
 
@@ -349,16 +382,55 @@ run_scalar_mutation = source.replace(
 if run_scalar_mutation == source:
     raise SystemExit("could not construct run-scalar download workflow mutation")
 Path(sys.argv[3]).write_text(run_scalar_mutation, encoding="utf-8")
+
+continue_error_mutation = source.replace(
+    """      - name: Stage and verify exact release bundle
+        shell: bash
+        run: |
+""",
+    """      - name: Stage and verify exact release bundle
+        shell: bash
+        continue-on-error: true
+        run: |
+""",
+    1,
+)
+if continue_error_mutation == source:
+    raise SystemExit("could not construct continue-on-error workflow mutation")
+Path(sys.argv[4]).write_text(continue_error_mutation, encoding="utf-8")
+
+verifier = """          python3 scripts/verify-v030-candidate-set.py "$release_bundle" \\
+            --validated-source "$validated_source" \\
+            --packaging-commit '${{ github.sha }}' \\
+            --output "$RUNNER_TEMP/V030-RELEASE-SUMMARY.json"
+"""
+heredoc_mutation = source.replace(
+    verifier,
+    """          cat <<'IGNORED_VERIFIER'
+          python3 scripts/verify-v030-candidate-set.py "$release_bundle" \\
+            --validated-source "$validated_source" \\
+            --packaging-commit '${{ github.sha }}' \\
+            --output "$RUNNER_TEMP/V030-RELEASE-SUMMARY.json"
+          IGNORED_VERIFIER
+          printf '{}\\n' >"$RUNNER_TEMP/V030-RELEASE-SUMMARY.json"
+""",
+    1,
+)
+if heredoc_mutation == source:
+    raise SystemExit("could not construct non-executing verifier workflow mutation")
+Path(sys.argv[5]).write_text(heredoc_mutation, encoding="utf-8")
 PY
 
-  for mutation in comment run-scalar; do
+  mutation_failure=0
+  for mutation in comment run-scalar continue-error heredoc; do
     if V030_SKIP_MUTATION_TESTS=1 \
       V030_WORKFLOW_UNDER_TEST="$mutation_root/$mutation.yml" \
       "$0" >/dev/null 2>&1; then
       printf 'v0.3.0 workflow test accepted non-configuration text: %s\n' "$mutation" >&2
-      exit 1
+      mutation_failure=1
     fi
   done
+  (( mutation_failure == 0 )) || exit 1
 fi
 
 printf 'PASS: exact v0.3.0 workflow builds Windows x64 and macOS arm64 candidates without publishing\n'
