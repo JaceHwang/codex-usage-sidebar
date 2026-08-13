@@ -38,6 +38,7 @@ function Assert-WindowsDeviceSourceState {
                 $normalized -notmatch '^\.dist/' -and
                 $normalized -notmatch '^\.build/' -and
                 $normalized -notmatch '^\.worktrees/' -and
+                $normalized -notmatch '^\.superpowers/sdd(/|$)' -and
                 $normalized -notmatch '^plugins/codex-usage-sidebar/native/\.build/' -and
                 $normalized -notmatch '\.xcresult(/|$)' -and
                 $normalized -notmatch '(^|/)\.DS_Store$'

@@ -210,7 +210,7 @@ finally {
 $fixture = Join-Path ([IO.Path]::GetTempPath()) ('cus-source-gate-' + [Guid]::NewGuid().ToString('N'))
 try {
     New-Item -ItemType Directory -Force -Path (Join-Path $fixture 'src\bin') | Out-Null
-    Set-Content -LiteralPath (Join-Path $fixture '.gitignore') -Value "src/*.props`nsrc/bin/" -Encoding utf8
+    Set-Content -LiteralPath (Join-Path $fixture '.gitignore') -Value "src/*.props`nsrc/bin/`n.superpowers/sdd/`n.superpowers/other/" -Encoding utf8
     Set-Content -LiteralPath (Join-Path $fixture 'src\app.cs') -Value 'sealed class App {}' -Encoding utf8
     & git -C $fixture init --quiet
     & git -C $fixture config user.email 'device-test@example.invalid'
@@ -248,6 +248,21 @@ try {
     Remove-Item -LiteralPath (Join-Path $fixture 'src\Directory.Build.props')
     Set-Content -LiteralPath (Join-Path $fixture 'src\bin\generated.cs') -Value 'excluded' -Encoding utf8
     Assert-WindowsDeviceSourceState -RepositoryRoot $fixture -BuildInputRoots @('.') | Out-Null
+
+    $taskLedgerPath = Join-Path $fixture '.superpowers\sdd\progress.md'
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $taskLedgerPath) | Out-Null
+    Set-Content -LiteralPath $taskLedgerPath -Value 'private task ledger metadata' -Encoding utf8
+    Assert-WindowsDeviceSourceState -RepositoryRoot $fixture -BuildInputRoots @('.') | Out-Null
+
+    $otherSuperpowersPath = Join-Path $fixture '.superpowers\other\input.txt'
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $otherSuperpowersPath) | Out-Null
+    Set-Content -LiteralPath $otherSuperpowersPath -Value 'unsafe ignored input' -Encoding utf8
+    try {
+        Assert-WindowsDeviceSourceState -RepositoryRoot $fixture -BuildInputRoots @('.') | Out-Null
+        throw 'Ignored non-SDD Superpowers input unexpectedly passed the provenance gate.'
+    }
+    catch [InvalidOperationException] {
+    }
 }
 finally {
     $expectedParent = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar)
