@@ -74,7 +74,9 @@ if ($provenance.schemaVersion -ne 1 -or
     $provenance.artifact -ne $artifactName -or
     $provenance.sha256 -ne $actualSha256 -or
     -not $profileMatches -or
+    $provenance.realDeviceValidated -isnot [bool] -or
     $provenance.realDeviceValidated -ne $expectedRealDeviceValidated -or
+    $provenance.publishableInstaller -isnot [bool] -or
     $provenance.publishableInstaller -ne $true -or
     $provenance.codexRuntime.source -ne $expectedRuntimeSource -or
     $provenance.codexRuntime.sha256 -ne $expectedRuntimeSha256 -or

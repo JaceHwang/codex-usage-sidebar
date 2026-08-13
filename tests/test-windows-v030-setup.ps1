@@ -93,7 +93,8 @@ try {
         param(
             [Parameter(Mandatory = $true)] [string] $Name,
             [AllowNull()] [string] $ValidationProfile,
-            [Parameter(Mandatory = $true)] [bool] $RealDeviceValidated
+            [Parameter(Mandatory = $true)] [object] $RealDeviceValidated,
+            [Parameter()] [object] $PublishableInstaller = $true
         )
         $directory = Join-Path $fixtureRoot $Name
         New-Item -ItemType Directory -Path $directory | Out-Null
@@ -123,7 +124,7 @@ try {
                 sha256 = '935a1911ed2556e4ffcec995f4886ac2ac425863ba26fed264df62e30272ad9d'
             }
             realDeviceValidated = $RealDeviceValidated
-            publishableInstaller = $true
+            publishableInstaller = $PublishableInstaller
             authenticodeStatus = 'NotSigned'
             signerSubject = $null
         }
@@ -151,7 +152,7 @@ try {
                 -ReleaseProfile $ReleaseProfile | Out-Null
         }
         catch {
-            if ($_.Exception.Message -notmatch '(?i)profile|provenance|validated') {
+            if ($_.Exception.Message -ne 'The Windows setup provenance is incomplete or does not match this candidate.') {
                 throw "$Label failed for an unrelated reason: $($_.Exception.Message)"
             }
             return
@@ -164,12 +165,20 @@ try {
     $quickValidated = New-CandidateFixture -Name quick-validated -ValidationProfile quick-prerelease -RealDeviceValidated $true
     $formalUnvalidated = New-CandidateFixture -Name formal-unvalidated -ValidationProfile $null -RealDeviceValidated $false
     $wrongMarker = New-CandidateFixture -Name wrong-marker -ValidationProfile formal -RealDeviceValidated $false
+    $formalStringValidated = New-CandidateFixture -Name formal-string-validated -ValidationProfile $null -RealDeviceValidated 'true'
+    $quickStringUnvalidated = New-CandidateFixture -Name quick-string-unvalidated -ValidationProfile quick-prerelease -RealDeviceValidated 'false'
+    $formalStringPublishable = New-CandidateFixture -Name formal-string-publishable -ValidationProfile $null -RealDeviceValidated $true -PublishableInstaller 'true'
+    $quickStringPublishable = New-CandidateFixture -Name quick-string-publishable -ValidationProfile quick-prerelease -RealDeviceValidated $false -PublishableInstaller 'true'
 
     Assert-ProfileRejected -CandidateDirectory $quick -ReleaseProfile formal -Label 'Formal verifier accepted quick provenance'
     Assert-ProfileRejected -CandidateDirectory $formal -ReleaseProfile quick-prerelease -Label 'Quick verifier accepted formal provenance'
     Assert-ProfileRejected -CandidateDirectory $quickValidated -ReleaseProfile quick-prerelease -Label 'Quick verifier accepted real-device validation'
     Assert-ProfileRejected -CandidateDirectory $formalUnvalidated -ReleaseProfile formal -Label 'Formal verifier accepted missing real-device validation'
     Assert-ProfileRejected -CandidateDirectory $wrongMarker -ReleaseProfile quick-prerelease -Label 'Quick verifier accepted a formal marker'
+    Assert-ProfileRejected -CandidateDirectory $formalStringValidated -ReleaseProfile formal -Label 'Formal verifier accepted string real-device validation'
+    Assert-ProfileRejected -CandidateDirectory $quickStringUnvalidated -ReleaseProfile quick-prerelease -Label 'Quick verifier accepted string quick validation'
+    Assert-ProfileRejected -CandidateDirectory $formalStringPublishable -ReleaseProfile formal -Label 'Formal verifier accepted string publishable installer'
+    Assert-ProfileRejected -CandidateDirectory $quickStringPublishable -ReleaseProfile quick-prerelease -Label 'Quick verifier accepted string quick publishable installer'
 }
 finally {
     if (Test-Path -LiteralPath $fixtureRoot) {
