@@ -5,7 +5,7 @@ import os
 import shutil
 import subprocess
 from collections.abc import Callable
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,38 +41,110 @@ def windows_git_bash_candidates(environment: dict[str, str]) -> tuple[Path, ...]
     return tuple(dict.fromkeys(root / "bin/bash.exe" for root in roots))
 
 
+def freeze_test_command(
+    os_name: str,
+    root: PureWindowsPath | PurePosixPath,
+    environment: dict[str, str],
+    exists: Callable[[Path], bool] = Path.is_file,
+    which: Callable[[str], str | None] = shutil.which,
+) -> tuple[str, ...]:
+    if os_name == "nt":
+        git_bash = select_windows_git_bash(
+            windows_git_bash_candidates(environment), exists
+        )
+        if git_bash is None:
+            raise RuntimeError(
+                "cannot run the v0.2.3 freeze test: install Git Bash at D:/app/Git or Program Files"
+            )
+        root_posix = root.as_posix()
+        root_posix = f"/{root.drive[0].lower()}{root_posix[2:]}" if root.drive else root_posix
+        command = f'cd "{root_posix}" && tests/test-v023-publish-freeze.sh'
+        return str(git_bash), "-lc", command
+
+    bash = which("bash")
+    if bash is None:
+        raise RuntimeError("cannot run the v0.2.3 freeze test: Bash was not found")
+    return bash, str(root / "tests/test-v023-publish-freeze.sh")
+
+
 def test_windows_bash_selection() -> None:
-    candidates = windows_git_bash_candidates({"ProgramFiles": "C:/Program Files"})
-    selected = select_windows_git_bash(
-        candidates, lambda path: path == Path("C:/Program Files/Git/bin/bash.exe")
+    candidates = windows_git_bash_candidates(
+        {
+            "ProgramFiles": "E:/Program Files",
+            "ProgramW6432": "F:/Program Files",
+            "ProgramFiles(x86)": "G:/Program Files (x86)",
+            "PATH": "C:/Windows/System32;C:/arbitrary/bin",
+        }
     )
-    assert selected == Path("C:/Program Files/Git/bin/bash.exe")
-    assert "C:/Windows/System32/bash.exe" not in {
-        str(path) for path in windows_git_bash_candidates({})
-    }
+    assert candidates[:3] == (
+        Path("D:/app/Git/bin/bash.exe"),
+        Path("C:/Program Files/Git/bin/bash.exe"),
+        Path("C:/Program Files (x86)/Git/bin/bash.exe"),
+    )
+    assert candidates[3:] == (
+        Path("E:/Program Files/Git/bin/bash.exe"),
+        Path("F:/Program Files/Git/bin/bash.exe"),
+        Path("G:/Program Files (x86)/Git/bin/bash.exe"),
+    )
+    selected = select_windows_git_bash(
+        candidates,
+        lambda path: path
+        in {
+            Path("D:/app/Git/bin/bash.exe"),
+            Path("C:/Program Files/Git/bin/bash.exe"),
+        },
+    )
+    assert selected == Path("D:/app/Git/bin/bash.exe")
+    assert select_windows_git_bash(
+        candidates, lambda path: path == Path("C:/Windows/System32/bash.exe")
+    ) is None
+
+    windows_command = freeze_test_command(
+        "nt",
+        PureWindowsPath("C:/repo"),
+        {},
+        exists=lambda path: path == Path("D:/app/Git/bin/bash.exe"),
+        which=lambda name: "C:/Windows/System32/bash.exe",
+    )
+    assert windows_command == (
+        "D:\\app\\Git\\bin\\bash.exe",
+        "-lc",
+        'cd "/c/repo" && tests/test-v023-publish-freeze.sh',
+    )
+
+    try:
+        freeze_test_command(
+            "nt",
+            PureWindowsPath("C:/repo"),
+            {"PATH": "C:/Windows/System32;C:/arbitrary/bin"},
+            exists=lambda path: False,
+            which=lambda name: "C:/Windows/System32/bash.exe",
+        )
+    except RuntimeError as error:
+        assert "install Git Bash" in str(error)
+    else:
+        raise AssertionError("Windows selection must fail when no known Git Bash exists")
+
+    posix_command = freeze_test_command(
+        "posix",
+        PurePosixPath("/repo"),
+        {},
+        exists=lambda path: False,
+        which=lambda name: "/usr/bin/bash" if name == "bash" else None,
+    )
+    assert posix_command == (
+        "/usr/bin/bash",
+        "/repo/tests/test-v023-publish-freeze.sh",
+    )
 
 
 def run_v023_freeze_test() -> None:
     """Bind the public documentation contract to the established legacy guard."""
-    if os.name == "nt":
-        git_bash = select_windows_git_bash(windows_git_bash_candidates(dict(os.environ)))
-        if git_bash is None:
-            raise SystemExit(
-                "cannot run the v0.2.3 freeze test: install Git Bash at D:/app/Git or Program Files"
-            )
-        root = ROOT.as_posix()
-        root = f"/{ROOT.drive[0].lower()}{root[2:]}" if ROOT.drive else root
-        command = f'cd "{root}" && tests/test-v023-publish-freeze.sh'
-        result = subprocess.run([str(git_bash), "-lc", command], capture_output=True, text=True)
-    else:
-        bash = shutil.which("bash")
-        if bash is None:
-            raise SystemExit("cannot run the v0.2.3 freeze test: Bash was not found")
-        result = subprocess.run(
-            [bash, str(ROOT / "tests/test-v023-publish-freeze.sh")],
-            capture_output=True,
-            text=True,
-        )
+    try:
+        command = freeze_test_command(os.name, ROOT, dict(os.environ))
+    except RuntimeError as error:
+        raise SystemExit(str(error)) from error
+    result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
         raise SystemExit(
             "v0.2.3 freeze test failed while checking the release documentation contract:\n"
@@ -117,6 +189,7 @@ legacy_contract = "\n".join(
     )
 )
 assert "The macOS v0.2.3 application, its DMG, provenance, and release workflow are immutable history" in legacy_contract
+test_windows_bash_selection()
 run_v023_freeze_test()
 
 for relative in ("README.md", "README.zh-CN.md"):
