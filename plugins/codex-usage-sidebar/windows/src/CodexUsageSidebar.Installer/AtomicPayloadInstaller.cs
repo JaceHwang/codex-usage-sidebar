@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Security.Cryptography;
+using System.Globalization;
 
 namespace CodexUsageSidebar.Installer;
 
@@ -146,12 +147,25 @@ public sealed class AtomicPayloadInstaller
                 PayloadManifestPolicy.PublishedRelease => (Status: "release", Validated: true, Publishable: true),
                 _ => throw new InvalidDataException("The trusted Windows payload policy is unsupported."),
             };
+            var isQuickPrerelease = trustedIdentity.Policy == PayloadManifestPolicy.PublishedRelease
+                && root.TryGetProperty("validationProfile", out var validationProfile)
+                && validationProfile.ValueKind == JsonValueKind.String
+                && validationProfile.GetString() == "quick-prerelease";
+            if (trustedIdentity.Policy == PayloadManifestPolicy.DeviceTest
+                && (root.TryGetProperty("validationProfile", out _)
+                    || root.TryGetProperty("quickPrereleaseValidation", out _)
+                    || root.TryGetProperty("realDeviceValidation", out _)))
+            {
+                throw new InvalidDataException(
+                    "A device-test Windows payload cannot carry release validation metadata.");
+            }
+            var expectedValidated = isQuickPrerelease ? false : expectedPolicy.Validated;
             if (!root.TryGetProperty("status", out var status)
                 || status.ValueKind != JsonValueKind.String
                 || status.GetString() != expectedPolicy.Status
                 || !root.TryGetProperty("realDeviceValidated", out var realDeviceValidated)
                 || !TryReadBoolean(realDeviceValidated, out var actualValidated)
-                || actualValidated != expectedPolicy.Validated
+                || actualValidated != expectedValidated
                 || !root.TryGetProperty("publishableInstaller", out var publishableInstaller)
                 || !TryReadBoolean(publishableInstaller, out var actualPublishable)
                 || actualPublishable != expectedPolicy.Publishable)
@@ -214,10 +228,13 @@ public sealed class AtomicPayloadInstaller
             if (trustedIdentity.Policy == PayloadManifestPolicy.PublishedRelease)
             {
                 const string validationFile = "windows-validation.json";
+                var validationProperty = isQuickPrerelease
+                    ? "quickPrereleaseValidation"
+                    : "realDeviceValidation";
                 if (!declared.Contains(validationFile)
                     || !files.TryGetProperty(validationFile, out var declaredValidationDigest)
                     || declaredValidationDigest.ValueKind != JsonValueKind.String
-                    || !root.TryGetProperty("realDeviceValidation", out var validation)
+                    || !root.TryGetProperty(validationProperty, out var validation)
                     || validation.ValueKind != JsonValueKind.Object
                     || !validation.TryGetProperty("sha256", out var trustedValidationDigest)
                     || trustedValidationDigest.ValueKind != JsonValueKind.String
@@ -227,7 +244,45 @@ public sealed class AtomicPayloadInstaller
                         StringComparison.Ordinal))
                 {
                     throw new InvalidDataException(
-                        "A published Windows payload must bind its complete real-device validation evidence.");
+                        "A published Windows payload must bind its exact validation evidence.");
+                }
+                if (isQuickPrerelease)
+                {
+                    if (root.TryGetProperty("realDeviceValidation", out _)
+                        || !JsonPropertyNamesEqual(
+                            validation,
+                            ["sha256", "windowsBuild", "codexFileBuild", "completedAt", "smoke"])
+                        || !validation.TryGetProperty("windowsBuild", out var windowsBuild)
+                        || windowsBuild.ValueKind != JsonValueKind.Number
+                        || !windowsBuild.TryGetInt32(out var windowsBuildValue)
+                        || windowsBuildValue < 22_000
+                        || !validation.TryGetProperty("codexFileBuild", out var codexFileBuild)
+                        || codexFileBuild.ValueKind != JsonValueKind.String
+                        || !validation.TryGetProperty("completedAt", out var completedAt)
+                        || completedAt.ValueKind != JsonValueKind.String
+                        || !validation.TryGetProperty("smoke", out var smoke)
+                        || !ValidateQuickSmoke(smoke))
+                    {
+                        throw new InvalidDataException(
+                            "A quick-prerelease Windows payload must bind exact passing smoke evidence.");
+                    }
+                    ValidateQuickEvidence(
+                        Path.Combine(source, validationFile),
+                        validation,
+                        trustedIdentity);
+                }
+                else if (root.TryGetProperty("validationProfile", out _)
+                    || root.TryGetProperty("quickPrereleaseValidation", out _))
+                {
+                    throw new InvalidDataException(
+                        "A formal Windows payload cannot carry quick-prerelease metadata.");
+                }
+                else
+                {
+                    ValidateFormalEvidence(
+                        Path.Combine(source, validationFile),
+                        validation,
+                        trustedIdentity);
                 }
             }
 
@@ -286,6 +341,285 @@ public sealed class AtomicPayloadInstaller
         value = false;
         return false;
     }
+
+    private static bool ValidateQuickSmoke(JsonElement smoke)
+    {
+        if (smoke.ValueKind != JsonValueKind.Object
+            || !JsonPropertyNamesEqual(
+                smoke,
+                ["embeddedPayload", "manager", "runtime", "redactedProbe"]))
+        {
+            return false;
+        }
+        foreach (var name in new[] { "embeddedPayload", "manager", "runtime" })
+        {
+            if (!smoke.TryGetProperty(name, out var result)
+                || result.ValueKind != JsonValueKind.String
+                || result.GetString() != "pass")
+            {
+                return false;
+            }
+        }
+        if (!smoke.TryGetProperty("redactedProbe", out var probe)
+            || probe.ValueKind != JsonValueKind.Object
+            || !JsonPropertyNamesEqual(
+                probe,
+                ["result", "includesText", "rawNodeNameCount"])
+            || !probe.TryGetProperty("result", out var probeResult)
+            || probeResult.ValueKind != JsonValueKind.String
+            || probeResult.GetString() != "pass"
+            || !probe.TryGetProperty("includesText", out var includesText)
+            || includesText.ValueKind != JsonValueKind.False
+            || !probe.TryGetProperty("rawNodeNameCount", out var rawNodeNameCount)
+            || rawNodeNameCount.ValueKind != JsonValueKind.Number
+            || !rawNodeNameCount.TryGetInt32(out var rawNameCount)
+            || rawNameCount != 0)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    private static void ValidateQuickEvidence(
+        string evidencePath,
+        JsonElement summary,
+        TrustedPayloadIdentity trustedIdentity)
+    {
+        using var evidenceDocument = JsonDocument.Parse(File.ReadAllText(evidencePath));
+        var evidence = evidenceDocument.RootElement;
+        if (evidence.ValueKind != JsonValueKind.Object
+            || !JsonPropertyNamesEqual(
+                evidence,
+                [
+                    "schemaVersion", "releaseProfile", "version", "sourceCommit", "architecture",
+                    "windowsBuild", "codexFileBuild", "completedAt", "smoke",
+                ])
+            || !evidence.TryGetProperty("schemaVersion", out var schemaVersion)
+            || schemaVersion.ValueKind != JsonValueKind.Number
+            || !schemaVersion.TryGetInt32(out var schemaValue)
+            || schemaValue != 1
+            || !evidence.TryGetProperty("releaseProfile", out var evidenceProfile)
+            || evidenceProfile.ValueKind != JsonValueKind.String
+            || evidenceProfile.GetString() != "quick-prerelease"
+            || !evidence.TryGetProperty("version", out var evidenceVersion)
+            || evidenceVersion.ValueKind != JsonValueKind.String
+            || evidenceVersion.GetString() != trustedIdentity.Version
+            || !evidence.TryGetProperty("sourceCommit", out var evidenceSource)
+            || evidenceSource.ValueKind != JsonValueKind.String
+            || evidenceSource.GetString() != trustedIdentity.SourceCommit
+            || !evidence.TryGetProperty("architecture", out var evidenceArchitecture)
+            || evidenceArchitecture.ValueKind != JsonValueKind.String
+            || evidenceArchitecture.GetString() != "x64"
+            || !evidence.TryGetProperty("windowsBuild", out var evidenceWindowsBuild)
+            || evidenceWindowsBuild.ValueKind != JsonValueKind.Number
+            || !evidenceWindowsBuild.TryGetInt32(out var evidenceWindowsBuildValue)
+            || evidenceWindowsBuildValue < 22_000
+            || !summary.TryGetProperty("windowsBuild", out var summaryWindowsBuild)
+            || !summaryWindowsBuild.TryGetInt32(out var summaryWindowsBuildValue)
+            || summaryWindowsBuildValue != evidenceWindowsBuildValue
+            || !evidence.TryGetProperty("codexFileBuild", out var evidenceCodexBuild)
+            || evidenceCodexBuild.ValueKind != JsonValueKind.String
+            || !IsFourPartNumericVersion(evidenceCodexBuild.GetString())
+            || !summary.TryGetProperty("codexFileBuild", out var summaryCodexBuild)
+            || summaryCodexBuild.ValueKind != JsonValueKind.String
+            || summaryCodexBuild.GetString() != evidenceCodexBuild.GetString()
+            || !evidence.TryGetProperty("completedAt", out var evidenceCompletedAt)
+            || evidenceCompletedAt.ValueKind != JsonValueKind.String
+            || !IsUtcSecondTimestamp(evidenceCompletedAt.GetString())
+            || !summary.TryGetProperty("completedAt", out var summaryCompletedAt)
+            || summaryCompletedAt.ValueKind != JsonValueKind.String
+            || summaryCompletedAt.GetString() != evidenceCompletedAt.GetString()
+            || !evidence.TryGetProperty("smoke", out var evidenceSmoke)
+            || !ValidateQuickSmoke(evidenceSmoke)
+            || !summary.TryGetProperty("smoke", out var summarySmoke)
+            || !ValidateQuickSmoke(summarySmoke)
+            || !QuickSmokeEquals(evidenceSmoke, summarySmoke))
+        {
+            throw new InvalidDataException(
+                "The embedded quick-prerelease validation evidence is invalid or contradicts its manifest.");
+        }
+    }
+
+    private static void ValidateFormalEvidence(
+        string evidencePath,
+        JsonElement summary,
+        TrustedPayloadIdentity trustedIdentity)
+    {
+        using var evidenceDocument = JsonDocument.Parse(File.ReadAllText(evidencePath));
+        var evidence = evidenceDocument.RootElement;
+        if (!JsonPropertyNamesEqual(
+                summary,
+                ["sha256", "windowsBuild", "codexFileBuild", "completedAt", "caseCounts"])
+            || !summary.TryGetProperty("caseCounts", out var caseCounts)
+            || !JsonPropertyNamesEqual(
+                caseCounts,
+                ["visual", "geometry", "interaction", "lifecycle"])
+            || !HasExactInteger(caseCounts, "visual", 108)
+            || !HasExactInteger(caseCounts, "geometry", 9)
+            || !HasExactInteger(caseCounts, "interaction", 6)
+            || !HasExactInteger(caseCounts, "lifecycle", 7)
+            || evidence.ValueKind != JsonValueKind.Object
+            || !JsonPropertyNamesEqual(
+                evidence,
+                [
+                    "schemaVersion", "version", "sourceCommit", "architecture", "windowsBuild",
+                    "codexFileBuild", "completedAt", "cases",
+                ])
+            || !HasExactInteger(evidence, "schemaVersion", 1)
+            || !HasExactString(evidence, "version", trustedIdentity.Version)
+            || !HasExactString(evidence, "sourceCommit", trustedIdentity.SourceCommit)
+            || !HasExactString(evidence, "architecture", "x64")
+            || !evidence.TryGetProperty("windowsBuild", out var windowsBuild)
+            || windowsBuild.ValueKind != JsonValueKind.Number
+            || !windowsBuild.TryGetInt32(out var windowsBuildValue)
+            || windowsBuildValue < 22_000
+            || !summary.TryGetProperty("windowsBuild", out var summaryWindowsBuild)
+            || !summaryWindowsBuild.TryGetInt32(out var summaryWindowsBuildValue)
+            || summaryWindowsBuildValue != windowsBuildValue
+            || !evidence.TryGetProperty("codexFileBuild", out var codexFileBuild)
+            || codexFileBuild.ValueKind != JsonValueKind.String
+            || !IsFourPartNumericVersion(codexFileBuild.GetString())
+            || !summary.TryGetProperty("codexFileBuild", out var summaryCodexBuild)
+            || summaryCodexBuild.ValueKind != JsonValueKind.String
+            || summaryCodexBuild.GetString() != codexFileBuild.GetString()
+            || !evidence.TryGetProperty("completedAt", out var completedAt)
+            || completedAt.ValueKind != JsonValueKind.String
+            || !IsUtcSecondTimestamp(completedAt.GetString())
+            || !summary.TryGetProperty("completedAt", out var summaryCompletedAt)
+            || summaryCompletedAt.ValueKind != JsonValueKind.String
+            || summaryCompletedAt.GetString() != completedAt.GetString()
+            || !evidence.TryGetProperty("cases", out var cases)
+            || cases.ValueKind != JsonValueKind.Object
+            || !JsonPropertyNamesEqual(
+                cases,
+                ["visual", "geometry", "interaction", "lifecycle"])
+            || !ValidateFormalVisualCases(cases.GetProperty("visual"))
+            || !ValidateFormalNamedCases(
+                cases.GetProperty("geometry"),
+                "state",
+                [
+                    "restored-collapsed", "left-expanded", "right-expanded", "right-wide",
+                    "left-right-expanded", "bottom-expanded", "narrow-window", "maximized", "fullscreen",
+                ])
+            || !ValidateFormalNamedCases(
+                cases.GetProperty("interaction"),
+                "name",
+                [
+                    "hover", "pin", "keyboard-focus", "no-activation", "resize-drag",
+                    "unknown-structure-fail-hidden",
+                ])
+            || !ValidateFormalNamedCases(
+                cases.GetProperty("lifecycle"),
+                "name",
+                [
+                    "sleep-resume", "codex-restart", "codex-upgrade", "authorization",
+                    "install", "repair", "uninstall",
+                ]))
+        {
+            throw new InvalidDataException(
+                "The embedded formal validation evidence is not the exact complete 130-case matrix.");
+        }
+    }
+
+    private static bool ValidateFormalVisualCases(JsonElement cases)
+    {
+        if (cases.ValueKind != JsonValueKind.Array) return false;
+        var actual = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var item in cases.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object
+                || !JsonPropertyNamesEqual(item, ["layout", "theme", "language", "scale", "result"])
+                || !item.TryGetProperty("layout", out var layout)
+                || layout.ValueKind != JsonValueKind.String
+                || !item.TryGetProperty("theme", out var theme)
+                || theme.ValueKind != JsonValueKind.String
+                || !item.TryGetProperty("language", out var language)
+                || language.ValueKind != JsonValueKind.String
+                || !item.TryGetProperty("scale", out var scale)
+                || scale.ValueKind != JsonValueKind.Number
+                || !scale.TryGetInt32(out var scaleValue)
+                || !HasExactString(item, "result", "pass"))
+            {
+                return false;
+            }
+            actual.Add($"{layout.GetString()}\0{theme.GetString()}\0{language.GetString()}\0{scaleValue}");
+        }
+        var expected = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var layout in new[] { "restored-collapsed", "right-wide", "left-right-expanded" })
+        foreach (var theme in new[] { "light", "dark", "system" })
+        foreach (var language in new[] { "zh-CN", "zh-TW", "en-US" })
+        foreach (var scale in new[] { 100, 125, 150, 200 })
+        {
+            expected.Add($"{layout}\0{theme}\0{language}\0{scale}");
+        }
+        return cases.GetArrayLength() == expected.Count && actual.SetEquals(expected);
+    }
+
+    private static bool ValidateFormalNamedCases(
+        JsonElement cases,
+        string nameProperty,
+        IEnumerable<string> expectedNames)
+    {
+        if (cases.ValueKind != JsonValueKind.Array) return false;
+        var actual = new List<string>();
+        foreach (var item in cases.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object
+                || !JsonPropertyNamesEqual(item, [nameProperty, "result"])
+                || !item.TryGetProperty(nameProperty, out var name)
+                || name.ValueKind != JsonValueKind.String
+                || !HasExactString(item, "result", "pass"))
+            {
+                return false;
+            }
+            actual.Add(name.GetString()!);
+        }
+        var expected = expectedNames.ToHashSet(StringComparer.Ordinal);
+        return actual.Count == expected.Count && actual.ToHashSet(StringComparer.Ordinal).SetEquals(expected);
+    }
+
+    private static bool HasExactInteger(JsonElement element, string name, int expected) =>
+        element.TryGetProperty(name, out var value)
+        && value.ValueKind == JsonValueKind.Number
+        && value.TryGetInt32(out var actual)
+        && actual == expected;
+
+    private static bool HasExactString(JsonElement element, string name, string expected) =>
+        element.TryGetProperty(name, out var value)
+        && value.ValueKind == JsonValueKind.String
+        && value.GetString() == expected;
+
+    private static bool JsonPropertyNamesEqual(JsonElement element, IEnumerable<string> expected)
+    {
+        var actualNames = element.EnumerateObject().Select(property => property.Name).ToArray();
+        var expectedNames = expected.ToArray();
+        return actualNames.Length == expectedNames.Length
+            && actualNames.ToHashSet(StringComparer.Ordinal).SetEquals(expectedNames);
+    }
+
+    private static bool QuickSmokeEquals(JsonElement left, JsonElement right) =>
+        new[] { "embeddedPayload", "manager", "runtime" }.All(name =>
+            left.GetProperty(name).GetString() == right.GetProperty(name).GetString())
+        && left.GetProperty("redactedProbe").GetProperty("result").GetString()
+            == right.GetProperty("redactedProbe").GetProperty("result").GetString()
+        && left.GetProperty("redactedProbe").GetProperty("includesText").GetBoolean()
+            == right.GetProperty("redactedProbe").GetProperty("includesText").GetBoolean()
+        && left.GetProperty("redactedProbe").GetProperty("rawNodeNameCount").GetInt32()
+            == right.GetProperty("redactedProbe").GetProperty("rawNodeNameCount").GetInt32();
+
+    private static bool IsFourPartNumericVersion(string? value) =>
+        value is not null
+        && value.Split('.').Length == 4
+        && value.Split('.').All(part => part.Length > 0 && part.All(char.IsAsciiDigit));
+
+    private static bool IsUtcSecondTimestamp(string? value) =>
+        value is not null
+        && DateTimeOffset.TryParseExact(
+            value,
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+            out _);
 
     private static bool IsLowerHex(string value, int length) =>
         value.Length == length && value.All(character =>

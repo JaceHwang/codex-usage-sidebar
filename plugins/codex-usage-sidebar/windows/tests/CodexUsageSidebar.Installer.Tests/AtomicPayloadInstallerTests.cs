@@ -168,7 +168,7 @@ public sealed class AtomicPayloadInstallerTests
     {
         using var fixture = Fixture.Create();
         fixture.WritePayload(ExpectedVersion, "new");
-        fixture.MakePublishedRelease(publishable: true);
+        fixture.MakePublishedRelease(publishable: true, exactEvidence: true);
         fixture.WriteExistingPayload("old");
 
         Assert.ThrowsException<InvalidDataException>(() =>
@@ -206,6 +206,112 @@ public sealed class AtomicPayloadInstallerTests
         Assert.ThrowsException<InvalidDataException>(() =>
             fixture.Installer(PayloadManifestPolicy.PublishedRelease)
                 .Install(fixture.Source, fixture.Destination));
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
+    [TestMethod]
+    public void PublishedReleaseTrustPolicyAcceptsExactQuickPrereleasePayload()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.MakeQuickPrerelease();
+        fixture.WriteExistingPayload("old");
+
+        fixture.Installer(PayloadManifestPolicy.PublishedRelease)
+            .Install(fixture.Source, fixture.Destination);
+
+        Assert.AreEqual("new", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
+    [TestMethod]
+    public void QuickPrereleasePayloadCannotClaimRealDeviceValidation()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.MakeQuickPrerelease();
+        fixture.SetManifestBoolean("realDeviceValidated", true);
+        fixture.WriteExistingPayload("old");
+
+        Assert.ThrowsException<InvalidDataException>(() =>
+            fixture.Installer(PayloadManifestPolicy.PublishedRelease)
+                .Install(fixture.Source, fixture.Destination));
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
+    [TestMethod]
+    public void FormalPayloadCannotCarryQuickPrereleaseProfile()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.MakePublishedRelease(publishable: true);
+        fixture.SetManifestString("validationProfile", "quick-prerelease");
+        fixture.WriteExistingPayload("old");
+
+        Assert.ThrowsException<InvalidDataException>(() =>
+            fixture.Installer(PayloadManifestPolicy.PublishedRelease)
+                .Install(fixture.Source, fixture.Destination));
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
+    [TestMethod]
+    public void QuickPrereleasePayloadRequiresItsDistinctValidationBinding()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.MakeQuickPrerelease();
+        fixture.ReplaceQuickValidationWithFormalBinding();
+        fixture.WriteExistingPayload("old");
+
+        Assert.ThrowsException<InvalidDataException>(() =>
+            fixture.Installer(PayloadManifestPolicy.PublishedRelease)
+                .Install(fixture.Source, fixture.Destination));
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
+    [TestMethod]
+    public void QuickPrereleasePayloadRejectsNonpassingEmbeddedSmokeEvidence()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.MakeQuickPrerelease();
+        fixture.SetQuickEvidenceManagerResult("fail");
+        fixture.WriteExistingPayload("old");
+
+        Assert.ThrowsException<InvalidDataException>(() =>
+            fixture.Installer(PayloadManifestPolicy.PublishedRelease)
+                .Install(fixture.Source, fixture.Destination));
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
+    [TestMethod]
+    public void FormalPayloadRequiresTheExactCompleteMatrixEvidence()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.MakePublishedRelease(publishable: true);
+        fixture.WriteExistingPayload("old");
+
+        Assert.ThrowsException<InvalidDataException>(() =>
+            fixture.Installer(PayloadManifestPolicy.PublishedRelease)
+                .Install(fixture.Source, fixture.Destination));
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+
+        fixture.MakePublishedRelease(publishable: true, exactEvidence: true);
+        fixture.Installer(PayloadManifestPolicy.PublishedRelease)
+            .Install(fixture.Source, fixture.Destination);
+        Assert.AreEqual("new", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
+    [TestMethod]
+    public void DeviceTestPayloadRejectsReleaseProfileMetadata()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.SetManifestString("validationProfile", "quick-prerelease");
+        fixture.WriteExistingPayload("old");
+
+        Assert.ThrowsException<InvalidDataException>(() =>
+            fixture.Installer().Install(fixture.Source, fixture.Destination));
         Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
     }
 
@@ -401,10 +507,12 @@ public sealed class AtomicPayloadInstallerTests
             File.WriteAllText(path, document.ToJsonString());
         }
 
-        public void MakePublishedRelease(bool publishable)
+        public void MakePublishedRelease(bool publishable, bool exactEvidence = false)
         {
             var evidencePath = Path.Combine(Source, "windows-validation.json");
-            File.WriteAllText(evidencePath, "validation-evidence");
+            File.WriteAllText(
+                evidencePath,
+                exactEvidence ? CreateFormalEvidence().ToJsonString() : "validation-evidence");
             var evidenceSha256 = Convert.ToHexString(
                 SHA256.HashData(File.ReadAllBytes(evidencePath))).ToLowerInvariant();
             var path = Path.Combine(Source, "windows-payload.json");
@@ -416,8 +524,143 @@ public sealed class AtomicPayloadInstallerTests
             document["realDeviceValidation"] = new JsonObject
             {
                 ["sha256"] = evidenceSha256,
+                ["windowsBuild"] = 26100,
+                ["codexFileBuild"] = "151.0.7922.76",
+                ["completedAt"] = "2026-08-13T00:00:00Z",
+                ["caseCounts"] = new JsonObject
+                {
+                    ["visual"] = 108,
+                    ["geometry"] = 9,
+                    ["interaction"] = 6,
+                    ["lifecycle"] = 7,
+                },
             };
             File.WriteAllText(path, document.ToJsonString());
+        }
+
+        private static JsonObject CreateFormalEvidence()
+        {
+            var visual = new JsonArray();
+            foreach (var layout in new[] { "restored-collapsed", "right-wide", "left-right-expanded" })
+            foreach (var theme in new[] { "light", "dark", "system" })
+            foreach (var language in new[] { "zh-CN", "zh-TW", "en-US" })
+            foreach (var scale in new[] { 100, 125, 150, 200 })
+            {
+                visual.Add(new JsonObject
+                {
+                    ["layout"] = layout,
+                    ["theme"] = theme,
+                    ["language"] = language,
+                    ["scale"] = scale,
+                    ["result"] = "pass",
+                });
+            }
+            static JsonArray States(string key, IEnumerable<string> names) =>
+                new(names.Select(name => (JsonNode)new JsonObject
+                {
+                    [key] = name,
+                    ["result"] = "pass",
+                }).ToArray());
+            return new JsonObject
+            {
+                ["schemaVersion"] = 1,
+                ["version"] = ExpectedVersion,
+                ["sourceCommit"] = SourceCommit,
+                ["architecture"] = "x64",
+                ["windowsBuild"] = 26100,
+                ["codexFileBuild"] = "151.0.7922.76",
+                ["completedAt"] = "2026-08-13T00:00:00Z",
+                ["cases"] = new JsonObject
+                {
+                    ["visual"] = visual,
+                    ["geometry"] = States("state", [
+                        "restored-collapsed", "left-expanded", "right-expanded", "right-wide",
+                        "left-right-expanded", "bottom-expanded", "narrow-window", "maximized", "fullscreen",
+                    ]),
+                    ["interaction"] = States("name", [
+                        "hover", "pin", "keyboard-focus", "no-activation", "resize-drag",
+                        "unknown-structure-fail-hidden",
+                    ]),
+                    ["lifecycle"] = States("name", [
+                        "sleep-resume", "codex-restart", "codex-upgrade", "authorization",
+                        "install", "repair", "uninstall",
+                    ]),
+                },
+            };
+        }
+
+        public void MakeQuickPrerelease()
+        {
+            var evidencePath = Path.Combine(Source, "windows-validation.json");
+            var smoke = new JsonObject
+            {
+                ["embeddedPayload"] = "pass",
+                ["manager"] = "pass",
+                ["runtime"] = "pass",
+                ["redactedProbe"] = new JsonObject
+                {
+                    ["result"] = "pass",
+                    ["includesText"] = false,
+                    ["rawNodeNameCount"] = 0,
+                },
+            };
+            var evidence = new JsonObject
+            {
+                ["schemaVersion"] = 1,
+                ["releaseProfile"] = "quick-prerelease",
+                ["version"] = ExpectedVersion,
+                ["sourceCommit"] = SourceCommit,
+                ["architecture"] = "x64",
+                ["windowsBuild"] = 26100,
+                ["codexFileBuild"] = "151.0.7922.76",
+                ["completedAt"] = "2026-08-13T00:00:00Z",
+                ["smoke"] = smoke,
+            };
+            File.WriteAllText(evidencePath, evidence.ToJsonString());
+            var evidenceSha256 = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(evidencePath))).ToLowerInvariant();
+            var path = Path.Combine(Source, "windows-payload.json");
+            var document = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+            document["status"] = "release";
+            document["validationProfile"] = "quick-prerelease";
+            document["realDeviceValidated"] = false;
+            document["publishableInstaller"] = true;
+            document["files"]!["windows-validation.json"] = evidenceSha256;
+            document.Remove("realDeviceValidation");
+            document["quickPrereleaseValidation"] = new JsonObject
+            {
+                ["sha256"] = evidenceSha256,
+                ["windowsBuild"] = 26100,
+                ["codexFileBuild"] = "151.0.7922.76",
+                ["completedAt"] = "2026-08-13T00:00:00Z",
+                ["smoke"] = smoke.DeepClone(),
+            };
+            File.WriteAllText(path, document.ToJsonString());
+        }
+
+        public void ReplaceQuickValidationWithFormalBinding()
+        {
+            var path = Path.Combine(Source, "windows-payload.json");
+            var document = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+            var digest = document["files"]!["windows-validation.json"]!.GetValue<string>();
+            document.Remove("quickPrereleaseValidation");
+            document["realDeviceValidation"] = new JsonObject { ["sha256"] = digest };
+            File.WriteAllText(path, document.ToJsonString());
+        }
+
+        public void SetQuickEvidenceManagerResult(string result)
+        {
+            var evidencePath = Path.Combine(Source, "windows-validation.json");
+            var evidence = JsonNode.Parse(File.ReadAllText(evidencePath))!.AsObject();
+            evidence["smoke"]!["manager"] = result;
+            File.WriteAllText(evidencePath, evidence.ToJsonString());
+            var digest = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(evidencePath))).ToLowerInvariant();
+            var manifestPath = Path.Combine(Source, "windows-payload.json");
+            var manifest = JsonNode.Parse(File.ReadAllText(manifestPath))!.AsObject();
+            manifest["files"]!["windows-validation.json"] = digest;
+            manifest["quickPrereleaseValidation"]!["sha256"] = digest;
+            File.WriteAllText(manifestPath, manifest.ToJsonString());
         }
 
         public void Dispose()

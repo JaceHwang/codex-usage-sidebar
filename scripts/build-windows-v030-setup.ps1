@@ -7,7 +7,11 @@ param(
     [string] $OutputDirectory,
 
     [Parameter(ParameterSetName = 'Plan')]
-    [switch] $PlanOnly
+    [switch] $PlanOnly,
+
+    [Parameter()]
+    [ValidateSet('formal', 'quick-prerelease')]
+    [string] $ReleaseProfile = 'formal'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -20,6 +24,21 @@ $requiredBranch = 'v0.3.0'
 $artifactName = 'codex-usage-sidebar-v0.3.0-windows-x64-setup.exe'
 $codexRuntimeSource = 'https://github.com/openai/codex/releases/download/rust-v0.147.0/codex-x86_64-pc-windows-msvc.exe'
 $codexRuntimeSha256 = '935a1911ed2556e4ffcec995f4886ac2ac425863ba26fed264df62e30272ad9d'
+$releaseProfiles = @{
+    formal = [ordered]@{
+        releaseTag = 'v0.3.0'
+        evidencePath = 'docs/validation/windows-v0.3.0.json'
+        validationVerifier = 'verify-windows-v030-validation.py'
+        realDeviceValidated = $true
+    }
+    'quick-prerelease' = [ordered]@{
+        releaseTag = 'v0.3.0-rc.1'
+        evidencePath = 'docs/validation/windows-v0.3.0-quick-prerelease.json'
+        validationVerifier = 'verify-windows-v030-quick-prerelease.py'
+        realDeviceValidated = $false
+    }
+}
+$releaseDescriptor = $releaseProfiles[$ReleaseProfile]
 
 $plan = [ordered]@{
     schemaVersion = 1
@@ -30,7 +49,11 @@ $plan = [ordered]@{
     minimumWindowsBuild = 22000
     requiredBranch = $requiredBranch
     artifactName = $artifactName
-    requiresCompleteRealDeviceEvidence = $true
+    releaseProfile = $ReleaseProfile
+    releaseTag = $releaseDescriptor.releaseTag
+    validationEvidencePath = $releaseDescriptor.evidencePath
+    requiresCompleteRealDeviceEvidence = $releaseDescriptor.realDeviceValidated
+    realDeviceValidated = $releaseDescriptor.realDeviceValidated
     embeddedPayload = $true
     singleFileSetup = $true
     publishesGitHubRelease = $false
@@ -65,8 +88,8 @@ if (-not $evidenceFull.StartsWith($repoPrefix, [StringComparison]::OrdinalIgnore
     throw 'Windows validation evidence must be a committed file inside the repository.'
 }
 $evidenceRelative = $evidenceFull.Substring($repoPrefix.Length).Replace('\', '/')
-if ($evidenceRelative -ne 'docs/validation/windows-v0.3.0.json') {
-    throw 'Windows v0.3.0 setup requires the canonical committed validation evidence path.'
+if ($evidenceRelative -ne $releaseDescriptor.evidencePath) {
+    throw "Windows v0.3.0 setup requires the canonical '$ReleaseProfile' validation evidence path."
 }
 & git -C $repoRoot ls-files --error-unmatch -- $evidenceRelative | Out-Null
 if ($LASTEXITCODE -ne 0) {
@@ -84,10 +107,10 @@ if ($LASTEXITCODE -ne 0) {
     throw 'The Windows packaging commit changed files after real-device validation.'
 }
 
-$validationVerifier = Join-Path $repoRoot 'scripts\verify-windows-v030-validation.py'
+$validationVerifier = Join-Path $repoRoot ("scripts\" + $releaseDescriptor.validationVerifier)
 & python $validationVerifier $evidenceFull --source-commit $sourceCommit
 if ($LASTEXITCODE -ne 0) {
-    throw 'The complete Windows v0.3.0 real-device evidence gate failed.'
+    throw "The Windows v0.3.0 '$ReleaseProfile' evidence gate failed."
 }
 
 $output = [IO.Path]::GetFullPath($OutputDirectory)
@@ -165,10 +188,11 @@ try {
     $manifestBuilder = Join-Path $repoRoot 'scripts\build-windows-v030-release-manifest.py'
     $payloadVerifier = Join-Path $repoRoot 'scripts\verify-windows-v030-release-payload.py'
     & python $manifestBuilder --payload-dir $payload --version $version --architecture $architecture `
+        --release-profile $ReleaseProfile `
         --source-commit $sourceCommit --codex-source $codexRuntimeSource `
         --codex-sha256 $codexRuntimeSha256 --validation-evidence $evidenceFull
     if ($LASTEXITCODE -ne 0) { throw 'The Windows v0.3.0 release manifest build failed.' }
-    & python $payloadVerifier $payload
+    & python $payloadVerifier --release-profile $ReleaseProfile $payload
     if ($LASTEXITCODE -ne 0) { throw 'The Windows v0.3.0 release payload verification failed.' }
     $manifestSha256 = (Get-FileHash -LiteralPath (Join-Path $payload 'windows-payload.json') -Algorithm SHA256).Hash.ToLowerInvariant()
     $validationSha256 = (Get-FileHash -LiteralPath (Join-Path $payload 'windows-validation.json') -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -216,11 +240,14 @@ try {
             source = $codexRuntimeSource
             sha256 = $codexRuntimeSha256
         }
-        realDeviceValidated = $true
+        realDeviceValidated = $releaseDescriptor.realDeviceValidated
         publishableInstaller = $true
         authenticodeStatus = $authenticode.Status.ToString()
         signerSubject = if ($null -ne $authenticode.SignerCertificate) { $authenticode.SignerCertificate.Subject } else { $null }
         createdAt = [DateTimeOffset]::UtcNow.ToString('o')
+    }
+    if ($ReleaseProfile -eq 'quick-prerelease') {
+        $provenance['validationProfile'] = $ReleaseProfile
     }
     [IO.File]::WriteAllText(
         $provenancePath,
@@ -235,7 +262,8 @@ try {
     & $setupVerifier `
         -CandidateDirectory $output `
         -SourceCommit $sourceCommit `
-        -PackagingCommit $packagingCommit
+        -PackagingCommit $packagingCommit `
+        -ReleaseProfile $ReleaseProfile
     if ($LASTEXITCODE -ne 0) {
         throw 'The copied Windows v0.3.0 setup candidate failed final verification.'
     }

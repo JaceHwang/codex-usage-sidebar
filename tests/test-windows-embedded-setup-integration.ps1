@@ -15,12 +15,33 @@ $runtimeSource = 'https://github.com/openai/codex/releases/download/test/codex.e
 New-Item -ItemType Directory -Path $payload, $output | Out-Null
 
 try {
+    $smoke = [ordered]@{
+        embeddedPayload = 'pass'
+        manager = 'pass'
+        runtime = 'pass'
+        redactedProbe = [ordered]@{
+            result = 'pass'
+            includesText = $false
+            rawNodeNameCount = 0
+        }
+    }
+    $validationEvidence = [ordered]@{
+        schemaVersion = 1
+        releaseProfile = 'quick-prerelease'
+        version = '0.3.0'
+        sourceCommit = $sourceCommit
+        architecture = 'x64'
+        windowsBuild = 26100
+        codexFileBuild = '151.0.7922.76'
+        completedAt = '2026-08-13T00:00:00Z'
+        smoke = $smoke
+    } | ConvertTo-Json -Depth 6
     $contents = [ordered]@{
         'CodexUsageSidebar.Windows.exe' = 'host'
         'CodexUsageSidebar.Control.exe' = 'control'
         'codex.exe' = 'runtime'
         'selectors.json' = '{}'
-        'windows-validation.json' = 'validation-evidence'
+        'windows-validation.json' = $validationEvidence
     }
     foreach ($entry in $contents.GetEnumerator()) {
         [IO.File]::WriteAllText(
@@ -38,14 +59,19 @@ try {
         architecture = 'x64'
         sourceCommit = $sourceCommit
         status = 'release'
-        realDeviceValidated = $true
+        validationProfile = 'quick-prerelease'
+        realDeviceValidated = $false
         publishableInstaller = $true
         codexRuntime = [ordered]@{
             source = $runtimeSource
             sha256 = $files['codex.exe']
         }
-        realDeviceValidation = [ordered]@{
+        quickPrereleaseValidation = [ordered]@{
             sha256 = $files['windows-validation.json']
+            windowsBuild = 26100
+            codexFileBuild = '151.0.7922.76'
+            completedAt = '2026-08-13T00:00:00Z'
+            smoke = $smoke
         }
         files = $files
     }

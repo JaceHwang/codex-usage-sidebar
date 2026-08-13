@@ -9,7 +9,11 @@ param(
 
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^[0-9a-f]{40}$')]
-    [string] $PackagingCommit
+    [string] $PackagingCommit,
+
+    [Parameter()]
+    [ValidateSet('formal', 'quick-prerelease')]
+    [string] $ReleaseProfile = 'formal'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -50,6 +54,13 @@ if ($actualSha256 -ne $expectedSha256) {
 }
 
 $provenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
+$expectedRealDeviceValidated = $ReleaseProfile -eq 'formal'
+$profileMatches = if ($ReleaseProfile -eq 'formal') {
+    -not ($provenance.PSObject.Properties.Name -contains 'validationProfile')
+}
+else {
+    $provenance.validationProfile -eq 'quick-prerelease'
+}
 $expectedRuntimeSource = 'https://github.com/openai/codex/releases/download/rust-v0.147.0/codex-x86_64-pc-windows-msvc.exe'
 $expectedRuntimeSha256 = '935a1911ed2556e4ffcec995f4886ac2ac425863ba26fed264df62e30272ad9d'
 if ($provenance.schemaVersion -ne 1 -or
@@ -62,7 +73,8 @@ if ($provenance.schemaVersion -ne 1 -or
     $provenance.packagingCommit -ne $PackagingCommit -or
     $provenance.artifact -ne $artifactName -or
     $provenance.sha256 -ne $actualSha256 -or
-    $provenance.realDeviceValidated -ne $true -or
+    -not $profileMatches -or
+    $provenance.realDeviceValidated -ne $expectedRealDeviceValidated -or
     $provenance.publishableInstaller -ne $true -or
     $provenance.codexRuntime.source -ne $expectedRuntimeSource -or
     $provenance.codexRuntime.sha256 -ne $expectedRuntimeSha256 -or
@@ -90,4 +102,4 @@ if ($exitCode -ne 0) {
     throw "The Windows setup embedded payload verification failed with exit code $exitCode."
 }
 
-Write-Output "PASS: Windows v0.3.0 x64 setup candidate $actualSha256 from $SourceCommit"
+Write-Output "PASS: Windows v0.3.0 x64 setup candidate ($ReleaseProfile) $actualSha256 from $SourceCommit"

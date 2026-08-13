@@ -11,9 +11,15 @@ import tempfile
 from pathlib import Path
 
 
+import sys
+
+
+sys.dont_write_bytecode = True
+from v030_release_profiles import PROFILES, profile
+
+
 EXPECTED_SETUP = "codex-usage-sidebar-v0.3.0-windows-x64-setup.exe"
 EXPECTED_ARTIFACT = "codex-usage-sidebar-v0.3.0-windows-x64-candidate"
-EXPECTED_RELEASE = "v0.3.0"
 EXPECTED_WORKFLOW = ".github/workflows/v030-release-candidates.yml"
 EXPECTED_CODEX_SOURCE = (
     "https://github.com/openai/codex/releases/download/"
@@ -26,6 +32,7 @@ EXPECTED_CODEX_SHA256 = (
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--release-profile", choices=tuple(PROFILES), default="formal")
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--expected-repository", required=True)
@@ -42,9 +49,15 @@ def main() -> None:
     parser.add_argument("--artifact-digest", required=True)
     parser.add_argument("--release-tag", required=True)
     args = parser.parse_args()
+    descriptor = profile(args.release_profile)
 
     data = json.loads(args.input.read_text(encoding="utf-8"))
     runtime = data.get("codexRuntime", {})
+    profile_matches = (
+        "validationProfile" not in data
+        if args.release_profile == "formal"
+        else data.get("validationProfile") == descriptor["releaseProfile"]
+    )
     checks = (
         (data.get("schemaVersion") == 1, "unsupported Windows provenance schema"),
         (data.get("status") == "release-candidate", "unexpected candidate status"),
@@ -55,7 +68,11 @@ def main() -> None:
         (data.get("sourceCommit") == args.validated_source_sha, "source commit mismatch"),
         (data.get("validatedSourceCommit") == args.validated_source_sha, "validated source mismatch"),
         (data.get("packagingCommit") == args.head_sha, "packaging commit mismatch"),
-        (data.get("realDeviceValidated") is True, "candidate lacks real-device validation"),
+        (profile_matches, "candidate validation profile mismatch"),
+        (
+            data.get("realDeviceValidated") is descriptor["realDeviceValidated"],
+            "candidate validation status mismatch",
+        ),
         (data.get("publishableInstaller") is True, "candidate is not publishable"),
         (runtime.get("source") == EXPECTED_CODEX_SOURCE, "Codex runtime source mismatch"),
         (runtime.get("sha256") == EXPECTED_CODEX_SHA256, "Codex runtime digest mismatch"),
@@ -64,7 +81,7 @@ def main() -> None:
         (args.branch == "v0.3.0", "CI branch must be v0.3.0"),
         (args.workflow_path == EXPECTED_WORKFLOW or args.workflow_path.startswith(EXPECTED_WORKFLOW + "@"), "workflow path mismatch"),
         (args.artifact_name == EXPECTED_ARTIFACT, "artifact name mismatch"),
-        (args.release_tag == EXPECTED_RELEASE, "release tag mismatch"),
+        (args.release_tag == descriptor["tag"], "release tag mismatch"),
         (re.fullmatch(r"[0-9a-f]{40}", args.head_sha) is not None, "invalid packaging SHA"),
         (re.fullmatch(r"[0-9a-f]{40}", args.validated_source_sha) is not None, "invalid validated source SHA"),
         (re.fullmatch(r"sha256:[0-9a-f]{64}", args.artifact_digest) is not None, "invalid artifact digest"),

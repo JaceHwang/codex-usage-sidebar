@@ -47,6 +47,25 @@ public sealed class EmbeddedManagedPayloadOperationsTests
         private Fixture(string root, bool publishable)
         {
             this.root = root;
+            var smoke = new
+            {
+                embeddedPayload = "pass",
+                manager = "pass",
+                runtime = "pass",
+                redactedProbe = new { result = "pass", includesText = false, rawNodeNameCount = 0 },
+            };
+            var validationEvidence = JsonSerializer.SerializeToUtf8Bytes(new
+            {
+                schemaVersion = 1,
+                releaseProfile = "quick-prerelease",
+                version = "0.3.0",
+                sourceCommit = Commit,
+                architecture = "x64",
+                windowsBuild = 26100,
+                codexFileBuild = "151.0.7922.76",
+                completedAt = "2026-08-13T00:00:00Z",
+                smoke,
+            });
             var files = new Dictionary<string, byte[]>(StringComparer.Ordinal)
             {
                 ["CodexUsageSidebar.Windows.exe"] = Encoding.UTF8.GetBytes("host"),
@@ -54,7 +73,7 @@ public sealed class EmbeddedManagedPayloadOperationsTests
                 ["codex.exe"] = Encoding.UTF8.GetBytes("runtime"),
                 ["selectors.json"] = Encoding.UTF8.GetBytes("{}"),
                 ["marker.txt"] = Encoding.UTF8.GetBytes("release"),
-                ["windows-validation.json"] = Encoding.UTF8.GetBytes("validation-evidence"),
+                ["windows-validation.json"] = validationEvidence,
             };
             var digests = files.ToDictionary(
                 pair => pair.Key,
@@ -67,10 +86,18 @@ public sealed class EmbeddedManagedPayloadOperationsTests
                 architecture = "x64",
                 sourceCommit = Commit,
                 status = "release",
-                realDeviceValidated = true,
+                validationProfile = "quick-prerelease",
+                realDeviceValidated = false,
                 publishableInstaller = publishable,
                 codexRuntime = new { source = RuntimeSource, sha256 = digests["codex.exe"] },
-                realDeviceValidation = new { sha256 = digests["windows-validation.json"] },
+                quickPrereleaseValidation = new
+                {
+                    sha256 = digests["windows-validation.json"],
+                    windowsBuild = 26100,
+                    codexFileBuild = "151.0.7922.76",
+                    completedAt = "2026-08-13T00:00:00Z",
+                    smoke,
+                },
                 files = digests,
             });
             Resources = files.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);

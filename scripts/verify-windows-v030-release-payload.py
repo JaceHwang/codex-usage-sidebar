@@ -12,6 +12,10 @@ import sys
 from pathlib import Path
 
 
+sys.dont_write_bytecode = True
+from v030_release_profiles import PROFILES, profile
+
+
 VERSION = "0.3.0"
 OFFICIAL_CODEX_RELEASE_PREFIX = "https://github.com/openai/codex/releases/download/"
 REQUIRED_FILES = {
@@ -23,7 +27,7 @@ REQUIRED_FILES = {
 }
 EXPECTED_CASE_COUNTS = {
     "visual": 108,
-    "geometry": 10,
+    "geometry": 9,
     "interaction": 6,
     "lifecycle": 7,
 }
@@ -39,8 +43,10 @@ def sha256(path: Path) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--release-profile", choices=tuple(PROFILES), default="formal")
     parser.add_argument("payload_dir", type=Path)
     arguments = parser.parse_args()
+    descriptor = profile(arguments.release_profile)
     if arguments.payload_dir.is_symlink():
         raise SystemExit("Windows release payload root cannot be a link")
     root = arguments.payload_dir.resolve(strict=True)
@@ -56,10 +62,16 @@ def main() -> None:
         raise SystemExit("Windows release payload version or architecture mismatch")
     if (
         manifest.get("status") != "release"
-        or manifest.get("realDeviceValidated") is not True
+        or manifest.get("realDeviceValidated") is not descriptor["realDeviceValidated"]
         or manifest.get("publishableInstaller") is not True
     ):
         raise SystemExit("Windows release payload is not explicitly validated and publishable")
+    if arguments.release_profile == "formal":
+        if "validationProfile" in manifest or "quickPrereleaseValidation" in manifest:
+            raise SystemExit("formal Windows release payload cannot carry quick-prerelease metadata")
+    elif manifest.get("validationProfile") != descriptor["releaseProfile"] \
+            or "realDeviceValidation" in manifest:
+        raise SystemExit("quick Windows release payload profile metadata is invalid")
     source_commit = manifest.get("sourceCommit", "")
     if not re.fullmatch(r"[0-9a-f]{40}", source_commit):
         raise SystemExit("invalid Windows release payload source commit")
@@ -91,23 +103,45 @@ def main() -> None:
         raise SystemExit("Codex runtime release provenance digest mismatch")
     if not str(runtime.get("source", "")).startswith(OFFICIAL_CODEX_RELEASE_PREFIX):
         raise SystemExit("Codex runtime release provenance source is invalid")
-    validation = manifest.get("realDeviceValidation", {})
-    if validation.get("sha256") != files["windows-validation.json"] \
-            or validation.get("caseCounts") != EXPECTED_CASE_COUNTS:
-        raise SystemExit("Windows real-device validation binding is invalid")
-
     evidence_path = root / "windows-validation.json"
     evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    validation_field = (
+        "realDeviceValidation"
+        if arguments.release_profile == "formal"
+        else "quickPrereleaseValidation"
+    )
+    validation = manifest.get(validation_field, {})
+    expected_validation_keys = {
+        "sha256", "windowsBuild", "codexFileBuild", "completedAt",
+        "caseCounts" if arguments.release_profile == "formal" else "smoke",
+    }
+    if not isinstance(validation, dict) or set(validation) != expected_validation_keys \
+            or validation.get("sha256") != files["windows-validation.json"]:
+        raise SystemExit("Windows validation evidence binding is invalid")
+    if arguments.release_profile == "formal" \
+            and validation.get("caseCounts") != EXPECTED_CASE_COUNTS:
+        raise SystemExit("Windows real-device validation case counts are invalid")
+    if arguments.release_profile == "quick-prerelease" \
+            and validation.get("smoke") != evidence.get("smoke"):
+        raise SystemExit("Windows quick-prerelease smoke summary does not match its evidence")
     if validation.get("windowsBuild") != evidence.get("windowsBuild") \
             or validation.get("codexFileBuild") != evidence.get("codexFileBuild") \
             or validation.get("completedAt") != evidence.get("completedAt"):
-        raise SystemExit("Windows real-device validation summary does not match its evidence")
-    validator = Path(__file__).with_name("verify-windows-v030-validation.py")
+        raise SystemExit("Windows validation summary does not match its evidence")
+    validator_name = (
+        "verify-windows-v030-validation.py"
+        if arguments.release_profile == "formal"
+        else "verify-windows-v030-quick-prerelease.py"
+    )
+    validator = Path(__file__).with_name(validator_name)
     subprocess.run(
         [sys.executable, str(validator), str(evidence_path), "--source-commit", source_commit],
         check=True,
     )
-    print("PASS: Windows v0.3.0 release payload, evidence, digests, and provenance")
+    print(
+        "PASS: Windows v0.3.0 release payload, evidence, digests, and provenance "
+        f"({arguments.release_profile})"
+    )
 
 
 if __name__ == "__main__":

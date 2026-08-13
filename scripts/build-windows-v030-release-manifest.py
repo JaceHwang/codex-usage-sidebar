@@ -15,6 +15,10 @@ import tempfile
 from pathlib import Path
 
 
+sys.dont_write_bytecode = True
+from v030_release_profiles import PROFILES, profile
+
+
 VERSION = "0.3.0"
 OFFICIAL_CODEX_RELEASE_PREFIX = "https://github.com/openai/codex/releases/download/"
 REQUIRED_FILES = {
@@ -52,6 +56,7 @@ def payload_files(root: Path) -> dict[str, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--release-profile", choices=tuple(PROFILES), default="formal")
     parser.add_argument("--payload-dir", required=True, type=Path)
     parser.add_argument("--version", required=True)
     parser.add_argument("--architecture", choices=("x64",), required=True)
@@ -60,6 +65,7 @@ def main() -> None:
     parser.add_argument("--codex-sha256", required=True)
     parser.add_argument("--validation-evidence", required=True, type=Path)
     arguments = parser.parse_args()
+    descriptor = profile(arguments.release_profile)
 
     if arguments.payload_dir.is_symlink():
         raise SystemExit("Windows release payload root cannot be a link")
@@ -76,7 +82,12 @@ def main() -> None:
     if not re.fullmatch(r"[0-9a-f]{64}", arguments.codex_sha256):
         raise SystemExit("Codex runtime SHA-256 must be lowercase hexadecimal")
 
-    validator = Path(__file__).with_name("verify-windows-v030-validation.py")
+    validator_name = (
+        "verify-windows-v030-validation.py"
+        if arguments.release_profile == "formal"
+        else "verify-windows-v030-quick-prerelease.py"
+    )
+    validator = Path(__file__).with_name(validator_name)
     subprocess.run(
         [sys.executable, str(validator), str(evidence), "--source-commit", arguments.source_commit],
         check=True,
@@ -95,30 +106,36 @@ def main() -> None:
     files = payload_files(root)
     if files["codex.exe"] != arguments.codex_sha256:
         raise SystemExit("Codex runtime digest does not match the supplied provenance")
-    validation_cases = evidence_document["cases"]
     manifest = {
         "schemaVersion": 1,
         "version": arguments.version,
         "architecture": arguments.architecture,
         "sourceCommit": arguments.source_commit,
         "status": "release",
-        "realDeviceValidated": True,
+        "realDeviceValidated": descriptor["realDeviceValidated"],
         "publishableInstaller": True,
         "codexRuntime": {
             "source": arguments.codex_source,
             "sha256": arguments.codex_sha256,
         },
-        "realDeviceValidation": {
-            "sha256": files["windows-validation.json"],
-            "windowsBuild": evidence_document["windowsBuild"],
-            "codexFileBuild": evidence_document["codexFileBuild"],
-            "completedAt": evidence_document["completedAt"],
-            "caseCounts": {
-                name: len(cases) for name, cases in validation_cases.items()
-            },
-        },
         "files": files,
     }
+    validation_summary = {
+        "sha256": files["windows-validation.json"],
+        "windowsBuild": evidence_document["windowsBuild"],
+        "codexFileBuild": evidence_document["codexFileBuild"],
+        "completedAt": evidence_document["completedAt"],
+    }
+    if arguments.release_profile == "formal":
+        validation_cases = evidence_document["cases"]
+        validation_summary["caseCounts"] = {
+            name: len(cases) for name, cases in validation_cases.items()
+        }
+        manifest["realDeviceValidation"] = validation_summary
+    else:
+        manifest["validationProfile"] = descriptor["releaseProfile"]
+        validation_summary["smoke"] = evidence_document["smoke"]
+        manifest["quickPrereleaseValidation"] = validation_summary
     output = root / "windows-payload.json"
     with tempfile.NamedTemporaryFile(
         "w", encoding="utf-8", dir=root, prefix=".windows-payload-", delete=False
