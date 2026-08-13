@@ -1,5 +1,46 @@
 # Installation and Operations
 
+## Windows 11 AMD64/x64
+
+Windows v0.3.0 supports Windows 11 on AMD64/x64 only. Windows ARM64 is not supported. The
+current-user setup is unsigned (`NotSigned`) and does not require administrator privileges.
+
+### Download and verify
+
+From the [v0.3.0 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.0), download only
+[`codex-usage-sidebar-v0.3.0-windows-x64-setup.exe`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe)
+and `WINDOWS-V030-SHA256SUMS.txt`. Before launching the setup, calculate its SHA-256:
+
+```powershell
+Get-FileHash .\codex-usage-sidebar-v0.3.0-windows-x64-setup.exe -Algorithm SHA256
+```
+
+Compare the lowercase digest with the matching checksum-file entry. A matching digest is required
+before you run the setup. A mismatching SHA-256 means do not run it; download both files again from
+the release. Never disable Defender, SmartScreen, antivirus, or system policy.
+
+### Install, repair, and uninstall
+
+Run the verified setup normally to install for the current user. Because this public setup is
+unsigned, Windows may show **Unknown publisher**. Only after the SHA-256 matches, select **More
+info** and then **Run anyway**. Do not use those controls when the digest does not match.
+
+The install root and automatic-start entry are:
+
+```text
+%LOCALAPPDATA%\CodexUsageSidebar\Current
+HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+```
+
+Run the verified setup with `--repair` to repair the current-user installation, or with
+`--uninstall` to remove it. Uninstall retains the installer-described local authorization/state
+data, does not modify the official Codex installation, and does not require administrator
+privileges.
+
+Windows status output uses `runtime=unavailable` when no approved runtime is available,
+`runtime=stopped` when the installed runtime is not running, and `runtime=running` when the
+approved runtime is active.
+
 ## Requirements
 
 - macOS 14 or later

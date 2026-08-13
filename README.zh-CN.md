@@ -1,3 +1,17 @@
+<!-- Windows v0.3.0 installation -->
+
+## Windows 11 AMD64/x64
+
+Windows ARM64 不受支持。请从 [v0.3.0 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.0) 仅下载 [`codex-usage-sidebar-v0.3.0-windows-x64-setup.exe`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe) 与 `WINDOWS-V030-SHA256SUMS.txt`。
+
+先验证 SHA-256，再启动安装程序：
+
+```powershell
+Get-FileHash .\codex-usage-sidebar-v0.3.0-windows-x64-setup.exe -Algorithm SHA256
+```
+
+将小写摘要与 `WINDOWS-V030-SHA256SUMS.txt` 中对应条目比较。未签名安装程序显示“未知发布者”是预期行为；仅在摘要匹配后，选择“更多信息”，再选择“仍要运行”。绝不关闭 Defender、SmartScreen、杀毒软件或系统策略。SHA-256 不匹配时不要运行该文件；请从发行页重新下载。`--repair`、`--uninstall` 和运行状态说明见[安装运维说明](docs/INSTALL.md)。
+
 <p align="center">
   <img src="docs/images/hero.svg" alt="自适应放置在 Codex 标题栏中的剩余额度" width="900">
 </p>
@@ -21,7 +35,7 @@
 | 平台 | 状态 | 分发方式 |
 | --- | --- | --- |
 | macOS 14+ Apple Silicon | 正式版 v0.2.3 | 已签名伴随程序与 v0.2.3 DMG |
-| Windows 11 AMD64（`x64`） | v0.3.0 发布候选版 | 正在进行实机验证；Windows ARM64 不在本版本范围内 |
+| Windows 11 AMD64（`x64`） | v0.3.0 | 未签名 `x64` 安装程序；Windows ARM64 不在本版本范围内 |
 
 Windows v0.3.0 发布工作位于精确的 `v0.3.0` 分支。共享额度契约、.NET 核心、Win32 窗口边界、默认脱敏
 的 UI Automation 探针、用户级安装器后端、载荷摘要校验与 Windows CI 均已建立，同时不改变

@@ -31,7 +31,7 @@
 | Platform | Status | Distribution |
 | --- | --- | --- |
 | macOS 14+ Apple Silicon | Stable v0.2.3 | Signed companion plus v0.2.3 DMG |
-| Windows 11 AMD64 (`x64`) | v0.3.0 release candidate | Real-device validation in progress; Windows ARM64 is out of scope |
+| Windows 11 AMD64 (`x64`) | v0.3.0 | Unsigned `x64` setup; Windows ARM64 is out of scope |
 
 Windows v0.3.0 release work lives on the exact `v0.3.0` branch. The shared quota contracts, .NET core,
 Win32 window boundary, sanitized UI Automation probe, per-user installer backend, payload digest
@@ -93,9 +93,31 @@ quota control.
 
 ## Quick install
 
+Choose the platform-specific installation path below. Windows support is Windows 11 AMD64/x64 only;
+Windows ARM64 is not supported.
+
+### Windows 11 AMD64/x64
+
+1. From the [v0.3.0 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.0), download only [`codex-usage-sidebar-v0.3.0-windows-x64-setup.exe`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe) and `WINDOWS-V030-SHA256SUMS.txt`.
+2. Verify the SHA-256 before launching the setup:
+
+   ```powershell
+   Get-FileHash .\codex-usage-sidebar-v0.3.0-windows-x64-setup.exe -Algorithm SHA256
+   ```
+
+   Compare the lowercase digest with the matching entry in `WINDOWS-V030-SHA256SUMS.txt`.
+3. The unsigned setup is expected to show **Unknown publisher**. Only when the digest matches,
+   choose **More info**, then **Run anyway**.
+4. Never disable Defender, SmartScreen, antivirus, or system policy. A mismatching SHA-256 means do
+   not run the file; download it again from the release.
+
+See [Installation and operations](docs/INSTALL.md) for `--repair`, `--uninstall`, and runtime details.
+
+### macOS 14+ Apple Silicon
+
 Requirements: Codex desktop for macOS, macOS 14 or later, Apple Silicon, and the `codex` CLI.
 
-### Download the installer
+#### Download the installer
 
 1. Download [`codex-usage-sidebar-v0.2.3-macos-arm64.dmg`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.2.3/codex-usage-sidebar-v0.2.3-macos-arm64.dmg) from the v0.2.3 release **Assets**.
 2. Open the DMG, then open **Codex Usage Sidebar Installer**.
