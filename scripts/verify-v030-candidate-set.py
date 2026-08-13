@@ -273,10 +273,12 @@ def main() -> None:
         "platform provenance records belong to different CI runs",
     )
     output = arguments.output.resolve(strict=False)
-    require(
-        output not in {entry.resolve(strict=True) for entry in entries},
-        "summary output cannot overwrite a candidate input",
-    )
+    try:
+        output.relative_to(root)
+    except ValueError:
+        pass
+    else:
+        raise SystemExit("summary output must be outside the candidate directory")
 
     summary = {
         "version": VERSION,

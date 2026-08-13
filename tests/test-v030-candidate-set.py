@@ -4,14 +4,18 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +32,11 @@ MACOS_PROVENANCE = "MACOS-V030-PROVENANCE.final.json"
 MACOS_ARTIFACT = "codex-usage-sidebar-v0.3.0-macos-arm64-candidate"
 REPOSITORY = "JaceHwang/codex-usage-sidebar"
 WORKFLOW = ".github/workflows/v030-release-candidates.yml"
+
+VERIFIER_SPEC = importlib.util.spec_from_file_location("v030_candidate_verifier", VERIFIER)
+assert VERIFIER_SPEC is not None and VERIFIER_SPEC.loader is not None
+VERIFIER_MODULE = importlib.util.module_from_spec(VERIFIER_SPEC)
+VERIFIER_SPEC.loader.exec_module(VERIFIER_MODULE)
 
 
 def digest(data: bytes) -> str:
@@ -374,11 +383,72 @@ class CandidateSetVerifierTests(unittest.TestCase):
         )
         self.assert_rejected_without_changes()
 
+    def test_summary_cannot_be_created_anywhere_in_candidate_directory(self) -> None:
+        for relative in (Path("summary.json"), Path("nested") / "summary.json"):
+            with self.subTest(relative=relative):
+                shutil.rmtree(self.candidate)
+                self.candidate.mkdir()
+                make_candidate(self.candidate)
+                before = candidate_snapshot(self.candidate)
+                summary = self.candidate / relative
+                result = self.run_verifier(summary=summary)
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertFalse(summary.exists())
+                self.assertEqual(candidate_snapshot(self.candidate), before)
+
     def test_summary_cannot_overwrite_any_candidate_input(self) -> None:
         before = candidate_snapshot(self.candidate)
         result = self.run_verifier(summary=self.candidate / WINDOWS_ASSET)
         self.assertNotEqual(result.returncode, 0, result.stdout)
         self.assertEqual(candidate_snapshot(self.candidate), before)
+
+    def test_root_and_entry_reparse_points_are_rejected_deterministically(self) -> None:
+        for label, flagged in (
+            ("root", self.candidate),
+            ("entry", self.candidate / WINDOWS_CHECKSUM),
+        ):
+            with self.subTest(label=label):
+                before = candidate_snapshot(self.candidate)
+                summary = self.root / f"{label}-summary.json"
+                original_summary = b"pre-existing summary must survive\n"
+                summary.write_bytes(original_summary)
+                flagged_key = os.path.normcase(os.path.abspath(flagged))
+                original_lstat = Path.lstat
+
+                def lstat_with_reparse(path: Path):
+                    details = original_lstat(path)
+                    if os.path.normcase(os.path.abspath(path)) == flagged_key:
+                        return types.SimpleNamespace(
+                            st_mode=details.st_mode,
+                            st_file_attributes=VERIFIER_MODULE.REPARSE_POINT,
+                        )
+                    return details
+
+                arguments = [
+                    str(VERIFIER),
+                    str(self.candidate),
+                    "--validated-source",
+                    SOURCE,
+                    "--packaging-commit",
+                    PACKAGING,
+                    "--output",
+                    str(summary),
+                ]
+                with mock.patch.object(
+                    Path, "lstat", autospec=True, side_effect=lstat_with_reparse
+                ), mock.patch.object(sys, "argv", arguments):
+                    with self.assertRaisesRegex(SystemExit, "reparse point"):
+                        VERIFIER_MODULE.main()
+                self.assertEqual(summary.read_bytes(), original_summary)
+                self.assertEqual(candidate_snapshot(self.candidate), before)
+
+    def test_reparse_attribute_is_detected_for_regular_file_mode(self) -> None:
+        path = mock.Mock()
+        path.lstat.return_value = types.SimpleNamespace(
+            st_mode=stat.S_IFREG,
+            st_file_attributes=VERIFIER_MODULE.REPARSE_POINT,
+        )
+        self.assertTrue(VERIFIER_MODULE.is_link_or_reparse(path))
 
     @unittest.skipUnless(hasattr(os, "symlink"), "symbolic links are unavailable")
     def test_linked_candidate_entries_are_rejected_where_supported(self) -> None:
