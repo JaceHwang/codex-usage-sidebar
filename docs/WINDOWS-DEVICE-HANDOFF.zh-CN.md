@@ -17,9 +17,27 @@
 
 ## 2. 验证诊断候选物
 
-从成功的 **Windows beta diagnostic candidate** GitHub Actions 运行中下载名为
-`codex-usage-sidebar-v0.3.0-beta.1-windows-x64-diagnostic` 的产物。将 ZIP、校验文件和
-provenance 文件放在同一目录，然后在该目录打开 PowerShell：
+这部分保留为历史 beta 诊断流程。优先按
+[完整 v0.3.0 发布计划](superpowers/plans/2026-08-13-v0.3.0-complete-release-chain.md)
+构建并安装与最终验证源 `S` 绑定的本地 `device-test` 管理器。只有确需复查历史诊断产物时，
+才从成功的 **Windows beta diagnostic candidate** GitHub Actions 运行中下载名为
+`codex-usage-sidebar-v0.3.0-beta.1-windows-x64-diagnostic` 的产物。
+
+使用已经授权的 GitHub CLI 先确定精确 run ID，再下载指定产物，不能依赖“最新一次运行”：
+
+```powershell
+$runs = @(gh run list --repo JaceHwang/codex-usage-sidebar `
+  --workflow windows-beta.yml --branch codex/v0.3.0-beta.1 --event push --limit 2 `
+  --json databaseId,headSha,status,conclusion,url | ConvertFrom-Json)
+if ($runs.Count -lt 1) { throw '没有可用的历史 Windows beta 运行。' }
+$runId = [long]$runs[0].databaseId
+gh run download $runId --repo JaceHwang/codex-usage-sidebar `
+  --name codex-usage-sidebar-v0.3.0-beta.1-windows-x64-diagnostic `
+  --dir .\diagnostic-download
+```
+
+确认选中的 run、head SHA 和 conclusion 符合预期。将 ZIP、校验文件和 provenance 文件放在
+同一目录，然后在该目录打开 PowerShell：
 
 ```powershell
 $ErrorActionPreference = 'Stop'

@@ -19,10 +19,27 @@ capture after the default report proves insufficient.
 
 ## 2. Verify the diagnostic candidate
 
-Download the artifact named
-`codex-usage-sidebar-v0.3.0-beta.1-windows-x64-diagnostic` from a successful
-**Windows beta diagnostic candidate** Actions run. Put the ZIP, checksum, and provenance files in
-one directory, then run PowerShell from that directory:
+This section is retained as the historical beta diagnostic path. Prefer the
+[complete v0.3.0 release plan](superpowers/plans/2026-08-13-v0.3.0-complete-release-chain.md),
+which builds a local nonpublishable device-test manager bound to the final validated source `S`.
+Use the historical diagnostic artifact only when a beta regression investigation requires it.
+
+Resolve an exact Actions run ID with the authenticated GitHub CLI, then download the named artifact;
+never rely on an unspecified latest run:
+
+```powershell
+$runs = @(gh run list --repo JaceHwang/codex-usage-sidebar `
+  --workflow windows-beta.yml --branch codex/v0.3.0-beta.1 --event push --limit 2 `
+  --json databaseId,headSha,status,conclusion,url | ConvertFrom-Json)
+if ($runs.Count -lt 1) { throw 'No historical Windows beta run is available.' }
+$runId = [long]$runs[0].databaseId
+gh run download $runId --repo JaceHwang/codex-usage-sidebar `
+  --name codex-usage-sidebar-v0.3.0-beta.1-windows-x64-diagnostic `
+  --dir .\diagnostic-download
+```
+
+Confirm the selected run, head SHA, and conclusion. Put the downloaded ZIP, checksum, and provenance
+files in one directory, then run PowerShell from that directory:
 
 ```powershell
 $ErrorActionPreference = 'Stop'

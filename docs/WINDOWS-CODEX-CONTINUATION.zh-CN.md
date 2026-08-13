@@ -5,17 +5,19 @@
 
 ## 当前权威状态
 
-- 开发分支：`codex/v0.3.0-beta.1`
+- 开发分支：`v0.3.0`
 - 稳定 macOS 版本：`v0.2.3`，不得改写或重新上传其 Release Assets
 - Windows 支持范围：Windows 11 AMD64（.NET、payload 和产物命名使用 `x64`）；本版本不构建、
-  不测试、不打包 Windows ARM64，ARM64 也不属于 `v0.3.0-beta.1` 发布门禁
+  不测试、不打包 Windows ARM64，ARM64 也不属于 `v0.3.0` 发布门禁
 - Windows 阶段：跨平台核心、Win32/UIA 诊断边界、安装器后端、完整性校验和诊断 CI 已完成
 - 已绑定的实机样本：`OpenAI.Codex` 包的可见宿主进程为 `ChatGPT.exe`，产品身份为 Codex，
   文件 build `151.0.7922.76`；已在还原窗口、200% DPI、PMv2 物理像素坐标的默认脱敏报告上
   绑定内容工具栏“打开位置”语义选择器（SHA-256：`65e519a71da6c7dc422253a33f30ecaabe175499a51254f9c6eb00983f721f7c`）
-- 当前实现：未知 build/不完整 UIA/无安全空位均隐藏浮层；非激活 WPF 浮层和简中/繁中/英文
-  安装器壳已可构建，但尚未完成视觉、焦点、生命周期和安装矩阵
-- 发布状态：诊断候选物，不是安装器；真实 UI、DPI、生命周期和安装矩阵通过前禁止发布 setup
+- 当前实现：Windows 11 AMD64/x64 实机上已显示非激活 WPF 浮层，能够跟随窗口移动和缩放；
+  Codex 文件 build `151.0.7922.76` 可使用受控窗口相对回退，其他未知 build/不完整 UIA/无安全
+  空位仍隐藏浮层
+- 发布状态：本地 `device-test` 管理器可安装验证，但仍不可发布；131 项真实 UI、DPI、生命周期
+  和安装矩阵完成并提交 canonical 证据前禁止发布 setup
 
 ## 视觉基线
 
@@ -39,7 +41,7 @@ Windows 直接延用当前获准的 macOS v0.2.3 风格和体验，不重新设�
 git clone https://github.com/JaceHwang/codex-usage-sidebar.git
 Set-Location .\codex-usage-sidebar
 git fetch origin
-git switch --track origin/codex/v0.3.0-beta.1
+git switch --track origin/v0.3.0
 git status --short --branch
 git rev-parse HEAD
 ```
@@ -50,7 +52,7 @@ git rev-parse HEAD
 Set-Location C:\path\to\codex-usage-sidebar
 git status --short
 git fetch origin
-git switch codex/v0.3.0-beta.1
+git switch v0.3.0
 git pull --ff-only
 git status --short --branch
 git rev-parse HEAD
@@ -59,7 +61,7 @@ git rev-parse HEAD
 若本地尚未创建该分支，使用：
 
 ```powershell
-git switch --track origin/codex/v0.3.0-beta.1
+git switch --track origin/v0.3.0
 ```
 
 ## 2. 准备 Windows 开发环境
@@ -70,7 +72,39 @@ git switch --track origin/codex/v0.3.0-beta.1
 - Git for Windows；
 - .NET 8 SDK（不是只安装 Runtime）；
 - Visual Studio 2022 Build Tools 或 Visual Studio 2022，包含“.NET 桌面开发”工作负载；
-- 可选：GitHub CLI，用于下载 Actions 诊断产物。
+- GitHub CLI，用于查询 Actions、下载精确 run 的产物、创建和复验 Draft Release，以及在最终
+  门禁通过后发布版本。
+
+在 Windows 11 AMD64/x64 上从 `winget` 社区源安装官方 GitHub CLI，不使用 Microsoft Store 源：
+
+```powershell
+winget install --id GitHub.cli --exact --source winget `
+  --accept-source-agreements --accept-package-agreements
+```
+
+安装后重新打开 PowerShell，使用 GitHub 官方浏览器授权；不要把 token 写进命令、文档或仓库：
+
+```powershell
+gh auth login --hostname github.com --git-protocol https --web --skip-ssh-key
+gh auth status --hostname github.com
+gh repo view JaceHwang/codex-usage-sidebar --json nameWithOwner,defaultBranchRef
+gh run list --repo JaceHwang/codex-usage-sidebar --limit 1
+```
+
+`gh auth status` 必须显示当前 GitHub 账号已登录，后两条只读命令必须成功。GitHub CLI 只属于
+开发/发布工具链，不是普通插件用户的运行依赖。
+
+当前验证设备的 Git Bash 登录 shell 使用受控的 `~/.profile`，并明确删除自动生成的
+`~/.bash_profile`。该配置会加载现有 `~/.bashrc`，把已安装的 Miniconda 和 GitHub CLI 加入
+`PATH`，并提供由 Miniconda 执行的 `python3` 函数。运行 Bash 发布门禁时必须使用登录 shell，
+确保该配置已加载：
+
+```powershell
+& 'D:\app\Git\bin\bash.exe' -lc `
+  'cd /c/path/to/codex-usage-sidebar && tests/test-v030-release-candidate-workflow.sh'
+```
+
+这是开发设备的用户级 shell 配置，不得复制进插件 payload，也不得在其中保存 GitHub 凭据。
 
 验证环境：
 
@@ -78,6 +112,8 @@ git switch --track origin/codex/v0.3.0-beta.1
 git --version
 dotnet --info
 dotnet --list-sdks
+gh --version
+gh auth status --hostname github.com
 ```
 
 日常开发和诊断都使用普通用户权限，不要以管理员身份启动 Codex、PowerShell 或安装器。
@@ -87,11 +123,12 @@ dotnet --list-sdks
 在 Windows Codex 中打开克隆后的仓库根目录，然后把下面这段作为新任务的第一条消息：
 
 ```text
-继续开发 Codex Usage Sidebar Windows v0.3.0-beta.1。先完整阅读：
+继续开发 Codex Usage Sidebar Windows v0.3.0。先完整阅读：
 1. docs/WINDOWS-CODEX-CONTINUATION.zh-CN.md
 2. docs/superpowers/specs/2026-08-11-windows-v0.3.0-beta.1-design.md
-3. docs/superpowers/plans/2026-08-11-windows-v0.3.0-beta.1.md
-4. docs/WINDOWS-DEVICE-HANDOFF.zh-CN.md
+3. docs/superpowers/specs/2026-08-13-v0.3.0-complete-release-chain-design.md
+4. docs/superpowers/plans/2026-08-13-v0.3.0-complete-release-chain.md
+5. docs/WINDOWS-DEVICE-HANDOFF.zh-CN.md
 
 当前视觉 source of truth 是 macOS v0.2.3，Windows 只做必要平台适配。先验证 Git HEAD 和
 运行文档中的基线测试，再在无敏感信息的 Codex 临时任务上采集默认脱敏 UIA 报告。未知 UIA
