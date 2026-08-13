@@ -4,6 +4,7 @@
 import os
 import shutil
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 
 
@@ -20,17 +21,49 @@ def text(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
 
 
+def select_windows_git_bash(
+    candidates: tuple[Path, ...], exists: Callable[[Path], bool] = Path.is_file
+) -> Path | None:
+    """Choose only known Git Bash locations; a PATH bash could be the WSL launcher."""
+    return next((candidate for candidate in candidates if exists(candidate)), None)
+
+
+def windows_git_bash_candidates(environment: dict[str, str]) -> tuple[Path, ...]:
+    roots = (
+        Path("D:/app/Git"),
+        Path("C:/Program Files/Git"),
+        Path("C:/Program Files (x86)/Git"),
+    )
+    for name in ("ProgramFiles", "ProgramW6432", "ProgramFiles(x86)"):
+        value = environment.get(name)
+        if value:
+            roots += (Path(value) / "Git",)
+    return tuple(dict.fromkeys(root / "bin/bash.exe" for root in roots))
+
+
+def test_windows_bash_selection() -> None:
+    candidates = windows_git_bash_candidates({"ProgramFiles": "C:/Program Files"})
+    selected = select_windows_git_bash(
+        candidates, lambda path: path == Path("C:/Program Files/Git/bin/bash.exe")
+    )
+    assert selected == Path("C:/Program Files/Git/bin/bash.exe")
+    assert "C:/Windows/System32/bash.exe" not in {
+        str(path) for path in windows_git_bash_candidates({})
+    }
+
+
 def run_v023_freeze_test() -> None:
     """Bind the public documentation contract to the established legacy guard."""
     if os.name == "nt":
-        git_bash = Path("D:/app/Git/bin/bash.exe")
-        bash = str(git_bash) if git_bash.is_file() else shutil.which("bash")
-        if bash is None:
-            raise SystemExit("cannot run the v0.2.3 freeze test: Bash was not found")
+        git_bash = select_windows_git_bash(windows_git_bash_candidates(dict(os.environ)))
+        if git_bash is None:
+            raise SystemExit(
+                "cannot run the v0.2.3 freeze test: install Git Bash at D:/app/Git or Program Files"
+            )
         root = ROOT.as_posix()
         root = f"/{ROOT.drive[0].lower()}{root[2:]}" if ROOT.drive else root
         command = f'cd "{root}" && tests/test-v023-publish-freeze.sh'
-        result = subprocess.run([bash, "-lc", command], capture_output=True, text=True)
+        result = subprocess.run([str(git_bash), "-lc", command], capture_output=True, text=True)
     else:
         bash = shutil.which("bash")
         if bash is None:
