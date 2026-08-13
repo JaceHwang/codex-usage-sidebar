@@ -52,25 +52,70 @@ public sealed class DeviceTestInstallerUiActionsTests
         Assert.AreEqual(0, log.Count);
     }
 
-    private static DeviceTestInstallerUiActions CreateActions(List<string> log) => new(
-        Paths,
-        new RecordingInstallLock(log),
-        new RecordingPayload(log),
-        new RecordingAutostart(log),
-        new RecordingHost(log));
-
-    private sealed class RecordingPayload(List<string> log) : IManagedPayloadOperations
+    [DataTestMethod]
+    [DataRow("validate", "Payload validation")]
+    [DataRow("lock-enter", "Operation lock acquisition")]
+    [DataRow("stop", "Managed host stop")]
+    [DataRow("activate", "Payload activation")]
+    [DataRow("autostart-write", "Autostart write")]
+    [DataRow("start", "Managed host start")]
+    public async Task InstallFailuresIdentifyOnlyTheSafePhaseAndPreserveTheCause(
+        string failingOperation,
+        string phase)
     {
-        public void Validate() => log.Add("validate");
-        public void Activate() => log.Add("activate");
-        public void RemoveCurrent() => log.Add("remove-current");
+        const string sensitiveMessage = @"Access denied at C:\Users\fixture\secret token=do-not-display";
+        var cause = new IOException(sensitiveMessage);
+        var actions = CreateActions([], failingOperation, cause);
+
+        var error = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
+            actions.ExecuteAsync(InstallerUiMode.Install, CancellationToken.None));
+
+        Assert.AreEqual($"Installer phase failed: {phase}.", error.Message);
+        Assert.AreSame(cause, error.InnerException);
+        Assert.IsFalse(error.Message.Contains(sensitiveMessage, StringComparison.Ordinal));
     }
 
-    private sealed class RecordingInstallLock(List<string> log) : IManagedInstallLock
+    private static DeviceTestInstallerUiActions CreateActions(
+        List<string> log,
+        string? failingOperation = null,
+        Exception? error = null) => new(
+        Paths,
+        new RecordingInstallLock(log, failingOperation, error),
+        new RecordingPayload(log, failingOperation, error),
+        new RecordingAutostart(log, failingOperation, error),
+        new RecordingHost(log, failingOperation, error));
+
+    private sealed class RecordingPayload(
+        List<string> log,
+        string? failingOperation = null,
+        Exception? error = null) : IManagedPayloadOperations
+    {
+        public void Validate() => Record("validate");
+        public void Activate() => Record("activate");
+        public void RemoveCurrent() => log.Add("remove-current");
+
+        private void Record(string operation)
+        {
+            log.Add(operation);
+            if (failingOperation == operation)
+            {
+                throw error!;
+            }
+        }
+    }
+
+    private sealed class RecordingInstallLock(
+        List<string> log,
+        string? failingOperation = null,
+        Exception? error = null) : IManagedInstallLock
     {
         public IDisposable Acquire()
         {
             log.Add("lock-enter");
+            if (failingOperation == "lock-enter")
+            {
+                throw error!;
+            }
             return new CallbackDisposable(() => log.Add("lock-exit"));
         }
     }
@@ -80,16 +125,44 @@ public sealed class DeviceTestInstallerUiActionsTests
         public void Dispose() => dispose();
     }
 
-    private sealed class RecordingAutostart(List<string> log) : IManagedAutostart
+    private sealed class RecordingAutostart(
+        List<string> log,
+        string? failingOperation = null,
+        Exception? error = null) : IManagedAutostart
     {
-        public void Write() => log.Add("autostart-write");
+        public void Write()
+        {
+            log.Add("autostart-write");
+            if (failingOperation == "autostart-write")
+            {
+                throw error!;
+            }
+        }
+
         public void RemoveIfOwned() => log.Add("autostart-remove-owned");
     }
 
-    private sealed class RecordingHost(List<string> log) : IManagedHostLifecycle
+    private sealed class RecordingHost(
+        List<string> log,
+        string? failingOperation = null,
+        Exception? error = null) : IManagedHostLifecycle
     {
-        public void StopExact() => log.Add("stop");
-        public void StartExact(IReadOnlyList<string> arguments) =>
+        public void StopExact()
+        {
+            log.Add("stop");
+            if (failingOperation == "stop")
+            {
+                throw error!;
+            }
+        }
+
+        public void StartExact(IReadOnlyList<string> arguments)
+        {
             log.Add("start:" + string.Join(' ', arguments));
+            if (failingOperation == "start")
+            {
+                throw error!;
+            }
+        }
     }
 }

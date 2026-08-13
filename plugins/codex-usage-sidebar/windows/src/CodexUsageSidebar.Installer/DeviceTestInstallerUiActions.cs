@@ -39,22 +39,22 @@ public sealed class DeviceTestInstallerUiActions(
         cancellationToken.ThrowIfCancellationRequested();
         if (mode is InstallerUiMode.Install or InstallerUiMode.Repair)
         {
-            payload.Validate();
+            RunPhase("Payload validation", payload.Validate);
             cancellationToken.ThrowIfCancellationRequested();
         }
-        using var operationLock = installLock.Acquire();
+        using var operationLock = RunPhase("Operation lock acquisition", installLock.Acquire);
         cancellationToken.ThrowIfCancellationRequested();
-        host.StopExact();
+        RunPhase("Managed host stop", host.StopExact);
         cancellationToken.ThrowIfCancellationRequested();
 
         switch (mode)
         {
             case InstallerUiMode.Install:
             case InstallerUiMode.Repair:
-                payload.Activate();
+                RunPhase("Payload activation", payload.Activate);
                 cancellationToken.ThrowIfCancellationRequested();
-                autostart.Write();
-                host.StartExact(["--background"]);
+                RunPhase("Autostart write", autostart.Write);
+                RunPhase("Managed host start", () => host.StartExact(["--background"]));
                 break;
             case InstallerUiMode.Uninstall:
                 autostart.RemoveIfOwned();
@@ -63,6 +63,30 @@ public sealed class DeviceTestInstallerUiActions(
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(mode));
+        }
+    }
+
+    private static void RunPhase(string phase, Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            throw new InvalidOperationException($"Installer phase failed: {phase}.", error);
+        }
+    }
+
+    private static T RunPhase<T>(string phase, Func<T> action)
+    {
+        try
+        {
+            return action();
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            throw new InvalidOperationException($"Installer phase failed: {phase}.", error);
         }
     }
 }
