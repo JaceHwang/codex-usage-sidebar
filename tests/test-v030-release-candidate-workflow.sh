@@ -118,7 +118,7 @@ def step_run(step):
 
 def executable_shell_lines(lines):
     heredoc_pattern = re.compile(
-        r"<<(?P<tabs>-)?\s*(?:'(?P<single>[^']+)'|\"(?P<double>[^\"]+)\"|(?P<bare>[A-Za-z_][A-Za-z0-9_]*))"
+        r"(?<!<)<<(?P<tabs>-)?\s*(?:'(?P<single>[^']+)'|\"(?P<double>[^\"]+)\"|\\(?P<escaped>[A-Za-z_][A-Za-z0-9_]*)|(?P<bare>[A-Za-z_][A-Za-z0-9_]*))"
     )
     result = []
     pending_heredocs = []
@@ -130,8 +130,17 @@ def executable_shell_lines(lines):
                 pending_heredocs.pop(0)
             continue
         result.append(line)
-        for match in heredoc_pattern.finditer(line):
-            delimiter = match.group("single") or match.group("double") or match.group("bare")
+        matches = list(heredoc_pattern.finditer(line))
+        unparsed = heredoc_pattern.sub("", line)
+        unparsed = re.sub(r"(?<!<)<<<(?!<)", "", unparsed)
+        require("<<" not in unparsed, "stage-and-verify run block uses unsupported heredoc syntax")
+        for match in matches:
+            delimiter = (
+                match.group("single")
+                or match.group("double")
+                or match.group("escaped")
+                or match.group("bare")
+            )
             pending_heredocs.append((delimiter, match.group("tabs") is not None))
     require(not pending_heredocs, "stage-and-verify run block contains an unterminated heredoc")
     return result
@@ -349,7 +358,8 @@ if [[ "${V030_SKIP_MUTATION_TESTS:-0}" != 1 ]]; then
     "$mutation_root/comment.yml" \
     "$mutation_root/run-scalar.yml" \
     "$mutation_root/continue-error.yml" \
-    "$mutation_root/heredoc.yml" <<'PY'
+    "$mutation_root/heredoc.yml" \
+    "$mutation_root/escaped-heredoc.yml" <<'PY'
 import sys
 from pathlib import Path
 
@@ -419,10 +429,26 @@ heredoc_mutation = source.replace(
 if heredoc_mutation == source:
     raise SystemExit("could not construct non-executing verifier workflow mutation")
 Path(sys.argv[5]).write_text(heredoc_mutation, encoding="utf-8")
+
+escaped_heredoc_mutation = source.replace(
+    verifier,
+    """          cat <<\\IGNORED_VERIFIER
+          python3 scripts/verify-v030-candidate-set.py "$release_bundle" \\
+            --validated-source "$validated_source" \\
+            --packaging-commit '${{ github.sha }}' \\
+            --output "$RUNNER_TEMP/V030-RELEASE-SUMMARY.json"
+          IGNORED_VERIFIER
+          printf '{}\\n' >"$RUNNER_TEMP/V030-RELEASE-SUMMARY.json"
+""",
+    1,
+)
+if escaped_heredoc_mutation == source:
+    raise SystemExit("could not construct escaped-heredoc verifier workflow mutation")
+Path(sys.argv[6]).write_text(escaped_heredoc_mutation, encoding="utf-8")
 PY
 
   mutation_failure=0
-  for mutation in comment run-scalar continue-error heredoc; do
+  for mutation in comment run-scalar continue-error heredoc escaped-heredoc; do
     if V030_SKIP_MUTATION_TESTS=1 \
       V030_WORKFLOW_UNDER_TEST="$mutation_root/$mutation.yml" \
       "$0" >/dev/null 2>&1; then
