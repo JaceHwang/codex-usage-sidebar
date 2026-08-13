@@ -17,6 +17,15 @@ USER_AGENT = "codex-usage-sidebar-release-snapshot/1.0"
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 REPOSITORY_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 TAG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+REQUEST_TIMEOUT = 20
+
+
+class _NoRedirectHandler(urllib_request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise SnapshotError("redirects are not permitted")
+
+
+urlopen = urllib_request.build_opener(_NoRedirectHandler()).open
 
 
 class SnapshotError(Exception):
@@ -24,9 +33,12 @@ class SnapshotError(Exception):
 
 
 def validate_identity(repository, tag):
-    if not REPOSITORY_RE.fullmatch(repository or ""):
+    if not isinstance(repository, str) or not REPOSITORY_RE.fullmatch(repository):
         raise SnapshotError("invalid repository; expected OWNER/REPO")
-    if not TAG_RE.fullmatch(tag or ""):
+    owner, repo = repository.split("/", 1)
+    if owner in {".", ".."} or repo in {".", ".."}:
+        raise SnapshotError("repository path segments must not be dot segments")
+    if not isinstance(tag, str) or not TAG_RE.fullmatch(tag):
         raise SnapshotError("invalid tag")
 
 
@@ -40,7 +52,7 @@ def fetch_release(repository, tag):
         method="GET",
     )
     try:
-        response = urllib_request.urlopen(request)
+        response = urlopen(request, timeout=REQUEST_TIMEOUT)
         with response:
             final_url = response.geturl()
             parsed = urllib_parse.urlparse(final_url)

@@ -155,13 +155,104 @@ class SnapshotTests(unittest.TestCase):
             def read(self): return b"{}"
             def geturl(self): return "https://evil.example/releases"
 
-        original = module.urllib_request.urlopen
+        original = module.urlopen
         try:
-            module.urllib_request.urlopen = lambda request: Response()
+            module.urlopen = lambda request, timeout=None: Response()
             with self.assertRaises(Exception):
                 module.fetch_release("JaceHwang/codex-usage-sidebar", "v0.2.3")
         finally:
-            module.urllib_request.urlopen = original
+            module.urlopen = original
+
+    def test_network_redirect_chain_rejects_intermediate_non_api_host(self):
+        spec = importlib.util.spec_from_file_location("snapshot_assets", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        class Response:
+            def __init__(self, url): self.url = url
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self): return b"{}"
+            def geturl(self): return self.url
+
+        calls = []
+        original = module.urlopen
+        try:
+            def redirecting(request, timeout=None):
+                calls.append((request, timeout))
+                if len(calls) == 1:
+                    return Response("https://evil.example/redirect")
+                return Response("https://api.github.com/final")
+            module.urlopen = redirecting
+            with self.assertRaises(Exception):
+                module.fetch_release("JaceHwang/codex-usage-sidebar", "v0.2.3")
+        finally:
+            module.urlopen = original
+
+    def test_network_request_is_exact_get_with_headers_and_timeout(self):
+        spec = importlib.util.spec_from_file_location("snapshot_assets", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self): return json.dumps(fixture_release()).encode()
+            def geturl(self): return "https://api.github.com/repos/JaceHwang/codex-usage-sidebar/releases/tags/v0.2.3"
+
+        seen = {}
+        original = module.urlopen
+        try:
+            def capture(request, timeout=None):
+                seen["method"] = request.get_method()
+                seen["accept"] = request.get_header("Accept")
+                seen["user_agent"] = request.get_header("User-agent")
+                seen["authorization"] = request.get_header("Authorization")
+                seen["timeout"] = timeout
+                return Response()
+            module.urlopen = capture
+            module.fetch_release("JaceHwang/codex-usage-sidebar", "v0.2.3")
+        finally:
+            module.urlopen = original
+        self.assertEqual(seen["method"], "GET")
+        self.assertEqual(seen["accept"], "application/vnd.github+json")
+        self.assertEqual(seen["user_agent"], module.USER_AGENT)
+        self.assertIsNone(seen["authorization"])
+        self.assertIsInstance(seen["timeout"], (int, float))
+        self.assertGreater(seen["timeout"], 0)
+
+    def test_rejects_unsafe_repository_and_tag_components(self):
+        spec = importlib.util.spec_from_file_location("snapshot_assets", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.validate_identity("owner.with.dot/repository.with.dot", "v0.2.3")
+        for repository in ("../foo", "./foo", "foo/..", "foo\\bar", "foo/ bar", "foo/\nbar"):
+            with self.subTest(repository=repository):
+                with self.assertRaises(Exception):
+                    module.validate_identity(repository, "v0.2.3")
+        for tag in ("../v", "./v", "v/..", "v 1", "v\\1", "v\n1"):
+            with self.subTest(tag=tag):
+                with self.assertRaises(Exception):
+                    module.validate_identity("JaceHwang/codex-usage-sidebar", tag)
+
+    def test_no_redirect_handler_is_installed_and_rejects_the_first_hop(self):
+        spec = importlib.util.spec_from_file_location("snapshot_assets", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        redirect_handlers = [
+            handler
+            for handler in module.urlopen.__self__.handlers
+            if isinstance(handler, module.urllib_request.HTTPRedirectHandler)
+        ]
+        self.assertEqual(len(redirect_handlers), 1)
+        self.assertIsInstance(redirect_handlers[0], module._NoRedirectHandler)
+        request = module.urllib_request.Request("https://api.github.com/example")
+        for target in ("https://evil.example/redirect", "https://api.github.com/redirect"):
+            with self.subTest(target=target):
+                with self.assertRaises(module.SnapshotError):
+                    module._NoRedirectHandler().redirect_request(
+                        request, None, 302, "Found", {}, target
+                    )
 
 
 if __name__ == "__main__":
