@@ -189,3 +189,102 @@ jobs:
           name: codex-usage-sidebar-v0.3.0-macos-arm64-provenance
           path: .dist/v0.3.0/macos/MACOS-V030-PROVENANCE.final.json
           if-no-files-found: error
+
+  release-bundle:
+    name: Verify and aggregate release candidates
+    runs-on: ubuntu-24.04
+    needs: [windows-x64, macos-arm64]
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Download Windows x64 candidate
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: codex-usage-sidebar-v0.3.0-windows-x64-candidate
+          path: ${{ runner.temp }}/v030-downloads/windows-candidate
+
+      - name: Download finalized Windows provenance
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: codex-usage-sidebar-v0.3.0-windows-x64-provenance
+          path: ${{ runner.temp }}/v030-downloads/windows-provenance
+
+      - name: Download macOS arm64 candidate
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: codex-usage-sidebar-v0.3.0-macos-arm64-candidate
+          path: ${{ runner.temp }}/v030-downloads/macos-candidate
+
+      - name: Download finalized macOS provenance
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: codex-usage-sidebar-v0.3.0-macos-arm64-provenance
+          path: ${{ runner.temp }}/v030-downloads/macos-provenance
+
+      - name: Stage and verify exact release bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          downloads="$RUNNER_TEMP/v030-downloads"
+          release_bundle="$RUNNER_TEMP/release-bundle"
+
+          require_exact_files() {
+            local directory="$1"
+            shift
+            local actual actual_count expected entry
+            test -d "$directory"
+            test ! -L "$directory"
+            actual="$(find "$directory" -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort)"
+            actual_count="$(find "$directory" -mindepth 1 -maxdepth 1 -printf 'x' | wc -c)"
+            expected="$(printf '%s\n' "$@" | LC_ALL=C sort)"
+            test "$actual" = "$expected"
+            test "$actual_count" -eq "$#"
+            for entry in "$@"; do
+              test -f "$directory/$entry"
+              test ! -L "$directory/$entry"
+            done
+          }
+
+          require_exact_files "$downloads/windows-candidate" \
+            codex-usage-sidebar-v0.3.0-windows-x64-setup.exe \
+            WINDOWS-V030-PROVENANCE.json \
+            WINDOWS-V030-SHA256SUMS.txt
+          require_exact_files "$downloads/windows-provenance" \
+            WINDOWS-V030-PROVENANCE.final.json
+          require_exact_files "$downloads/macos-candidate" \
+            codex-usage-sidebar-v0.3.0-macos-arm64.dmg \
+            MACOS-V030-PROVENANCE.json \
+            MACOS-V030-SHA256SUMS.txt
+          require_exact_files "$downloads/macos-provenance" \
+            MACOS-V030-PROVENANCE.final.json
+
+          mkdir "$release_bundle"
+          install -m 0644 "$downloads/windows-candidate/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe" "$release_bundle/"
+          install -m 0644 "$downloads/windows-candidate/WINDOWS-V030-SHA256SUMS.txt" "$release_bundle/"
+          install -m 0644 "$downloads/windows-provenance/WINDOWS-V030-PROVENANCE.final.json" "$release_bundle/"
+          install -m 0644 "$downloads/macos-candidate/codex-usage-sidebar-v0.3.0-macos-arm64.dmg" "$release_bundle/"
+          install -m 0644 "$downloads/macos-candidate/MACOS-V030-SHA256SUMS.txt" "$release_bundle/"
+          install -m 0644 "$downloads/macos-provenance/MACOS-V030-PROVENANCE.final.json" "$release_bundle/"
+
+          validated_source="$(python3 -c 'import json; print(json.load(open("docs/validation/windows-v0.3.0.json"))["sourceCommit"])')"
+          python3 scripts/verify-v030-candidate-set.py "$release_bundle" \
+            --validated-source "$validated_source" \
+            --packaging-commit '${{ github.sha }}' \
+            --output "$RUNNER_TEMP/V030-RELEASE-SUMMARY.json"
+          python3 -m json.tool "$RUNNER_TEMP/V030-RELEASE-SUMMARY.json"
+
+      - name: Upload verified release bundle
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: codex-usage-sidebar-v0.3.0-release-bundle
+          path: |
+            ${{ runner.temp }}/release-bundle/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe
+            ${{ runner.temp }}/release-bundle/WINDOWS-V030-SHA256SUMS.txt
+            ${{ runner.temp }}/release-bundle/WINDOWS-V030-PROVENANCE.final.json
+            ${{ runner.temp }}/release-bundle/codex-usage-sidebar-v0.3.0-macos-arm64.dmg
+            ${{ runner.temp }}/release-bundle/MACOS-V030-SHA256SUMS.txt
+            ${{ runner.temp }}/release-bundle/MACOS-V030-PROVENANCE.final.json
+          if-no-files-found: error
