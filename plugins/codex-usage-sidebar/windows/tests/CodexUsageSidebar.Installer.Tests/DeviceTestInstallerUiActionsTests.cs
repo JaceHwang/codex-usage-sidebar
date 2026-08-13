@@ -75,6 +75,25 @@ public sealed class DeviceTestInstallerUiActionsTests
         Assert.IsFalse(error.Message.Contains(sensitiveMessage, StringComparison.Ordinal));
     }
 
+    [DataTestMethod]
+    [DataRow("autostart-remove-owned", "Autostart removal")]
+    [DataRow("remove-current", "Payload removal")]
+    public async Task UninstallFailuresIdentifyOnlyTheSafePhaseAndPreserveTheCause(
+        string failingOperation,
+        string phase)
+    {
+        const string sensitiveMessage = @"Access denied at C:\Users\fixture\secret token=do-not-display";
+        var cause = new IOException(sensitiveMessage);
+        var actions = CreateActions([], failingOperation, cause);
+
+        var error = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
+            actions.ExecuteAsync(InstallerUiMode.Uninstall, CancellationToken.None));
+
+        Assert.AreEqual($"Installer phase failed: {phase}.", error.Message);
+        Assert.AreSame(cause, error.InnerException);
+        Assert.IsFalse(error.Message.Contains(sensitiveMessage, StringComparison.Ordinal));
+    }
+
     private static DeviceTestInstallerUiActions CreateActions(
         List<string> log,
         string? failingOperation = null,
@@ -92,7 +111,7 @@ public sealed class DeviceTestInstallerUiActionsTests
     {
         public void Validate() => Record("validate");
         public void Activate() => Record("activate");
-        public void RemoveCurrent() => log.Add("remove-current");
+        public void RemoveCurrent() => Record("remove-current");
 
         private void Record(string operation)
         {
@@ -139,7 +158,16 @@ public sealed class DeviceTestInstallerUiActionsTests
             }
         }
 
-        public void RemoveIfOwned() => log.Add("autostart-remove-owned");
+        public void RemoveIfOwned() => Record("autostart-remove-owned");
+
+        private void Record(string operation)
+        {
+            log.Add(operation);
+            if (failingOperation == operation)
+            {
+                throw error!;
+            }
+        }
     }
 
     private sealed class RecordingHost(

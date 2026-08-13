@@ -57,9 +57,12 @@ public sealed class DeviceTestInstallerUiActions(
                 RunPhase("Managed host start", () => host.StartExact(["--background"]));
                 break;
             case InstallerUiMode.Uninstall:
-                autostart.RemoveIfOwned();
-                SafeUninstallGuard.EnsureExactPayload(paths, paths.CurrentPayload);
-                payload.RemoveCurrent();
+                RunPhase("Autostart removal", autostart.RemoveIfOwned);
+                RunPhase("Payload removal", () =>
+                {
+                    SafeUninstallGuard.EnsureExactPayload(paths, paths.CurrentPayload);
+                    payload.RemoveCurrent();
+                });
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(mode));
