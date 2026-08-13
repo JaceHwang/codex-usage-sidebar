@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Require the public v0.3.0 Windows release documentation contract."""
 
+import os
+import shutil
+import subprocess
 from pathlib import Path
 
 
@@ -15,6 +18,33 @@ WINDOWS_URL = (
 
 def text(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
+
+
+def run_v023_freeze_test() -> None:
+    """Bind the public documentation contract to the established legacy guard."""
+    if os.name == "nt":
+        git_bash = Path("D:/app/Git/bin/bash.exe")
+        bash = str(git_bash) if git_bash.is_file() else shutil.which("bash")
+        if bash is None:
+            raise SystemExit("cannot run the v0.2.3 freeze test: Bash was not found")
+        root = ROOT.as_posix()
+        root = f"/{ROOT.drive[0].lower()}{root[2:]}" if ROOT.drive else root
+        command = f'cd "{root}" && tests/test-v023-publish-freeze.sh'
+        result = subprocess.run([bash, "-lc", command], capture_output=True, text=True)
+    else:
+        bash = shutil.which("bash")
+        if bash is None:
+            raise SystemExit("cannot run the v0.2.3 freeze test: Bash was not found")
+        result = subprocess.run(
+            [bash, str(ROOT / "tests/test-v023-publish-freeze.sh")],
+            capture_output=True,
+            text=True,
+        )
+    if result.returncode != 0:
+        raise SystemExit(
+            "v0.2.3 freeze test failed while checking the release documentation contract:\n"
+            f"{result.stdout}{result.stderr}"
+        )
 
 
 for relative in ("README.md", "README.zh-CN.md", "docs/INSTALL.md"):
@@ -54,8 +84,7 @@ legacy_contract = "\n".join(
     )
 )
 assert "The macOS v0.2.3 application, its DMG, provenance, and release workflow are immutable history" in legacy_contract
-assert "a72b4636ddf99fa4c1d4660b3e281376be361711" in text("tests/test-v023-publish-freeze.sh")
-assert "FROZEN_V023_INSTALLER_SOURCE_COMMIT" in text("tests/test-v023-publish-freeze.sh")
+run_v023_freeze_test()
 
 for relative in ("README.md", "README.zh-CN.md"):
     assert "release candidate" not in text(relative)
