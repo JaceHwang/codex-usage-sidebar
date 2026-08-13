@@ -43,6 +43,24 @@ for relative in ("README.md", "README.zh-CN.md", "docs/INSTALL.md"):
         "codex-usage-sidebar-v0.2.3-macos-arm64.dmg"
     ) in text(relative)
 
+legacy_contract = "\n".join(
+    text(relative)
+    for relative in (
+        "README.md",
+        "README.zh-CN.md",
+        "docs/INSTALL.md",
+        "docs/TROUBLESHOOTING.md",
+        "docs/releases/v0.3.0.md",
+    )
+)
+assert "The macOS v0.2.3 application, its DMG, provenance, and release workflow are immutable history" in legacy_contract
+assert "a72b4636ddf99fa4c1d4660b3e281376be361711" in text("tests/test-v023-publish-freeze.sh")
+assert "FROZEN_V023_INSTALLER_SOURCE_COMMIT" in text("tests/test-v023-publish-freeze.sh")
+
+for relative in ("README.md", "README.zh-CN.md"):
+    assert "release candidate" not in text(relative)
+assert "Windows setup publication remains blocked" not in text("README.md")
+
 release = text("docs/releases/v0.3.0.md")
 for marker in (WINDOWS_ASSET, MACOS_ASSET, "NotSigned", "151.0.7922.76"):
     assert marker in release

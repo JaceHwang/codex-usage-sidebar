@@ -33,12 +33,11 @@
 | macOS 14+ Apple Silicon | Stable v0.2.3 | Signed companion plus v0.2.3 DMG |
 | Windows 11 AMD64 (`x64`) | v0.3.0 | Unsigned `x64` setup; Windows ARM64 is out of scope |
 
-Windows v0.3.0 release work lives on the exact `v0.3.0` branch. The shared quota contracts, .NET core,
-Win32 window boundary, sanitized UI Automation probe, per-user installer backend, payload digest
-verification, and Windows CI are implemented without changing the stable Mac payload. Publishing a
-Windows setup publication remains blocked until it passes the real Codex UIA, DPI, theme, layout,
-upgrade, and installer matrix. See [Windows beta development](docs/WINDOWS-BETA.md).
-The future test-machine procedure is documented separately in the
+Windows v0.3.0 documents the supported current-user x64 install path and its hash-first unsigned
+setup safeguards. The shared quota contracts, .NET core, Win32 window boundary, sanitized UI
+Automation probe, per-user installer backend, payload digest verification, and Windows CI preserve
+the stable macOS payload. See [Windows beta development](docs/WINDOWS-BETA.md) for development
+and validation details. The future test-machine procedure is documented separately in the
 [Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md).
 To move the active work into Codex on a Windows computer, follow the
 [Windows Codex continuation guide](docs/WINDOWS-CODEX-CONTINUATION.md); the Git branch and its
