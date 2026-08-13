@@ -4,10 +4,24 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="0.3.0"
 required_branch="v0.3.0"
+release_profile="${CUS_V030_RELEASE_PROFILE:-formal}"
 signing_identity="${CUS_INSTALLER_SIGN_IDENTITY:--}"
 output_root="$repo_root/.dist/v0.3.0/macos"
 final_app="$output_root/Codex Usage Sidebar Installer.app"
 stage_root=""
+
+case "$release_profile" in
+  formal)
+    evidence_path="docs/validation/windows-v0.3.0.json"
+    ;;
+  quick-prerelease)
+    evidence_path="docs/validation/windows-v0.3.0-quick-prerelease.json"
+    ;;
+  *)
+    printf 'unsupported macOS v0.3.0 release profile: %s\n' "$release_profile" >&2
+    exit 65
+    ;;
+esac
 
 cleanup() {
   if [[ -n "$stage_root" && "$stage_root" == "${TMPDIR:-/tmp}"/cus-macos-v030-build.* ]]; then
@@ -36,7 +50,7 @@ source_commit="${CUS_V030_SOURCE_COMMIT:-}"
   --repository "$repo_root" \
   --validated-source-commit "$source_commit" \
   --packaging-commit "$packaging_commit" \
-  --allowed-path docs/validation/windows-v0.3.0.json
+  --allowed-path "$evidence_path"
 [[ ! -e "$final_app" ]] || {
   printf 'refusing to overwrite macOS v0.3.0 candidate app: %s\n' "$final_app" >&2
   exit 66

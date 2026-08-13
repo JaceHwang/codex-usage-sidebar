@@ -7,18 +7,23 @@ import argparse
 import json
 import os
 import re
+import sys
 import tempfile
 from pathlib import Path
 
 
+sys.dont_write_bytecode = True
+from v030_release_profiles import PROFILES, profile
+
+
 EXPECTED_ASSET = "codex-usage-sidebar-v0.3.0-macos-arm64.dmg"
 EXPECTED_ARTIFACT = "codex-usage-sidebar-v0.3.0-macos-arm64-candidate"
-EXPECTED_RELEASE = "v0.3.0"
 EXPECTED_WORKFLOW = ".github/workflows/v030-release-candidates.yml"
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--release-profile", choices=tuple(PROFILES), default="formal")
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--expected-repository", required=True)
@@ -36,8 +41,14 @@ def main() -> None:
     parser.add_argument("--release-tag", required=True)
     parser.add_argument("--sdk-version", required=True)
     args = parser.parse_args()
+    release_profile = profile(args.release_profile)
 
     data = json.loads(args.input.read_text(encoding="utf-8"))
+    profile_matches = (
+        "validationProfile" not in data
+        if args.release_profile == "formal"
+        else data.get("validationProfile") == release_profile["releaseProfile"]
+    )
     checks = (
         (data.get("schemaVersion") == 3, "unsupported macOS v0.3.0 provenance schema"),
         (data.get("status") == "release-candidate", "unexpected candidate status"),
@@ -48,12 +59,13 @@ def main() -> None:
         (data.get("validatedSourceCommit") == args.validated_source_sha, "validated source binding mismatch"),
         (data.get("payloadCommit") == args.validated_source_sha, "payload commit mismatch"),
         (data.get("packagingCommit") == args.head_sha, "CI packaging commit mismatch"),
+        (profile_matches, "candidate validation profile mismatch"),
         (args.expected_repository == args.run_repository, "CI run belongs to another repository"),
         (args.event == "push", "CI event must be push"),
         (args.branch == "v0.3.0", "CI branch must be v0.3.0"),
         (args.workflow_path == EXPECTED_WORKFLOW or args.workflow_path.startswith(EXPECTED_WORKFLOW + "@"), "workflow path mismatch"),
         (args.artifact_name == EXPECTED_ARTIFACT, "artifact name mismatch"),
-        (args.release_tag == EXPECTED_RELEASE, "release tag mismatch"),
+        (args.release_tag == release_profile["tag"], "release tag mismatch"),
         (data.get("sdk", {}).get("version") == args.sdk_version, "SDK version mismatch"),
         (re.fullmatch(r"[0-9a-f]{40}", args.head_sha) is not None, "invalid head SHA"),
         (re.fullmatch(r"[0-9a-f]{40}", args.validated_source_sha) is not None, "invalid validated source SHA"),

@@ -27,7 +27,7 @@ def exact_field(lines, indent, key, context):
     return values[0]
 
 
-def release_job_lines(lines):
+def job_lines(lines, requested):
     jobs = [index for index, line in enumerate(lines) if line == "jobs:"]
     require(len(jobs) == 1, "workflow must define one top-level jobs mapping")
     job_pattern = re.compile(r"^  ([A-Za-z0-9_-]+):\s*(?:#.*)?$")
@@ -36,9 +36,9 @@ def release_job_lines(lines):
         for index, line in enumerate(lines[jobs[0] + 1 :], start=jobs[0] + 1)
         if (match := job_pattern.match(line))
     ]
-    release_jobs = [item for item in jobs_found if item[1] == "release-bundle"]
-    require(len(release_jobs) == 1, "workflow must define one release-bundle job")
-    start = release_jobs[0][0]
+    matching_jobs = [item for item in jobs_found if item[1] == requested]
+    require(len(matching_jobs) == 1, f"workflow must define one {requested} job")
+    start = matching_jobs[0][0]
     end = next((index for index, _ in jobs_found if index > start), len(lines))
     return lines[start + 1 : end]
 
@@ -166,11 +166,14 @@ workflow = Path(sys.argv[1]).read_text(encoding="utf-8")
 workflow_lines = workflow.splitlines()
 required = (
     "branches: [v0.3.0]",
+    "paths:\n      - docs/validation/windows-v0.3.0.json\n      - docs/validation/windows-v0.3.0-quick-prerelease.json",
     "permissions:\n  contents: read",
     "runs-on: windows-2025",
     "runs-on: macos-26",
     "DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer",
     "docs/validation/windows-v0.3.0.json",
+    "docs/validation/windows-v0.3.0-quick-prerelease.json",
+    "scripts/verify-windows-v030-quick-prerelease.py",
     "scripts/build-windows-v030-setup.ps1",
     "scripts/verify-windows-v030-setup.ps1",
     "scripts/build-macos-v030-installer.sh",
@@ -182,6 +185,7 @@ required = (
     "codex-usage-sidebar-v0.3.0-macos-arm64-candidate",
     "codex-usage-sidebar-v0.3.0-windows-x64-provenance",
     "codex-usage-sidebar-v0.3.0-macos-arm64-provenance",
+    "quick-prerelease",
 )
 for marker in required:
     if marker not in workflow:
@@ -199,14 +203,39 @@ for forbidden in (
     if forbidden.lower() in workflow.lower():
         raise SystemExit(f"v0.3.0 candidate workflow contains forbidden publication or asset marker: {forbidden}")
 
-release_job = release_job_lines(workflow_lines)
+profile_job = job_lines(workflow_lines, "release-profile")
+require(
+    exact_field(profile_job, 4, "runs-on", "release-profile") == "ubuntu-24.04",
+    "release-profile must run on ubuntu-24.04",
+)
+profile_text = "\n".join(profile_job)
+for marker in (
+    '"git", "diff", "--name-only", "--no-renames"',
+    "docs/validation/windows-v0.3.0.json",
+    "docs/validation/windows-v0.3.0-quick-prerelease.json",
+    "release-profile",
+    "evidence-path",
+    "release-tag",
+    "validated-source",
+):
+    require(marker in profile_text, f"release-profile selection is missing: {marker}")
+
+for platform_job in ("windows-x64", "macos-arm64"):
+    require(
+        exact_field(job_lines(workflow_lines, platform_job), 4, "needs", platform_job)
+        == "release-profile",
+        f"{platform_job} must consume the common release profile",
+    )
+
+release_job = job_lines(workflow_lines, "release-bundle")
 require(
     exact_field(release_job, 4, "runs-on", "release-bundle") == "ubuntu-24.04",
     "release-bundle must run on ubuntu-24.04",
 )
 require(
-    exact_field(release_job, 4, "needs", "release-bundle") == "[windows-x64, macos-arm64]",
-    "release-bundle must need exactly windows-x64 and macos-arm64",
+    exact_field(release_job, 4, "needs", "release-bundle")
+    == "[release-profile, windows-x64, macos-arm64]",
+    "release-bundle must need the common profile and both platform jobs",
 )
 steps = step_blocks(release_job)
 parsed_steps = [(step, step_fields(step), *step_with(step)) for step in steps]
@@ -259,6 +288,14 @@ upload_steps = [item for item in parsed_steps if item[1].get("uses", "").startsw
 require(len(upload_steps) == 1, "release-bundle must contain exactly one upload step")
 upload = upload_steps[0]
 require(upload[1]["uses"] == upload_pin, "release-bundle upload must use the pinned action")
+require(
+    upload[1] == {
+        "name": "Upload verified release bundle",
+        "uses": upload_pin,
+        "with": "",
+    },
+    "release-bundle upload cannot bypass a failed verification step",
+)
 require(
     upload[2] == {
         "name": "codex-usage-sidebar-v0.3.0-release-bundle",
@@ -335,12 +372,13 @@ expected_copies = {
 actual_copies = {line for line in logical if line.startswith("install -m 0644 ")}
 require(actual_copies == expected_copies, "release-bundle must stage exactly six source-bound files")
 
-validated_source = 'validated_source="$(python3 -c \'import json; print(json.load(open("docs/validation/windows-v0.3.0.json"))["sourceCommit"])\')"'
-require(validated_source in logical, "release-bundle must read S from the Windows validation JSON")
+validated_source = 'validated_source=\'${{ needs.release-profile.outputs.validated-source }}\''
+require(validated_source in logical, "release-bundle must consume the selected validated source")
 verifier = (
     "python3 scripts/verify-v030-candidate-set.py \"$release_bundle\" "
     "--validated-source \"$validated_source\" "
     "--packaging-commit '${{ github.sha }}' "
+    "--release-profile '${{ needs.release-profile.outputs.release-profile }}' "
     "--output \"$RUNNER_TEMP/V030-RELEASE-SUMMARY.json\""
 )
 require(verifier in logical, "release-bundle must verify exact S and P with an external summary")
@@ -359,15 +397,16 @@ if [[ "${V030_SKIP_MUTATION_TESTS:-0}" != 1 ]]; then
     "$mutation_root/run-scalar.yml" \
     "$mutation_root/continue-error.yml" \
     "$mutation_root/heredoc.yml" \
-    "$mutation_root/escaped-heredoc.yml" <<'PY'
+    "$mutation_root/escaped-heredoc.yml" \
+    "$mutation_root/upload-bypass.yml" <<'PY'
 import sys
 from pathlib import Path
 
 source = Path(sys.argv[1]).read_text(encoding="utf-8")
 
 comment_mutation = source.replace(
-    "    runs-on: ubuntu-24.04\n    needs: [windows-x64, macos-arm64]",
-    "    # runs-on: ubuntu-24.04\n    needs: [windows-x64, macos-arm64]",
+    "    runs-on: ubuntu-24.04\n    needs: [release-profile, windows-x64, macos-arm64]",
+    "    # runs-on: ubuntu-24.04\n    needs: [release-profile, windows-x64, macos-arm64]",
     1,
 )
 if comment_mutation == source:
@@ -412,6 +451,7 @@ Path(sys.argv[4]).write_text(continue_error_mutation, encoding="utf-8")
 verifier = """          python3 scripts/verify-v030-candidate-set.py "$release_bundle" \\
             --validated-source "$validated_source" \\
             --packaging-commit '${{ github.sha }}' \\
+            --release-profile '${{ needs.release-profile.outputs.release-profile }}' \\
             --output "$RUNNER_TEMP/V030-RELEASE-SUMMARY.json"
 """
 heredoc_mutation = source.replace(
@@ -445,10 +485,24 @@ escaped_heredoc_mutation = source.replace(
 if escaped_heredoc_mutation == source:
     raise SystemExit("could not construct escaped-heredoc verifier workflow mutation")
 Path(sys.argv[6]).write_text(escaped_heredoc_mutation, encoding="utf-8")
+
+upload_bypass_mutation = source.replace(
+    """      - name: Upload verified release bundle
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+""",
+    """      - name: Upload verified release bundle
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+""",
+    1,
+)
+if upload_bypass_mutation == source:
+    raise SystemExit("could not construct verification-bypassing upload mutation")
+Path(sys.argv[7]).write_text(upload_bypass_mutation, encoding="utf-8")
 PY
 
   mutation_failure=0
-  for mutation in comment run-scalar continue-error heredoc escaped-heredoc; do
+  for mutation in comment run-scalar continue-error heredoc escaped-heredoc upload-bypass; do
     if V030_SKIP_MUTATION_TESTS=1 \
       V030_WORKFLOW_UNDER_TEST="$mutation_root/$mutation.yml" \
       "$0" >/dev/null 2>&1; then

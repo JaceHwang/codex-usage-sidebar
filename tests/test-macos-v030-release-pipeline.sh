@@ -30,6 +30,10 @@ required = (
     'packagingCommit',
     'MACOS-V030-PROVENANCE.json',
     'MACOS-V030-SHA256SUMS.txt',
+    'release_profile="${CUS_V030_RELEASE_PROFILE:-formal}"',
+    'docs/validation/windows-v0.3.0-quick-prerelease.json',
+    'validationProfile',
+    '--release-profile',
 )
 for marker in required:
     if marker not in combined:
@@ -61,32 +65,51 @@ fixture_root="$(mktemp -d)"
 trap 'rm -rf "$fixture_root"' EXIT
 source_commit="0123456789abcdef0123456789abcdef01234567"
 packaging_commit="fedcba9876543210fedcba9876543210fedcba98"
-cat >"$fixture_root/provenance.json" <<JSON
-{
+write_provenance() {
+  local output="$1"
+  local profile="$2"
+  python3 - "$output" "$profile" "$source_commit" "$packaging_commit" <<'PY'
+import json
+import sys
+
+output, profile, source_commit, packaging_commit = sys.argv[1:]
+data = {
   "schemaVersion": 3,
   "status": "release-candidate",
   "version": "0.3.0",
   "platform": "macos",
   "architecture": "arm64",
-  "sourceCommit": "$source_commit",
-  "validatedSourceCommit": "$source_commit",
-  "packagingCommit": "$packaging_commit",
-  "payloadCommit": "$source_commit",
+  "sourceCommit": source_commit,
+  "validatedSourceCommit": source_commit,
+  "packagingCommit": packaging_commit,
+  "payloadCommit": source_commit,
   "asset": {
     "name": "codex-usage-sidebar-v0.3.0-macos-arm64.dmg",
-    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    "sha256": "a" * 64,
   },
-  "installer": {"executableSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "signature": "adhoc"},
-  "companion": {"executableSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},
+  "installer": {"executableSha256": "b" * 64, "signature": "adhoc"},
+  "companion": {"executableSha256": "c" * 64},
   "sdk": {"name": "macosx", "version": "26.0"},
-  "notarized": false
+  "notarized": False,
 }
-JSON
+if profile == "quick-prerelease":
+    data["validationProfile"] = profile
+with open(output, "w", encoding="utf-8") as handle:
+    json.dump(data, handle, indent=2, sort_keys=True)
+    handle.write("\n")
+PY
+}
+write_provenance "$fixture_root/formal.json" formal
+write_provenance "$fixture_root/quick.json" quick-prerelease
 finalize() {
-  local branch="$1"
-  local output="$2"
+  local input="$1"
+  local profile="$2"
+  local tag="$3"
+  local branch="$4"
+  local output="$5"
   python3 "$finalizer" \
-    --input "$fixture_root/provenance.json" \
+    --release-profile "$profile" \
+    --input "$input" \
     --output "$output" \
     --expected-repository JaceHwang/codex-usage-sidebar \
     --run-repository JaceHwang/codex-usage-sidebar \
@@ -100,19 +123,41 @@ finalize() {
     --artifact-id 987654 \
     --artifact-name codex-usage-sidebar-v0.3.0-macos-arm64-candidate \
     --artifact-digest sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd \
-    --release-tag v0.3.0 \
+    --release-tag "$tag" \
     --sdk-version 26.0
 }
-finalize v0.3.0 "$fixture_root/final.json"
-python3 - "$fixture_root/final.json" <<'PY'
+finalize "$fixture_root/formal.json" formal v0.3.0 v0.3.0 "$fixture_root/formal-final.json"
+finalize "$fixture_root/quick.json" quick-prerelease v0.3.0-rc.1 v0.3.0 "$fixture_root/quick-final.json"
+python3 - "$fixture_root/formal-final.json" "$fixture_root/quick-final.json" <<'PY'
 import json
 import sys
-data = json.load(open(sys.argv[1], encoding="utf-8"))
-assert data["ci"]["branch"] == "v0.3.0"
-assert data["artifactRecord"]["name"] == "codex-usage-sidebar-v0.3.0-macos-arm64-candidate"
-assert data["release"]["tag"] == "v0.3.0"
+formal = json.load(open(sys.argv[1], encoding="utf-8"))
+quick = json.load(open(sys.argv[2], encoding="utf-8"))
+assert "validationProfile" not in formal
+assert formal["ci"]["branch"] == "v0.3.0"
+assert formal["artifactRecord"]["name"] == "codex-usage-sidebar-v0.3.0-macos-arm64-candidate"
+assert formal["release"]["tag"] == "v0.3.0"
+assert quick["validationProfile"] == "quick-prerelease"
+assert quick["release"]["tag"] == "v0.3.0-rc.1"
 PY
-if finalize main "$fixture_root/wrong-branch.json" >/dev/null 2>&1; then
+
+assert_rejected() {
+  local label="$1"
+  shift
+  if "$@" >/dev/null 2>&1; then
+    printf '%s unexpectedly succeeded\n' "$label" >&2
+    exit 1
+  fi
+}
+assert_rejected "formal profile accepted the rc tag" \
+  finalize "$fixture_root/formal.json" formal v0.3.0-rc.1 v0.3.0 "$fixture_root/formal-rc-tag.json"
+assert_rejected "quick profile accepted the formal tag" \
+  finalize "$fixture_root/quick.json" quick-prerelease v0.3.0 v0.3.0 "$fixture_root/quick-formal-tag.json"
+assert_rejected "formal profile accepted quick provenance" \
+  finalize "$fixture_root/quick.json" formal v0.3.0 v0.3.0 "$fixture_root/cross-formal.json"
+assert_rejected "quick profile accepted formal provenance" \
+  finalize "$fixture_root/formal.json" quick-prerelease v0.3.0-rc.1 v0.3.0 "$fixture_root/cross-quick.json"
+if finalize "$fixture_root/formal.json" formal v0.3.0 main "$fixture_root/wrong-branch.json" >/dev/null 2>&1; then
   printf 'macOS v0.3.0 provenance accepted a non-v0.3.0 branch\n' >&2
   exit 1
 fi

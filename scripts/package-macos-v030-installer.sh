@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="0.3.0"
 required_branch="v0.3.0"
+release_profile="${CUS_V030_RELEASE_PROFILE:-formal}"
 output_root="$repo_root/.dist/v0.3.0/macos"
 app="$output_root/Codex Usage Sidebar Installer.app"
 asset_name="codex-usage-sidebar-v0.3.0-macos-arm64.dmg"
@@ -11,6 +12,19 @@ dmg="$output_root/$asset_name"
 checksums="$output_root/MACOS-V030-SHA256SUMS.txt"
 provenance="$output_root/MACOS-V030-PROVENANCE.json"
 stage_root=""
+
+case "$release_profile" in
+  formal)
+    evidence_path="docs/validation/windows-v0.3.0.json"
+    ;;
+  quick-prerelease)
+    evidence_path="docs/validation/windows-v0.3.0-quick-prerelease.json"
+    ;;
+  *)
+    printf 'unsupported macOS v0.3.0 release profile: %s\n' "$release_profile" >&2
+    exit 65
+    ;;
+esac
 
 cleanup() {
   if [[ -n "$stage_root" && "$stage_root" == "${TMPDIR:-/tmp}"/cus-macos-v030-package.* ]]; then
@@ -45,7 +59,7 @@ source_commit="${CUS_V030_SOURCE_COMMIT:-}"
   --repository "$repo_root" \
   --validated-source-commit "$source_commit" \
   --packaging-commit "$packaging_commit" \
-  --allowed-path docs/validation/windows-v0.3.0.json
+  --allowed-path "$evidence_path"
 payload_marker="$app/Contents/Resources/InstallerPayloadCommit"
 payload_commit="$(/bin/cat "$payload_marker")"
 [[ "$payload_commit" == "$source_commit" ]] || {
@@ -88,11 +102,12 @@ if /usr/bin/codesign -dv --verbose=4 "$app" 2>&1 | /usr/bin/grep -q '^TeamIdenti
 fi
 
 /usr/bin/python3 - "$provenance" "$asset_name" "$dmg_sha" "$installer_sha" \
-  "$companion_sha" "$source_commit" "$packaging_commit" "$signature" "$sdk_version" <<'PY'
+  "$companion_sha" "$source_commit" "$packaging_commit" "$signature" "$sdk_version" \
+  "$release_profile" <<'PY'
 import json
 import sys
 
-output, asset, dmg_sha, installer_sha, companion_sha, source, packaging, signature, sdk = sys.argv[1:]
+output, asset, dmg_sha, installer_sha, companion_sha, source, packaging, signature, sdk, profile = sys.argv[1:]
 data = {
     "schemaVersion": 3,
     "status": "release-candidate",
@@ -109,6 +124,8 @@ data = {
     "sdk": {"name": "macosx", "version": sdk},
     "notarized": False,
 }
+if profile == "quick-prerelease":
+    data["validationProfile"] = profile
 with open(output, "x", encoding="utf-8") as handle:
     json.dump(data, handle, indent=2, sort_keys=True)
     handle.write("\n")

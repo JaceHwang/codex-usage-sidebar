@@ -43,7 +43,9 @@ def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def finalized_identity(artifact_name: str, run_id: int, artifact_id: int) -> dict:
+def finalized_identity(
+    artifact_name: str, run_id: int, artifact_id: int, tag: str = "v0.3.0"
+) -> dict:
     return {
         "ci": {
             "branch": "v0.3.0",
@@ -60,11 +62,11 @@ def finalized_identity(artifact_name: str, run_id: int, artifact_id: int) -> dic
             "id": artifact_id,
             "name": artifact_name,
         },
-        "release": {"repository": REPOSITORY, "tag": "v0.3.0"},
+        "release": {"repository": REPOSITORY, "tag": tag},
     }
 
 
-def windows_provenance(asset_digest: str) -> dict:
+def windows_provenance(asset_digest: str, profile: str = "formal") -> dict:
     document = {
         "schemaVersion": 1,
         "status": "release-candidate",
@@ -85,17 +87,26 @@ def windows_provenance(asset_digest: str) -> dict:
             ),
             "sha256": "935a1911ed2556e4ffcec995f4886ac2ac425863ba26fed264df62e30272ad9d",
         },
-        "realDeviceValidated": True,
+        "realDeviceValidated": profile == "formal",
         "publishableInstaller": True,
         "authenticodeStatus": "NotSigned",
         "signerSubject": None,
         "createdAt": "2026-08-13T00:00:00+00:00",
     }
-    document.update(finalized_identity(WINDOWS_ARTIFACT, 123456, 987654))
+    if profile == "quick-prerelease":
+        document["validationProfile"] = profile
+    document.update(
+        finalized_identity(
+            WINDOWS_ARTIFACT,
+            123456,
+            987654,
+            "v0.3.0" if profile == "formal" else "v0.3.0-rc.1",
+        )
+    )
     return document
 
 
-def macos_provenance(asset_digest: str) -> dict:
+def macos_provenance(asset_digest: str, profile: str = "formal") -> dict:
     document = {
         "schemaVersion": 3,
         "status": "release-candidate",
@@ -112,7 +123,16 @@ def macos_provenance(asset_digest: str) -> dict:
         "sdk": {"name": "macosx", "version": "26.0"},
         "notarized": False,
     }
-    document.update(finalized_identity(MACOS_ARTIFACT, 123456, 887654))
+    if profile == "quick-prerelease":
+        document["validationProfile"] = profile
+    document.update(
+        finalized_identity(
+            MACOS_ARTIFACT,
+            123456,
+            887654,
+            "v0.3.0" if profile == "formal" else "v0.3.0-rc.1",
+        )
+    )
     return document
 
 
@@ -120,7 +140,7 @@ def write_json(path: Path, document: dict) -> None:
     path.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def make_candidate(root: Path) -> tuple[str, str]:
+def make_candidate(root: Path, profile: str = "formal") -> tuple[str, str]:
     windows_bytes = b"tiny Windows setup fixture\x00\xff"
     macos_bytes = b"tiny macOS DMG fixture\x00\xfe"
     windows_digest = digest(windows_bytes)
@@ -133,8 +153,8 @@ def make_candidate(root: Path) -> tuple[str, str]:
     (root / MACOS_CHECKSUM).write_text(
         f"{macos_digest}  {MACOS_ASSET}\n", encoding="utf-8"
     )
-    write_json(root / WINDOWS_PROVENANCE, windows_provenance(windows_digest))
-    write_json(root / MACOS_PROVENANCE, macos_provenance(macos_digest))
+    write_json(root / WINDOWS_PROVENANCE, windows_provenance(windows_digest, profile))
+    write_json(root / MACOS_PROVENANCE, macos_provenance(macos_digest, profile))
     return windows_digest, macos_digest
 
 
@@ -166,14 +186,14 @@ class CandidateSetVerifierTests(unittest.TestCase):
         *,
         source: str = SOURCE,
         packaging: str = PACKAGING,
+        profile: str = "formal",
         summary: Path | None = None,
     ) -> subprocess.CompletedProcess[str]:
         if candidate is None:
             candidate = self.candidate
         if summary is None:
             summary = self.root / "summary.json"
-        return subprocess.run(
-            [
+        command = [
                 sys.executable,
                 str(VERIFIER),
                 str(candidate),
@@ -183,7 +203,11 @@ class CandidateSetVerifierTests(unittest.TestCase):
                 packaging,
                 "--output",
                 str(summary),
-            ],
+            ]
+        if profile != "formal":
+            command.extend(("--release-profile", profile))
+        return subprocess.run(
+            command,
             cwd=REPO_ROOT,
             text=True,
             stdout=subprocess.PIPE,
@@ -202,12 +226,15 @@ class CandidateSetVerifierTests(unittest.TestCase):
         *,
         source: str = SOURCE,
         packaging: str = PACKAGING,
+        profile: str = "formal",
     ) -> None:
         before = candidate_snapshot(self.candidate)
         summary = self.root / "summary.json"
         original_summary = b"pre-existing summary must survive\n"
         summary.write_bytes(original_summary)
-        result = self.run_verifier(source=source, packaging=packaging, summary=summary)
+        result = self.run_verifier(
+            source=source, packaging=packaging, profile=profile, summary=summary
+        )
         self.assertNotEqual(result.returncode, 0, result.stdout)
         self.assertNotIn("can't open file", result.stderr)
         self.assertEqual(summary.read_bytes(), original_summary)
@@ -226,11 +253,65 @@ class CandidateSetVerifierTests(unittest.TestCase):
                     WINDOWS_ASSET: self.windows_digest,
                 },
                 "packagingCommit": PACKAGING,
+                "realDeviceValidated": True,
+                "releaseProfile": "formal",
+                "releaseTag": "v0.3.0",
                 "validatedSourceCommit": SOURCE,
                 "version": "0.3.0",
             },
         )
         self.assertEqual(candidate_snapshot(self.candidate), before)
+
+    def test_quick_profile_writes_an_explicit_rc_summary(self) -> None:
+        shutil.rmtree(self.candidate)
+        self.candidate.mkdir()
+        make_candidate(self.candidate, "quick-prerelease")
+        summary = self.root / "quick-summary.json"
+        result = self.run_verifier(profile="quick-prerelease", summary=summary)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        document = json.loads(summary.read_text(encoding="utf-8"))
+        self.assertEqual(document["releaseProfile"], "quick-prerelease")
+        self.assertEqual(document["releaseTag"], "v0.3.0-rc.1")
+        self.assertIs(document["realDeviceValidated"], False)
+
+    def test_platform_records_cannot_mix_release_profiles_or_tags(self) -> None:
+        mutations = (
+            (
+                "formal-macos-record",
+                lambda: write_json(
+                    self.candidate / MACOS_PROVENANCE,
+                    macos_provenance(self.macos_digest, "formal"),
+                ),
+            ),
+            (
+                "macos-formal-tag",
+                lambda: self.mutate_json(
+                    MACOS_PROVENANCE,
+                    lambda data: data["release"].__setitem__("tag", "v0.3.0"),
+                ),
+            ),
+            (
+                "formal-windows-record",
+                lambda: write_json(
+                    self.candidate / WINDOWS_PROVENANCE,
+                    windows_provenance(self.windows_digest, "formal"),
+                ),
+            ),
+            (
+                "windows-formal-tag",
+                lambda: self.mutate_json(
+                    WINDOWS_PROVENANCE,
+                    lambda data: data["release"].__setitem__("tag", "v0.3.0"),
+                ),
+            ),
+        )
+        for label, mutation in mutations:
+            with self.subTest(label=label):
+                shutil.rmtree(self.candidate)
+                self.candidate.mkdir()
+                make_candidate(self.candidate, "quick-prerelease")
+                mutation()
+                self.assert_rejected_without_changes(profile="quick-prerelease")
 
     def test_missing_and_extra_candidate_entries_are_rejected(self) -> None:
         for label, mutation in (

@@ -9,8 +9,16 @@ import json
 import os
 import re
 import stat
+import sys
 import tempfile
 from pathlib import Path
+
+
+sys.dont_write_bytecode = True
+SCRIPT_DIRECTORY = Path(__file__).resolve().parent
+if str(SCRIPT_DIRECTORY) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIRECTORY))
+from v030_release_profiles import PROFILES, profile
 
 
 VERSION = "0.3.0"
@@ -84,6 +92,7 @@ def validate_final_identity(
     artifact_name: str,
     validated_source: str,
     packaging_commit: str,
+    release_tag: str,
 ) -> None:
     ci = data.get("ci")
     artifact = data.get("artifactRecord")
@@ -123,13 +132,21 @@ def validate_final_identity(
             "artifact digest",
         ),
         (release.get("repository") == REPOSITORY, "release repository"),
-        (release.get("tag") == BRANCH, "release tag"),
+        (release.get("tag") == release_tag, "release tag"),
     )
     for condition, field in checks:
         require(condition, f"invalid {label} {field}")
 
 
-def validate_windows(data: dict, digest: str, source: str, packaging: str) -> None:
+def validate_windows(
+    data: dict, digest: str, source: str, packaging: str, release_profile: dict
+) -> None:
+    profile_name = str(release_profile["releaseProfile"])
+    profile_matches = (
+        "validationProfile" not in data
+        if profile_name == "formal"
+        else data.get("validationProfile") == profile_name
+    )
     checks = (
         (data.get("schemaVersion") == 1, "schema"),
         (data.get("status") == "release-candidate", "status"),
@@ -143,7 +160,11 @@ def validate_windows(data: dict, digest: str, source: str, packaging: str) -> No
         (data.get("sha256") == digest, "asset digest"),
         (data.get("authenticodeStatus") == "NotSigned", "Authenticode status"),
         (data.get("signerSubject") is None, "signer subject"),
-        (data.get("realDeviceValidated") is True, "real-device validation"),
+        (profile_matches, "validation profile"),
+        (
+            data.get("realDeviceValidated") is release_profile["realDeviceValidated"],
+            "real-device validation",
+        ),
         (data.get("publishableInstaller") is True, "publishable flag"),
     )
     for condition, field in checks:
@@ -154,12 +175,21 @@ def validate_windows(data: dict, digest: str, source: str, packaging: str) -> No
         artifact_name=WINDOWS_ARTIFACT,
         validated_source=source,
         packaging_commit=packaging,
+        release_tag=str(release_profile["tag"]),
     )
 
 
-def validate_macos(data: dict, digest: str, source: str, packaging: str) -> None:
+def validate_macos(
+    data: dict, digest: str, source: str, packaging: str, release_profile: dict
+) -> None:
     asset = data.get("asset")
     require(isinstance(asset, dict), "invalid macOS asset block")
+    profile_name = str(release_profile["releaseProfile"])
+    profile_matches = (
+        "validationProfile" not in data
+        if profile_name == "formal"
+        else data.get("validationProfile") == profile_name
+    )
     checks = (
         (data.get("schemaVersion") == 3, "schema"),
         (data.get("status") == "release-candidate", "status"),
@@ -170,6 +200,7 @@ def validate_macos(data: dict, digest: str, source: str, packaging: str) -> None
         (data.get("validatedSourceCommit") == source, "validated source commit"),
         (data.get("payloadCommit") == source, "payload commit"),
         (data.get("packagingCommit") == packaging, "packaging commit"),
+        (profile_matches, "validation profile"),
         (asset.get("name") == MACOS_ASSET, "asset name"),
         (asset.get("sha256") == digest, "asset digest"),
         (data.get("notarized") is False, "notarization status"),
@@ -182,6 +213,7 @@ def validate_macos(data: dict, digest: str, source: str, packaging: str) -> None
         artifact_name=MACOS_ARTIFACT,
         validated_source=source,
         packaging_commit=packaging,
+        release_tag=str(release_profile["tag"]),
     )
 
 
@@ -206,8 +238,10 @@ def main() -> None:
     parser.add_argument("candidate_directory", type=Path)
     parser.add_argument("--validated-source", required=True)
     parser.add_argument("--packaging-commit", required=True)
+    parser.add_argument("--release-profile", choices=tuple(PROFILES), default="formal")
     parser.add_argument("--output", required=True, type=Path)
     arguments = parser.parse_args()
+    release_profile = profile(arguments.release_profile)
 
     require(
         COMMIT_PATTERN.fullmatch(arguments.validated_source) is not None,
@@ -258,12 +292,14 @@ def main() -> None:
         windows_digest,
         arguments.validated_source,
         arguments.packaging_commit,
+        release_profile,
     )
     validate_macos(
         read_json(root / MACOS_PROVENANCE),
         macos_digest,
         arguments.validated_source,
         arguments.packaging_commit,
+        release_profile,
     )
 
     windows = read_json(root / WINDOWS_PROVENANCE)
@@ -284,6 +320,9 @@ def main() -> None:
         "version": VERSION,
         "validatedSourceCommit": arguments.validated_source,
         "packagingCommit": arguments.packaging_commit,
+        "realDeviceValidated": release_profile["realDeviceValidated"],
+        "releaseProfile": release_profile["releaseProfile"],
+        "releaseTag": release_profile["tag"],
         "assets": {
             WINDOWS_ASSET: windows_digest,
             MACOS_ASSET: macos_digest,

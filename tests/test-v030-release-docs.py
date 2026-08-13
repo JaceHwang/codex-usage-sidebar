@@ -200,4 +200,33 @@ release = text("docs/releases/v0.3.0.md")
 for marker in (WINDOWS_ASSET, MACOS_ASSET, "NotSigned", "151.0.7922.76"):
     assert marker in release
 
+rc_release = text("docs/releases/v0.3.0-rc.1.md")
+for marker in (
+    "v0.3.0-rc.1",
+    "pre-release",
+    WINDOWS_ASSET,
+    "WINDOWS-V030-SHA256SUMS.txt",
+    "WINDOWS-V030-PROVENANCE.final.json",
+    MACOS_ASSET,
+    "MACOS-V030-SHA256SUMS.txt",
+    "MACOS-V030-PROVENANCE.final.json",
+    "Windows 11 AMD64/x64 only",
+    "Windows ARM64 is unsupported",
+    "NotSigned",
+    "SHA-256",
+    "SmartScreen",
+    "Unknown publisher",
+    "130-case Windows manual matrix is incomplete",
+    "automated gates and the limited x64 smoke record only",
+    "Unknown or unsupported UI Automation structures hide the overlay",
+    "no coordinates are guessed",
+    "Single-monitor scope is validated",
+    "cross-monitor movement",
+    "cross-monitor DPI transitions",
+    "negative-coordinate placement",
+):
+    assert marker.casefold() in rc_release.casefold(), (
+        f"rc.1 release notes are missing risk disclosure: {marker}"
+    )
+
 print("PASS: v0.3.0 public Windows release documentation contract is complete")
