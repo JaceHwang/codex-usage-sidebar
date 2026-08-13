@@ -6,12 +6,15 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
 VERSION = "0.3.0"
+sys.path.insert(0, str(ROOT / "scripts"))
+from v030_release_profiles import FORMAL, QUICK_PRERELEASE
 
 
 def text(relative: str) -> str:
@@ -23,6 +26,21 @@ branch = subprocess.check_output(
 ).strip()
 if branch != "v0.3.0":
     raise SystemExit(f"release branch must be exactly v0.3.0, found {branch}")
+
+if FORMAL != {
+    "releaseProfile": "formal",
+    "tag": "v0.3.0",
+    "evidencePath": "docs/validation/windows-v0.3.0.json",
+    "realDeviceValidated": True,
+}:
+    raise SystemExit("formal v0.3.0 release profile changed")
+if QUICK_PRERELEASE != {
+    "releaseProfile": "quick-prerelease",
+    "tag": "v0.3.0-rc.1",
+    "evidencePath": "docs/validation/windows-v0.3.0-quick-prerelease.json",
+    "realDeviceValidated": False,
+}:
+    raise SystemExit("v0.3.0 rc.1 quick prerelease profile is inconsistent")
 
 manifest = json.loads(text("plugins/codex-usage-sidebar/.codex-plugin/plugin.json"))
 match = re.fullmatch(r"0\.3\.0\+codex\.(\d{14})", manifest.get("version", ""))
