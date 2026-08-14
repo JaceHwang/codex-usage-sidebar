@@ -31,15 +31,17 @@
 | Platform | Status | Distribution |
 | --- | --- | --- |
 | macOS 14+ Apple Silicon | Stable v0.2.3 | Signed companion plus v0.2.3 DMG |
-| Windows 11 AMD64 (`x64`) | v0.3.0 | Unsigned `x64` setup; Windows ARM64 is out of scope |
+| Windows 11 AMD64 (`x64`) | Public pre-release `v0.3.0-rc.1` | Unsigned `x64` setup; Windows ARM64 is out of scope |
 
-Windows v0.3.0 documents the supported current-user x64 install path and its hash-first unsigned
-setup safeguards. The shared quota contracts, .NET core, Win32 window boundary, sanitized UI
-Automation probe, per-user installer backend, payload digest verification, and Windows CI preserve
-the stable macOS payload. See [Windows beta development](docs/WINDOWS-BETA.md) for development
-and validation details. The future test-machine procedure is documented separately in the
-[Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md).
-To move the active work into Codex on a Windows computer, follow the
+Windows `v0.3.0-rc.1` is the public pre-release toward `v0.3.0` for Windows 11
+AMD64/x64. It documents the supported current-user install path and its hash-first unsigned setup
+safeguards. The shared quota contracts, .NET core, Win32 window boundary, sanitized UI Automation
+probe, per-user installer backend, payload digest verification, and Windows CI preserve the stable
+macOS payload. The 130-case Windows manual matrix is still incomplete; this pre-release has passed
+automated gates and the limited x64 smoke record only. Unknown or unsupported UI Automation
+structures hide the overlay instead of guessing coordinates. See [Windows beta development](docs/WINDOWS-BETA.md)
+for development and validation details, and [Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md)
+for the device procedure. To move the active work into Codex on a Windows computer, follow the
 [Windows Codex continuation guide](docs/WINDOWS-CODEX-CONTINUATION.md); the Git branch and its
 verified commit history are the handoff source of truth.
 
@@ -93,24 +95,64 @@ quota control.
 ## Quick install
 
 Choose the platform-specific installation path below. Windows support is Windows 11 AMD64/x64 only;
-Windows ARM64 is not supported.
+Windows ARM64 is not supported. The Windows setup is currently published as the `v0.3.0-rc.1`
+public pre-release, not the stable `v0.3.0` release.
 
 ### Windows 11 AMD64/x64
 
-1. From the [v0.3.0 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.0), download only [`codex-usage-sidebar-v0.3.0-windows-x64-setup.exe`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe) and `WINDOWS-V030-SHA256SUMS.txt`.
-2. Verify the SHA-256 before launching the setup:
+Requirements: Windows 11 on AMD64/x64, Codex desktop for Windows installed and signed in, and
+PowerShell.
+
+#### Manual setup install
+
+1. Open the [v0.3.0-rc.1 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.0-rc.1) and download only
+   [`codex-usage-sidebar-v0.3.0-windows-x64-setup.exe`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0-rc.1/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe) plus `WINDOWS-V030-SHA256SUMS.txt`.
+2. Verify the setup SHA-256 before launching it:
 
    ```powershell
-   Get-FileHash .\codex-usage-sidebar-v0.3.0-windows-x64-setup.exe -Algorithm SHA256
+   Get-FileHash .\codex-usage-sidebar-v0.3.0-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
    ```
 
-   Compare the lowercase digest with the matching entry in `WINDOWS-V030-SHA256SUMS.txt`.
-3. The unsigned setup is expected to show **Unknown publisher**. Only when the digest matches,
-   choose **More info**, then **Run anyway**.
-4. Never disable Defender, SmartScreen, antivirus, or system policy. A mismatching SHA-256 means do
-   not run the file; download it again from the release.
+   Expected SHA-256:
 
-See [Installation and operations](docs/INSTALL.md) for `--repair`, `--uninstall`, and runtime details.
+   ```text
+   7ca231489d550bee708b0138cb7f5afd51c5a31f09e32cba3151d75d8bc2a9e3
+   ```
+
+   Compare it case-insensitively with the matching entry in `WINDOWS-V030-SHA256SUMS.txt`.
+3. Run the verified setup for the current user:
+
+   ```powershell
+   Start-Process .\codex-usage-sidebar-v0.3.0-windows-x64-setup.exe
+   ```
+
+4. The setup is intentionally unsigned (`NotSigned`), so Windows may show **Unknown publisher**.
+   Only after the SHA-256 matches, choose **More info**, then **Run anyway**.
+5. Never disable Defender, SmartScreen, antivirus, or system policy. If the digest differs, delete
+   the file and download it again from the release. The companion installs under
+   `%LOCALAPPDATA%\CodexUsageSidebar\Current` and starts from the current-user Run key.
+
+If Codex exposes an unsupported UI Automation structure, the Windows overlay stays hidden instead
+of guessing coordinates. See [Installation and operations](docs/INSTALL.md) for `--repair`,
+`--uninstall`, status output, and validation boundaries.
+
+#### Agent-assisted automatic install
+
+Give your Windows coding agent this task:
+
+```text
+Install Codex Usage Sidebar v0.3.0-rc.1 from the GitHub Release on this Windows 11 AMD64/x64 machine.
+Download codex-usage-sidebar-v0.3.0-windows-x64-setup.exe and WINDOWS-V030-SHA256SUMS.txt only,
+verify the setup SHA-256 is 7ca231489d550bee708b0138cb7f5afd51c5a31f09e32cba3151d75d8bc2a9e3, run the setup only if the digest matches, and report the install
+path and runtime status. Do not disable or bypass Defender, SmartScreen, antivirus, or system policy.
+If an installer, SmartScreen, uninstall, or Windows security dialog appears, stop and ask me for
+immediate confirmation before clicking it.
+```
+
+An agent can automate the download, checksum comparison, and setup launch, but it must not bypass
+Windows trust UI or claim the setup lifecycle was locally validated unless it actually completed
+that validation on the target machine. See [Install with an agent](docs/INSTALL_FOR_AGENTS.md) for
+the deterministic playbook.
 
 ### macOS 14+ Apple Silicon
 
