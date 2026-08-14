@@ -348,6 +348,32 @@ public sealed class AtomicPayloadInstallerTests
         Assert.IsFalse(Directory.Exists(fixture.Destination));
     }
 
+    [TestMethod]
+    public void RetriesPreviousPayloadMoveUntilARecentHostHandleDrains()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Inconclusive("Windows directory handle semantics are required.");
+        }
+
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        fixture.WriteExistingPayload("old");
+        using var handle = new FileStream(
+            Path.Combine(fixture.Destination, "marker.txt"),
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read);
+        using var releaseHandle = new Timer(_ => handle.Dispose(), null, 800, Timeout.Infinite);
+
+        fixture.Installer(reportSafeStages: true)
+            .Install(fixture.Source, fixture.Destination);
+
+        Assert.AreEqual("new", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+        Assert.IsFalse(Directory.EnumerateDirectories(fixture.Root).Any(path =>
+            Path.GetFileName(path).StartsWith(".cus-", StringComparison.Ordinal)));
+    }
+
     private sealed class RejectingBackupCleaner : IBackupCleaner
     {
         public int Attempts { get; private set; }

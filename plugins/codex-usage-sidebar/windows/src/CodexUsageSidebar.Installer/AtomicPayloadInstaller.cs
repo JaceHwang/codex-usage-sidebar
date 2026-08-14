@@ -8,6 +8,8 @@ public sealed class AtomicPayloadInstaller
 {
     private const string ManifestName = "windows-payload.json";
     private const string OfficialCodexReleasePrefix = "https://github.com/openai/codex/releases/download/";
+    private static readonly TimeSpan PreviousPayloadMoveRetryWindow = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan PreviousPayloadMoveRetryDelay = TimeSpan.FromMilliseconds(100);
     private static readonly HashSet<string> RequiredFiles = new(StringComparer.OrdinalIgnoreCase)
     {
         "CodexUsageSidebar.Windows.exe",
@@ -79,7 +81,7 @@ public sealed class AtomicPayloadInstaller
                 RunStage("payload-validation", () => stageValidator.Validate(temporary, trustedIdentity));
                 if (Directory.Exists(destinationPath))
                 {
-                    RunStage("previous-payload-move", () => Directory.Move(destinationPath, backup));
+                    RunStage("previous-payload-move", () => MovePreviousPayload(destinationPath, backup));
                     movedPrevious = true;
                 }
                 RunStage("new-payload-move", () => Directory.Move(temporary, destinationPath));
@@ -124,6 +126,27 @@ public sealed class AtomicPayloadInstaller
             throw new InstallerSafeStageException(stage, error);
         }
     }
+
+    private static void MovePreviousPayload(string destinationPath, string backup)
+    {
+        var deadline = DateTimeOffset.UtcNow + PreviousPayloadMoveRetryWindow;
+        while (true)
+        {
+            try
+            {
+                Directory.Move(destinationPath, backup);
+                return;
+            }
+            catch (Exception error) when (IsRetryablePreviousPayloadMove(error)
+                && DateTimeOffset.UtcNow < deadline)
+            {
+                Thread.Sleep(PreviousPayloadMoveRetryDelay);
+            }
+        }
+    }
+
+    private static bool IsRetryablePreviousPayloadMove(Exception error) =>
+        error is IOException or UnauthorizedAccessException;
 
     internal static void ValidateManifest(string source, TrustedPayloadIdentity trustedIdentity)
     {
