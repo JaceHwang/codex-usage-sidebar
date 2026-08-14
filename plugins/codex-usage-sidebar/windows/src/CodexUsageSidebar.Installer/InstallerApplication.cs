@@ -38,6 +38,23 @@ public static class InstallerApplication
             {
                 return 0;
             }
+            if (EmbeddedReleaseActivationDiagnosticCommand.TryRun(
+                payloadMode,
+                args,
+                () =>
+                {
+                    var result = EmbeddedReleaseInstallerRuntimeFactory.DiagnoseEmbeddedActivation(
+                        executingAssembly,
+                        metadata,
+                        architecture,
+                        Environment.OSVersion.Version.Build);
+                    Console.Out.WriteLine(
+                        "embedded-activation-diagnostic=success stages="
+                        + string.Join(",", result.CompletedStages));
+                }))
+            {
+                return 0;
+            }
             var deviceInstall = DevicePayloadInstallCommand.TryCreate(
                 payloadMode,
                 args,
@@ -51,6 +68,14 @@ public static class InstallerApplication
                 deviceInstall.Install();
                 return 0;
             }
+        }
+        catch (EmbeddedActivationDiagnosticException error)
+        {
+            Console.Error.WriteLine(
+                $"embedded-activation-diagnostic=failure stage={error.Stage} "
+                + $"type={error.InnerException?.GetType().Name ?? "Unknown"} "
+                + $"hresult=0x{error.InnerException?.HResult ?? 0:X8}");
+            return 71;
         }
         catch (Exception)
         {

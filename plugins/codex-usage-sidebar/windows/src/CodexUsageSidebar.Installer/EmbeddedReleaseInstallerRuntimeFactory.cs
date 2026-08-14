@@ -75,6 +75,30 @@ public static class EmbeddedReleaseInstallerRuntimeFactory
         new EmbeddedManagedPayloadOperations(bundle.Source, bundle.Plan).Validate();
     }
 
+    public static EmbeddedActivationDiagnosticResult DiagnoseEmbeddedActivation(
+        Assembly assembly,
+        IReadOnlyDictionary<string, string?> assemblyMetadata,
+        string architecture,
+        int windowsBuild)
+    {
+        var diagnosticRoot = Path.Combine(
+            Path.GetTempPath(),
+            "CodexUsageSidebarActivationDiagnostic-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(diagnosticRoot);
+        try
+        {
+            var bundle = TryCreateBundle(
+                assembly, assemblyMetadata, diagnosticRoot, architecture, windowsBuild)
+                ?? throw new InvalidOperationException(
+                    "The release installer is missing embedded payload trust metadata.");
+            return EmbeddedActivationDiagnostic.Run(bundle.Source, bundle.Plan);
+        }
+        finally
+        {
+            if (Directory.Exists(diagnosticRoot)) Directory.Delete(diagnosticRoot, recursive: true);
+        }
+    }
+
     private static (EmbeddedReleaseInstallerPlan Plan, EmbeddedPayloadSource Source)? TryCreateBundle(
         Assembly assembly,
         IReadOnlyDictionary<string, string?> assemblyMetadata,
