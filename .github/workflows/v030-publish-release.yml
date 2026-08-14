@@ -103,22 +103,29 @@ jobs:
             --output "$RUNNER_TEMP/V030-RELEASE-SUMMARY.json"
           printf 'path=%s\n' "$bundle" >>"$GITHUB_OUTPUT"
 
-      - name: Remove stale unpublished v0.3.0 drafts
+      - name: Inspect release state and remove stale drafts
+        id: release_state
         run: |
           set -euo pipefail
           releases="$(gh api "repos/$REPOSITORY/releases" --paginate)"
-          public_count="$(jq --arg tag "$RELEASE_TAG" '[.[] | select(.tag_name == $tag and .draft == false)] | length' <<<"$releases")"
-          if [[ "$public_count" != 0 ]]; then
-            echo "public $RELEASE_TAG release already exists" >&2
-            exit 1
+          public_id="$(jq -r --arg tag "$RELEASE_TAG" '
+            [.[] | select(.tag_name == $tag and .draft == false)] |
+            if length == 0 then "" elif length == 1 then .[0].id else error("multiple public releases") end
+          ' <<<"$releases")"
+          if [[ -n "$public_id" ]]; then
+            printf 'mode=verify-existing\n' >>"$GITHUB_OUTPUT"
+            printf 'public_id=%s\n' "$public_id" >>"$GITHUB_OUTPUT"
+            exit 0
           fi
           jq -r --arg tag "$RELEASE_TAG" '.[] | select(.tag_name == $tag and .draft == true) | .id' <<<"$releases" |
             while read -r release_id; do
               [[ -n "$release_id" ]] || continue
               gh api -X DELETE "repos/$REPOSITORY/releases/$release_id"
             done
+          printf 'mode=create\n' >>"$GITHUB_OUTPUT"
 
       - name: Create draft release with exact assets
+        if: steps.release_state.outputs.mode == 'create'
         id: draft
         env:
           BUNDLE: ${{ steps.bundle.outputs.path }}
@@ -147,6 +154,7 @@ jobs:
           printf 'id=%s\n' "$release_id" >>"$GITHUB_OUTPUT"
 
       - name: Verify draft assets
+        if: steps.release_state.outputs.mode == 'create'
         env:
           RELEASE_ID: ${{ steps.draft.outputs.id }}
         run: |
@@ -168,6 +176,7 @@ jobs:
           ' <<<"$release"
 
       - name: Publish release
+        if: steps.release_state.outputs.mode == 'create'
         env:
           RELEASE_ID: ${{ steps.draft.outputs.id }}
         run: |
