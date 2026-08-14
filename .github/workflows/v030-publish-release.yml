@@ -180,7 +180,7 @@ jobs:
       - name: Verify public release by downloading assets
         run: |
           set -euo pipefail
-          release="$(gh release view "$RELEASE_TAG" --repo "$REPOSITORY" --json tagName,isDraft,isPrerelease,isLatest,targetCommitish,assets,url)"
+          release="$(gh release view "$RELEASE_TAG" --repo "$REPOSITORY" --json tagName,isDraft,isPrerelease,targetCommitish,assets,url)"
           test "$(jq -r '.tagName' <<<"$release")" = "$RELEASE_TAG"
           test "$(jq -r '.isDraft' <<<"$release")" = false
           test "$(jq -r '.isPrerelease' <<<"$release")" = false
