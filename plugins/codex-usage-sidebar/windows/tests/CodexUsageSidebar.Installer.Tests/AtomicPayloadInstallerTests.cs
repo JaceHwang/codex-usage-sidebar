@@ -330,6 +330,24 @@ public sealed class AtomicPayloadInstallerTests
         Assert.AreEqual("old", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
     }
 
+    [TestMethod]
+    public void ReportsAConstantSafeStageWhenStagedPayloadValidationFails()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(ExpectedVersion, "new");
+        const string sensitiveMessage = @"Access denied at C:\Users\fixture\secret token=do-not-display";
+        var cause = new IOException(sensitiveMessage);
+
+        var error = Assert.ThrowsException<InstallerSafeStageException>(() =>
+            fixture.Installer(stageValidator: new ThrowingStageValidator(cause), reportSafeStages: true)
+                .Install(fixture.Source, fixture.Destination));
+
+        Assert.AreEqual("payload-validation", error.Stage);
+        Assert.AreSame(cause, error.InnerException);
+        Assert.IsFalse(error.Message.Contains(sensitiveMessage, StringComparison.Ordinal));
+        Assert.IsFalse(Directory.Exists(fixture.Destination));
+    }
+
     private sealed class RejectingBackupCleaner : IBackupCleaner
     {
         public int Attempts { get; private set; }
@@ -347,6 +365,11 @@ public sealed class AtomicPayloadInstallerTests
             File.WriteAllText(Path.Combine(stage, "marker.txt"), "tampered-after-copy");
             inner.Validate(stage, trustedIdentity);
         }
+    }
+
+    private sealed class ThrowingStageValidator(Exception error) : IPayloadStageValidator
+    {
+        public void Validate(string stage, TrustedPayloadIdentity trustedIdentity) => throw error;
     }
 
     private sealed class Fixture : IDisposable
@@ -377,10 +400,12 @@ public sealed class AtomicPayloadInstallerTests
 
         public AtomicPayloadInstaller Installer(
             IBackupCleaner? cleaner = null,
-            IPayloadStageValidator? stageValidator = null) => new(
+            IPayloadStageValidator? stageValidator = null,
+            bool reportSafeStages = false) => new(
                 new TrustedPayloadIdentity(ExpectedVersion, SourceCommit, CodexSource, RuntimeSha256),
                 cleaner,
-                stageValidator);
+                stageValidator,
+                reportSafeStages);
 
         public AtomicPayloadInstaller Installer(PayloadManifestPolicy policy) => new(
             new TrustedPayloadIdentity(ExpectedVersion, SourceCommit, CodexSource, RuntimeSha256, Policy: policy));

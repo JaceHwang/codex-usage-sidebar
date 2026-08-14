@@ -24,8 +24,12 @@ public sealed class EmbeddedManagedPayloadOperations(
 
         try
         {
-            new AtomicPayloadInstaller(plan.TrustedIdentity)
+            new AtomicPayloadInstaller(plan.TrustedIdentity, reportSafeStages: true)
                 .Install(payload.PayloadDirectory, plan.Paths.CurrentPayload);
+        }
+        catch (InstallerSafeStageException)
+        {
+            throw;
         }
         catch (Exception error)
         {

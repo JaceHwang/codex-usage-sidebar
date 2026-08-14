@@ -19,16 +19,19 @@ public sealed class AtomicPayloadInstaller
     private readonly TrustedPayloadIdentity trustedIdentity;
     private readonly IBackupCleaner backupCleaner;
     private readonly IPayloadStageValidator stageValidator;
+    private readonly bool reportSafeStages;
 
     public AtomicPayloadInstaller(
         TrustedPayloadIdentity trustedIdentity,
         IBackupCleaner? backupCleaner = null,
-        IPayloadStageValidator? stageValidator = null)
+        IPayloadStageValidator? stageValidator = null,
+        bool reportSafeStages = false)
     {
         ValidateTrustedIdentity(trustedIdentity);
         this.trustedIdentity = trustedIdentity;
         this.backupCleaner = backupCleaner ?? new BackupCleaner();
         this.stageValidator = stageValidator ?? new PayloadStageValidator();
+        this.reportSafeStages = reportSafeStages;
     }
 
     public void Install(string source, string destination)
@@ -61,16 +64,25 @@ public sealed class AtomicPayloadInstaller
         var activated = false;
         try
         {
-            using (new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+            FileStream operationLock;
+            try
             {
-                CopyDirectory(sourcePath, temporary);
-                stageValidator.Validate(temporary, trustedIdentity);
+                operationLock = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (Exception error) when (reportSafeStages)
+            {
+                throw new InstallerSafeStageException("payload-install-lock", error);
+            }
+            using (operationLock)
+            {
+                RunStage("payload-copy", () => CopyDirectory(sourcePath, temporary));
+                RunStage("payload-validation", () => stageValidator.Validate(temporary, trustedIdentity));
                 if (Directory.Exists(destinationPath))
                 {
-                    Directory.Move(destinationPath, backup);
+                    RunStage("previous-payload-move", () => Directory.Move(destinationPath, backup));
                     movedPrevious = true;
                 }
-                Directory.Move(temporary, destinationPath);
+                RunStage("new-payload-move", () => Directory.Move(temporary, destinationPath));
                 activated = true;
             }
         }
@@ -94,6 +106,22 @@ public sealed class AtomicPayloadInstaller
         if (activated && movedPrevious && Directory.Exists(backup))
         {
             backupCleaner.TryDelete(backup);
+        }
+    }
+
+    private void RunStage(string stage, Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (InstallerSafeStageException)
+        {
+            throw;
+        }
+        catch (Exception error) when (reportSafeStages)
+        {
+            throw new InstallerSafeStageException(stage, error);
         }
     }
 

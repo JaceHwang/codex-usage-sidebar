@@ -73,7 +73,7 @@ public sealed class EmbeddedManagedPayloadOperationsTests
     }
 
     [TestMethod]
-    public void ActivationReportsAConstantSafeStageWhenAtomicInstallationFails()
+    public void ActivationPreservesTheExactSafeStageWhenAtomicInstallationFails()
     {
         using var fixture = Fixture.Create(publishable: true);
         Directory.CreateDirectory(fixture.Plan.Paths.InstallRoot);
@@ -86,7 +86,7 @@ public sealed class EmbeddedManagedPayloadOperationsTests
         var error = Assert.ThrowsException<InstallerSafeStageException>(
             () => fixture.Operations().Activate());
 
-        Assert.AreEqual("atomic-install", error.Stage);
+        Assert.AreEqual("payload-install-lock", error.Stage);
         Assert.IsInstanceOfType<IOException>(error.InnerException);
         Assert.IsFalse(error.Message.Contains(fixture.Plan.Paths.InstallRoot, StringComparison.Ordinal));
     }
