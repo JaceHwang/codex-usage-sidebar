@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 WINDOWS_ASSET = "codex-usage-sidebar-v0.3.0-windows-x64-setup.exe"
 MACOS_ASSET = "codex-usage-sidebar-v0.3.0-macos-arm64.dmg"
 WINDOWS_URL = (
-    "https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0-rc.1/"
+    "https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0/"
     "codex-usage-sidebar-v0.3.0-windows-x64-setup.exe"
 )
 
@@ -157,7 +157,7 @@ for relative in ("README.md", "README.zh-CN.md", "docs/INSTALL.md", "docs/INSTAL
     assert WINDOWS_ASSET in body
     assert "Windows ARM64" in body
     assert "SHA-256" in body
-    assert "v0.3.0-rc.1" in body
+    assert "v0.3.0" in body
     assert "7ca231489d550bee708b0138cb7f5afd51c5a31f09e32cba3151d75d8bc2a9e3" in body
 
 english = text("README.md") + text("docs/INSTALL.md") + text("docs/TROUBLESHOOTING.md")
@@ -196,6 +196,7 @@ run_v023_freeze_test()
 
 for relative in ("README.md", "README.zh-CN.md"):
     assert "release candidate" not in text(relative)
+    assert "v0.3.0-rc.1" not in text(relative)
 
 for marker in ("Manual setup install", "Agent-assisted automatic install"):
     assert marker in text("README.md")
@@ -204,6 +205,10 @@ for marker in ("人工安装", "Agent 自动安装"):
 for marker in ("immediate confirmation", "Do not claim the setup lifecycle was locally validated"):
     assert marker in text("docs/INSTALL_FOR_AGENTS.md")
 assert "Windows setup publication remains blocked" not in text("README.md")
+
+official_v030 = text("docs/releases/v0.3.0.md")
+for marker in ("Validation boundary", "130-case Windows manual matrix is incomplete", "local setup lifecycle validation is not", "Unknown publisher"):
+    assert marker in official_v030
 
 release = text("docs/releases/v0.3.0.md")
 for marker in (WINDOWS_ASSET, MACOS_ASSET, "NotSigned", "151.0.7922.76"):

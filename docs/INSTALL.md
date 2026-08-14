@@ -2,14 +2,13 @@
 
 ## Windows 11 AMD64/x64
 
-Windows `v0.3.0-rc.1` is a public pre-release toward `v0.3.0`. It supports Windows 11 on
-AMD64/x64 only; Windows ARM64 is not supported. The current-user setup is unsigned (`NotSigned`)
+Windows `v0.3.0` supports Windows 11 on AMD64/x64 only; Windows ARM64 is not supported. The current-user setup is unsigned (`NotSigned`)
 and does not require administrator privileges.
 
 ### Download and verify
 
-From the [v0.3.0-rc.1 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.0-rc.1), download only
-[`codex-usage-sidebar-v0.3.0-windows-x64-setup.exe`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0-rc.1/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe) and `WINDOWS-V030-SHA256SUMS.txt`. Before launching the setup,
+From the [v0.3.0 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.0), download only
+[`codex-usage-sidebar-v0.3.0-windows-x64-setup.exe`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe) and `WINDOWS-V030-SHA256SUMS.txt`. Before launching the setup,
 calculate its SHA-256:
 
 ```powershell
@@ -65,7 +64,7 @@ the deterministic prompt and evidence checklist.
 
 ### Validation boundary
 
-The `v0.3.0-rc.1` Windows setup passed automated gates and the limited x64 smoke record only; the
+The `v0.3.0` Windows setup passed automated gates and the limited x64 smoke record only; the
 130-case Windows manual matrix is incomplete. Do not claim full real-device setup lifecycle
 validation unless you have run that validation on the target machine. Unknown or unsupported UI
 Automation structures hide the overlay; no coordinates are guessed.

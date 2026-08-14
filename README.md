@@ -31,13 +31,12 @@
 | Platform | Status | Distribution |
 | --- | --- | --- |
 | macOS 14+ Apple Silicon | Stable v0.2.3 | Signed companion plus v0.2.3 DMG |
-| Windows 11 AMD64 (`x64`) | Public pre-release `v0.3.0-rc.1` | Unsigned `x64` setup; Windows ARM64 is out of scope |
+| Windows 11 AMD64 (`x64`) | Release `v0.3.0` | Unsigned `x64` setup; Windows ARM64 is out of scope |
 
-Windows `v0.3.0-rc.1` is the public pre-release toward `v0.3.0` for Windows 11
-AMD64/x64. It documents the supported current-user install path and its hash-first unsigned setup
+Windows `v0.3.0` is the public Windows 11 AMD64/x64 release. It documents the supported current-user install path and its hash-first unsigned setup
 safeguards. The shared quota contracts, .NET core, Win32 window boundary, sanitized UI Automation
 probe, per-user installer backend, payload digest verification, and Windows CI preserve the stable
-macOS payload. The 130-case Windows manual matrix is still incomplete; this pre-release has passed
+macOS payload. The 130-case Windows manual matrix is still incomplete; this release has passed
 automated gates and the limited x64 smoke record only. Unknown or unsupported UI Automation
 structures hide the overlay instead of guessing coordinates. See [Windows beta development](docs/WINDOWS-BETA.md)
 for development and validation details, and [Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md)
@@ -95,8 +94,8 @@ quota control.
 ## Quick install
 
 Choose the platform-specific installation path below. Windows support is Windows 11 AMD64/x64 only;
-Windows ARM64 is not supported. The Windows setup is currently published as the `v0.3.0-rc.1`
-public pre-release, not the stable `v0.3.0` release.
+Windows ARM64 is not supported. The Windows setup is published from the `v0.3.0`
+GitHub Release with explicit unsigned-install safeguards.
 
 ### Windows 11 AMD64/x64
 
@@ -105,8 +104,8 @@ PowerShell.
 
 #### Manual setup install
 
-1. Open the [v0.3.0-rc.1 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.0-rc.1) and download only
-   [`codex-usage-sidebar-v0.3.0-windows-x64-setup.exe`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0-rc.1/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe) plus `WINDOWS-V030-SHA256SUMS.txt`.
+1. Open the [v0.3.0 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.0) and download only
+   [`codex-usage-sidebar-v0.3.0-windows-x64-setup.exe`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe) plus `WINDOWS-V030-SHA256SUMS.txt`.
 2. Verify the setup SHA-256 before launching it:
 
    ```powershell
@@ -141,7 +140,7 @@ of guessing coordinates. See [Installation and operations](docs/INSTALL.md) for 
 Give your Windows coding agent this task:
 
 ```text
-Install Codex Usage Sidebar v0.3.0-rc.1 from the GitHub Release on this Windows 11 AMD64/x64 machine.
+Install Codex Usage Sidebar v0.3.0 from the GitHub Release on this Windows 11 AMD64/x64 machine.
 Download codex-usage-sidebar-v0.3.0-windows-x64-setup.exe and WINDOWS-V030-SHA256SUMS.txt only,
 verify the setup SHA-256 is 7ca231489d550bee708b0138cb7f5afd51c5a31f09e32cba3151d75d8bc2a9e3, run the setup only if the digest matches, and report the install
 path and runtime status. Do not disable or bypass Defender, SmartScreen, antivirus, or system policy.
