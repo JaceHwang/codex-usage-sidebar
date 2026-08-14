@@ -1,7 +1,7 @@
 {
   "architecture": "x64",
   "codexFileBuild": "151.0.7922.76",
-  "completedAt": "2026-08-14T02:24:51Z",
+  "completedAt": "2026-08-14T03:16:48Z",
   "releaseProfile": "quick-prerelease",
   "schemaVersion": 1,
   "smoke": {
@@ -14,7 +14,7 @@
     },
     "runtime": "pass"
   },
-  "sourceCommit": "c93aaee35e3466a5abc1504438a3d503aa6e743a",
+  "sourceCommit": "f7659e26c528b65935801d7ace56fcbfe31b675c",
   "version": "0.3.0",
   "windowsBuild": 26200
 }
