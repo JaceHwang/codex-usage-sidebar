@@ -47,6 +47,9 @@ public sealed class DeviceTestInstallerUiActions(
     IManagedAutostart autostart,
     IManagedHostLifecycle host) : IInstallerUiActions
 {
+    private const int PreviousPayloadMoveAttempts = 3;
+    private static readonly TimeSpan PreviousPayloadMoveRetryDelay = TimeSpan.FromMilliseconds(200);
+
     public Task ExecuteAsync(InstallerUiMode mode, CancellationToken cancellationToken) =>
         Task.Run(() => Execute(mode, cancellationToken), cancellationToken);
 
@@ -67,7 +70,7 @@ public sealed class DeviceTestInstallerUiActions(
         {
             case InstallerUiMode.Install:
             case InstallerUiMode.Repair:
-                RunPhase("Payload activation", payload.Activate);
+                RunPhase("Payload activation", () => ActivatePayload(payload, cancellationToken));
                 cancellationToken.ThrowIfCancellationRequested();
                 RunPhase("Autostart write", autostart.Write);
                 RunPhase("Managed host start", () => host.StartExact(["--background"]));
@@ -82,6 +85,28 @@ public sealed class DeviceTestInstallerUiActions(
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(mode));
+        }
+    }
+
+    private static void ActivatePayload(IManagedPayloadOperations payload, CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                payload.Activate();
+                return;
+            }
+            catch (InstallerSafeStageException error)
+                when (error.Stage == "previous-payload-move" && attempt < PreviousPayloadMoveAttempts)
+            {
+                // Let child process handles drain after the managed host stops.
+                if (cancellationToken.WaitHandle.WaitOne(PreviousPayloadMoveRetryDelay))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+            }
         }
     }
 

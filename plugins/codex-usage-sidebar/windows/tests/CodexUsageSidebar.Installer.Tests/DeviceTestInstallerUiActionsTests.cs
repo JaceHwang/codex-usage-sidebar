@@ -91,6 +91,52 @@ public sealed class DeviceTestInstallerUiActionsTests
         Assert.IsFalse(error.Message.Contains(sensitiveMessage, StringComparison.Ordinal));
     }
 
+    [TestMethod]
+    public async Task InstallRetriesOnlyTheTransientPreviousPayloadMoveStageBeforeStartingTheHost()
+    {
+        var log = new List<string>();
+        var payload = new TransientPreviousPayloadMovePayload(log);
+        var actions = new DeviceTestInstallerUiActions(
+            Paths,
+            new RecordingInstallLock(log),
+            payload,
+            new RecordingAutostart(log),
+            new RecordingHost(log));
+
+        await actions.ExecuteAsync(InstallerUiMode.Install, CancellationToken.None);
+
+        Assert.AreEqual(2, payload.ActivationAttempts);
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                "validate", "lock-enter", "stop", "activate", "activate",
+                "autostart-write", "start:--background", "lock-exit",
+            },
+            log);
+    }
+
+    [TestMethod]
+    public async Task InstallDoesNotRetryOtherSafePayloadStages()
+    {
+        var log = new List<string>();
+        var payload = new PersistentSafeStagePayload(log, "atomic-install");
+        var actions = new DeviceTestInstallerUiActions(
+            Paths,
+            new RecordingInstallLock(log),
+            payload,
+            new RecordingAutostart(log),
+            new RecordingHost(log));
+
+        var error = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
+            actions.ExecuteAsync(InstallerUiMode.Install, CancellationToken.None));
+
+        Assert.AreEqual("Installer phase failed: Payload activation (atomic-install).", error.Message);
+        Assert.AreEqual(1, payload.ActivationAttempts);
+        CollectionAssert.AreEqual(
+            new[] { "validate", "lock-enter", "stop", "activate", "lock-exit" },
+            log);
+    }
+
     [DataTestMethod]
     [DataRow("autostart-remove-owned", "Autostart removal")]
     [DataRow("remove-current", "Payload removal")]
@@ -137,6 +183,41 @@ public sealed class DeviceTestInstallerUiActionsTests
                 throw error!;
             }
         }
+    }
+
+    private sealed class TransientPreviousPayloadMovePayload(List<string> log) : IManagedPayloadOperations
+    {
+        public int ActivationAttempts { get; private set; }
+
+        public void Validate() => log.Add("validate");
+
+        public void Activate()
+        {
+            log.Add("activate");
+            ActivationAttempts++;
+            if (ActivationAttempts == 1)
+            {
+                throw new InstallerSafeStageException("previous-payload-move", new IOException("payload handle is draining"));
+            }
+        }
+
+        public void RemoveCurrent() => log.Add("remove-current");
+    }
+
+    private sealed class PersistentSafeStagePayload(List<string> log, string stage) : IManagedPayloadOperations
+    {
+        public int ActivationAttempts { get; private set; }
+
+        public void Validate() => log.Add("validate");
+
+        public void Activate()
+        {
+            log.Add("activate");
+            ActivationAttempts++;
+            throw new InstallerSafeStageException(stage, new IOException("persistent activation failure"));
+        }
+
+        public void RemoveCurrent() => log.Add("remove-current");
     }
 
     private sealed class RecordingInstallLock(
