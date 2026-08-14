@@ -12,6 +12,22 @@ public interface IManagedInstallLock
     IDisposable Acquire();
 }
 
+public sealed class InstallerSafeStageException : Exception
+{
+    public InstallerSafeStageException(string stage, Exception innerException)
+        : base($"Installer safe stage failed: {stage}.", innerException)
+    {
+        if (string.IsNullOrWhiteSpace(stage)
+            || stage.Any(character => character is not (>= 'a' and <= 'z') and not '-'))
+        {
+            throw new ArgumentException("Installer safe stage must use lowercase ASCII letters and hyphens.", nameof(stage));
+        }
+        Stage = stage;
+    }
+
+    public string Stage { get; }
+}
+
 public interface IManagedAutostart
 {
     void Write();
@@ -75,6 +91,10 @@ public sealed class DeviceTestInstallerUiActions(
         {
             action();
         }
+        catch (InstallerSafeStageException error)
+        {
+            throw new InvalidOperationException($"Installer phase failed: {phase} ({error.Stage}).", error);
+        }
         catch (Exception error) when (error is not OperationCanceledException)
         {
             throw new InvalidOperationException($"Installer phase failed: {phase}.", error);
@@ -86,6 +106,10 @@ public sealed class DeviceTestInstallerUiActions(
         try
         {
             return action();
+        }
+        catch (InstallerSafeStageException error)
+        {
+            throw new InvalidOperationException($"Installer phase failed: {phase} ({error.Stage}).", error);
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {

@@ -75,6 +75,22 @@ public sealed class DeviceTestInstallerUiActionsTests
         Assert.IsFalse(error.Message.Contains(sensitiveMessage, StringComparison.Ordinal));
     }
 
+    [TestMethod]
+    public async Task InstallFailureIncludesOnlyAnExplicitNestedSafeStage()
+    {
+        const string sensitiveMessage = @"Access denied at C:\Users\fixture\secret token=do-not-display";
+        var cause = new IOException(sensitiveMessage);
+        var nested = new InstallerSafeStageException("atomic-install", cause);
+        var actions = CreateActions([], "activate", nested);
+
+        var error = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
+            actions.ExecuteAsync(InstallerUiMode.Install, CancellationToken.None));
+
+        Assert.AreEqual("Installer phase failed: Payload activation (atomic-install).", error.Message);
+        Assert.AreSame(nested, error.InnerException);
+        Assert.IsFalse(error.Message.Contains(sensitiveMessage, StringComparison.Ordinal));
+    }
+
     [DataTestMethod]
     [DataRow("autostart-remove-owned", "Autostart removal")]
     [DataRow("remove-current", "Payload removal")]

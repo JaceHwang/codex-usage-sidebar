@@ -12,9 +12,42 @@ public sealed class EmbeddedManagedPayloadOperations(
 
     public void Activate()
     {
-        using var payload = source.Extract(plan.PrivateStageParent);
-        new AtomicPayloadInstaller(plan.TrustedIdentity)
-            .Install(payload.PayloadDirectory, plan.Paths.CurrentPayload);
+        EmbeddedPayloadLease payload;
+        try
+        {
+            payload = source.Extract(plan.PrivateStageParent);
+        }
+        catch (Exception error)
+        {
+            throw new InstallerSafeStageException("embedded-extract", error);
+        }
+
+        try
+        {
+            new AtomicPayloadInstaller(plan.TrustedIdentity)
+                .Install(payload.PayloadDirectory, plan.Paths.CurrentPayload);
+        }
+        catch (Exception error)
+        {
+            try
+            {
+                payload.Dispose();
+            }
+            catch (Exception)
+            {
+                // Preserve the original activation failure for the caller.
+            }
+            throw new InstallerSafeStageException("atomic-install", error);
+        }
+
+        try
+        {
+            payload.Dispose();
+        }
+        catch (Exception error)
+        {
+            throw new InstallerSafeStageException("embedded-cleanup", error);
+        }
     }
 
     public void RemoveCurrent()

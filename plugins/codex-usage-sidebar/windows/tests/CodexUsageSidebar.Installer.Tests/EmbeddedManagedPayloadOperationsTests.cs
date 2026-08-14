@@ -72,6 +72,25 @@ public sealed class EmbeddedManagedPayloadOperationsTests
         Assert.IsFalse(error.Message.Contains(fixture.Plan.Paths.InstallRoot, StringComparison.Ordinal));
     }
 
+    [TestMethod]
+    public void ActivationReportsAConstantSafeStageWhenAtomicInstallationFails()
+    {
+        using var fixture = Fixture.Create(publishable: true);
+        Directory.CreateDirectory(fixture.Plan.Paths.InstallRoot);
+        using var blocker = new FileStream(
+            Path.Combine(fixture.Plan.Paths.InstallRoot, ".cus-install.lock"),
+            FileMode.OpenOrCreate,
+            FileAccess.ReadWrite,
+            FileShare.None);
+
+        var error = Assert.ThrowsException<InstallerSafeStageException>(
+            () => fixture.Operations().Activate());
+
+        Assert.AreEqual("atomic-install", error.Stage);
+        Assert.IsInstanceOfType<IOException>(error.InnerException);
+        Assert.IsFalse(error.Message.Contains(fixture.Plan.Paths.InstallRoot, StringComparison.Ordinal));
+    }
+
     private sealed class Fixture : IDisposable
     {
         private const string Commit = "0123456789abcdef0123456789abcdef01234567";
