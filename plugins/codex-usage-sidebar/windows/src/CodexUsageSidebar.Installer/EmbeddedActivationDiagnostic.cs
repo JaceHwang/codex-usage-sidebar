@@ -64,9 +64,12 @@ public static class EmbeddedActivationDiagnostic
                     payload.Dispose();
                     completed.Add("embedded-cleanup");
                 }
-                catch (Exception error) when (failure is null)
+                catch (Exception error)
                 {
-                    failure = new EmbeddedActivationDiagnosticException("embedded-cleanup", error);
+                    if (failure is null)
+                    {
+                        failure = new EmbeddedActivationDiagnosticException("embedded-cleanup", error);
+                    }
                 }
             }
             if (operationLock is not null)
@@ -76,9 +79,12 @@ public static class EmbeddedActivationDiagnostic
                     operationLock.Dispose();
                     completed.Add("operation-lock-cleanup");
                 }
-                catch (Exception error) when (failure is null)
+                catch (Exception error)
                 {
-                    failure = new EmbeddedActivationDiagnosticException("operation-lock-cleanup", error);
+                    if (failure is null)
+                    {
+                        failure = new EmbeddedActivationDiagnosticException("operation-lock-cleanup", error);
+                    }
                 }
             }
         }

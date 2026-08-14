@@ -12,45 +12,45 @@ public sealed class EmbeddedManagedPayloadOperations(
 
     public void Activate()
     {
-        EmbeddedPayloadLease payload;
+        EmbeddedPayloadLease? payload = null;
+        Exception? activationFailure = null;
         try
-        {
-            payload = source.Extract(plan.PrivateStageParent);
-        }
-        catch (Exception error)
-        {
-            throw new InstallerSafeStageException("embedded-extract", error);
-        }
-
-        try
-        {
-            new AtomicPayloadInstaller(plan.TrustedIdentity, reportSafeStages: true)
-                .Install(payload.PayloadDirectory, plan.Paths.CurrentPayload);
-        }
-        catch (InstallerSafeStageException)
-        {
-            throw;
-        }
-        catch (Exception error)
         {
             try
             {
-                payload.Dispose();
+                payload = source.Extract(plan.PrivateStageParent);
             }
-            catch (Exception)
+            catch (Exception error)
             {
-                // Preserve the original activation failure for the caller.
+                throw new InstallerSafeStageException("embedded-extract", error);
             }
-            throw new InstallerSafeStageException("atomic-install", error);
-        }
 
-        try
-        {
-            payload.Dispose();
+            new AtomicPayloadInstaller(plan.TrustedIdentity, reportSafeStages: true)
+                .Install(payload.PayloadDirectory, plan.Paths.CurrentPayload);
         }
         catch (Exception error)
         {
-            throw new InstallerSafeStageException("embedded-cleanup", error);
+            activationFailure = error;
+            if (error is InstallerSafeStageException) throw;
+            throw new InstallerSafeStageException("atomic-install", error);
+        }
+        finally
+        {
+            if (payload is not null)
+            {
+                try
+                {
+                    payload.Dispose();
+                }
+                catch (Exception) when (activationFailure is not null)
+                {
+                    // Preserve the already classified activation failure for the caller.
+                }
+                catch (Exception error)
+                {
+                    throw new InstallerSafeStageException("embedded-cleanup", error);
+                }
+            }
         }
     }
 
