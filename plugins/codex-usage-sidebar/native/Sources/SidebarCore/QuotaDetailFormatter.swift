@@ -26,21 +26,61 @@ public struct QuotaInformationEntry: Equatable, Sendable {
     }
 }
 
+public struct QuotaTokenUsageDay: Equatable, Sendable {
+    public let label: String
+    public let tokens: Int64
+    public let isCurrentDay: Bool
+
+    public init(label: String, tokens: Int64, isCurrentDay: Bool) {
+        self.label = label
+        self.tokens = tokens
+        self.isCurrentDay = isCurrentDay
+    }
+}
+
+public struct QuotaTokenUsagePresentation: Equatable, Sendable {
+    public let title: String
+    public let totalLabel: String
+    public let totalTokens: Int64
+    public let days: [QuotaTokenUsageDay]
+    public let delayNote: String
+    public let availability: TokenUsageAvailability
+
+    public init(
+        title: String,
+        totalLabel: String,
+        totalTokens: Int64,
+        days: [QuotaTokenUsageDay],
+        delayNote: String,
+        availability: TokenUsageAvailability
+    ) {
+        self.title = title
+        self.totalLabel = totalLabel
+        self.totalTokens = totalTokens
+        self.days = days
+        self.delayNote = delayNote
+        self.availability = availability
+    }
+}
+
 public struct QuotaDetailContent: Equatable, Sendable {
     public let title: String
     public let remainingPercent: Int
     public let informationEntry: QuotaInformationEntry
+    public let tokenUsage: QuotaTokenUsagePresentation?
     public let rows: [QuotaDetailRow]
 
     public init(
         title: String,
         remainingPercent: Int,
         informationEntry: QuotaInformationEntry,
+        tokenUsage: QuotaTokenUsagePresentation? = nil,
         rows: [QuotaDetailRow]
     ) {
         self.title = title
         self.remainingPercent = remainingPercent
         self.informationEntry = informationEntry
+        self.tokenUsage = tokenUsage
         self.rows = rows
     }
 }
@@ -50,11 +90,13 @@ public struct QuotaDetailFormatter: Sendable {
         string: "https://x.com/thsottiaux"
     )!
     private let relativeIntervalFormatter = RelativeIntervalFormatter()
+    private let resetCountdownFormatter = QuotaResetCountdownFormatter()
 
     public init() {}
 
     public func content(
         snapshot: AllowanceSnapshot,
+        tokenUsage: TokenUsageSnapshot? = nil,
         now: Date,
         language: CodexDisplayLanguage,
         timeZone: TimeZone
@@ -76,7 +118,7 @@ public struct QuotaDetailFormatter: Sendable {
         rows.append(
             .init(
                 label: copy.nextReset,
-                value: displayDateWithInterval(
+                value: displayReset(
                     snapshot.resetsAt,
                     now: now,
                     copy: copy,
@@ -154,6 +196,13 @@ public struct QuotaDetailFormatter: Sendable {
                 accessibilityLabel: copy.tiboXAccessibilityLabel,
                 destination: Self.tiboProfileURL
             ),
+            tokenUsage: displayTokenUsage(
+                tokenUsage,
+                allowance: snapshot,
+                now: now,
+                copy: copy,
+                timeZone: timeZone
+            ),
             rows: rows
         )
     }
@@ -205,6 +254,75 @@ public struct QuotaDetailFormatter: Sendable {
         )
         return "\(absolute)\(copy.openingParenthesis)\(relative)" +
             copy.closingParenthesis
+    }
+
+    private func displayReset(
+        _ date: Date,
+        now: Date,
+        copy: QuotaLocalization,
+        timeZone: TimeZone
+    ) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = copy.locale
+        formatter.timeZone = timeZone
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.dateFormat = copy.resetTimestampDateFormat
+        let relative = resetCountdownFormatter.string(
+            from: now,
+            to: date,
+            language: copy.language
+        )
+        return "\(relative)\(copy.openingParenthesis)\(formatter.string(from: date))\(copy.closingParenthesis)"
+    }
+
+    private func displayTokenUsage(
+        _ tokenUsage: TokenUsageSnapshot?,
+        allowance: AllowanceSnapshot,
+        now: Date,
+        copy: QuotaLocalization,
+        timeZone: TimeZone
+    ) -> QuotaTokenUsagePresentation? {
+        guard let tokenUsage else {
+            return nil
+        }
+        guard tokenUsage.availability == .available,
+              let cycle = TokenUsageWindow.currentCycle(
+                  from: tokenUsage,
+                  allowance: allowance,
+                  now: now,
+                  timeZone: timeZone
+              )
+        else {
+            return QuotaTokenUsagePresentation(
+                title: copy.tokenUsageTitle,
+                totalLabel: copy.tokenUsageUnavailable,
+                totalTokens: 0,
+                days: [],
+                delayNote: copy.tokenUsageUnavailable,
+                availability: tokenUsage.availability == .available
+                    ? .unavailable : tokenUsage.availability
+            )
+        }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let currentDay = calendar.startOfDay(for: now)
+        return QuotaTokenUsagePresentation(
+            title: copy.tokenUsageTitle,
+            totalLabel: copy.tokenUsageTotal(
+                copy.compactTokenCount(cycle.totalTokens)
+            ),
+            totalTokens: cycle.totalTokens,
+            days: cycle.dailyBuckets.map {
+                QuotaTokenUsageDay(
+                    label: copy.tokenUsageDayLabel($0.date, timeZone: timeZone),
+                    tokens: $0.tokens,
+                    isCurrentDay: $0.date == currentDay
+                )
+            },
+            delayNote: copy.tokenUsageDelayNote,
+            availability: .available
+        )
     }
 
     private func displayBankExpiry(

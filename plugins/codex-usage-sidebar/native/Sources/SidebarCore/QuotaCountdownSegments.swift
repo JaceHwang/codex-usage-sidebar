@@ -26,6 +26,9 @@ public enum QuotaCountdownSegmenter {
     }
 
     public static func segments(in value: String) -> [QuotaCountdownSegment] {
+        if let resetSegments = resetPrefixSegments(in: value) {
+            return resetSegments
+        }
         let pairs = [(opening: "（", closing: "）"), (opening: "(", closing: ")")]
         let candidates = pairs.compactMap { pair -> Candidate? in
             guard
@@ -84,6 +87,41 @@ public enum QuotaCountdownSegmenter {
             to: &result
         )
         return result
+    }
+
+    private static func resetPrefixSegments(
+        in value: String
+    ) -> [QuotaCountdownSegment]? {
+        let patterns = [
+            #"^([0-9]+)(天)([0-9]+)(小时|小時)([（(].*)$"#,
+            #"^([0-9]+)(d\s+)([0-9]+)(h)(\s+\(.*)$"#
+        ]
+        for pattern in patterns {
+            guard let expression = try? NSRegularExpression(pattern: pattern),
+                  let match = expression.firstMatch(
+                      in: value,
+                      range: NSRange(value.startIndex..., in: value)
+                  ),
+                  match.numberOfRanges == 6
+            else {
+                continue
+            }
+            let captures = (1...5).compactMap { index -> String? in
+                guard let range = Range(match.range(at: index), in: value) else {
+                    return nil
+                }
+                return String(value[range])
+            }
+            guard captures.count == 5 else { continue }
+            return [
+                .init(text: captures[0], role: .digits),
+                .init(text: captures[1], role: .unit),
+                .init(text: captures[2], role: .digits),
+                .init(text: captures[3], role: .unit),
+                .init(text: captures[4], role: .plain)
+            ]
+        }
+        return nil
     }
 
     private static func intervalSegments(

@@ -82,6 +82,66 @@ public struct QuotaLocalization: Sendable {
         }
     }
 
+    public var tokenUsageTitle: String {
+        switch language {
+        case .simplifiedChinese, .traditionalChinese: "Token 用量"
+        case .english: "Token usage"
+        }
+    }
+
+    public func tokenUsageTotal(_ tokens: String) -> String {
+        switch language {
+        case .simplifiedChinese: "本周期总计 \(tokens) tokens"
+        case .traditionalChinese: "本週期總計 \(tokens) tokens"
+        case .english: "Current period total \(tokens) tokens"
+        }
+    }
+
+    public var tokenUsageDelayNote: String {
+        switch language {
+        case .simplifiedChinese: "使用数据最多可能延迟 6 小时"
+        case .traditionalChinese: "使用資料最多可能延遲 6 小時"
+        case .english: "Usage data may be delayed by up to 6 hours"
+        }
+    }
+
+    public var tokenUsageUnavailable: String {
+        switch language {
+        case .simplifiedChinese: "本周期 Token 用量暂不可用"
+        case .traditionalChinese: "本週期 Token 用量暫不可用"
+        case .english: "Current-period token usage is unavailable"
+        }
+    }
+
+    public func tokenUsageDayLabel(_ date: Date, timeZone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.timeZone = timeZone
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.dateFormat = language == .english ? "MMM d" : "M月d日"
+        return formatter.string(from: date)
+    }
+
+    public func compactTokenCount(_ tokens: Int64) -> String {
+        let magnitude: (value: Double, suffix: String)
+        switch tokens {
+        case 1_000_000_000...:
+            magnitude = (Double(tokens) / 1_000_000_000, "B")
+        case 1_000_000...:
+            magnitude = (Double(tokens) / 1_000_000, "M")
+        case 1_000...:
+            magnitude = (Double(tokens) / 1_000, "K")
+        default:
+            return String(tokens)
+        }
+        let formatter = NumberFormatter()
+        formatter.locale = locale
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        return "\(formatter.string(from: NSNumber(value: magnitude.value)) ?? String(magnitude.value))\(magnitude.suffix)"
+    }
+
     public var tiboXTitle: String {
         switch language {
         case .simplifiedChinese: "Tibo 的 X 动态"
@@ -165,6 +225,8 @@ public struct QuotaLocalization: Sendable {
     public var detailDateFormat: String {
         language == .english ? "MMM d, HH:mm" : "M月d日 HH:mm"
     }
+
+    public var resetTimestampDateFormat: String { "yyyy/MM/dd HH:mm" }
 
     public var fullIndicatorDateFormat: String {
         detailDateFormat

@@ -48,7 +48,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
             content.rows.contains(
                 .init(
                     label: "下次重置",
-                    value: "8月2日 08:00（7d6h）"
+                    value: "7天6小时（2026/08/02 08:00）"
                 )
             )
         )
@@ -215,7 +215,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
         )
         XCTAssertTrue(
             content.rows.contains(
-                .init(label: "Next reset", value: "Aug 2, 08:00 (7d6h)")
+                .init(label: "Next reset", value: "7d 6h (2026/08/02 08:00)")
             )
         )
         XCTAssertTrue(
@@ -251,7 +251,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
         XCTAssertTrue(content.rows.contains(.init(label: "額度週期", value: "7 天")))
         XCTAssertTrue(
             content.rows.contains(
-                .init(label: "下次重設", value: "8月2日 08:00（7d6h）")
+                .init(label: "下次重設", value: "7天6小時（2026/08/02 08:00）")
             )
         )
         XCTAssertTrue(
@@ -259,6 +259,124 @@ final class QuotaDetailFormatterTests: XCTestCase {
                 .init(label: "Bank 1到期時間", value: "8月1日 04:19（6d2h）")
             )
         )
+    }
+
+    func testFormatsLocalizedTokenUsageAndResetCountdown() {
+        let now = date(year: 2025, month: 8, day: 14, hour: 20, minute: 30)
+        let reset = date(year: 2025, month: 8, day: 19, hour: 19, minute: 30)
+        let allowance = AllowanceSnapshot(
+            usedPercent: 68,
+            remainingPercent: 32,
+            resetsAt: reset,
+            receivedAt: now,
+            windowDurationMins: 10_080
+        )
+        let usageNow = date(year: 2025, month: 8, day: 25, hour: 20, minute: 30)
+        let usageAllowance = AllowanceSnapshot(
+            usedPercent: 68,
+            remainingPercent: 32,
+            resetsAt: date(year: 2025, month: 8, day: 26, hour: 19, minute: 30),
+            receivedAt: usageNow,
+            windowDurationMins: 10_080
+        )
+        let usage = TokenUsageSnapshot(
+            receivedAt: usageNow,
+            dailyBuckets: [
+                TokenUsageDay(
+                    date: date(year: 2025, month: 8, day: 19),
+                    tokens: 240_000,
+                    timeZone: timeZone
+                ),
+                TokenUsageDay(
+                    date: date(year: 2025, month: 8, day: 25),
+                    tokens: 1_000_000,
+                    timeZone: timeZone
+                )
+            ],
+            summary: nil,
+            availability: .available
+        )
+
+        let resetSimplified = formatter.content(
+            snapshot: allowance,
+            now: now,
+            language: .simplifiedChinese,
+            timeZone: timeZone
+        )
+        let resetTraditional = formatter.content(
+            snapshot: allowance,
+            now: now,
+            language: .traditionalChinese,
+            timeZone: timeZone
+        )
+        let resetEnglish = formatter.content(
+            snapshot: allowance,
+            now: now,
+            language: .english,
+            timeZone: timeZone
+        )
+
+        let simplified = formatter.content(
+            snapshot: usageAllowance,
+            tokenUsage: usage,
+            now: usageNow,
+            language: .simplifiedChinese,
+            timeZone: timeZone
+        )
+        let traditional = formatter.content(
+            snapshot: usageAllowance,
+            tokenUsage: usage,
+            now: usageNow,
+            language: .traditionalChinese,
+            timeZone: timeZone
+        )
+        let english = formatter.content(
+            snapshot: usageAllowance,
+            tokenUsage: usage,
+            now: usageNow,
+            language: .english,
+            timeZone: timeZone
+        )
+
+        XCTAssertTrue(resetSimplified.rows.contains {
+            $0.label == "下次重置" &&
+                $0.value == "4天23小时（2025/08/19 19:30）"
+        })
+        XCTAssertTrue(resetTraditional.rows.contains {
+            $0.label == "下次重設" &&
+                $0.value == "4天23小時（2025/08/19 19:30）"
+        })
+        XCTAssertTrue(resetEnglish.rows.contains {
+            $0.label == "Next reset" &&
+                $0.value == "4d 23h (2025/08/19 19:30)"
+        })
+
+        XCTAssertEqual(
+            simplified.tokenUsage,
+            QuotaTokenUsagePresentation(
+                title: "Token 用量",
+                totalLabel: "本周期总计 1.24M tokens",
+                totalTokens: 1_240_000,
+                days: [
+                    .init(label: "8月19日", tokens: 240_000, isCurrentDay: false),
+                    .init(label: "8月20日", tokens: 0, isCurrentDay: false),
+                    .init(label: "8月21日", tokens: 0, isCurrentDay: false),
+                    .init(label: "8月22日", tokens: 0, isCurrentDay: false),
+                    .init(label: "8月23日", tokens: 0, isCurrentDay: false),
+                    .init(label: "8月24日", tokens: 0, isCurrentDay: false),
+                    .init(label: "8月25日", tokens: 1_000_000, isCurrentDay: true)
+                ],
+                delayNote: "使用数据最多可能延迟 6 小时",
+                availability: .available
+            )
+        )
+        XCTAssertEqual(english.tokenUsage?.title, "Token usage")
+        XCTAssertEqual(english.tokenUsage?.totalLabel, "Current period total 1.24M tokens")
+        XCTAssertEqual(english.tokenUsage?.days.map(\.label), [
+            "Aug 19", "Aug 20", "Aug 21", "Aug 22", "Aug 23", "Aug 24", "Aug 25"
+        ])
+        XCTAssertEqual(traditional.tokenUsage?.title, "Token 用量")
+        XCTAssertEqual(traditional.tokenUsage?.totalLabel, "本週期總計 1.24M tokens")
     }
 
     private var fullSnapshot: AllowanceSnapshot {
@@ -309,5 +427,25 @@ final class QuotaDetailFormatterTests: XCTestCase {
                 options: .regularExpression
             ) != nil
         }
+    }
+
+    private func date(
+        year: Int,
+        month: Int,
+        day: Int,
+        hour: Int = 0,
+        minute: Int = 0
+    ) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar.date(
+            from: DateComponents(
+                year: year,
+                month: month,
+                day: day,
+                hour: hour,
+                minute: minute
+            )
+        )!
     }
 }
