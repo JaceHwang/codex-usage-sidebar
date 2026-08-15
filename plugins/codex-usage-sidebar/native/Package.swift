@@ -32,6 +32,10 @@ let package = Package(
             dependencies: ["SidebarCore"]
         ),
         .testTarget(
+            name: "CodexUsageSidebarTests",
+            dependencies: ["CodexUsageSidebar"]
+        ),
+        .testTarget(
             name: "InstallerCoreTests",
             dependencies: ["InstallerCore", "CodexUsageSidebarInstaller"]
         )

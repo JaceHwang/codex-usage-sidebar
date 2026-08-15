@@ -31,6 +31,14 @@ final class OverlayPanel: NSObject {
     private var isIndicatorVisible = false
     private var isHoveringIndicator = false
     private var detailInteraction = QuotaDetailInteractionState()
+    private lazy var externalLinkActivator = QuotaExternalLinkActivator(
+        dismiss: { [weak self] in
+            self?.dismissDetailForExternalNavigation()
+        },
+        open: { destination in
+            NSWorkspace.shared.open(destination)
+        }
+    )
 
     override init() {
         panel = PassivePanel(
@@ -65,6 +73,9 @@ final class OverlayPanel: NSObject {
 
         guard let contentView = panel.contentView else {
             return
+        }
+        detailPanel.onOpenURL = { [weak self] destination in
+            self?.externalLinkActivator.activate(destination)
         }
         contentView.addSubview(pillView)
         contentView.addSubview(textField)
@@ -239,6 +250,13 @@ final class OverlayPanel: NSObject {
         } else {
             detailPanel.hide()
         }
+    }
+
+    private func dismissDetailForExternalNavigation() {
+        detailInteraction.reset()
+        isHoveringIndicator = false
+        detailPanel.hide()
+        updateControlAppearance()
     }
 
     private func updateControlAppearance() {

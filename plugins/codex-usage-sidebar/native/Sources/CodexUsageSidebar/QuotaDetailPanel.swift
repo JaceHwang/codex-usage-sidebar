@@ -12,6 +12,7 @@ final class QuotaDetailPanel {
     private var lastContent: QuotaDetailContent?
     private var lastIndicatorFrame: CGRect?
     private var lastTheme: CodexInterfaceTheme?
+    var onOpenURL: ((URL) -> Void)?
 
     init() {
         panel = PassivePanel(
@@ -77,7 +78,10 @@ final class QuotaDetailPanel {
             card = QuotaDetailCardView(
                 frame: CGRect(origin: .zero, size: panelFrame.size),
                 content: content,
-                rowHeights: rowHeights
+                rowHeights: rowHeights,
+                onOpenURL: { [weak self] destination in
+                    self?.onOpenURL?(destination)
+                }
             )
             card?.appearance = appearance
         }
@@ -96,7 +100,8 @@ private final class QuotaDetailCardView: NSView {
     init(
         frame frameRect: NSRect,
         content: QuotaDetailContent,
-        rowHeights: [CGFloat]
+        rowHeights: [CGFloat],
+        onOpenURL: @escaping (URL) -> Void
     ) {
         super.init(frame: frameRect)
         wantsLayer = true
@@ -149,18 +154,27 @@ private final class QuotaDetailCardView: NSView {
         )
         addSubview(progress)
 
-        let divider = NSBox(
-            frame: CGRect(x: 0, y: bounds.height - 66, width: bounds.width, height: 1)
+        let informationFrames = QuotaDetailLayout.informationFrames(in: bounds)
+        let topDivider = NSBox(
+            frame: informationFrames.topDivider
         )
-        divider.boxType = .separator
-        addSubview(divider)
+        topDivider.boxType = .separator
+        addSubview(topDivider)
 
-        let rowAreaFrame = CGRect(
-            x: 0,
-            y: 8,
-            width: bounds.width,
-            height: max(0, bounds.height - QuotaDetailLayout.headerHeight - 8)
+        let informationLink = QuotaInformationLinkButton(
+            frame: informationFrames.control,
+            entry: content.informationEntry,
+            onActivate: onOpenURL
         )
+        addSubview(informationLink)
+
+        let bottomDivider = NSBox(
+            frame: informationFrames.bottomDivider
+        )
+        bottomDivider.boxType = .separator
+        addSubview(bottomDivider)
+
+        let rowAreaFrame = informationFrames.rowArea
         let rowDocumentHeight = rowHeights.reduce(0, +)
         let rowDocument = FlippedView(
             frame: CGRect(
