@@ -348,7 +348,8 @@ git commit -m "feat: open Tibo profile from quota popover"
 - [ ] **Step 1: Update only the local Codex cachebuster**
 
 ```bash
-python3 /Users/byctor/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py \
+plugin_creator_skill="${CODEX_HOME:-${HOME}/.codex}/skills/.system/plugin-creator"
+python3 "$plugin_creator_skill/scripts/update_plugin_cachebuster.py" \
   plugins/codex-usage-sidebar
 ```
 
@@ -361,9 +362,10 @@ bash plugins/codex-usage-sidebar/scripts/build-companion.sh
 bash plugins/codex-usage-sidebar/tests/test-sidebar-control.sh
 bash plugins/codex-usage-sidebar/tests/test-signing-identity.sh
 bash plugins/codex-usage-sidebar/tests/test-bundle-version.sh
-python3 /Users/byctor/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py \
+plugin_creator_skill="${CODEX_HOME:-${HOME}/.codex}/skills/.system/plugin-creator"
+uv run --with PyYAML python "$plugin_creator_skill/scripts/validate_plugin.py" \
   plugins/codex-usage-sidebar
-CUS_ALLOW_SOURCE_AHEAD=1 bash scripts/validate-public-repo.sh
+CUS_REBUILT_PAYLOAD=1 bash scripts/validate-public-repo.sh
 ```
 
 Expected: build, lifecycle, signing, version, manifest, and repository validation all pass.
