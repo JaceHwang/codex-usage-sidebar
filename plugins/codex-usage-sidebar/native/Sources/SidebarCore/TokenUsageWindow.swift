@@ -1,6 +1,55 @@
 import Foundation
 
 public enum TokenUsageWindow {
+    public static func referenceDays(
+        from snapshot: TokenUsageSnapshot,
+        allowance: AllowanceSnapshot,
+        now: Date,
+        timeZone: TimeZone
+    ) -> [TokenUsageDay] {
+        guard let durationMins = allowance.windowDurationMins, durationMins > 0 else {
+            return []
+        }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let periodStart = allowance.resetsAt.addingTimeInterval(-Double(durationMins) * 60)
+        let startDay = calendar.startOfDay(for: periodStart)
+        let latestKnownDay = calendar.startOfDay(for: min(now, allowance.resetsAt))
+        let referenceDates = (0 ..< 7).compactMap {
+            calendar.date(byAdding: .day, value: $0, to: startDay)
+        }
+
+        guard snapshot.availability == .available else {
+            return referenceDates.map {
+                TokenUsageDay(date: $0, tokens: 0, timeZone: timeZone)
+            }
+        }
+
+        var tokensByDay: [Date: Int64] = [:]
+        for bucket in snapshot.dailyBuckets {
+            let date = calendar.startOfDay(for: bucket.date)
+            guard date >= startDay, date <= latestKnownDay else {
+                continue
+            }
+            let (tokens, overflow) = (tokensByDay[date] ?? 0).addingReportingOverflow(bucket.tokens)
+            guard !overflow else {
+                return referenceDates.map {
+                    TokenUsageDay(date: $0, tokens: 0, timeZone: timeZone)
+                }
+            }
+            tokensByDay[date] = tokens
+        }
+
+        return referenceDates.map {
+            TokenUsageDay(
+                date: $0,
+                tokens: $0 <= latestKnownDay ? tokensByDay[$0] ?? 0 : 0,
+                timeZone: timeZone
+            )
+        }
+    }
+
     public static func currentCycle(
         from snapshot: TokenUsageSnapshot,
         allowance: AllowanceSnapshot,

@@ -307,13 +307,19 @@ public struct QuotaDetailFormatter: Sendable {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         let currentDay = calendar.startOfDay(for: now)
+        let displayDays = TokenUsageWindow.referenceDays(
+            from: tokenUsage,
+            allowance: allowance,
+            now: now,
+            timeZone: timeZone
+        )
         return QuotaTokenUsagePresentation(
             title: copy.tokenUsageTitle,
             totalLabel: copy.tokenUsageTotal(
                 copy.compactTokenCount(cycle.totalTokens)
             ),
             totalTokens: cycle.totalTokens,
-            days: cycle.dailyBuckets.map {
+            days: displayDays.map {
                 QuotaTokenUsageDay(
                     label: copy.tokenUsageDayLabel($0.date, timeZone: timeZone),
                     tokens: $0.tokens,

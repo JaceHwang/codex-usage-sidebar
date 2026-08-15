@@ -379,6 +379,44 @@ final class QuotaDetailFormatterTests: XCTestCase {
         XCTAssertEqual(traditional.tokenUsage?.totalLabel, "本週期總計 1.24M tokens")
     }
 
+    func testTokenUsageChartKeepsSevenCycleSlotsWhenOnlyThreeDaysHaveElapsed() {
+        let now = date(year: 2026, month: 8, day: 15, hour: 20)
+        let allowance = AllowanceSnapshot(
+            usedPercent: 50,
+            remainingPercent: 50,
+            resetsAt: date(year: 2026, month: 8, day: 20, hour: 19, minute: 31),
+            receivedAt: now,
+            windowDurationMins: 10_080
+        )
+        let usage = TokenUsageSnapshot(
+            receivedAt: now,
+            dailyBuckets: [
+                TokenUsageDay(
+                    date: date(year: 2026, month: 8, day: 13),
+                    tokens: 1_200,
+                    timeZone: timeZone
+                )
+            ],
+            summary: nil,
+            availability: .available
+        )
+
+        let content = formatter.content(
+            snapshot: allowance,
+            tokenUsage: usage,
+            now: now,
+            language: .simplifiedChinese,
+            timeZone: timeZone
+        )
+
+        XCTAssertEqual(content.tokenUsage?.totalTokens, 1_200)
+        XCTAssertEqual(content.tokenUsage?.days.map(\.tokens), [1_200, 0, 0, 0, 0, 0, 0])
+        XCTAssertEqual(content.tokenUsage?.days.map(\.label), [
+            "8月13日", "8月14日", "8月15日", "8月16日",
+            "8月17日", "8月18日", "8月19日"
+        ])
+    }
+
     private var fullSnapshot: AllowanceSnapshot {
         snapshot(
             bank: BankResetSummary(

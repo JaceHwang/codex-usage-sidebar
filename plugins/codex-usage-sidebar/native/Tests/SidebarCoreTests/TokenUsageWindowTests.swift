@@ -5,6 +5,45 @@ import XCTest
 final class TokenUsageWindowTests: XCTestCase {
     private var utc: TimeZone { TimeZone(secondsFromGMT: 0)! }
 
+    func testReferenceDaysAlwaysContainSevenSlotsAndZeroFillFutureDates() throws {
+        let allowance = AllowanceSnapshot(
+            usedPercent: 50,
+            remainingPercent: 50,
+            resetsAt: try date("2026-08-20 19:31"),
+            receivedAt: try date("2026-08-15 20:00"),
+            windowDurationMins: 10_080
+        )
+        let snapshot = TokenUsageSnapshot(
+            receivedAt: allowance.receivedAt,
+            dailyBuckets: [
+                TokenUsageDay(
+                    date: try date("2026-08-13 00:00"),
+                    tokens: 1_200,
+                    timeZone: utc
+                )
+            ],
+            summary: nil,
+            availability: .available
+        )
+
+        let days = TokenUsageWindow.referenceDays(
+            from: snapshot,
+            allowance: allowance,
+            now: try date("2026-08-15 20:00"),
+            timeZone: utc
+        )
+
+        XCTAssertEqual(days.count, 7)
+        XCTAssertEqual(days.map(\.tokens), [1_200, 0, 0, 0, 0, 0, 0])
+        XCTAssertEqual(
+            days.map { dayString($0.date) },
+            [
+                "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16",
+                "2026-08-17", "2026-08-18", "2026-08-19"
+            ]
+        )
+    }
+
     func testCurrentCycleFillsSparseDaysAndExcludesOutsideOrFutureBuckets() throws {
         let allowance = AllowanceSnapshot(
             usedPercent: 50,
