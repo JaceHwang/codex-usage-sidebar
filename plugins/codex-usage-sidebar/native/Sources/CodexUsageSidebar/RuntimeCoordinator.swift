@@ -16,6 +16,11 @@ struct RuntimeTokenUsageState {
     }
 
     mutating func receive(_ snapshot: TokenUsageSnapshot) {
+        guard snapshot.availability == .available ||
+                tokenUsageSnapshot?.availability != .available
+        else {
+            return
+        }
         tokenUsageSnapshot = snapshot
     }
 

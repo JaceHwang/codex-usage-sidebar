@@ -84,6 +84,60 @@ final class RuntimeTokenUsageStateTests: XCTestCase {
         coordinator.stop()
     }
 
+    func testUnavailableTokenEventAfterSuccessPreservesLastSuccessfulUsage() async throws {
+        let transport = CoordinatorLineTransport()
+        let coordinator = RuntimeCoordinator(
+            appServerClientFactory: { _ in
+                AppServerClient(transportFactory: { transport })
+            }
+        )
+
+        coordinator.replaceClient(using: hostInstallation())
+        try await completeHandshake(on: transport)
+        transport.emit(rateLimitResponse())
+        transport.emit(tokenUsageResponse())
+        try await eventually {
+            coordinator.detailContent()?.tokenUsage?.totalTokens == 456
+        }
+
+        coordinator.refreshNow(reason: .startup)
+        try await eventually { transport.sentLines.count == 6 }
+        transport.emit(#"{"id":5,"error":{"code":-32000,"message":"temporary failure"}}"#)
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        let usage = try XCTUnwrap(coordinator.detailContent()?.tokenUsage)
+        XCTAssertEqual(usage.availability, .available)
+        XCTAssertEqual(usage.totalTokens, 456)
+        coordinator.stop()
+    }
+
+    func testUnsupportedTokenEventAfterSuccessPreservesLastSuccessfulUsage() async throws {
+        let transport = CoordinatorLineTransport()
+        let coordinator = RuntimeCoordinator(
+            appServerClientFactory: { _ in
+                AppServerClient(transportFactory: { transport })
+            }
+        )
+
+        coordinator.replaceClient(using: hostInstallation())
+        try await completeHandshake(on: transport)
+        transport.emit(rateLimitResponse())
+        transport.emit(tokenUsageResponse())
+        try await eventually {
+            coordinator.detailContent()?.tokenUsage?.totalTokens == 456
+        }
+
+        coordinator.refreshNow(reason: .startup)
+        try await eventually { transport.sentLines.count == 6 }
+        transport.emit(#"{"id":5,"error":{"code":-32601,"message":"Method not found"}}"#)
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        let usage = try XCTUnwrap(coordinator.detailContent()?.tokenUsage)
+        XCTAssertEqual(usage.availability, .available)
+        XCTAssertEqual(usage.totalTokens, 456)
+        coordinator.stop()
+    }
+
     private func hostInstallation(
         buildIdentity: String = "first"
     ) -> HostInstallation {

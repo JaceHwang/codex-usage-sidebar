@@ -35,4 +35,33 @@ final class QuotaResetCountdownFormatterTests: XCTestCase {
             "<1m"
         )
     }
+
+    func testFormatsMinuteCountdownsAtSubHourBoundariesInEveryLanguage() {
+        let now = Date(timeIntervalSince1970: 0)
+
+        XCTAssertEqual(
+            formatter.string(from: now, to: now.addingTimeInterval(59), language: .english),
+            "<1m"
+        )
+        XCTAssertEqual(
+            formatter.string(from: now, to: now.addingTimeInterval(60), language: .english),
+            "1m"
+        )
+        XCTAssertEqual(
+            formatter.string(from: now, to: now.addingTimeInterval(45 * 60), language: .english),
+            "45m"
+        )
+        XCTAssertEqual(
+            formatter.string(from: now, to: now.addingTimeInterval(3_599), language: .english),
+            "59m"
+        )
+        XCTAssertEqual(
+            formatter.string(from: now, to: now.addingTimeInterval(45 * 60), language: .simplifiedChinese),
+            "45分钟"
+        )
+        XCTAssertEqual(
+            formatter.string(from: now, to: now.addingTimeInterval(45 * 60), language: .traditionalChinese),
+            "45分鐘"
+        )
+    }
 }
