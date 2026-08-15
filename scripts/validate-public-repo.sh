@@ -111,6 +111,7 @@ if os.environ.get("CUS_REBUILT_PAYLOAD") != "1":
         "plugins/codex-usage-sidebar/windows/",
     )
     windows_only_exact = (
+        "plugins/codex-usage-sidebar/.codex-plugin/plugin.json",
         "plugins/codex-usage-sidebar/native/Tests/SidebarCoreTests/SharedContractFixtureTests.swift",
         "plugins/codex-usage-sidebar/hooks/hooks.json",
         "plugins/codex-usage-sidebar/scripts/WindowsProcessCommandLine.psm1",
