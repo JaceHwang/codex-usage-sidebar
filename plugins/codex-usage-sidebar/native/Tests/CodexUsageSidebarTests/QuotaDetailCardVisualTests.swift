@@ -76,12 +76,47 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                         .first
                 )
                 XCTAssertEqual(tokenView.barCount, 7)
-                let tokenScroller = try XCTUnwrap(
+                XCTAssertEqual(
                     descendants(of: tokenView)
-                        .compactMap { $0 as? NSScrollView }
+                        .compactMap { $0 as? QuotaTokenUsageBarView }
+                        .count,
+                    7,
+                    "The reference chart keeps exactly seven visible columns."
+                )
+                XCTAssertFalse(
+                    descendants(of: tokenView)
+                        .contains { $0 is NSScrollView },
+                    "Seven reference columns fit directly in the token band."
+                )
+                let legend = try XCTUnwrap(
+                    descendants(of: tokenView)
+                        .compactMap { $0 as? TokenUsageLegendView }
                         .first
                 )
-                XCTAssertFalse(tokenScroller.hasHorizontalScroller)
+                if language == .traditionalChinese {
+                    XCTAssertEqual(legend.totalLabel, "總量（tokens）")
+                } else if language == .simplifiedChinese {
+                    XCTAssertEqual(legend.totalLabel, "总量（tokens）")
+                }
+                XCTAssertTrue(
+                    descendants(of: card)
+                        .contains { $0 is QuotaReferenceTiboOutlineView },
+                    "The Tibo entry is an outlined reference-style row."
+                )
+                XCTAssertEqual(
+                    descendants(of: card)
+                        .compactMap { $0 as? QuotaDetailIconView }
+                        .count,
+                    content.rows.count,
+                    "Every quota detail row receives its leading linear icon."
+                )
+                XCTAssertEqual(
+                    descendants(of: card)
+                        .compactMap { $0 as? NSButton }
+                        .count,
+                    1,
+                    "The redesigned card must not restore Jace or help footer controls."
+                )
 
                 let scrollView = try XCTUnwrap(
                     descendants(of: card)

@@ -3,10 +3,11 @@ import SidebarCore
 
 @MainActor
 final class QuotaTokenUsageView: NSView {
-    private static let titleFont = NSFont.systemFont(ofSize: 12, weight: .semibold)
-    private static let totalFont = NSFont.systemFont(ofSize: 10, weight: .medium)
-    private static let noteFont = NSFont.systemFont(ofSize: 9, weight: .regular)
-    private static let minimumDayWidth: CGFloat = 38
+    private static let titleFont = NSFont.systemFont(ofSize: 18, weight: .semibold)
+    private static let totalFont = NSFont.systemFont(ofSize: 13, weight: .medium)
+    private static let dailyFont = NSFont.systemFont(ofSize: 12, weight: .medium)
+    private static let legendFont = NSFont.systemFont(ofSize: 10, weight: .regular)
+    private static let noteFont = NSFont.systemFont(ofSize: 10, weight: .regular)
 
     let barCount: Int
 
@@ -15,7 +16,8 @@ final class QuotaTokenUsageView: NSView {
         presentation: QuotaTokenUsagePresentation,
         remainingPercent: Int
     ) {
-        barCount = presentation.days.count
+        let displayDays = Array(presentation.days.prefix(7))
+        barCount = displayDays.count
         super.init(frame: frameRect)
         setAccessibilityElement(true)
         setAccessibilityRole(.group)
@@ -32,7 +34,12 @@ final class QuotaTokenUsageView: NSView {
             color: .labelColor,
             alignment: .left
         )
-        title.frame = CGRect(x: 0, y: bounds.height - 18, width: 104, height: 16)
+        title.frame = CGRect(
+            x: 0,
+            y: bounds.height - 28,
+            width: 160,
+            height: 24
+        )
         addSubview(title)
 
         let total = label(
@@ -43,12 +50,26 @@ final class QuotaTokenUsageView: NSView {
         )
         total.lineBreakMode = .byTruncatingHead
         total.frame = CGRect(
-            x: 106,
-            y: bounds.height - 17,
-            width: max(0, bounds.width - 106),
-            height: 14
+            x: 162,
+            y: bounds.height - 26,
+            width: max(0, bounds.width - 162),
+            height: 20
         )
         addSubview(total)
+
+        let daily = label(
+            Self.dailyLabel(for: presentation),
+            font: Self.dailyFont,
+            color: .secondaryLabelColor,
+            alignment: .left
+        )
+        daily.frame = CGRect(
+            x: 0,
+            y: bounds.height - 52,
+            width: 80,
+            height: 16
+        )
+        addSubview(daily)
 
         let note = label(
             presentation.delayNote,
@@ -57,48 +78,64 @@ final class QuotaTokenUsageView: NSView {
             alignment: .left
         )
         note.lineBreakMode = .byTruncatingTail
-        note.frame = CGRect(x: 0, y: 0, width: bounds.width, height: 12)
+        note.frame = CGRect(x: 0, y: 0, width: bounds.width, height: 14)
         addSubview(note)
 
         guard presentation.availability == .available,
-              !presentation.days.isEmpty
+              !displayDays.isEmpty
         else {
             return
         }
 
-        let chartFrame = CGRect(
-            x: 0,
-            y: 14,
-            width: bounds.width,
-            height: max(0, bounds.height - 35)
-        )
-        let scrollView = NSScrollView(frame: chartFrame)
-        scrollView.drawsBackground = false
-        scrollView.borderType = .noBorder
-        scrollView.hasVerticalScroller = false
-        scrollView.hasHorizontalScroller = false
-        scrollView.autohidesScrollers = true
-        let documentWidth = max(
-            chartFrame.width,
-            CGFloat(presentation.days.count) * Self.minimumDayWidth
-        )
-        scrollView.hasHorizontalScroller = documentWidth > chartFrame.width
-        scrollView.documentView = TokenUsageChartView(
+        let chart = TokenUsageChartView(
             frame: CGRect(
                 x: 0,
-                y: 0,
-                width: documentWidth,
-                height: chartFrame.height
+                y: 38,
+                width: bounds.width,
+                height: max(0, bounds.height - 98)
             ),
-            days: presentation.days,
+            days: displayDays,
             remainingPercent: remainingPercent
         )
-        addSubview(scrollView)
+        addSubview(chart)
+
+        let legend = TokenUsageLegendView(
+            frame: CGRect(x: 0, y: 16, width: bounds.width, height: 16),
+            totalLabel: Self.totalLegend(for: presentation),
+            dailyLabel: Self.dailyLegend(for: presentation),
+            accent: QuotaColorScale.components(
+                remainingPercent: remainingPercent
+            ).appKitColor
+        )
+        addSubview(legend)
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         nil
+    }
+
+    private static func dailyLabel(
+        for presentation: QuotaTokenUsagePresentation
+    ) -> String {
+        presentation.title == "Token usage" ? "Daily" : "每日"
+    }
+
+    private static func totalLegend(
+        for presentation: QuotaTokenUsagePresentation
+    ) -> String {
+        if presentation.title == "Token usage" {
+            return "Total (tokens)"
+        }
+        return presentation.totalLabel.contains("本週期")
+            ? "總量（tokens）"
+            : "总量（tokens）"
+    }
+
+    private static func dailyLegend(
+        for presentation: QuotaTokenUsagePresentation
+    ) -> String {
+        presentation.title == "Token usage" ? "Daily (tokens)" : "每日（tokens）"
     }
 
     private func label(
@@ -129,10 +166,10 @@ private final class TokenUsageChartView: NSView {
         let columnWidth = bounds.width / CGFloat(max(1, days.count))
         for (index, day) in days.enumerated() {
             let height = max(
-                3,
-                floor(24 * CGFloat(day.tokens) / CGFloat(maximum))
+                4,
+                floor(44 * CGFloat(day.tokens) / CGFloat(maximum))
             )
-            let bar = TokenUsageBarView(
+            let bar = QuotaTokenUsageBarView(
                 frame: CGRect(
                     x: CGFloat(index) * columnWidth,
                     y: 0,
@@ -154,12 +191,12 @@ private final class TokenUsageChartView: NSView {
 }
 
 @MainActor
-private final class TokenUsageBarView: NSView {
+final class QuotaTokenUsageBarView: NSView {
     private let day: QuotaTokenUsageDay
     private let barHeight: CGFloat
     private let remainingPercent: Int
-    private let numberFont = NSFont.systemFont(ofSize: 9, weight: .medium)
-    private let dateFont = NSFont.systemFont(ofSize: 8, weight: .regular)
+    private let numberFont = NSFont.systemFont(ofSize: 11, weight: .medium)
+    private let dateFont = NSFont.systemFont(ofSize: 10, weight: .regular)
 
     init(
         frame frameRect: NSRect,
@@ -184,11 +221,10 @@ private final class TokenUsageBarView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
-        let labelColor: NSColor = day.isCurrentDay
-            ? QuotaColorScale.components(
-                remainingPercent: remainingPercent
-            ).appKitColor
-            : .secondaryLabelColor
+        let accent = QuotaColorScale.components(
+            remainingPercent: remainingPercent
+        ).appKitColor
+        let labelColor: NSColor = day.isCurrentDay ? accent : .secondaryLabelColor
         let value = Self.tokenLabel(day.tokens) as NSString
         let valueAttributes: [NSAttributedString.Key: Any] = [
             .font: numberFont,
@@ -198,23 +234,21 @@ private final class TokenUsageBarView: NSView {
         value.draw(
             at: CGPoint(
                 x: floor((bounds.width - valueSize.width) / 2),
-                y: bounds.height - 11
+                y: bounds.height - valueSize.height
             ),
             withAttributes: valueAttributes
         )
 
         let fillColor: NSColor = day.isCurrentDay
-            ? QuotaColorScale.components(
-                remainingPercent: remainingPercent
-            ).appKitColor
+            ? accent
             : NSColor.secondaryLabelColor.withAlphaComponent(0.38)
         let barRect = CGRect(
-            x: floor((bounds.width - 12) / 2),
-            y: 11,
-            width: 12,
-            height: min(barHeight, max(3, bounds.height - 28))
+            x: floor((bounds.width - 16) / 2),
+            y: 18,
+            width: 16,
+            height: min(barHeight, max(4, bounds.height - 42))
         )
-        let path = NSBezierPath(roundedRect: barRect, xRadius: 2, yRadius: 2)
+        let path = NSBezierPath(roundedRect: barRect, xRadius: 3, yRadius: 3)
         fillColor.setFill()
         path.fill()
 
@@ -242,5 +276,49 @@ private final class TokenUsageBarView: NSView {
         default:
             return String(tokens)
         }
+    }
+}
+
+@MainActor
+final class TokenUsageLegendView: NSView {
+    let totalLabel: String
+    let dailyLabel: String
+    private let accent: NSColor
+    private let font = NSFont.systemFont(ofSize: 10, weight: .regular)
+
+    init(frame frameRect: NSRect, totalLabel: String, dailyLabel: String, accent: NSColor) {
+        self.totalLabel = totalLabel
+        self.dailyLabel = dailyLabel
+        self.accent = accent
+        super.init(frame: frameRect)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        drawItem(text: totalLabel, at: 0, color: .secondaryLabelColor.withAlphaComponent(0.55))
+        let firstWidth = (totalLabel as NSString).size(withAttributes: [.font: font]).width
+        drawItem(text: dailyLabel, at: firstWidth + 42, color: accent)
+    }
+
+    private func drawItem(text: String, at x: CGFloat, color: NSColor) {
+        let swatch = NSBezierPath(
+            roundedRect: CGRect(x: x, y: 3, width: 12, height: 12),
+            xRadius: 3,
+            yRadius: 3
+        )
+        color.setFill()
+        swatch.fill()
+        (text as NSString).draw(
+            at: CGPoint(x: x + 18, y: 2),
+            withAttributes: [
+                .font: font,
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
     }
 }

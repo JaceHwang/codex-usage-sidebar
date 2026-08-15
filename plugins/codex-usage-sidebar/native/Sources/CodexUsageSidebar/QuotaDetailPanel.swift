@@ -147,7 +147,7 @@ final class QuotaDetailCardView: NSView {
 
         let title = label(
             content.title,
-            font: .systemFont(ofSize: 13, weight: .semibold),
+            font: .systemFont(ofSize: 21, weight: .semibold),
             color: .labelColor,
             alignment: .left
         )
@@ -162,11 +162,11 @@ final class QuotaDetailCardView: NSView {
 
         let remaining = label(
             "\(content.remainingPercent)%",
-            font: .systemFont(ofSize: 17, weight: .semibold),
+            font: .systemFont(ofSize: 34, weight: .semibold),
             color: QuotaColorScale.components(
                 remainingPercent: content.remainingPercent
             ).appKitColor,
-            alignment: .right
+            alignment: .left
         )
         let headerFrames = QuotaDetailLayout.headerFrames(
             in: bounds,
@@ -176,9 +176,36 @@ final class QuotaDetailCardView: NSView {
             ),
             versionBadgeWidth: versionBadge.intrinsicContentSize.width
         )
-        title.frame = headerFrames.title
-        versionBadge.frame = headerFrames.versionBadge
-        remaining.frame = headerFrames.remaining
+        let avatar = QuotaAvatarView()
+        avatar.frame = CGRect(
+            x: 24,
+            y: bounds.maxY - 82,
+            width: 48,
+            height: 48
+        )
+        title.frame = CGRect(
+            x: avatar.frame.maxX + 14,
+            y: bounds.maxY - 72,
+            width: max(0, bounds.maxX - 116 - (avatar.frame.maxX + 14)),
+            height: 30
+        )
+        versionBadge.frame = CGRect(
+            x: bounds.maxX - 92,
+            y: title.frame.midY - 11,
+            width: versionBadge.intrinsicContentSize.width,
+            height: versionBadge.intrinsicContentSize.height
+        )
+        title.frame.size.width = max(
+            0,
+            versionBadge.frame.minX - 12 - title.frame.minX
+        )
+        remaining.frame = CGRect(
+            x: headerFrames.remaining.minX,
+            y: headerFrames.remaining.minY,
+            width: headerFrames.remaining.width,
+            height: 42
+        )
+        addSubview(avatar)
         addSubview(title)
         addSubview(versionBadge)
         addSubview(remaining)
@@ -198,6 +225,11 @@ final class QuotaDetailCardView: NSView {
         )
         topDivider.boxType = .separator
         addSubview(topDivider)
+
+        let informationOutline = QuotaReferenceTiboOutlineView(
+            frame: informationFrames.control
+        )
+        addSubview(informationOutline)
 
         let informationLink = QuotaInformationLinkButton(
             frame: informationFrames.control,
@@ -251,18 +283,31 @@ final class QuotaDetailCardView: NSView {
         for (index, row) in content.rows.enumerated() {
             let rowHeight = effectiveRowHeights[index]
             let isStacked = rowHeight > QuotaDetailLayout.rowHeight
+            let icon = QuotaDetailIconView(
+                kind: QuotaDetailIconKind.kind(
+                    forRowAt: index,
+                    count: content.rows.count
+                )
+            )
+            icon.frame = CGRect(
+                x: 16,
+                y: rowY + 3,
+                width: 18,
+                height: 18
+            )
+            rowDocument.addSubview(icon)
             let rowLabel = label(
                 row.label,
                 font: QuotaDetailRowMetrics.labelFont,
-                color: .secondaryLabelColor,
+                color: .labelColor,
                 alignment: .left
             )
             let labelWidth = min(
-                108,
+                148,
                 ceil(rowLabel.intrinsicContentSize.width + 2)
             )
             rowLabel.frame = CGRect(
-                x: 12,
+                x: 44,
                 y: rowY + 3,
                 width: labelWidth,
                 height: 18
@@ -284,22 +329,34 @@ final class QuotaDetailCardView: NSView {
                 value.maximumNumberOfLines = Int(valueHeight / 18)
                 value.lineBreakMode = .byCharWrapping
                 value.frame = CGRect(
-                    x: 12,
+                    x: 44,
                     y: rowY + 21,
-                    width: rowContentWidth - 24,
+                    width: rowContentWidth - 56,
                     height: valueHeight
                 )
             } else {
                 value.lineBreakMode = .byTruncatingTail
-                let valueX = max(68, rowLabel.frame.maxX + 6)
+                let valueX = max(190, rowLabel.frame.maxX + 12)
                 value.frame = CGRect(
                     x: valueX,
                     y: rowY + 3,
-                    width: rowContentWidth - valueX - 12,
+                    width: rowContentWidth - valueX - 16,
                     height: 18
                 )
             }
             rowDocument.addSubview(value)
+            if index < content.rows.indices.last! {
+                let separator = NSBox(
+                    frame: CGRect(
+                        x: 44,
+                        y: rowY + rowHeight - 1,
+                        width: max(0, rowContentWidth - 60),
+                        height: 1
+                    )
+                )
+                separator.boxType = .separator
+                rowDocument.addSubview(separator)
+            }
             rowY += rowHeight
         }
 
@@ -329,10 +386,27 @@ final class QuotaDetailCardView: NSView {
 }
 
 @MainActor
+final class QuotaReferenceTiboOutlineView: NSView {
+    override var isOpaque: Bool { false }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let outline = NSBezierPath(
+            roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5),
+            xRadius: 10,
+            yRadius: 10
+        )
+        NSColor.separatorColor.withAlphaComponent(0.78).setStroke()
+        outline.lineWidth = 1
+        outline.stroke()
+    }
+}
+
+@MainActor
 private final class VersionBadgeView: NSView {
     private let text: String
     private let font = NSFont.systemFont(
-        ofSize: 8,
+        ofSize: 12,
         weight: .medium
     )
 
@@ -345,7 +419,7 @@ private final class VersionBadgeView: NSView {
         let textSize = (text as NSString).size(
             withAttributes: [.font: font]
         )
-        return NSSize(width: ceil(textSize.width) + 10, height: 14)
+        return NSSize(width: ceil(textSize.width) + 18, height: 22)
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -356,13 +430,13 @@ private final class VersionBadgeView: NSView {
             xRadius: capsuleBounds.height / 2,
             yRadius: capsuleBounds.height / 2
         )
-        NSColor.systemBlue.withAlphaComponent(0.52).setStroke()
-        capsule.lineWidth = 0.75
+        NSColor.separatorColor.withAlphaComponent(0.86).setStroke()
+        capsule.lineWidth = 1
         capsule.stroke()
 
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: NSColor.systemBlue
+            .foregroundColor: NSColor.secondaryLabelColor
         ]
         let textSize = (text as NSString).size(withAttributes: attributes)
         let textPoint = CGPoint(
@@ -379,9 +453,40 @@ private final class VersionBadgeView: NSView {
 }
 
 @MainActor
+private final class QuotaAvatarView: NSView {
+    override var isOpaque: Bool { false }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let circle = NSBezierPath(ovalIn: bounds.insetBy(dx: 0.5, dy: 0.5))
+        NSColor.secondaryLabelColor.withAlphaComponent(0.20).setFill()
+        circle.fill()
+        NSColor.separatorColor.withAlphaComponent(0.85).setStroke()
+        circle.lineWidth = 1
+        circle.stroke()
+
+        let head = NSBezierPath(ovalIn: CGRect(
+            x: bounds.midX - 7,
+            y: bounds.midY + 3,
+            width: 14,
+            height: 14
+        ))
+        NSColor.secondaryLabelColor.withAlphaComponent(0.75).setFill()
+        head.fill()
+        let shoulders = NSBezierPath(roundedRect: CGRect(
+            x: bounds.midX - 13,
+            y: bounds.midY - 13,
+            width: 26,
+            height: 16
+        ), xRadius: 8, yRadius: 8)
+        shoulders.fill()
+    }
+}
+
+@MainActor
 private enum QuotaDetailRowMetrics {
-    static let labelFont = NSFont.systemFont(ofSize: 12, weight: .regular)
-    static let valueFont = NSFont.systemFont(ofSize: 12, weight: .regular)
+    static let labelFont = NSFont.systemFont(ofSize: 13, weight: .semibold)
+    static let valueFont = NSFont.systemFont(ofSize: 13, weight: .regular)
 
     static func heights(
         for rows: [QuotaDetailRow],
@@ -389,9 +494,9 @@ private enum QuotaDetailRowMetrics {
         remainingPercent: Int
     ) -> [CGFloat] {
         rows.map { row in
-            let labelWidth = min(108, textWidth(row.label, font: labelFont) + 2)
-            let valueX = max(68, 12 + labelWidth + 6)
-            let columnWidth = max(1, cardWidth - valueX - 12)
+            let labelWidth = min(148, textWidth(row.label, font: labelFont) + 2)
+            let valueX = max(190, 44 + labelWidth + 12)
+            let columnWidth = max(1, cardWidth - valueX - 16)
             let measuredValueWidth = ceil(
                 QuotaCountdownTypography.string(
                     row.value,
@@ -402,7 +507,7 @@ private enum QuotaDetailRowMetrics {
                 return QuotaDetailLayout.rowHeight
             }
 
-            let fullWidth = max(1, cardWidth - 24)
+            let fullWidth = max(1, cardWidth - 56)
             let lineCount = max(1, Int(ceil(measuredValueWidth / fullWidth)))
             return 22 + CGFloat(lineCount) * 18
         }
@@ -420,15 +525,15 @@ private enum QuotaDetailRowMetrics {
 @MainActor
 private enum QuotaCountdownTypography {
     private static let digitFont = NSFont.systemFont(
-        ofSize: 14,
+        ofSize: 19,
         weight: .semibold
     )
     private static let unitFont = NSFont.systemFont(
-        ofSize: 10,
+        ofSize: 13,
         weight: .medium
     )
     private static let punctuationFont = NSFont.systemFont(
-        ofSize: 10,
+        ofSize: 12,
         weight: .regular
     )
 
