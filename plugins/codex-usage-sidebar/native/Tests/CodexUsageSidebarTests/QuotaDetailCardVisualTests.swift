@@ -182,6 +182,42 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         )
     }
 
+    func testNarrowPanelMeasuresWrappedRowsUsingClampedCardWidth() {
+        let content = QuotaDetailContent(
+            title: "Codex usage",
+            remainingPercent: 32,
+            informationEntry: QuotaInformationEntry(
+                title: "Tibo on X",
+                accessibilityLabel: "Tibo on X",
+                destination: URL(string: "https://x.com/thsottiaux")!
+            ),
+            rows: [
+                QuotaDetailRow(
+                    label: "Reset window",
+                    value: String(repeating: "1234567890", count: 5)
+                )
+            ]
+        )
+        let layout = QuotaDetailPanelResolvedLayout.resolve(
+            content: content,
+            indicatorFrame: CGRect(x: 460, y: 700, width: 30, height: 30),
+            visibleFrame: CGRect(x: 100, y: 100, width: 400, height: 800)
+        )
+
+        XCTAssertEqual(layout.frame.width, 384)
+        XCTAssertGreaterThan(
+            layout.rowHeights[0],
+            QuotaDetailLayout.rowHeight
+        )
+    }
+
+    func testCardMaterialResolvesAThemeShadow() {
+        let material = QuotaCardMaterialView(frame: CGRect(x: 0, y: 0, width: 520, height: 680))
+
+        XCTAssertGreaterThan(material.shadowOpacity(for: .aqua), 0)
+        XCTAssertGreaterThan(material.shadowOpacity(for: .darkAqua), 0)
+    }
+
     private var languages: [
         (CodexDisplayLanguage, String, String)
     ] {

@@ -61,17 +61,13 @@ final class QuotaDetailPanel {
             dx: -400,
             dy: -400
         )
-        let rowHeights = QuotaDetailRowMetrics.heights(
-            for: content.rows,
-            cardWidth: QuotaDetailLayout.width,
-            remainingPercent: content.remainingPercent
-        )
-        let panelFrame = QuotaDetailLayout.frame(
+        let resolvedLayout = QuotaDetailPanelResolvedLayout.resolve(
+            content: content,
             indicatorFrame: indicatorFrame,
-            rowContentHeight: rowHeights.reduce(0, +),
-            visibleFrame: visibleFrame,
-            tokenUsageVisible: content.tokenUsage != nil
+            visibleFrame: visibleFrame
         )
+        let rowHeights = resolvedLayout.rowHeights
+        let panelFrame = resolvedLayout.frame
         let appearance = theme.appKitAppearance
         panel.appearance = appearance
         var card: QuotaDetailCardView?
@@ -93,6 +89,40 @@ final class QuotaDetailPanel {
 
     func hide() {
         panel.orderOut(nil)
+    }
+}
+
+@MainActor
+struct QuotaDetailPanelResolvedLayout {
+    let frame: CGRect
+    let rowHeights: [CGFloat]
+
+    static func resolve(
+        content: QuotaDetailContent,
+        indicatorFrame: CGRect,
+        visibleFrame: CGRect
+    ) -> QuotaDetailPanelResolvedLayout {
+        let widthFrame = QuotaDetailLayout.frame(
+            indicatorFrame: indicatorFrame,
+            rowContentHeight: 0,
+            visibleFrame: visibleFrame,
+            tokenUsageVisible: content.tokenUsage != nil
+        )
+        let rowHeights = QuotaDetailRowMetrics.heights(
+            for: content.rows,
+            cardWidth: widthFrame.width,
+            remainingPercent: content.remainingPercent
+        )
+        let frame = QuotaDetailLayout.frame(
+            indicatorFrame: indicatorFrame,
+            rowContentHeight: rowHeights.reduce(0, +),
+            visibleFrame: visibleFrame,
+            tokenUsageVisible: content.tokenUsage != nil
+        )
+        return QuotaDetailPanelResolvedLayout(
+            frame: frame,
+            rowHeights: rowHeights
+        )
     }
 }
 
