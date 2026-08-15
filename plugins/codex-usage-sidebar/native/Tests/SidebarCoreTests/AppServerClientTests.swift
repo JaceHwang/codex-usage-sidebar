@@ -3,7 +3,7 @@ import XCTest
 @testable import SidebarCore
 
 final class AppServerClientTests: XCTestCase {
-    func testInitializesThenReadsRateLimitsWithIncreasingIDs() async throws {
+    func testInitializesThenReadsRateLimitsAndTokenUsageWithIncreasingIDs() async throws {
         let transport = InMemoryLineTransport()
         let client = AppServerClient(transportFactory: { transport })
 
@@ -18,15 +18,18 @@ final class AppServerClientTests: XCTestCase {
 
         transport.emit(#"{"id":1,"result":{"serverInfo":{"name":"codex"}}}"#)
         try await eventually {
-            transport.sentLines.count == 3
+            transport.sentLines.count == 4
         }
 
         let initialized = try XCTUnwrap(parse(transport.sentLines[1]))
-        let read = try XCTUnwrap(parse(transport.sentLines[2]))
+        let rateLimits = try XCTUnwrap(parse(transport.sentLines[2]))
+        let tokenUsage = try XCTUnwrap(parse(transport.sentLines[3]))
         XCTAssertEqual(initialized["method"] as? String, "initialized")
         XCTAssertNil(initialized["id"])
-        XCTAssertEqual(read["method"] as? String, "account/rateLimits/read")
-        XCTAssertEqual((read["id"] as? NSNumber)?.intValue, 2)
+        XCTAssertEqual(rateLimits["method"] as? String, "account/rateLimits/read")
+        XCTAssertEqual((rateLimits["id"] as? NSNumber)?.intValue, 2)
+        XCTAssertEqual(tokenUsage["method"] as? String, "account/usage/read")
+        XCTAssertEqual((tokenUsage["id"] as? NSNumber)?.intValue, 3)
 
         await client.stop()
     }
@@ -61,7 +64,7 @@ final class AppServerClientTests: XCTestCase {
 
         try await client.refresh()
         try await Task.sleep(nanoseconds: 20_000_000)
-        XCTAssertEqual(transport.sentLines.count, 3)
+        XCTAssertEqual(transport.sentLines.count, 4)
 
         let snapshotTask = Task<AllowanceSnapshot?, Never> {
             var iterator = client.snapshots.makeAsyncIterator()
@@ -74,11 +77,11 @@ final class AppServerClientTests: XCTestCase {
 
         try await client.refresh()
         try await eventually {
-            transport.sentLines.count == 4
+            transport.sentLines.count == 5
         }
-        let refresh = try XCTUnwrap(parse(transport.sentLines[3]))
+        let refresh = try XCTUnwrap(parse(transport.sentLines[4]))
         XCTAssertEqual(refresh["method"] as? String, "account/rateLimits/read")
-        XCTAssertEqual((refresh["id"] as? NSNumber)?.intValue, 3)
+        XCTAssertEqual((refresh["id"] as? NSNumber)?.intValue, 4)
 
         await client.stop()
     }
@@ -150,11 +153,11 @@ final class AppServerClientTests: XCTestCase {
         XCTAssertEqual(values.last?.bank?.availableCount, 2)
 
         try await eventually {
-            transport.sentLines.count == 4
+            transport.sentLines.count == 5
         }
-        let refresh = try XCTUnwrap(parse(transport.sentLines[3]))
+        let refresh = try XCTUnwrap(parse(transport.sentLines[4]))
         XCTAssertEqual(refresh["method"] as? String, "account/rateLimits/read")
-        XCTAssertEqual((refresh["id"] as? NSNumber)?.intValue, 3)
+        XCTAssertEqual((refresh["id"] as? NSNumber)?.intValue, 4)
 
         await client.stop()
     }
@@ -196,14 +199,85 @@ final class AppServerClientTests: XCTestCase {
         XCTAssertEqual(values.last?.planType, "plus")
         XCTAssertEqual(values.last?.bank?.availableCount, 1)
         try await eventually {
-            transport.sentLines.count == 4
+            transport.sentLines.count == 5
         }
-        if transport.sentLines.count == 4 {
-            let followUp = try XCTUnwrap(parse(transport.sentLines[3]))
+        if transport.sentLines.count == 5 {
+            let followUp = try XCTUnwrap(parse(transport.sentLines[4]))
             XCTAssertEqual(followUp["method"] as? String, "account/rateLimits/read")
-            XCTAssertEqual((followUp["id"] as? NSNumber)?.intValue, 3)
+            XCTAssertEqual((followUp["id"] as? NSNumber)?.intValue, 4)
         }
 
+        await client.stop()
+    }
+
+    func testTokenUsageResponseEmitsIndependentSnapshot() async throws {
+        let transport = InMemoryLineTransport()
+        let client = AppServerClient(transportFactory: { transport })
+        try await completeHandshake(client: client, transport: transport)
+
+        let snapshotTask = Task<TokenUsageSnapshot?, Never> {
+            var iterator = client.tokenUsages.makeAsyncIterator()
+            return await iterator.next()
+        }
+        transport.emit(
+            #"{"id":3,"result":{"summary":{"lifetimeTokens":1234},"dailyUsageBuckets":[{"startDate":"2026-08-14","tokens":456}]}}"#
+        )
+
+        let snapshotValue = await snapshotTask.value
+        let snapshot = try XCTUnwrap(snapshotValue)
+        XCTAssertEqual(snapshot.availability, .available)
+        XCTAssertEqual(snapshot.summary?.lifetimeTokens, 1_234)
+        XCTAssertEqual(snapshot.dailyBuckets.map(\.tokens), [456])
+        await client.stop()
+    }
+
+    func testDuplicateRefreshCoalescesPendingTokenUsageRead() async throws {
+        let transport = InMemoryLineTransport()
+        let client = AppServerClient(transportFactory: { transport })
+        try await completeHandshake(client: client, transport: transport)
+
+        try await client.refresh()
+        try await client.refresh()
+        try await Task.sleep(nanoseconds: 20_000_000)
+        XCTAssertEqual(transport.sentLines.count, 4)
+
+        transport.emit(
+            #"{"id":3,"result":{"dailyUsageBuckets":[]}}"#
+        )
+        try await eventually {
+            transport.sentLines.count == 5
+        }
+        let followUp = try XCTUnwrap(parse(transport.sentLines[4]))
+        XCTAssertEqual(followUp["method"] as? String, "account/usage/read")
+        XCTAssertEqual((followUp["id"] as? NSNumber)?.intValue, 4)
+        await client.stop()
+    }
+
+    func testUnsupportedTokenUsageDoesNotPreventRateLimitSnapshot() async throws {
+        let transport = InMemoryLineTransport()
+        let client = AppServerClient(transportFactory: { transport })
+        try await completeHandshake(client: client, transport: transport)
+
+        let tokenTask = Task<TokenUsageSnapshot?, Never> {
+            var iterator = client.tokenUsages.makeAsyncIterator()
+            return await iterator.next()
+        }
+        let rateTask = Task<AllowanceSnapshot?, Never> {
+            var iterator = client.snapshots.makeAsyncIterator()
+            return await iterator.next()
+        }
+        transport.emit(#"{"id":3,"error":{"code":-32601,"message":"Method not found"}}"#)
+        transport.emit(
+            #"{"id":2,"result":{"rateLimits":{"limitId":"codex","primary":{"usedPercent":24,"resetsAt":1785628824}}}}"#
+        )
+
+        let tokenValue = await tokenTask.value
+        let rateValue = await rateTask.value
+        let token = try XCTUnwrap(tokenValue)
+        let rate = try XCTUnwrap(rateValue)
+        XCTAssertEqual(token.availability, .unsupported)
+        XCTAssertTrue(token.dailyBuckets.isEmpty)
+        XCTAssertEqual(rate.remainingPercent, 76)
         await client.stop()
     }
 
@@ -242,7 +316,7 @@ final class AppServerClientTests: XCTestCase {
         }
         transport.emit(#"{"id":1,"result":{}}"#)
         try await eventually {
-            transport.sentLines.count == 3
+            transport.sentLines.count == 4
         }
     }
 
