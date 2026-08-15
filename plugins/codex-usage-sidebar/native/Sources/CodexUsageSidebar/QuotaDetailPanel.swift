@@ -320,8 +320,8 @@ final class QuotaDetailCardView: NSView {
                 color: .labelColor,
                 alignment: .right
             )
-            value.attributedStringValue = QuotaCountdownTypography.string(
-                row.value,
+            value.attributedStringValue = QuotaDetailValueTypography.string(
+                for: row,
                 remainingPercent: content.remainingPercent
             )
             if isStacked {
@@ -498,8 +498,8 @@ private enum QuotaDetailRowMetrics {
             let valueX = max(190, 44 + labelWidth + 12)
             let columnWidth = max(1, cardWidth - valueX - 16)
             let measuredValueWidth = ceil(
-                QuotaCountdownTypography.string(
-                    row.value,
+                QuotaDetailValueTypography.string(
+                    for: row,
                     remainingPercent: remainingPercent
                 ).size().width
             )
@@ -586,6 +586,33 @@ private enum QuotaCountdownTypography {
             range: NSRange(location: 0, length: result.length)
         )
         return result
+    }
+}
+
+@MainActor
+private enum QuotaDetailValueTypography {
+    static func string(
+        for row: QuotaDetailRow,
+        remainingPercent: Int
+    ) -> NSAttributedString {
+        switch row.valueStyle {
+        case .standard:
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = .right
+            return NSAttributedString(
+                string: row.value,
+                attributes: [
+                    .font: QuotaDetailRowMetrics.valueFont,
+                    .foregroundColor: NSColor.labelColor,
+                    .paragraphStyle: paragraph
+                ]
+            )
+        case .resetCountdown:
+            return QuotaCountdownTypography.string(
+                row.value,
+                remainingPercent: remainingPercent
+            )
+        }
     }
 }
 

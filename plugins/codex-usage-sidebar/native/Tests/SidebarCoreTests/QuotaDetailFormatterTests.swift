@@ -48,7 +48,8 @@ final class QuotaDetailFormatterTests: XCTestCase {
             content.rows.contains(
                 .init(
                     label: "下次重置",
-                    value: "7天6小时（2026/08/02 08:00）"
+                    value: "7天6小时（2026/08/02 08:00）",
+                    valueStyle: .resetCountdown
                 )
             )
         )
@@ -215,7 +216,11 @@ final class QuotaDetailFormatterTests: XCTestCase {
         )
         XCTAssertTrue(
             content.rows.contains(
-                .init(label: "Next reset", value: "7d 6h (2026/08/02 08:00)")
+                .init(
+                    label: "Next reset",
+                    value: "7d 6h (2026/08/02 08:00)",
+                    valueStyle: .resetCountdown
+                )
             )
         )
         XCTAssertTrue(
@@ -251,7 +256,11 @@ final class QuotaDetailFormatterTests: XCTestCase {
         XCTAssertTrue(content.rows.contains(.init(label: "額度週期", value: "7 天")))
         XCTAssertTrue(
             content.rows.contains(
-                .init(label: "下次重設", value: "7天6小時（2026/08/02 08:00）")
+                .init(
+                    label: "下次重設",
+                    value: "7天6小時（2026/08/02 08:00）",
+                    valueStyle: .resetCountdown
+                )
             )
         )
         XCTAssertTrue(

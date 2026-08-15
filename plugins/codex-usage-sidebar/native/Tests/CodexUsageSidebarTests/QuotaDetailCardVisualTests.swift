@@ -217,6 +217,90 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         )
     }
 
+    func testOnlyResetRowUsesCountdownEmphasis() throws {
+        let content = QuotaDetailFormatter().content(
+            snapshot: longBankSnapshot,
+            tokenUsage: tokenUsageSnapshot,
+            now: now,
+            language: .english,
+            timeZone: timeZone
+        )
+        let rowHeights = Array(
+            repeating: QuotaDetailLayout.rowHeight,
+            count: content.rows.count
+        )
+        let card = QuotaDetailCardView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: QuotaDetailLayout.width,
+                height: QuotaDetailLayout.maximumHeight
+            ),
+            content: content,
+            rowHeights: rowHeights,
+            version: "0.3.0",
+            onOpenURL: { _ in }
+        )
+
+        let resetValue = try XCTUnwrap(
+            content.rows.first { $0.label == "Next reset" }?.value
+        )
+        let bankValue = try XCTUnwrap(
+            content.rows.first { $0.label == "Bank 1 expires" }?.value
+        )
+        let resetField = try XCTUnwrap(
+            descendants(of: card)
+                .compactMap { $0 as? NSTextField }
+                .first { $0.stringValue == resetValue }
+        )
+        let bankField = try XCTUnwrap(
+            descendants(of: card)
+                .compactMap { $0 as? NSTextField }
+                .first { $0.stringValue == bankValue }
+        )
+        let resetDigitsRange = try XCTUnwrap(
+            (resetValue as NSString).range(of: "1d").nonEmpty
+        )
+        let bankDigitsRange = try XCTUnwrap(
+            (bankValue as NSString).range(of: "2d6h").nonEmpty
+        )
+
+        let resetFont = try XCTUnwrap(
+            resetField.attributedStringValue.attribute(
+                .font,
+                at: resetDigitsRange.location,
+                effectiveRange: nil
+            ) as? NSFont
+        )
+        let bankFont = try XCTUnwrap(
+            bankField.attributedStringValue.attribute(
+                .font,
+                at: bankDigitsRange.location,
+                effectiveRange: nil
+            ) as? NSFont
+        )
+        let resetColor = try XCTUnwrap(
+            resetField.attributedStringValue.attribute(
+                .foregroundColor,
+                at: resetDigitsRange.location,
+                effectiveRange: nil
+            ) as? NSColor
+        )
+        let bankColor = try XCTUnwrap(
+            bankField.attributedStringValue.attribute(
+                .foregroundColor,
+                at: bankDigitsRange.location,
+                effectiveRange: nil
+            ) as? NSColor
+        )
+
+        XCTAssertGreaterThan(resetFont.pointSize, bankFont.pointSize)
+        XCTAssertNotEqual(
+            resetColor.usingColorSpace(.deviceRGB),
+            bankColor.usingColorSpace(.deviceRGB)
+        )
+    }
+
     func testNarrowPanelMeasuresWrappedRowsUsingClampedCardWidth() {
         let content = QuotaDetailContent(
             title: "Codex usage",
@@ -349,4 +433,8 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             representation.representation(using: .png, properties: [:])
         )
     }
+}
+
+private extension NSRange {
+    var nonEmpty: NSRange? { location == NSNotFound || length == 0 ? nil : self }
 }

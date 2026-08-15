@@ -1,12 +1,23 @@
 import Foundation
 
+public enum QuotaDetailRowValueStyle: Equatable, Sendable {
+    case standard
+    case resetCountdown
+}
+
 public struct QuotaDetailRow: Equatable, Sendable {
     public let label: String
     public let value: String
+    public let valueStyle: QuotaDetailRowValueStyle
 
-    public init(label: String, value: String) {
+    public init(
+        label: String,
+        value: String,
+        valueStyle: QuotaDetailRowValueStyle = .standard
+    ) {
         self.label = label
         self.value = value
+        self.valueStyle = valueStyle
     }
 }
 
@@ -123,7 +134,8 @@ public struct QuotaDetailFormatter: Sendable {
                     now: now,
                     copy: copy,
                     timeZone: timeZone
-                )
+                ),
+                valueStyle: .resetCountdown
             )
         )
         rows.append(
