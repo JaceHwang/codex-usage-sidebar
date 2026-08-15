@@ -107,12 +107,13 @@ final class QuotaDetailCardView: NSView {
     ) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer?.cornerRadius = 12
+        layer?.cornerRadius = 28
         layer?.cornerCurve = .continuous
         layer?.masksToBounds = true
-        layer?.borderWidth = 0.5
-        layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        layer?.borderColor = NSColor.separatorColor.cgColor
+
+        let material = QuotaCardMaterialView(frame: bounds)
+        material.autoresizingMask = [.width, .height]
+        addSubview(material)
 
         let title = label(
             content.title,
@@ -153,7 +154,7 @@ final class QuotaDetailCardView: NSView {
         addSubview(remaining)
 
         let progress = QuotaProgressView(
-            frame: CGRect(x: 12, y: bounds.height - 50, width: bounds.width - 24, height: 4),
+            frame: headerFrames.progress,
             value: content.remainingPercent
         )
         addSubview(progress)

@@ -76,6 +76,12 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                         .first
                 )
                 XCTAssertEqual(tokenView.barCount, 7)
+                let tokenScroller = try XCTUnwrap(
+                    descendants(of: tokenView)
+                        .compactMap { $0 as? NSScrollView }
+                        .first
+                )
+                XCTAssertFalse(tokenScroller.hasHorizontalScroller)
 
                 let scrollView = try XCTUnwrap(
                     descendants(of: card)
