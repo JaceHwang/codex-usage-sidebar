@@ -3,6 +3,12 @@ import SidebarCore
 
 @MainActor
 final class QuotaInformationLinkButton: NSButton {
+    private static let textHeight: CGFloat = 20
+    // NSTextField's 20pt label cell leaves the glyph ink optically high in a
+    // compact 32pt row. Keep the baseline correction in one place so the
+    // title and trailing arrow stay aligned with the X mark.
+    private static let opticalTextYOffset: CGFloat = 2.5
+
     private let destination: URL
     private let onActivate: (URL) -> Void
     private let iconView = QuotaInformationXMarkView()
@@ -61,16 +67,20 @@ final class QuotaInformationLinkButton: NSButton {
         iconView.frame = CGRect(x: 6, y: 4, width: 24, height: 24)
         arrowLabel.frame = CGRect(
             x: bounds.maxX - 22,
-            y: 6,
+            y: textFrameOriginY,
             width: 16,
-            height: 20
+            height: Self.textHeight
         )
         linkLabel.frame = CGRect(
             x: 40,
-            y: 6,
+            y: textFrameOriginY,
             width: max(0, arrowLabel.frame.minX - 46),
-            height: 20
+            height: Self.textHeight
         )
+    }
+
+    private var textFrameOriginY: CGFloat {
+        bounds.midY - (Self.textHeight / 2) + Self.opticalTextYOffset
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {

@@ -24,6 +24,23 @@ final class QuotaInformationLinkButtonTests: XCTestCase {
         )
     }
 
+    func testTextLabelsUseTheOpticallyCenteredRowBaseline() throws {
+        let button = makeButton()
+        button.layoutSubtreeIfNeeded()
+
+        let textFields = button.subviews.compactMap { $0 as? NSTextField }
+        XCTAssertEqual(textFields.count, 2)
+
+        for textField in textFields {
+            XCTAssertEqual(
+                textField.frame.minY,
+                8.5,
+                accuracy: 0.01,
+                "\(textField.stringValue) should use the optical baseline for the 32pt row"
+            )
+        }
+    }
+
     private func makeButton() -> QuotaInformationLinkButton {
         QuotaInformationLinkButton(
             frame: CGRect(x: 0, y: 0, width: 276, height: 32),
