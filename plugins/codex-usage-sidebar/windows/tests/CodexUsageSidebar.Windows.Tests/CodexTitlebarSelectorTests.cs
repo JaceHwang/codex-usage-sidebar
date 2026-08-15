@@ -182,12 +182,17 @@ public sealed class CodexTitlebarSelectorTests
     public void RejectsMissingAndAmbiguousOpenLocationControls()
     {
         var fixture = LoadFixture();
+        var openLocation = fixture.Nodes.Single(node => node.SemanticRole == UiaSemanticRoles.OpenLocation);
         var missing = fixture.Nodes.Select(node =>
-            node.SemanticRole == UiaSemanticRoles.OpenLocation
-                ? node with { SemanticRole = UiaSemanticRoles.None }
+            node == openLocation
+                ? node with
+                {
+                    SemanticRole = UiaSemanticRoles.None,
+                    ClassName = node.ClassName.Replace("rounded-e-none", "rounded-start", StringComparison.Ordinal),
+                }
                 : node).ToArray();
         var duplicate = fixture.Nodes.Concat([
-            fixture.Nodes.Single(node => node.SemanticRole == UiaSemanticRoles.OpenLocation) with
+            openLocation with
             {
                 Bounds = new RectD(1600, 88, 183, 56),
             },
@@ -197,6 +202,25 @@ public sealed class CodexTitlebarSelectorTests
             fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, missing));
         Assert.IsNull(CodexTitlebarSelector.TryResolve(
             fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, duplicate));
+    }
+
+    [TestMethod]
+    public void UsesTheSingleStructuredOpenLocationEndButtonWhenTheLocalizedNameIsUnmapped()
+    {
+        var fixture = LoadFixture();
+        var openLocation = fixture.Nodes.Single(node => node.SemanticRole == UiaSemanticRoles.OpenLocation);
+        var localized = fixture.Nodes.Select(node => node == openLocation
+            ? node with { SemanticRole = UiaSemanticRoles.None, NameLength = 7 }
+            : node).ToArray();
+
+        var result = CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity,
+            fixture.DpiScale,
+            fixture.HostBounds,
+            localized);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(fixture.Expected.OpenLocationBounds, result.OpenLocationBounds);
     }
 
     [TestMethod]

@@ -149,7 +149,6 @@ public static class CodexTitlebarSelector
         var openLocationButtons = nodes.Where(node =>
             node.ControlType == ButtonControlType
             && node.Depth == contentGroup.Depth + 1
-            && node.SemanticRole == UiaSemanticRoles.OpenLocation
             && node.ClassName.Contains(ComposerButtonClassMarker, StringComparison.Ordinal)
             && node.ClassName.Contains(OpenLocationEndClassMarker, StringComparison.Ordinal)
             && Contains(contentGroup.Bounds, node.Bounds)).ToArray();
