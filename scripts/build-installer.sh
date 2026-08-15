@@ -2,21 +2,25 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-plugin_manifest="$repo_root/plugins/codex-usage-sidebar/.codex-plugin/plugin.json"
 native_root="$repo_root/plugins/codex-usage-sidebar/native"
 dist="$repo_root/.dist"
 output_root="$dist/installer"
 app="$output_root/Codex Usage Sidebar Installer.app"
 payload_ref="${CUS_INSTALLER_PAYLOAD_REF:-HEAD}"
 signing_identity="${CUS_INSTALLER_SIGN_IDENTITY:--}"
-version="$(/usr/bin/python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"].split("+")[0])' "$plugin_manifest")"
+
+/usr/bin/git -C "$repo_root" cat-file -e "$payload_ref^{commit}"
+payload_commit="$(/usr/bin/git -C "$repo_root" rev-parse "$payload_ref^{commit}")"
+version="$(
+  /usr/bin/git -C "$repo_root" show \
+    "$payload_commit:plugins/codex-usage-sidebar/.codex-plugin/plugin.json" |
+    /usr/bin/python3 -c 'import json,sys; print(json.load(sys.stdin)["version"].split("+")[0])'
+)"
 
 if [[ "$version" != "0.2.3" ]]; then
   printf 'installer packaging requires plugin version 0.2.3, found %s\n' "$version" >&2
   exit 65
 fi
-/usr/bin/git -C "$repo_root" cat-file -e "$payload_ref^{commit}"
-payload_commit="$(/usr/bin/git -C "$repo_root" rev-parse "$payload_ref^{commit}")"
 
 /bin/mkdir -p "$dist"
 /bin/rm -rf "$output_root"

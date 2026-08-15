@@ -9,6 +9,8 @@ checksums="$dist/INSTALLER-SHA256SUMS.txt"
 provenance="$dist/INSTALLER-PROVENANCE.json"
 verifier="$repo_root/scripts/verify-installer-package.sh"
 finalizer="$repo_root/scripts/finalize-installer-provenance.py"
+default_payload_ref="${CUS_INSTALLER_PAYLOAD_REF:-v0.2.3}"
+default_payload_commit="$(/usr/bin/git -C "$repo_root" rev-parse "$default_payload_ref^{commit}")"
 
 [[ -x "$repo_root/scripts/build-installer.sh" ]]
 [[ -x "$repo_root/scripts/package-installer.sh" ]]
@@ -26,8 +28,10 @@ if CUS_INSTALLER_PAYLOAD_REF=HEAD "$repo_root/scripts/package-installer.sh"; the
 fi
 
 DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}" \
+  CUS_INSTALLER_PAYLOAD_REF="$default_payload_ref" \
   "$repo_root/scripts/build-installer.sh"
-"$repo_root/scripts/package-installer.sh"
+CUS_INSTALLER_PAYLOAD_REF="$default_payload_ref" \
+  "$repo_root/scripts/package-installer.sh"
 
 [[ -d "$app" ]]
 [[ -f "$dmg" ]]
@@ -63,7 +67,7 @@ mounted_app="$mount_root/Codex Usage Sidebar Installer.app"
 [[ -d "$mounted_app" ]]
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$mounted_app/Contents/Info.plist")" == "0.2.3" ]]
 
-expected_payload_commit="$(/usr/bin/git -C "$repo_root" rev-parse 'HEAD^{commit}')"
+expected_payload_commit="$default_payload_commit"
 payload_marker="$app/Contents/Resources/InstallerPayloadCommit"
 [[ "$(/bin/cat "$payload_marker")" == "$expected_payload_commit" ]]
 /usr/bin/python3 - "$provenance" "$expected_payload_commit" <<'PY'
@@ -124,8 +128,10 @@ override_payload_root="$payload_compare_root/expected-override"
 mount_root=""
 
 DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}" \
+  CUS_INSTALLER_PAYLOAD_REF="$default_payload_ref" \
   "$repo_root/scripts/build-installer.sh"
-"$repo_root/scripts/package-installer.sh"
+CUS_INSTALLER_PAYLOAD_REF="$default_payload_ref" \
+  "$repo_root/scripts/package-installer.sh"
 
 if /usr/bin/find "$app/Contents/Resources/payload" \
   \( -name .git -o -name .build -o -name .dist -o -name .DS_Store -o -name __MACOSX \) \
