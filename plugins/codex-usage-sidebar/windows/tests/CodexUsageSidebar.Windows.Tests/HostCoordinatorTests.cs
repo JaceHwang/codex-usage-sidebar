@@ -76,6 +76,37 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public async Task LanguageChangeInvalidatesCachedTitlebarAndRepositionsTheIndicator()
+    {
+        var window = new HostWindowSnapshot(
+            new IntPtr(42), new RectD(-13, -13, 3026, 1930), true, 2, "151.0.7922.76");
+        var scanner = new LanguageSensitiveScanner(
+            new TitlebarSnapshot(
+                2620,
+                [new RectD(2620, 88, 182, 56)],
+                new RectD(478, 70, 2522, 92),
+                new RectD(2620, 88, 182, 56),
+                new RectD(494, 88, 542, 56)),
+            new TitlebarSnapshot(
+                2021,
+                [new RectD(2021, 88, 183, 56)],
+                new RectD(478, 70, 2522, 92),
+                new RectD(2021, 88, 183, 56),
+                new RectD(494, 88, 542, 56)));
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(new StubLocator(window), scanner, overlay);
+
+        await coordinator.ReconcileAsync(Snapshot(), DisplayLanguage.SimplifiedChinese, CancellationToken.None);
+        var simplifiedFrame = overlay.LastPresentation!.Placement.Frame;
+        await coordinator.ReconcileAsync(Snapshot(), DisplayLanguage.English, CancellationToken.None);
+
+        Assert.AreEqual(1, scanner.InvalidateCount);
+        Assert.AreEqual(DisplayLanguage.English, overlay.LastPresentation?.Language);
+        Assert.AreNotEqual(simplifiedFrame, overlay.LastPresentation?.Placement.Frame);
+        Assert.AreEqual(new RectD(1677, 88, 328, 56), overlay.LastPresentation?.Placement.Frame);
+    }
+
+    [TestMethod]
     public async Task UnverifiedUiaTreeHidesOverlayAndReportsDeviceValidationRequirement()
     {
         var overlay = new RecordingOverlay();
@@ -443,6 +474,27 @@ public sealed class HostCoordinatorTests
                 host.Bounds.Y + 69,
                 200,
                 28 * host.DpiScale));
+    }
+
+    private sealed class LanguageSensitiveScanner(params TitlebarSnapshot[] snapshots) : ITitlebarScanner
+    {
+        private int index;
+        private TitlebarSnapshot? cached;
+        public int InvalidateCount { get; private set; }
+
+        public TitlebarSnapshot? TryGetCurrent(HostWindowSnapshot host) => cached;
+
+        public ValueTask<TitlebarSnapshot> ScanAsync(HostWindowSnapshot host, CancellationToken cancellationToken)
+        {
+            cached = snapshots[Math.Min(index++, snapshots.Length - 1)];
+            return ValueTask.FromResult(cached);
+        }
+
+        public void Invalidate()
+        {
+            InvalidateCount++;
+            cached = null;
+        }
     }
 
     private sealed class RejectingScanner : ITitlebarScanner

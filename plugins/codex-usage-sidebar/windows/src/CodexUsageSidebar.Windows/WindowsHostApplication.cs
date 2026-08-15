@@ -40,13 +40,18 @@ internal sealed class WindowsOverlayRuntime : IDisposable
     private readonly IOverlaySurface overlay;
     private readonly AppServerLaunchPlan launchPlan;
     private readonly DispatcherTimer reconcileTimer;
+    private readonly WindowsCodexLanguageProvider languageProvider;
+    private readonly RuntimeLanguageState languageState;
     private AllowanceSnapshot? latestSnapshot;
+    private DateTimeOffset nextLanguageRefresh = DateTimeOffset.MinValue;
     private int reconcileInProgress;
     private Task? sessionTask;
 
     internal WindowsOverlayRuntime(WindowsRuntimePaths paths)
     {
         var language = LanguageResolver.Resolve(CultureInfo.CurrentUICulture.Name);
+        languageProvider = WindowsCodexLanguageProvider.CreateDefault();
+        languageState = new RuntimeLanguageState(language);
         overlay = new WpfOverlaySurface(language, TimeZoneInfo.Local);
         coordinator = new WindowsHostCoordinator(
             new Win32CodexWindowLocator(),
@@ -85,6 +90,7 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         {
             await coordinator.ReconcileAsync(
                 Volatile.Read(ref latestSnapshot),
+                CurrentLanguage(),
                 cancellation.Token);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
@@ -106,6 +112,18 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         {
             Volatile.Write(ref reconcileInProgress, 0);
         }
+    }
+
+    private DisplayLanguage CurrentLanguage()
+    {
+        var current = DateTimeOffset.Now;
+        if (current < nextLanguageRefresh)
+        {
+            return languageState.Language;
+        }
+        nextLanguageRefresh = current.AddSeconds(1);
+        _ = languageState.Apply(languageProvider.CurrentLanguage());
+        return languageState.Language;
     }
 
     private async Task RunSessionLoopAsync(CancellationToken cancellationToken)

@@ -56,6 +56,7 @@ public sealed record TitlebarSnapshot(
 public sealed record OverlayPresentation(
     IntPtr OwnerHandle,
     double DpiScale,
+    DisplayLanguage Language,
     AllowanceSnapshot Snapshot,
     PlacementResult Placement,
     SnapshotFreshness Freshness,

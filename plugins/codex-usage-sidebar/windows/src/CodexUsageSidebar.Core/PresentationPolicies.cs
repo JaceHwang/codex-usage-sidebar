@@ -7,6 +7,18 @@ public enum DisplayLanguage
     English,
 }
 
+public enum DisplayLanguageSource
+{
+    Configuration,
+    Process,
+    Preferences,
+    System,
+}
+
+public readonly record struct ResolvedDisplayLanguage(
+    DisplayLanguage Language,
+    DisplayLanguageSource Source);
+
 public static class LanguageResolver
 {
     public static DisplayLanguage Resolve(string? localeIdentifier)
@@ -16,12 +28,129 @@ public static class LanguageResolver
         {
             return DisplayLanguage.English;
         }
-        return normalized.Contains("hant", StringComparison.Ordinal)
-            || normalized.Contains("-tw", StringComparison.Ordinal)
-            || normalized.Contains("-hk", StringComparison.Ordinal)
-            || normalized.Contains("-mo", StringComparison.Ordinal)
-                ? DisplayLanguage.TraditionalChinese
-                : DisplayLanguage.SimplifiedChinese;
+        var components = normalized.Split('-', StringSplitOptions.RemoveEmptyEntries);
+        if (components.Contains("hant")) return DisplayLanguage.TraditionalChinese;
+        if (components.Contains("hans")) return DisplayLanguage.SimplifiedChinese;
+        return components.Any(component => component is "tw" or "hk" or "mo")
+            ? DisplayLanguage.TraditionalChinese
+            : DisplayLanguage.SimplifiedChinese;
+    }
+
+    public static ResolvedDisplayLanguage? Resolve(
+        string? configurationLocale = null,
+        string? processLocale = null,
+        string? preferencesLocale = null,
+        string? systemLocale = null)
+    {
+        foreach (var (locale, source) in new[]
+        {
+            (configurationLocale, DisplayLanguageSource.Configuration),
+            (processLocale, DisplayLanguageSource.Process),
+            (preferencesLocale, DisplayLanguageSource.Preferences),
+            (systemLocale, DisplayLanguageSource.System),
+        })
+        {
+            if (string.IsNullOrWhiteSpace(locale))
+            {
+                continue;
+            }
+            return new ResolvedDisplayLanguage(Resolve(locale), source);
+        }
+        return null;
+    }
+}
+
+public static class CodexConfigurationLanguageParser
+{
+    public static string? LocaleIdentifier(string contents)
+    {
+        string? section = null;
+        foreach (var rawLine in contents.Split(["\r\n", "\n"], StringSplitOptions.None))
+        {
+            var line = StripInlineComment(rawLine).Trim();
+            if (line.StartsWith("[", StringComparison.Ordinal)
+                && line.EndsWith("]", StringComparison.Ordinal))
+            {
+                section = line[1..^1].Trim();
+                continue;
+            }
+            if (section is not null && section != "desktop")
+            {
+                continue;
+            }
+            var parts = line.Split('=', 2);
+            if (parts.Length != 2
+                || parts[0].Trim() != "localeOverride")
+            {
+                continue;
+            }
+
+            var value = parts[1].Trim();
+            if (value.Length < 2
+                || (value[0] != '"' && value[0] != '\'')
+                || value[^1] != value[0])
+            {
+                return null;
+            }
+            var locale = value[1..^1].Trim();
+            return locale.Length == 0 ? null : locale;
+        }
+        return null;
+    }
+
+    private static string StripInlineComment(string line)
+    {
+        char? quote = null;
+        var escaped = false;
+        for (var index = 0; index < line.Length; index++)
+        {
+            var character = line[index];
+            if (quote == '"' && character == '\\' && !escaped)
+            {
+                escaped = true;
+                continue;
+            }
+            if (character is '"' or '\'')
+            {
+                if (quote == character && !escaped)
+                {
+                    quote = null;
+                }
+                else if (quote is null)
+                {
+                    quote = character;
+                }
+            }
+            else if (character == '#' && quote is null)
+            {
+                return line[..index];
+            }
+            escaped = false;
+        }
+        return line;
+    }
+}
+
+public sealed class RuntimeLanguageState
+{
+    public RuntimeLanguageState(DisplayLanguage initial = DisplayLanguage.English)
+    {
+        Language = initial;
+    }
+
+    public DisplayLanguage Language { get; private set; }
+    public DisplayLanguageSource? Source { get; private set; }
+
+    public bool Apply(ResolvedDisplayLanguage? resolved)
+    {
+        if (resolved is null)
+        {
+            return false;
+        }
+        var changed = Language != resolved.Value.Language;
+        Language = resolved.Value.Language;
+        Source = resolved.Value.Source;
+        return changed;
     }
 }
 

@@ -14,6 +14,71 @@ public sealed class PresentationPolicyTests
     }
 
     [TestMethod]
+    public void ScriptSubtagWinsOverConflictingRegion()
+    {
+        Assert.AreEqual(DisplayLanguage.TraditionalChinese, LanguageResolver.Resolve("zh-Hant-CN"));
+        Assert.AreEqual(DisplayLanguage.SimplifiedChinese, LanguageResolver.Resolve("zh-Hans-TW"));
+    }
+
+    [TestMethod]
+    public void ResolvesExplicitCodexDesktopLanguageBeforeSystemFallback()
+    {
+        var config = """
+            model = "gpt-5"
+
+            [desktop]
+            localeOverride = "zh-Hant-TW"
+            appearanceTheme = "light"
+
+            [desktop.open-in-target-preferences]
+            global = "fileManager"
+            """;
+
+        var parsed = CodexConfigurationLanguageParser.LocaleIdentifier(config);
+        var resolved = LanguageResolver.Resolve(
+            configurationLocale: parsed,
+            systemLocale: "zh-Hans-CN");
+
+        Assert.AreEqual("zh-Hant-TW", parsed);
+        Assert.AreEqual(DisplayLanguage.TraditionalChinese, resolved?.Language);
+        Assert.AreEqual(DisplayLanguageSource.Configuration, resolved?.Source);
+    }
+
+    [TestMethod]
+    public void RejectsMissingUnrelatedMalformedAndEmptyLocaleOverrides()
+    {
+        foreach (var value in new[]
+        {
+            "",
+            "[marketplaces.example]\nlocaleOverride = \"en-US\"",
+            "[desktop]\nlocaleOverride = en-US",
+            "[desktop]\nlocaleOverride = \"\"",
+            "[desktop]\nlocaleOverride = 42",
+        })
+        {
+            Assert.IsNull(CodexConfigurationLanguageParser.LocaleIdentifier(value));
+        }
+    }
+
+    [TestMethod]
+    public void RuntimeLanguageStateReportsOnlyRealDisplayLanguageChanges()
+    {
+        var state = new RuntimeLanguageState(DisplayLanguage.SimplifiedChinese);
+
+        Assert.IsTrue(state.Apply(new ResolvedDisplayLanguage(
+            DisplayLanguage.English,
+            DisplayLanguageSource.Configuration)));
+        Assert.AreEqual(DisplayLanguage.English, state.Language);
+        Assert.AreEqual(DisplayLanguageSource.Configuration, state.Source);
+        Assert.IsFalse(state.Apply(new ResolvedDisplayLanguage(
+            DisplayLanguage.English,
+            DisplayLanguageSource.Process)));
+        Assert.AreEqual(DisplayLanguageSource.Process, state.Source);
+        Assert.IsFalse(state.Apply(null));
+        Assert.AreEqual(DisplayLanguage.English, state.Language);
+    }
+
+    [TestMethod]
     public void FormatsCompactDurationWithLargeNumerals()
     {
         var segments = RelativeIntervalFormatter.Format(

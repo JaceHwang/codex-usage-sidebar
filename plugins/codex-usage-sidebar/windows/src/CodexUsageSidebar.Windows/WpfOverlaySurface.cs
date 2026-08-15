@@ -18,7 +18,6 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     private const int ToolWindowStyle = 0x00000080;
     private const int MouseActivateMessage = 0x0021;
     private const int MouseActivateNoActivate = 3;
-    private readonly DisplayLanguage language;
     private readonly TimeZoneInfo timeZone;
     private readonly Window indicator;
     private readonly Window detail;
@@ -32,7 +31,6 @@ public sealed class WpfOverlaySurface : IOverlaySurface
 
     public WpfOverlaySurface(DisplayLanguage language, TimeZoneInfo timeZone)
     {
-        this.language = language;
         this.timeZone = timeZone;
         indicatorText = new TextBlock
         {
@@ -89,12 +87,12 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             latestContent = QuotaDetailFormatter.Format(
                 presentation.Snapshot,
                 DateTimeOffset.Now,
-                language,
+                presentation.Language,
                 timeZone);
             SetOwner(indicator, presentation.OwnerHandle);
             SetOwner(detail, presentation.OwnerHandle);
             var frame = presentation.Placement.Frame;
-            UpdateIndicator(presentation.Snapshot);
+            UpdateIndicator(presentation.Snapshot, presentation.Language);
             indicator.Width = frame.Width / presentation.DpiScale;
             indicator.Height = frame.Height / presentation.DpiScale;
             if (!indicator.IsVisible) new WindowInteropHelper(indicator).EnsureHandle();
@@ -170,7 +168,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
                 bounds.Bottom - bounds.Top));
     }
 
-    private void UpdateIndicator(AllowanceSnapshot snapshot)
+    private void UpdateIndicator(AllowanceSnapshot snapshot, DisplayLanguage language)
     {
         indicatorText.Inlines.Clear();
         var accent = WpfQuotaColors.ForRemainingPercent(snapshot.RemainingPercent);

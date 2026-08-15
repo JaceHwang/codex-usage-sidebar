@@ -11,6 +11,7 @@ public sealed class WindowsHostCoordinator
     private readonly IOverlaySurface overlay;
     private readonly Func<DateTimeOffset> now;
     private string? lastBuildIdentity;
+    private DisplayLanguage? lastLanguage;
 
     public WindowsHostCoordinator(
         IHostWindowLocator locator,
@@ -24,14 +25,21 @@ public sealed class WindowsHostCoordinator
         this.now = now ?? (() => DateTimeOffset.Now);
     }
 
+    public ValueTask<HostRuntimeState> ReconcileAsync(
+        AllowanceSnapshot? snapshot,
+        CancellationToken cancellationToken) =>
+        ReconcileAsync(snapshot, DisplayLanguage.SimplifiedChinese, cancellationToken);
+
     public async ValueTask<HostRuntimeState> ReconcileAsync(
         AllowanceSnapshot? snapshot,
+        DisplayLanguage language,
         CancellationToken cancellationToken)
     {
         var host = await locator.FindAsync(cancellationToken).ConfigureAwait(false);
         if (host is null)
         {
             lastBuildIdentity = null;
+            lastLanguage = null;
             await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
             return HostRuntimeState.WaitingForCodex;
         }
@@ -42,6 +50,11 @@ public sealed class WindowsHostCoordinator
             scanner.Invalidate();
         }
         lastBuildIdentity = host.BuildIdentity;
+        if (lastLanguage is not null && lastLanguage != language)
+        {
+            scanner.Invalidate();
+        }
+        lastLanguage = language;
 
         // Foreground detection can transiently return no window while Codex is
         // still visible (for example across shell/tool transitions). The WPF
@@ -73,7 +86,7 @@ public sealed class WindowsHostCoordinator
                 if (titlebar is null)
                 {
                     return await ShowKnownBuildFallbackAsync(
-                        host, snapshot, freshness, cancellationToken).ConfigureAwait(false);
+                        host, snapshot, language, freshness, cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -86,7 +99,7 @@ public sealed class WindowsHostCoordinator
                 if (titlebar is null)
                 {
                     return await ShowKnownBuildFallbackAsync(
-                        host, snapshot, freshness, cancellationToken).ConfigureAwait(false);
+                        host, snapshot, language, freshness, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -110,6 +123,7 @@ public sealed class WindowsHostCoordinator
             new OverlayPresentation(
                 host.Handle,
                 host.DpiScale,
+                language,
                 snapshot,
                 placement.Value,
                 freshness,
@@ -123,6 +137,7 @@ public sealed class WindowsHostCoordinator
     private async ValueTask<HostRuntimeState> ShowKnownBuildFallbackAsync(
         HostWindowSnapshot host,
         AllowanceSnapshot snapshot,
+        DisplayLanguage language,
         SnapshotFreshness freshness,
         CancellationToken cancellationToken)
     {
@@ -154,6 +169,7 @@ public sealed class WindowsHostCoordinator
             new OverlayPresentation(
                 host.Handle,
                 scale,
+                language,
                 snapshot,
                 placement,
                 freshness,
