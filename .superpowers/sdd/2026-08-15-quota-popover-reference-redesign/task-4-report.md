@@ -97,3 +97,16 @@ including the safe current-day-ending fallback. The visual regression asserts
 both `QuotaTokenUsageView.barCount == 7` and seven concrete
 `QuotaTokenUsageBarView` descendants for unavailable data, while retaining the
 unavailable accessibility note.
+
+## Final 4db692a local rebuild and repair
+
+After the unavailable-slot fix commit `4db692a`, the local install payload was
+rebuilt and repaired again from that source revision. The previous
+`f6dc731`-era cachebuster was replaced by
+`0.3.0+codex.20260815142909`. The build script ran a fresh full suite (242
+tests, 0 failures), then produced and signed the release companion.
+
+`sidebar-control.sh repair` installed and loaded the rebuilt application at
+`/Users/byctor/Library/Application Support/CodexUsageSidebar/Codex Usage Sidebar.app`.
+The final status was `pid=40898`, `version=0.3.0`, and
+`runtime=hidden:no-snapshot` with Simplified Chinese process language.
