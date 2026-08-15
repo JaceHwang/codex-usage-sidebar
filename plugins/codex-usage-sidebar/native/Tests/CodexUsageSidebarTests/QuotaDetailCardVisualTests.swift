@@ -337,6 +337,59 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         XCTAssertGreaterThan(material.shadowOpacity(for: .darkAqua), 0)
     }
 
+    func testUnavailableTokenUsageRendersSevenEmptyBarsAndItsUnavailableNote() throws {
+        let content = QuotaDetailFormatter().content(
+            snapshot: AllowanceSnapshot(
+                usedPercent: 68,
+                remainingPercent: 32,
+                resetsAt: now.addingTimeInterval(86_400),
+                receivedAt: now,
+                windowDurationMins: 10_080
+            ),
+            tokenUsage: TokenUsageSnapshot(
+                receivedAt: now,
+                dailyBuckets: [],
+                summary: nil,
+                availability: .unavailable
+            ),
+            now: now,
+            language: .english,
+            timeZone: timeZone
+        )
+        let card = QuotaDetailCardView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: QuotaDetailLayout.width,
+                height: QuotaDetailLayout.maximumHeight
+            ),
+            content: content,
+            rowHeights: Array(
+                repeating: QuotaDetailLayout.rowHeight,
+                count: content.rows.count
+            ),
+            version: "0.3.0",
+            onOpenURL: { _ in }
+        )
+        card.layoutSubtreeIfNeeded()
+
+        let tokenView = try XCTUnwrap(
+            descendants(of: card)
+                .compactMap { $0 as? QuotaTokenUsageView }
+                .first
+        )
+        let bars = descendants(of: tokenView)
+            .compactMap { $0 as? QuotaTokenUsageBarView }
+
+        XCTAssertEqual(tokenView.barCount, 7)
+        XCTAssertEqual(bars.count, 7)
+        XCTAssertEqual(
+            tokenView.accessibilityValue() as? String,
+            "Current-period token usage is unavailable"
+        )
+        XCTAssertTrue(bars.allSatisfy { ($0.accessibilityValue() as? String) == "0" })
+    }
+
     private var languages: [
         (CodexDisplayLanguage, String, String)
     ] {

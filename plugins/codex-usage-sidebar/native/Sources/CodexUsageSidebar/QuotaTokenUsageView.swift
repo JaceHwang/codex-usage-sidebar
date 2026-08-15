@@ -81,9 +81,7 @@ final class QuotaTokenUsageView: NSView {
         note.frame = CGRect(x: 0, y: 0, width: bounds.width, height: 14)
         addSubview(note)
 
-        guard presentation.availability == .available,
-              !displayDays.isEmpty
-        else {
+        guard !displayDays.isEmpty else {
             return
         }
 
@@ -99,15 +97,17 @@ final class QuotaTokenUsageView: NSView {
         )
         addSubview(chart)
 
-        let legend = TokenUsageLegendView(
-            frame: CGRect(x: 0, y: 16, width: bounds.width, height: 16),
-            totalLabel: Self.totalLegend(for: presentation),
-            dailyLabel: Self.dailyLegend(for: presentation),
-            accent: QuotaColorScale.components(
-                remainingPercent: remainingPercent
-            ).appKitColor
-        )
-        addSubview(legend)
+        if presentation.availability == .available {
+            let legend = TokenUsageLegendView(
+                frame: CGRect(x: 0, y: 16, width: bounds.width, height: 16),
+                totalLabel: Self.totalLegend(for: presentation),
+                dailyLabel: Self.dailyLegend(for: presentation),
+                accent: QuotaColorScale.components(
+                    remainingPercent: remainingPercent
+                ).appKitColor
+            )
+            addSubview(legend)
+        }
     }
 
     @available(*, unavailable)
@@ -165,10 +165,9 @@ private final class TokenUsageChartView: NSView {
         let maximum = max(1, days.map(\.tokens).max() ?? 0)
         let columnWidth = bounds.width / CGFloat(max(1, days.count))
         for (index, day) in days.enumerated() {
-            let height = max(
-                4,
-                floor(44 * CGFloat(day.tokens) / CGFloat(maximum))
-            )
+            let height = day.tokens > 0
+                ? max(4, floor(44 * CGFloat(day.tokens) / CGFloat(maximum)))
+                : 0
             let bar = QuotaTokenUsageBarView(
                 frame: CGRect(
                     x: CGFloat(index) * columnWidth,
@@ -239,18 +238,20 @@ final class QuotaTokenUsageBarView: NSView {
             withAttributes: valueAttributes
         )
 
-        let fillColor: NSColor = day.isCurrentDay
-            ? accent
-            : NSColor.secondaryLabelColor.withAlphaComponent(0.38)
-        let barRect = CGRect(
-            x: floor((bounds.width - 16) / 2),
-            y: 18,
-            width: 16,
-            height: min(barHeight, max(4, bounds.height - 42))
-        )
-        let path = NSBezierPath(roundedRect: barRect, xRadius: 3, yRadius: 3)
-        fillColor.setFill()
-        path.fill()
+        if barHeight > 0 {
+            let fillColor: NSColor = day.isCurrentDay
+                ? accent
+                : NSColor.secondaryLabelColor.withAlphaComponent(0.38)
+            let barRect = CGRect(
+                x: floor((bounds.width - 16) / 2),
+                y: 18,
+                width: 16,
+                height: min(barHeight, max(4, bounds.height - 42))
+            )
+            let path = NSBezierPath(roundedRect: barRect, xRadius: 3, yRadius: 3)
+            fillColor.setFill()
+            path.fill()
+        }
 
         let date = day.label as NSString
         let dateAttributes: [NSAttributedString.Key: Any] = [

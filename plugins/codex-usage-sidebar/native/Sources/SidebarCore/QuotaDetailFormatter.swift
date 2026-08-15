@@ -297,6 +297,22 @@ public struct QuotaDetailFormatter: Sendable {
         guard let tokenUsage else {
             return nil
         }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let currentDay = calendar.startOfDay(for: now)
+        let displayDays = TokenUsageWindow.referenceDays(
+            from: tokenUsage,
+            allowance: allowance,
+            now: now,
+            timeZone: timeZone
+        )
+        let placeholderDays = displayDays.map {
+            QuotaTokenUsageDay(
+                label: copy.tokenUsageDayLabel($0.date, timeZone: timeZone),
+                tokens: 0,
+                isCurrentDay: $0.date == currentDay
+            )
+        }
         guard tokenUsage.availability == .available,
               let cycle = TokenUsageWindow.currentCycle(
                   from: tokenUsage,
@@ -309,22 +325,13 @@ public struct QuotaDetailFormatter: Sendable {
                 title: copy.tokenUsageTitle,
                 totalLabel: copy.tokenUsageUnavailable,
                 totalTokens: 0,
-                days: [],
+                days: placeholderDays,
                 delayNote: copy.tokenUsageUnavailable,
                 availability: tokenUsage.availability == .available
                     ? .unavailable : tokenUsage.availability
             )
         }
 
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
-        let currentDay = calendar.startOfDay(for: now)
-        let displayDays = TokenUsageWindow.referenceDays(
-            from: tokenUsage,
-            allowance: allowance,
-            now: now,
-            timeZone: timeZone
-        )
         return QuotaTokenUsagePresentation(
             title: copy.tokenUsageTitle,
             totalLabel: copy.tokenUsageTotal(

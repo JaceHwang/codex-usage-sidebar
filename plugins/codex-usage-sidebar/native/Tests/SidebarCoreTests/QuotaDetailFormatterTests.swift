@@ -426,6 +426,76 @@ final class QuotaDetailFormatterTests: XCTestCase {
         ])
     }
 
+    func testUnavailableTokenUsageKeepsSevenEmptyReferenceSlots() {
+        let now = date(year: 2026, month: 8, day: 15, hour: 20)
+        let content = formatter.content(
+            snapshot: allowance(
+                resetsAt: date(year: 2026, month: 8, day: 20, hour: 19),
+                receivedAt: now,
+                windowDurationMins: 10_080
+            ),
+            tokenUsage: tokenUsage(availability: .unavailable, receivedAt: now),
+            now: now,
+            language: .english,
+            timeZone: timeZone
+        )
+
+        XCTAssertEqual(content.tokenUsage?.availability, .unavailable)
+        XCTAssertEqual(content.tokenUsage?.totalTokens, 0)
+        XCTAssertEqual(content.tokenUsage?.totalLabel, "Current-period token usage is unavailable")
+        XCTAssertEqual(content.tokenUsage?.delayNote, "Current-period token usage is unavailable")
+        XCTAssertEqual(content.tokenUsage?.days.count, 7)
+        XCTAssertEqual(content.tokenUsage?.days.map(\.tokens), Array(repeating: 0, count: 7))
+    }
+
+    func testUnsupportedTokenUsageKeepsSevenEmptyReferenceSlots() {
+        let now = date(year: 2026, month: 8, day: 15, hour: 20)
+        let content = formatter.content(
+            snapshot: allowance(
+                resetsAt: date(year: 2026, month: 8, day: 20, hour: 19),
+                receivedAt: now,
+                windowDurationMins: 10_080
+            ),
+            tokenUsage: tokenUsage(availability: .unsupported, receivedAt: now),
+            now: now,
+            language: .english,
+            timeZone: timeZone
+        )
+
+        XCTAssertEqual(content.tokenUsage?.availability, .unsupported)
+        XCTAssertEqual(content.tokenUsage?.totalTokens, 0)
+        XCTAssertEqual(content.tokenUsage?.totalLabel, "Current-period token usage is unavailable")
+        XCTAssertEqual(content.tokenUsage?.delayNote, "Current-period token usage is unavailable")
+        XCTAssertEqual(content.tokenUsage?.days.count, 7)
+        XCTAssertEqual(content.tokenUsage?.days.map(\.tokens), Array(repeating: 0, count: 7))
+    }
+
+    func testTokenUsageWithoutAValidWindowKeepsSevenCurrentEndingEmptySlots() {
+        let now = date(year: 2026, month: 8, day: 15, hour: 20)
+        let content = formatter.content(
+            snapshot: allowance(
+                resetsAt: date(year: 2026, month: 8, day: 20, hour: 19),
+                receivedAt: now,
+                windowDurationMins: nil
+            ),
+            tokenUsage: tokenUsage(availability: .available, receivedAt: now),
+            now: now,
+            language: .english,
+            timeZone: timeZone
+        )
+
+        XCTAssertEqual(content.tokenUsage?.availability, .unavailable)
+        XCTAssertEqual(content.tokenUsage?.totalTokens, 0)
+        XCTAssertEqual(content.tokenUsage?.totalLabel, "Current-period token usage is unavailable")
+        XCTAssertEqual(content.tokenUsage?.delayNote, "Current-period token usage is unavailable")
+        XCTAssertEqual(content.tokenUsage?.days.map(\.tokens), Array(repeating: 0, count: 7))
+        XCTAssertEqual(content.tokenUsage?.days.map(\.label), [
+            "Aug 9", "Aug 10", "Aug 11", "Aug 12", "Aug 13", "Aug 14", "Aug 15"
+        ])
+        XCTAssertEqual(content.tokenUsage?.days.filter(\.isCurrentDay).count, 1)
+        XCTAssertEqual(content.tokenUsage?.days.last?.isCurrentDay, true)
+    }
+
     private var fullSnapshot: AllowanceSnapshot {
         snapshot(
             bank: BankResetSummary(
@@ -464,6 +534,32 @@ final class QuotaDetailFormatterTests: XCTestCase {
                 balance: "12.50"
             ),
             bank: bank
+        )
+    }
+
+    private func allowance(
+        resetsAt: Date,
+        receivedAt: Date,
+        windowDurationMins: Int?
+    ) -> AllowanceSnapshot {
+        AllowanceSnapshot(
+            usedPercent: 50,
+            remainingPercent: 50,
+            resetsAt: resetsAt,
+            receivedAt: receivedAt,
+            windowDurationMins: windowDurationMins
+        )
+    }
+
+    private func tokenUsage(
+        availability: TokenUsageAvailability,
+        receivedAt: Date
+    ) -> TokenUsageSnapshot {
+        TokenUsageSnapshot(
+            receivedAt: receivedAt,
+            dailyBuckets: [],
+            summary: nil,
+            availability: availability
         )
     }
 

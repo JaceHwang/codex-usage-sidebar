@@ -70,3 +70,30 @@ clicked in this run: opening the live homepage popover, navigating to Settings a
 and activating the live Tibo row. Their implementation is covered by the fresh full suite,
 the focused exact-URL test, and the native fixture evidence above; a human desktop pass can
 complete those final interactions when Codex UI control is available.
+
+## Review follow-up: unavailable token chart slots
+
+The final review found that the unavailable/unsupported and invalid-window
+formatter branches returned `days: []`; the native token view also skipped its
+chart whenever availability was not `.available`. This violated the fixed
+seven-slot reference-chart contract.
+
+The repair preserves availability, unavailable copy, and `totalTokens == 0`,
+but derives seven display dates before the current-cycle guard. Unavailable and
+unsupported snapshots now produce seven zero-token slots from the allowance
+cycle. If the allowance has no valid positive window, `TokenUsageWindow`
+provides a safe seven-day fallback ending at `now`. The view always constructs
+those seven bars; zero values draw no misleading minimum-height filled bar.
+
+TDD evidence:
+
+- RED: formatter and AppKit visual focused suite failed with empty days and
+  zero bar subviews.
+- GREEN focused run: formatter/window/visual suites, 22 tests and 0 failures.
+- Full package: 242 tests and 0 failures; `git diff --check` clean.
+
+New regressions cover unavailable, unsupported, and invalid-window data,
+including the safe current-day-ending fallback. The visual regression asserts
+both `QuotaTokenUsageView.barCount == 7` and seven concrete
+`QuotaTokenUsageBarView` descendants for unavailable data, while retaining the
+unavailable accessibility note.
