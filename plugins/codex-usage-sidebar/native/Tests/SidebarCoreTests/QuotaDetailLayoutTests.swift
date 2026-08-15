@@ -51,7 +51,7 @@ final class QuotaDetailLayoutTests: XCTestCase {
     func testAccountsForWrappedDetailRows() {
         XCTAssertEqual(
             QuotaDetailLayout.contentHeight(rowContentHeight: 210),
-            304
+            346
         )
         let frame = QuotaDetailLayout.frame(
             indicatorFrame: CGRect(x: 100, y: 600, width: 148, height: 46),
@@ -59,7 +59,23 @@ final class QuotaDetailLayoutTests: XCTestCase {
             visibleFrame: CGRect(x: 0, y: 0, width: 900, height: 700)
         )
 
-        XCTAssertEqual(frame.height, 304)
+        XCTAssertEqual(frame.height, 346)
+    }
+
+    func testInformationBandSeparatesProgressLinkAndRows() {
+        let bounds = CGRect(x: 0, y: 0, width: 300, height: 320)
+        let frames = QuotaDetailLayout.informationFrames(in: bounds)
+
+        XCTAssertEqual(
+            frames.control,
+            CGRect(x: 12, y: 214, width: 276, height: 32)
+        )
+        XCTAssertEqual(frames.topDivider.minY, 254)
+        XCTAssertEqual(frames.bottomDivider.minY, 206)
+        XCTAssertLessThan(frames.control.maxY, frames.topDivider.minY)
+        XCTAssertGreaterThan(frames.control.minY, frames.bottomDivider.maxY)
+        XCTAssertLessThan(frames.rowArea.maxY, frames.bottomDivider.minY)
+        XCTAssertEqual(frames.rowArea.maxY, 200)
     }
 
     func testHeaderPlacesCompactVersionBadgeAfterAndAboveTitle() {

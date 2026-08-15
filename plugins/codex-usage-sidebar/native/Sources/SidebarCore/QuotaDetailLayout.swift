@@ -16,9 +16,28 @@ public struct QuotaDetailHeaderFrames: Equatable, Sendable {
     }
 }
 
+public struct QuotaDetailInformationFrames: Equatable, Sendable {
+    public let topDivider: CGRect
+    public let control: CGRect
+    public let bottomDivider: CGRect
+    public let rowArea: CGRect
+
+    public init(
+        topDivider: CGRect,
+        control: CGRect,
+        bottomDivider: CGRect,
+        rowArea: CGRect
+    ) {
+        self.topDivider = topDivider
+        self.control = control
+        self.bottomDivider = bottomDivider
+        self.rowArea = rowArea
+    }
+}
+
 public enum QuotaDetailLayout {
     public static let width: CGFloat = 300
-    public static let headerHeight: CGFloat = 78
+    public static let headerHeight: CGFloat = 120
     public static let rowHeight: CGFloat = 24
     public static let verticalPadding: CGFloat = 16
     public static let maximumHeight: CGFloat = 480
@@ -65,6 +84,41 @@ public enum QuotaDetailLayout {
             title: title,
             versionBadge: versionBadge,
             remaining: remaining
+        )
+    }
+
+    public static func informationFrames(
+        in bounds: CGRect
+    ) -> QuotaDetailInformationFrames {
+        QuotaDetailInformationFrames(
+            topDivider: CGRect(
+                x: bounds.minX,
+                y: bounds.maxY - 66,
+                width: bounds.width,
+                height: 1
+            ),
+            control: CGRect(
+                x: bounds.minX + 12,
+                y: bounds.maxY - 106,
+                width: max(0, bounds.width - 24),
+                height: 32
+            ),
+            bottomDivider: CGRect(
+                x: bounds.minX,
+                y: bounds.maxY - 114,
+                width: bounds.width,
+                height: 1
+            ),
+            rowArea: rowAreaFrame(in: bounds)
+        )
+    }
+
+    public static func rowAreaFrame(in bounds: CGRect) -> CGRect {
+        CGRect(
+            x: bounds.minX,
+            y: bounds.minY + 8,
+            width: bounds.width,
+            height: max(0, bounds.height - headerHeight - 8)
         )
     }
 
