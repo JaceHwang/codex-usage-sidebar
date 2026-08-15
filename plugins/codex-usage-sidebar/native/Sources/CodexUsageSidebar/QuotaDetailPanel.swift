@@ -96,11 +96,12 @@ final class QuotaDetailPanel {
 }
 
 @MainActor
-private final class QuotaDetailCardView: NSView {
+final class QuotaDetailCardView: NSView {
     init(
         frame frameRect: NSRect,
         content: QuotaDetailContent,
         rowHeights: [CGFloat],
+        version: String? = nil,
         onOpenURL: @escaping (URL) -> Void
     ) {
         super.init(frame: frameRect)
@@ -120,10 +121,12 @@ private final class QuotaDetailCardView: NSView {
         )
         title.lineBreakMode = .byTruncatingTail
 
-        let version = Bundle.main.object(
-            forInfoDictionaryKey: "CFBundleShortVersionString"
-        ) as? String ?? "dev"
-        let versionBadge = VersionBadgeView(text: "v\(version)")
+        let displayedVersion = version ?? (
+            Bundle.main.object(
+                forInfoDictionaryKey: "CFBundleShortVersionString"
+            ) as? String ?? "dev"
+        )
+        let versionBadge = VersionBadgeView(text: "v\(displayedVersion)")
 
         let remaining = label(
             "\(content.remainingPercent)%",
@@ -175,19 +178,34 @@ private final class QuotaDetailCardView: NSView {
         addSubview(bottomDivider)
 
         let rowAreaFrame = informationFrames.rowArea
-        let rowDocumentHeight = rowHeights.reduce(0, +)
+        let scrollView = NSScrollView(frame: rowAreaFrame)
+        scrollView.drawsBackground = false
+        scrollView.borderType = .noBorder
+        scrollView.hasHorizontalScroller = false
+        scrollView.hasVerticalScroller = rowHeights.reduce(0, +) > rowAreaFrame.height
+        scrollView.autohidesScrollers = true
+
+        let rowContentWidth = scrollView.contentSize.width
+        let effectiveRowHeights = scrollView.hasVerticalScroller
+            ? QuotaDetailRowMetrics.heights(
+                for: content.rows,
+                cardWidth: rowContentWidth,
+                remainingPercent: content.remainingPercent
+            )
+            : rowHeights
+        let rowDocumentHeight = effectiveRowHeights.reduce(0, +)
         let rowDocument = FlippedView(
             frame: CGRect(
                 x: 0,
                 y: 0,
-                width: rowAreaFrame.width,
+                width: rowContentWidth,
                 height: max(rowAreaFrame.height, rowDocumentHeight)
             )
         )
 
         var rowY: CGFloat = 0
         for (index, row) in content.rows.enumerated() {
-            let rowHeight = rowHeights[index]
+            let rowHeight = effectiveRowHeights[index]
             let isStacked = rowHeight > QuotaDetailLayout.rowHeight
             let rowLabel = label(
                 row.label,
@@ -224,7 +242,7 @@ private final class QuotaDetailCardView: NSView {
                 value.frame = CGRect(
                     x: 12,
                     y: rowY + 21,
-                    width: bounds.width - 24,
+                    width: rowContentWidth - 24,
                     height: valueHeight
                 )
             } else {
@@ -233,7 +251,7 @@ private final class QuotaDetailCardView: NSView {
                 value.frame = CGRect(
                     x: valueX,
                     y: rowY + 3,
-                    width: bounds.width - valueX - 12,
+                    width: rowContentWidth - valueX - 12,
                     height: 18
                 )
             }
@@ -241,12 +259,6 @@ private final class QuotaDetailCardView: NSView {
             rowY += rowHeight
         }
 
-        let scrollView = NSScrollView(frame: rowAreaFrame)
-        scrollView.drawsBackground = false
-        scrollView.borderType = .noBorder
-        scrollView.hasHorizontalScroller = false
-        scrollView.hasVerticalScroller = rowDocumentHeight > rowAreaFrame.height
-        scrollView.autohidesScrollers = true
         scrollView.documentView = rowDocument
         addSubview(scrollView)
     }
