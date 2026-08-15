@@ -20,17 +20,20 @@ public struct QuotaDetailInformationFrames: Equatable, Sendable {
     public let topDivider: CGRect
     public let control: CGRect
     public let bottomDivider: CGRect
+    public let tokenBand: CGRect
     public let rowArea: CGRect
 
     public init(
         topDivider: CGRect,
         control: CGRect,
         bottomDivider: CGRect,
+        tokenBand: CGRect,
         rowArea: CGRect
     ) {
         self.topDivider = topDivider
         self.control = control
         self.bottomDivider = bottomDivider
+        self.tokenBand = tokenBand
         self.rowArea = rowArea
     }
 }
@@ -43,6 +46,10 @@ public enum QuotaDetailLayout {
     public static let maximumHeight: CGFloat = 480
     public static let screenMargin: CGFloat = 8
     public static let controlGap: CGFloat = 8
+    public static let tokenBandHeight: CGFloat = 112
+    public static let tokenBandGap: CGFloat = 8
+    public static let tokenBandReservedHeight: CGFloat =
+        tokenBandHeight + tokenBandGap + 2
 
     public static func titleWidth(
         intrinsicWidth: CGFloat,
@@ -88,9 +95,27 @@ public enum QuotaDetailLayout {
     }
 
     public static func informationFrames(
-        in bounds: CGRect
+        in bounds: CGRect,
+        tokenUsageVisible: Bool = false
     ) -> QuotaDetailInformationFrames {
-        QuotaDetailInformationFrames(
+        let bottomDivider = CGRect(
+            x: bounds.minX,
+            y: bounds.maxY - 114,
+            width: bounds.width,
+            height: 1
+        )
+        let tokenBand: CGRect
+        if tokenUsageVisible {
+            tokenBand = CGRect(
+                x: bounds.minX + 12,
+                y: bottomDivider.minY - tokenBandGap - tokenBandHeight,
+                width: max(0, bounds.width - 24),
+                height: tokenBandHeight
+            )
+        } else {
+            tokenBand = .zero
+        }
+        return QuotaDetailInformationFrames(
             topDivider: CGRect(
                 x: bounds.minX,
                 y: bounds.maxY - 66,
@@ -103,56 +128,75 @@ public enum QuotaDetailLayout {
                 width: max(0, bounds.width - 24),
                 height: 32
             ),
-            bottomDivider: CGRect(
-                x: bounds.minX,
-                y: bounds.maxY - 114,
-                width: bounds.width,
-                height: 1
-            ),
-            rowArea: rowAreaFrame(in: bounds)
+            bottomDivider: bottomDivider,
+            tokenBand: tokenBand,
+            rowArea: rowAreaFrame(
+                in: bounds,
+                tokenUsageVisible: tokenUsageVisible
+            )
         )
     }
 
-    public static func rowAreaFrame(in bounds: CGRect) -> CGRect {
-        CGRect(
+    public static func rowAreaFrame(
+        in bounds: CGRect,
+        tokenUsageVisible: Bool = false
+    ) -> CGRect {
+        let reservedHeight = tokenUsageVisible ? tokenBandReservedHeight : 0
+        return CGRect(
             x: bounds.minX,
             y: bounds.minY + 8,
             width: bounds.width,
-            height: max(0, bounds.height - headerHeight - 8)
+            height: max(0, bounds.height - headerHeight - 8 - reservedHeight)
         )
     }
 
-    public static func contentHeight(rowCount: Int) -> CGFloat {
-        contentHeight(rowContentHeight: CGFloat(max(0, rowCount)) * rowHeight)
+    public static func contentHeight(
+        rowCount: Int,
+        tokenUsageVisible: Bool = false
+    ) -> CGFloat {
+        contentHeight(
+            rowContentHeight: CGFloat(max(0, rowCount)) * rowHeight,
+            tokenUsageVisible: tokenUsageVisible
+        )
     }
 
-    public static func contentHeight(rowContentHeight: CGFloat) -> CGFloat {
+    public static func contentHeight(
+        rowContentHeight: CGFloat,
+        tokenUsageVisible: Bool = false
+    ) -> CGFloat {
         min(
             maximumHeight,
-            headerHeight + verticalPadding + max(0, rowContentHeight)
+            headerHeight + verticalPadding + max(0, rowContentHeight) +
+                (tokenUsageVisible ? tokenBandReservedHeight : 0)
         )
     }
 
     public static func frame(
         indicatorFrame: CGRect,
         rowCount: Int,
-        visibleFrame: CGRect
+        visibleFrame: CGRect,
+        tokenUsageVisible: Bool = false
     ) -> CGRect {
         frame(
             indicatorFrame: indicatorFrame,
             rowContentHeight: CGFloat(max(0, rowCount)) * rowHeight,
-            visibleFrame: visibleFrame
+            visibleFrame: visibleFrame,
+            tokenUsageVisible: tokenUsageVisible
         )
     }
 
     public static func frame(
         indicatorFrame: CGRect,
         rowContentHeight: CGFloat,
-        visibleFrame: CGRect
+        visibleFrame: CGRect,
+        tokenUsageVisible: Bool = false
     ) -> CGRect {
         let availableHeight = max(0, visibleFrame.height - screenMargin * 2)
         let height = min(
-            contentHeight(rowContentHeight: rowContentHeight),
+            contentHeight(
+                rowContentHeight: rowContentHeight,
+                tokenUsageVisible: tokenUsageVisible
+            ),
             availableHeight
         )
         let minimumX = visibleFrame.minX + screenMargin

@@ -22,6 +22,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         for (language, languageName, expectedLinkLabel) in languages {
             let content = QuotaDetailFormatter().content(
                 snapshot: longBankSnapshot,
+                tokenUsage: tokenUsageSnapshot,
                 now: now,
                 language: language,
                 timeZone: timeZone
@@ -31,7 +32,8 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                 count: content.rows.count
             )
             let cardHeight = QuotaDetailLayout.contentHeight(
-                rowContentHeight: rowHeights.reduce(0, +)
+                rowContentHeight: rowHeights.reduce(0, +),
+                tokenUsageVisible: true
             )
 
             for (appearanceName, appearance) in appearances {
@@ -62,13 +64,23 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                 XCTAssertEqual(link.accessibilityLabel(), expectedLinkLabel)
                 XCTAssertEqual(
                     link.frame,
-                    QuotaDetailLayout.informationFrames(in: card.bounds).control
+                    QuotaDetailLayout.informationFrames(
+                        in: card.bounds,
+                        tokenUsageVisible: true
+                    ).control
                 )
+
+                let tokenView = try XCTUnwrap(
+                    descendants(of: card)
+                        .compactMap { $0 as? QuotaTokenUsageView }
+                        .first
+                )
+                XCTAssertEqual(tokenView.barCount, 7)
 
                 let scrollView = try XCTUnwrap(
                     descendants(of: card)
                         .compactMap { $0 as? NSScrollView }
-                        .first
+                        .first { $0.hasVerticalScroller }
                 )
                 XCTAssertTrue(scrollView.hasVerticalScroller)
 
@@ -117,6 +129,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
     func testLongBankRowsStayInsideScrollableViewport() throws {
         let content = QuotaDetailFormatter().content(
             snapshot: longBankSnapshot,
+            tokenUsage: tokenUsageSnapshot,
             now: now,
             language: .english,
             timeZone: timeZone
@@ -142,7 +155,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         let scrollView = try XCTUnwrap(
             descendants(of: card)
                 .compactMap { $0 as? NSScrollView }
-                .first
+                .first { $0.hasVerticalScroller }
         )
         let rowDocument = try XCTUnwrap(scrollView.documentView)
         let rightmostTextEdge = try XCTUnwrap(
@@ -196,7 +209,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         AllowanceSnapshot(
             usedPercent: 68,
             remainingPercent: 32,
-            resetsAt: now.addingTimeInterval(5 * 86_400 + 21 * 3_600),
+            resetsAt: now.addingTimeInterval(86_400),
             receivedAt: now.addingTimeInterval(-20),
             windowDurationMins: 10_080,
             planType: "plus",
@@ -221,6 +234,28 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                     )
                 }
             )
+        )
+    }
+
+    private var tokenUsageSnapshot: TokenUsageSnapshot {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let today = calendar.startOfDay(for: now)
+        return TokenUsageSnapshot(
+            receivedAt: now,
+            dailyBuckets: (0 ..< 7).map { offset in
+                TokenUsageDay(
+                    date: calendar.date(
+                        byAdding: .day,
+                        value: offset - 6,
+                        to: today
+                    )!,
+                    tokens: Int64(80_000 + offset * 40_000),
+                    timeZone: timeZone
+                )
+            },
+            summary: nil,
+            availability: .available
         )
     }
 

@@ -62,20 +62,47 @@ final class QuotaDetailLayoutTests: XCTestCase {
         XCTAssertEqual(frame.height, 346)
     }
 
-    func testInformationBandSeparatesProgressLinkAndRows() {
-        let bounds = CGRect(x: 0, y: 0, width: 300, height: 320)
-        let frames = QuotaDetailLayout.informationFrames(in: bounds)
+    func testInformationBandSeparatesProgressTiboTokenBandAndRows() {
+        let bounds = CGRect(x: 0, y: 0, width: 300, height: 440)
+        let frames = QuotaDetailLayout.informationFrames(
+            in: bounds,
+            tokenUsageVisible: true
+        )
 
         XCTAssertEqual(
             frames.control,
-            CGRect(x: 12, y: 214, width: 276, height: 32)
+            CGRect(x: 12, y: 334, width: 276, height: 32)
         )
-        XCTAssertEqual(frames.topDivider.minY, 254)
-        XCTAssertEqual(frames.bottomDivider.minY, 206)
+        XCTAssertEqual(frames.topDivider.minY, 374)
+        XCTAssertEqual(frames.bottomDivider.minY, 326)
+        XCTAssertEqual(
+            frames.tokenBand,
+            CGRect(x: 12, y: 206, width: 276, height: 112)
+        )
         XCTAssertLessThan(frames.control.maxY, frames.topDivider.minY)
         XCTAssertGreaterThan(frames.control.minY, frames.bottomDivider.maxY)
-        XCTAssertLessThan(frames.rowArea.maxY, frames.bottomDivider.minY)
-        XCTAssertEqual(frames.rowArea.maxY, 200)
+        XCTAssertLessThanOrEqual(frames.tokenBand.maxY, frames.bottomDivider.minY)
+        XCTAssertLessThan(frames.rowArea.maxY, frames.tokenBand.minY)
+        XCTAssertEqual(frames.rowArea.maxY, 198)
+        XCTAssertTrue(bounds.contains(frames.tokenBand))
+        XCTAssertTrue(bounds.contains(frames.rowArea))
+    }
+
+    func testTokenBandAddsFixedHeightWithoutChangingCardWidth() {
+        XCTAssertEqual(
+            QuotaDetailLayout.contentHeight(
+                rowContentHeight: 144,
+                tokenUsageVisible: true
+            ),
+            402
+        )
+        XCTAssertEqual(
+            QuotaDetailLayout.contentHeight(
+                rowContentHeight: 144,
+                tokenUsageVisible: false
+            ),
+            280
+        )
     }
 
     func testHeaderPlacesCompactVersionBadgeAfterAndAboveTitle() {

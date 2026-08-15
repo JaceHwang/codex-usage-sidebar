@@ -69,7 +69,8 @@ final class QuotaDetailPanel {
         let panelFrame = QuotaDetailLayout.frame(
             indicatorFrame: indicatorFrame,
             rowContentHeight: rowHeights.reduce(0, +),
-            visibleFrame: visibleFrame
+            visibleFrame: visibleFrame,
+            tokenUsageVisible: content.tokenUsage != nil
         )
         let appearance = theme.appKitAppearance
         panel.appearance = appearance
@@ -157,7 +158,10 @@ final class QuotaDetailCardView: NSView {
         )
         addSubview(progress)
 
-        let informationFrames = QuotaDetailLayout.informationFrames(in: bounds)
+        let informationFrames = QuotaDetailLayout.informationFrames(
+            in: bounds,
+            tokenUsageVisible: content.tokenUsage != nil
+        )
         let topDivider = NSBox(
             frame: informationFrames.topDivider
         )
@@ -176,6 +180,15 @@ final class QuotaDetailCardView: NSView {
         )
         bottomDivider.boxType = .separator
         addSubview(bottomDivider)
+
+        if let tokenUsage = content.tokenUsage {
+            let tokenUsageView = QuotaTokenUsageView(
+                frame: informationFrames.tokenBand,
+                presentation: tokenUsage,
+                remainingPercent: content.remainingPercent
+            )
+            addSubview(tokenUsageView)
+        }
 
         let rowAreaFrame = informationFrames.rowArea
         let scrollView = NSScrollView(frame: rowAreaFrame)
