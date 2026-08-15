@@ -311,7 +311,8 @@ bash plugins/codex-usage-sidebar/tests/test-sidebar-control.sh
 bash plugins/codex-usage-sidebar/tests/test-signing-identity.sh
 bash plugins/codex-usage-sidebar/tests/test-bundle-version.sh
 bash plugins/codex-usage-sidebar/tests/live-app-server-probe.sh
-uv run --with PyYAML python /Users/byctor/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py plugins/codex-usage-sidebar
+plugin_creator_skill="${CODEX_HOME:-${HOME}/.codex}/skills/.system/plugin-creator"
+uv run --with PyYAML python "$plugin_creator_skill/scripts/validate_plugin.py" plugins/codex-usage-sidebar
 CUS_REBUILT_PAYLOAD=1 bash scripts/validate-public-repo.sh
 git diff --check
 ```
@@ -319,7 +320,8 @@ git diff --check
 - [ ] **Step 3: Rebuild and reinstall the worktree payload**
 
 ```bash
-python3 /Users/byctor/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py plugins/codex-usage-sidebar
+plugin_creator_skill="${CODEX_HOME:-${HOME}/.codex}/skills/.system/plugin-creator"
+python3 "$plugin_creator_skill/scripts/update_plugin_cachebuster.py" plugins/codex-usage-sidebar
 bash plugins/codex-usage-sidebar/scripts/build-companion.sh
 bash plugins/codex-usage-sidebar/scripts/sidebar-control.sh repair \
   --plugin-root "$PWD/plugins/codex-usage-sidebar"
