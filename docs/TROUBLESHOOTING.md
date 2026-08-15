@@ -1,5 +1,24 @@
 # Troubleshooting
 
+## Windows v0.3.0 setup and runtime
+
+### SmartScreen shows Unknown publisher
+
+The Windows x64 setup is intentionally unsigned. Verify the SHA-256 against
+`WINDOWS-V030-SHA256SUMS.txt` first. If it matches, **Unknown publisher** is expected: select
+**More info**, then **Run anyway**. If it does not match, do not run the setup; download it again
+from the v0.3.0 release. Never disable Defender, SmartScreen, antivirus, or system policy.
+
+### The overlay is hidden after a Codex upgrade
+
+For an unknown Codex build, a hidden overlay is safe behavior. Collect only a default-redacted
+probe; do not force the overlay to attach. The approved fallback requires the official Codex host,
+a valid quota, and known build `151.0.7922.76`. `runtime=unavailable` means no approved runtime
+was found, `runtime=stopped` means the approved runtime is installed but not running, and
+`runtime=running` means it is active.
+
+Windows 用户如果看到“未知发布者”，只有在 SHA-256 匹配后才选择“更多信息”和“仍要运行”；不匹配时不要运行文件。
+
 ## No quota control appears
 
 1. Open Codex desktop and bring its main window to the foreground.

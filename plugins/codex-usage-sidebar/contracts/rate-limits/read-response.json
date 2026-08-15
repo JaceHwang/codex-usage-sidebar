@@ -1,0 +1,38 @@
+{
+  "id": 2,
+  "result": {
+    "rateLimits": {
+      "limitId": "codex",
+      "planType": "plus",
+      "primary": {
+        "usedPercent": 24,
+        "windowDurationMins": 10080,
+        "resetsAt": 1785628824
+      },
+      "credits": {
+        "hasCredits": true,
+        "unlimited": false,
+        "balance": "12.50"
+      }
+    },
+    "rateLimitResetCredits": {
+      "availableCount": 2,
+      "credits": [
+        {
+          "status": "available",
+          "grantedAt": 1785000000,
+          "expiresAt": 1785900000,
+          "title": "Reset credit 1",
+          "description": "Sanitized contract fixture"
+        },
+        {
+          "status": "available",
+          "grantedAt": 1785100000,
+          "expiresAt": 1786000000,
+          "title": "Reset credit 2",
+          "description": "Sanitized contract fixture"
+        }
+      ]
+    }
+  }
+}

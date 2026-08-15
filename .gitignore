@@ -4,3 +4,5 @@
 .worktrees/
 plugins/codex-usage-sidebar/native/.build/
 *.xcresult
+**/bin/
+**/obj/

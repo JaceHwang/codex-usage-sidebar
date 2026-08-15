@@ -17,6 +17,7 @@ jobs:
     timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer
+      FROZEN_V023_INSTALLER_SOURCE_COMMIT: a72b4636ddf99fa4c1d4660b3e281376be361711
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -81,6 +82,7 @@ jobs:
         run: (cd .dist && shasum -a 256 -c INSTALLER-SHA256SUMS.txt)
 
       - name: Upload tested release payload
+        if: github.sha == env.FROZEN_V023_INSTALLER_SOURCE_COMMIT
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: codex-usage-sidebar-release
@@ -91,6 +93,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload tested installer payload
+        if: github.sha == env.FROZEN_V023_INSTALLER_SOURCE_COMMIT
         id: upload_installer
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -102,6 +105,7 @@ jobs:
           if-no-files-found: error
 
       - name: Verify installer artifact identity is available
+        if: github.sha == env.FROZEN_V023_INSTALLER_SOURCE_COMMIT
         env:
           ARTIFACT_ID: ${{ steps.upload_installer.outputs.artifact-id }}
           ARTIFACT_DIGEST: ${{ steps.upload_installer.outputs.artifact-digest }}

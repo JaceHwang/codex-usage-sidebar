@@ -3,6 +3,27 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-08-13
+
+### Added
+
+- Add a Windows 11 x64 WPF overlay, localized installer UI, strict UI Automation selectors, and
+  fail-hidden placement for unknown Codex structures.
+- Add separate Windows x64 and macOS arm64 v0.3.0 release-candidate pipelines with provenance and
+  real-device evidence gates.
+
+### Changed
+
+- Place the Windows indicator beside the active task's Open Location control and track window
+  movement, resize, DPI, language, layout, and theme changes.
+- Match macOS countdown typography, fixed quota spectrum, and compact version badge styling.
+
+### Security
+
+- Bind Windows payload files, the official Codex runtime, device evidence, source commit, and
+  packaging commit before a setup candidate can become publishable.
+- Keep Windows ARM64 out of scope and preserve all published macOS v0.2.3 assets unchanged.
+
 ## [0.2.3] - 2026-08-10
 
 ### Fixed
@@ -204,3 +225,4 @@ All notable changes to this project are documented here. The project follows
 [0.2.1]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.2.1
 [0.2.2]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.2.2
 [0.2.3]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.2.3
+[0.3.0]: https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.0

@@ -1,0 +1,98 @@
+using CodexUsageSidebar.Core;
+
+namespace CodexUsageSidebar.Windows;
+
+public sealed record HostWindowSnapshot(
+    IntPtr Handle,
+    RectD Bounds,
+    bool IsForeground,
+    double DpiScale,
+    string BuildIdentity);
+
+public readonly record struct PointD(double X, double Y);
+
+public static class OverlayPointerPolicy
+{
+    public static bool IsInside(PointD point, RectD bounds) =>
+        double.IsFinite(point.X)
+        && double.IsFinite(point.Y)
+        && double.IsFinite(bounds.X)
+        && double.IsFinite(bounds.Y)
+        && double.IsFinite(bounds.Width)
+        && double.IsFinite(bounds.Height)
+        && bounds.Width > 0
+        && bounds.Height > 0
+        && point.X >= bounds.X
+        && point.X < bounds.Right
+        && point.Y >= bounds.Y
+        && point.Y < bounds.Bottom;
+}
+
+public enum OverlayThemeKind { Light, Dark, HighContrast }
+
+public static class OverlayThemePolicy
+{
+    public static OverlayThemeKind Resolve(byte red, byte green, byte blue, bool highContrast)
+    {
+        if (highContrast) return OverlayThemeKind.HighContrast;
+        var luminance = ((0.2126 * red) + (0.7152 * green) + (0.0722 * blue)) / 255;
+        return luminance < 0.5 ? OverlayThemeKind.Dark : OverlayThemeKind.Light;
+    }
+}
+
+public sealed record TitlebarSnapshot(
+    double PreferredAnchorTrailingEdge,
+    IReadOnlyList<RectD> Obstacles,
+    RectD ToolbarBounds = default,
+    RectD OpenLocationBounds = default,
+    RectD TitleBounds = default,
+    RectD RightToolbarBounds = default,
+    IReadOnlyList<RectD>? ValidatedRightObstacles = null)
+{
+    public IReadOnlyList<RectD> RightObstacles =>
+        ValidatedRightObstacles ?? Array.Empty<RectD>();
+}
+
+public sealed record OverlayPresentation(
+    IntPtr OwnerHandle,
+    double DpiScale,
+    AllowanceSnapshot Snapshot,
+    PlacementResult Placement,
+    SnapshotFreshness Freshness,
+    PointD ThemeProbePoint);
+
+public enum HostRuntimeState
+{
+    WaitingForCodex,
+    DeviceValidationRequired,
+    Hidden,
+    Visible,
+}
+
+public sealed class WindowsDeviceValidationRequiredException : Exception
+{
+    public WindowsDeviceValidationRequiredException(string buildIdentity)
+        : base($"Windows UI Automation selectors are not validated for Codex build {buildIdentity}.") =>
+        BuildIdentity = buildIdentity;
+
+    public string BuildIdentity { get; }
+}
+
+public interface IHostWindowLocator
+{
+    ValueTask<HostWindowSnapshot?> FindAsync(CancellationToken cancellationToken);
+}
+
+public interface ITitlebarScanner
+{
+    TitlebarSnapshot? TryGetCurrent(HostWindowSnapshot host) => null;
+    TitlebarSnapshot? TryGetRetained(HostWindowSnapshot host) => null;
+    ValueTask<TitlebarSnapshot> ScanAsync(HostWindowSnapshot host, CancellationToken cancellationToken);
+    void Invalidate();
+}
+
+public interface IOverlaySurface
+{
+    ValueTask ShowAsync(OverlayPresentation presentation, CancellationToken cancellationToken);
+    ValueTask HideAsync(CancellationToken cancellationToken);
+}

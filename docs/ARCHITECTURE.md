@@ -12,6 +12,24 @@
 4. **SidebarCore** contains pure rate-limit decoding, formatting, color, layout, transport, and
    anchor-resolution logic covered by Swift tests.
 
+The v0.3.0 beta adds a parallel Windows implementation without renaming or replacing the stable
+Mac tree. Sanitized `contracts/` fixtures are decoded by both Swift and .NET tests. The Windows
+solution separates a portable core, host boundary, control probe, and installer backend. Real UIA
+selectors are not accepted until captured and verified on a Windows Codex device.
+
+```text
+plugins/codex-usage-sidebar/
+├── contracts/                  # shared app-server and placement fixtures
+├── native/                     # stable macOS Swift/AppKit implementation
+└── windows/
+    ├── src/
+    │   ├── CodexUsageSidebar.Core/
+    │   ├── CodexUsageSidebar.Windows/
+    │   ├── CodexUsageSidebar.Control/
+    │   └── CodexUsageSidebar.Installer/
+    └── tests/
+```
+
 ## Data flow
 
 ```text
