@@ -102,7 +102,7 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
             throw new WindowsDeviceValidationRequiredException(host.BuildIdentity);
         }
 
-        var nodes = QueryValidatedStructure(root, host.DpiScale, cancellationToken);
+        var nodes = QueryValidatedStructure(root, host.Bounds, host.DpiScale, cancellationToken);
         var snapshot = CodexTitlebarSelector.TryResolve(
             host.BuildIdentity,
             host.DpiScale,
@@ -113,6 +113,7 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
 
     private static IReadOnlyList<UiaStructureNode> QueryValidatedStructure(
         AutomationElement root,
+        RectD hostBounds,
         double dpiScale,
         CancellationToken cancellationToken)
     {
@@ -125,8 +126,8 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
             AddDirectChildren(container, 4, nodes, cancellationToken);
         }
 
-        var openLocationButtons = root.FindAll(TreeScope.Descendants, OpenLocationCondition);
-        foreach (AutomationElement openLocation in openLocationButtons)
+        var openLocationButtons = DiscoverOpenLocationSeeds(root, hostBounds, dpiScale, cancellationToken);
+        foreach (var openLocation in openLocationButtons)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var contentGroup = TryGetParent(openLocation);
@@ -146,6 +147,114 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         return nodes;
     }
 
+    private static IReadOnlyList<AutomationElement> DiscoverOpenLocationSeeds(
+        AutomationElement root,
+        RectD hostBounds,
+        double dpiScale,
+        CancellationToken cancellationToken)
+    {
+        var seeds = new List<AutomationElement>();
+        var seen = new HashSet<OpenLocationSeedIdentity>();
+        AddOpenLocationSeeds(root.FindAll(TreeScope.Descendants, OpenLocationCondition), seeds, seen);
+
+        AutomationElementCollection buttons;
+        try
+        {
+            buttons = root.FindAll(TreeScope.Descendants, ButtonCondition);
+        }
+        catch (ElementNotAvailableException)
+        {
+            return seeds;
+        }
+        if (buttons.Count > MaximumCandidateButtons)
+        {
+            return seeds;
+        }
+
+        foreach (AutomationElement button in buttons)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            RectD bounds;
+            string controlType;
+            string className;
+            try
+            {
+                var current = button.Current;
+                var rectangle = current.BoundingRectangle;
+                bounds = new RectD(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
+                controlType = current.ControlType?.ProgrammaticName ?? string.Empty;
+                className = current.ClassName ?? string.Empty;
+            }
+            catch (ElementNotAvailableException)
+            {
+                continue;
+            }
+
+            if (!OpenLocationSeedCandidatePolicy.IsCandidate(
+                controlType,
+                className,
+                bounds,
+                hostBounds,
+                dpiScale))
+            {
+                continue;
+            }
+            AddOpenLocationSeed(button, bounds, className, seeds, seen);
+        }
+
+        return seeds;
+    }
+
+    private static void AddOpenLocationSeeds(
+        AutomationElementCollection candidates,
+        List<AutomationElement> seeds,
+        HashSet<OpenLocationSeedIdentity> seen)
+    {
+        foreach (AutomationElement candidate in candidates)
+        {
+            RectD bounds;
+            string className;
+            try
+            {
+                var current = candidate.Current;
+                var rectangle = current.BoundingRectangle;
+                bounds = new RectD(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
+                className = current.ClassName ?? string.Empty;
+            }
+            catch (ElementNotAvailableException)
+            {
+                continue;
+            }
+            AddOpenLocationSeed(candidate, bounds, className, seeds, seen);
+        }
+    }
+
+    private static void AddOpenLocationSeed(
+        AutomationElement candidate,
+        RectD bounds,
+        string className,
+        List<AutomationElement> seeds,
+        HashSet<OpenLocationSeedIdentity> seen)
+    {
+        var identity = new OpenLocationSeedIdentity(
+            bounds.X,
+            bounds.Y,
+            bounds.Width,
+            bounds.Height,
+            className);
+        if (seen.Add(identity))
+        {
+            seeds.Add(candidate);
+        }
+    }
+
+    private readonly record struct OpenLocationSeedIdentity(
+        double X,
+        double Y,
+        double Width,
+        double Height,
+        string ClassName);
+
     private static void AddTitleChildren(
         AutomationElement contentGroup,
         List<UiaStructureNode> nodes,
@@ -162,7 +271,7 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
 
     private static void AddRightPaneStructures(
         AutomationElement root,
-        AutomationElementCollection openLocationButtons,
+        IReadOnlyList<AutomationElement> openLocationButtons,
         double dpiScale,
         List<UiaStructureNode> nodes,
         CancellationToken cancellationToken)

@@ -135,6 +135,41 @@ public sealed class CodexTitlebarSelectorTests
     }
 
     [TestMethod]
+    public void OpenLocationSeedDiscoveryAcceptsTheStructuredSplitButtonWhenTheLocalizedNameIsUnmapped()
+    {
+        var fixture = LoadFixture();
+        var openLocation = fixture.Nodes.Single(node => node.SemanticRole == UiaSemanticRoles.OpenLocation);
+        var localized = openLocation with
+        {
+            SemanticRole = UiaSemanticRoles.None,
+            NameLength = 7,
+        };
+        var titleButton = fixture.Nodes.First(node =>
+            node.ControlType == "ControlType.Button"
+            && node.ClassName.Contains("h-token-button-composer", StringComparison.Ordinal)
+            && node.ClassName.Contains("aspect-square", StringComparison.Ordinal));
+
+        Assert.IsTrue(OpenLocationSeedCandidatePolicy.IsCandidate(
+            localized.ControlType,
+            localized.ClassName,
+            localized.Bounds,
+            fixture.HostBounds,
+            fixture.DpiScale));
+        Assert.IsFalse(OpenLocationSeedCandidatePolicy.IsCandidate(
+            titleButton.ControlType,
+            titleButton.ClassName,
+            titleButton.Bounds,
+            fixture.HostBounds,
+            fixture.DpiScale));
+        Assert.IsFalse(OpenLocationSeedCandidatePolicy.IsCandidate(
+            localized.ControlType,
+            localized.ClassName,
+            localized.Bounds with { Y = 500 },
+            fixture.HostBounds,
+            fixture.DpiScale));
+    }
+
+    [TestMethod]
     public void RejectsUnknownBuilds()
     {
         var fixture = LoadFixture();

@@ -31,6 +31,44 @@ public static class RightToolbarCandidatePolicy
         && Math.Abs(candidateBounds.Height - openLocationBounds.Height) <= 2 * dpiScale;
 }
 
+public static class OpenLocationSeedCandidatePolicy
+{
+    public static bool IsCandidate(
+        string controlType,
+        string className,
+        RectD candidateBounds,
+        RectD hostBounds,
+        double dpiScale) =>
+        controlType == "ControlType.Button"
+        && className.Contains("h-token-button-composer", StringComparison.Ordinal)
+        && className.Contains("rounded-e-none", StringComparison.Ordinal)
+        && !className.Contains("rounded-s-none", StringComparison.Ordinal)
+        && IsUsable(candidateBounds)
+        && IsUsable(hostBounds)
+        && double.IsFinite(dpiScale)
+        && dpiScale > 0
+        && Contains(hostBounds, candidateBounds)
+        && candidateBounds.Y <= hostBounds.Y + (90 * dpiScale)
+        && candidateBounds.Height >= 20 * dpiScale
+        && candidateBounds.Height <= 36 * dpiScale
+        && candidateBounds.Width >= 20 * dpiScale
+        && candidateBounds.Width <= 140 * dpiScale;
+
+    private static bool Contains(RectD container, RectD child) =>
+        child.X >= container.X
+        && child.Y >= container.Y
+        && child.Right <= container.Right
+        && child.Bottom <= container.Bottom;
+
+    private static bool IsUsable(RectD bounds) =>
+        double.IsFinite(bounds.X)
+        && double.IsFinite(bounds.Y)
+        && double.IsFinite(bounds.Width)
+        && double.IsFinite(bounds.Height)
+        && bounds.Width > 0
+        && bounds.Height > 0;
+}
+
 public static class CodexTitlebarSelector
 {
     private const string ValidatedBuildIdentity = "151.0.7922.76";
