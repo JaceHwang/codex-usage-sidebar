@@ -111,6 +111,34 @@ public enum ContentHeaderAnchorResolver {
             && frame.minX <= windowFrame.maxX
     }
 
+    /// Settings replaces the conversation surface with a separate page that
+    /// exposes a compact back-navigation button in the upper-left content
+    /// area. That button is the stable, localized signal that the quota
+    /// indicator should be hidden until the user returns to a conversation.
+    public static func isSettingsNavigationControl(
+        _ control: ContentHeaderControl,
+        windowFrame: CGRect
+    ) -> Bool {
+        let frame = control.frame
+        guard
+            frame.width > 0,
+            frame.width <= 320,
+            frame.height > 0,
+            frame.height <= 64,
+            frame.minX <= windowFrame.minX + windowFrame.width * 0.35,
+            frame.maxY >= windowFrame.maxY - 120,
+            frame.minY <= windowFrame.maxY
+        else {
+            return false
+        }
+
+        let labels = control.labels.map(normalizedLabel)
+        return labels.contains("返回应用")
+            || labels.contains("返回應用")
+            || labels.contains("back to app")
+            || (frame.width >= 100 && labels.contains("返回"))
+    }
+
     public static func stabilized(
         scanned: ContentHeaderAnchor,
         cached: ContentHeaderAnchor?

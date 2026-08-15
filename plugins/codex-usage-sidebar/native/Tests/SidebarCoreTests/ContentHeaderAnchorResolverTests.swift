@@ -20,6 +20,72 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
         XCTAssertEqual(anchor.source, .openLocation)
     }
 
+    func testRecognizesSettingsBackNavigationAtTheTopLeft() {
+        let settingsBack = ContentHeaderControl(
+            frame: CGRect(x: 80, y: 1_000, width: 224, height: 31),
+            labels: ["返回"]
+        )
+
+        XCTAssertTrue(
+            ContentHeaderAnchorResolver.isSettingsNavigationControl(
+                settingsBack,
+                windowFrame: window
+            )
+        )
+    }
+
+    func testRecognizesLocalizedSettingsBackNavigationLabels() {
+        let traditionalSettingsBack = ContentHeaderControl(
+            frame: CGRect(x: 80, y: 1_000, width: 224, height: 31),
+            labels: ["返回應用"]
+        )
+        let englishSettingsBack = ContentHeaderControl(
+            frame: CGRect(x: 80, y: 1_000, width: 224, height: 31),
+            labels: ["Back to app"]
+        )
+
+        XCTAssertTrue(
+            ContentHeaderAnchorResolver.isSettingsNavigationControl(
+                traditionalSettingsBack,
+                windowFrame: window
+            )
+        )
+        XCTAssertTrue(
+            ContentHeaderAnchorResolver.isSettingsNavigationControl(
+                englishSettingsBack,
+                windowFrame: window
+            )
+        )
+    }
+
+    func testDoesNotTreatConversationBackContentAsSettingsNavigation() {
+        let conversationBack = ContentHeaderControl(
+            frame: CGRect(x: 192, y: 600, width: 28, height: 28),
+            labels: ["返回"]
+        )
+
+        XCTAssertFalse(
+            ContentHeaderAnchorResolver.isSettingsNavigationControl(
+                conversationBack,
+                windowFrame: window
+            )
+        )
+    }
+
+    func testDoesNotTreatCompactToolbarBackButtonAsSettingsNavigation() {
+        let toolbarBack = ContentHeaderControl(
+            frame: CGRect(x: 218, y: 1_012, width: 28, height: 28),
+            labels: ["返回"]
+        )
+
+        XCTAssertFalse(
+            ContentHeaderAnchorResolver.isSettingsNavigationControl(
+                toolbarBack,
+                windowFrame: window
+            )
+        )
+    }
+
     func testRetainsCachedOpenLocationAcrossTransientFallback() {
         let cached = ContentHeaderAnchor(
             trailingEdge: 1_696,

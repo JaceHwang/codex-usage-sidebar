@@ -22,6 +22,7 @@ final class ContentHeaderLocator {
     private let maximumScanPasses = 4
     private let cacheLifetime: TimeInterval = 0.75
     private var cachedAnchor: CachedAnchor?
+    private(set) var isSettingsPage = false
     private(set) var latestDiagnosticDetail = "anchor_scan=not-run"
 
     func resolve(
@@ -29,6 +30,7 @@ final class ContentHeaderLocator {
         windowFrame: CGRect
     ) -> ContentHeaderAnchor {
         guard AXIsProcessTrusted() else {
+            isSettingsPage = false
             latestDiagnosticDetail = "anchor_scan=accessibility-required"
             return ContentHeaderAnchor(trailingEdge: nil, source: .fallback)
         }
@@ -39,9 +41,15 @@ final class ContentHeaderLocator {
             for: application,
             matching: windowFrame
         ) else {
+            isSettingsPage = false
             latestDiagnosticDetail = "anchor_scan=window-unavailable"
             return ContentHeaderAnchor(trailingEdge: nil, source: .fallback)
         }
+
+        isSettingsPage = detectSettingsPage(
+            in: window,
+            windowFrame: windowFrame
+        )
 
         let retainedAnchor = retainedAnchor(
             processIdentifier: processIdentifier,
@@ -115,9 +123,58 @@ final class ContentHeaderLocator {
             "controls:\(scan.controls.count),panes:\(scan.panes.count)," +
             "passes:\(scanPasses),minimumX:\(Int(scanMinimumX))," +
             "cached:\(usedCachedAnchor),source:\(anchor.source.rawValue),edge:\(edge)," +
+            "page=\(isSettingsPage ? "settings" : "conversation")," +
             "window:\(Int(windowFrame.minX)),\(Int(windowFrame.minY))," +
             "\(Int(windowFrame.width)),\(Int(windowFrame.height))"
         return anchor
+    }
+
+    private func detectSettingsPage(
+        in window: AXUIElement,
+        windowFrame: CGRect
+    ) -> Bool {
+        var stack = children(of: window).reversed().map {
+            QueueEntry(element: $0, depth: 1)
+        }
+        var visited = 0
+
+        while let entry = stack.popLast(), visited < maximumElements {
+            visited += 1
+
+            if
+                let role: String = attribute(
+                    entry.element,
+                    name: kAXRoleAttribute as CFString
+                ),
+                (
+                    role == "AXButton"
+                        || role == "AXLink"
+                        || role == "AXStaticText"
+                ),
+                let topLeftFrame = frame(of: entry.element)
+            {
+                let appKitFrame = appKitFrame(fromTopLeftFrame: topLeftFrame)
+                if let control = control(
+                    for: entry.element,
+                    appKitFrame: appKitFrame
+                ),
+                    ContentHeaderAnchorResolver.isSettingsNavigationControl(
+                        control,
+                        windowFrame: windowFrame
+                    )
+                {
+                    return true
+                }
+            }
+
+            guard entry.depth < maximumDepth else {
+                continue
+            }
+            stack.append(contentsOf: children(of: entry.element).reversed().map {
+                QueueEntry(element: $0, depth: entry.depth + 1)
+            })
+        }
+        return false
     }
 
     private func scanLayout(

@@ -152,6 +152,11 @@ final class RuntimeCoordinator: NSObject {
             for: processIdentifier,
             windowFrame: windowFrame
         )
+        guard !contentHeader.isSettingsPage else {
+            recordDiagnosticState("hidden:settings")
+            hideOverlay()
+            return
+        }
         let indicatorFrame = OverlayLayout.indicatorFrame(
             in: windowFrame,
             contentTrailingEdge: anchor.trailingEdge
@@ -240,6 +245,10 @@ final class RuntimeCoordinator: NSObject {
             for: processIdentifier,
             windowFrame: windowFrame
         )
+        guard !contentHeader.isSettingsPage else {
+            hideOverlay()
+            return
+        }
         guard anchor.trailingEdge != nil else {
             return
         }
