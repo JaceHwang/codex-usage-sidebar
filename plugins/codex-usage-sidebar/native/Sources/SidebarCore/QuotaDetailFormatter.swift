@@ -10,23 +10,45 @@ public struct QuotaDetailRow: Equatable, Sendable {
     }
 }
 
+public struct QuotaInformationEntry: Equatable, Sendable {
+    public let title: String
+    public let accessibilityLabel: String
+    public let destination: URL
+
+    public init(
+        title: String,
+        accessibilityLabel: String,
+        destination: URL
+    ) {
+        self.title = title
+        self.accessibilityLabel = accessibilityLabel
+        self.destination = destination
+    }
+}
+
 public struct QuotaDetailContent: Equatable, Sendable {
     public let title: String
     public let remainingPercent: Int
+    public let informationEntry: QuotaInformationEntry
     public let rows: [QuotaDetailRow]
 
     public init(
         title: String,
         remainingPercent: Int,
+        informationEntry: QuotaInformationEntry,
         rows: [QuotaDetailRow]
     ) {
         self.title = title
         self.remainingPercent = remainingPercent
+        self.informationEntry = informationEntry
         self.rows = rows
     }
 }
 
 public struct QuotaDetailFormatter: Sendable {
+    private static let tiboProfileURL = URL(
+        string: "https://x.com/thsottiaux"
+    )!
     private let relativeIntervalFormatter = RelativeIntervalFormatter()
 
     public init() {}
@@ -127,6 +149,11 @@ public struct QuotaDetailFormatter: Sendable {
         return QuotaDetailContent(
             title: copy.title,
             remainingPercent: snapshot.remainingPercent,
+            informationEntry: QuotaInformationEntry(
+                title: copy.tiboXTitle,
+                accessibilityLabel: copy.tiboXAccessibilityLabel,
+                destination: Self.tiboProfileURL
+            ),
             rows: rows
         )
     }

@@ -82,6 +82,22 @@ public struct QuotaLocalization: Sendable {
         }
     }
 
+    public var tiboXTitle: String {
+        switch language {
+        case .simplifiedChinese: "Tibo 的 X 动态"
+        case .traditionalChinese: "Tibo 的 X 動態"
+        case .english: "Tibo on X"
+        }
+    }
+
+    public var tiboXAccessibilityLabel: String {
+        switch language {
+        case .simplifiedChinese: "在浏览器中打开 Tibo 的 X 主页"
+        case .traditionalChinese: "在瀏覽器中開啟 Tibo 的 X 主頁"
+        case .english: "Open Tibo's X profile in the browser"
+        }
+    }
+
     public var noData: String {
         switch language {
         case .simplifiedChinese: "暂无数据"

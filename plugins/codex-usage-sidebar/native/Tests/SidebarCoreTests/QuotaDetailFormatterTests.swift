@@ -16,6 +16,15 @@ final class QuotaDetailFormatterTests: XCTestCase {
         )
 
         XCTAssertEqual(content.remainingPercent, 76)
+        XCTAssertEqual(content.informationEntry.title, "Tibo 的 X 动态")
+        XCTAssertEqual(
+            content.informationEntry.accessibilityLabel,
+            "在浏览器中打开 Tibo 的 X 主页"
+        )
+        XCTAssertEqual(
+            content.informationEntry.destination.absoluteString,
+            "https://x.com/thsottiaux"
+        )
         XCTAssertTrue(
             content.rows.contains(.init(label: "Bank 可用重置", value: "2 次"))
         )
@@ -191,6 +200,15 @@ final class QuotaDetailFormatterTests: XCTestCase {
         )
 
         XCTAssertEqual(content.title, "Codex quota")
+        XCTAssertEqual(content.informationEntry.title, "Tibo on X")
+        XCTAssertEqual(
+            content.informationEntry.accessibilityLabel,
+            "Open Tibo's X profile in the browser"
+        )
+        XCTAssertEqual(
+            content.informationEntry.destination.absoluteString,
+            "https://x.com/thsottiaux"
+        )
         XCTAssertTrue(content.rows.contains(.init(label: "Plan", value: "Plus")))
         XCTAssertTrue(
             content.rows.contains(.init(label: "Quota window", value: "7 days"))
@@ -224,6 +242,11 @@ final class QuotaDetailFormatterTests: XCTestCase {
         )
 
         XCTAssertEqual(content.title, "Codex 剩餘額度")
+        XCTAssertEqual(content.informationEntry.title, "Tibo 的 X 動態")
+        XCTAssertEqual(
+            content.informationEntry.accessibilityLabel,
+            "在瀏覽器中開啟 Tibo 的 X 主頁"
+        )
         XCTAssertTrue(content.rows.contains(.init(label: "方案", value: "Plus")))
         XCTAssertTrue(content.rows.contains(.init(label: "額度週期", value: "7 天")))
         XCTAssertTrue(

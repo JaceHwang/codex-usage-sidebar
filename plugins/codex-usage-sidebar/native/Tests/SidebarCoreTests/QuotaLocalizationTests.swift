@@ -14,6 +14,11 @@ final class QuotaLocalizationTests: XCTestCase {
         XCTAssertEqual(copy.bankDetails, "Bank 明细")
         XCTAssertEqual(copy.updated, "数据更新")
         XCTAssertEqual(copy.noData, "暂无数据")
+        XCTAssertEqual(copy.tiboXTitle, "Tibo 的 X 动态")
+        XCTAssertEqual(
+            copy.tiboXAccessibilityLabel,
+            "在浏览器中打开 Tibo 的 X 主页"
+        )
         XCTAssertEqual(copy.locale.identifier, "zh_CN")
     }
 
@@ -29,6 +34,11 @@ final class QuotaLocalizationTests: XCTestCase {
         XCTAssertEqual(copy.bankDetails, "Bank 詳情")
         XCTAssertEqual(copy.updated, "資料更新")
         XCTAssertEqual(copy.noData, "暫無資料")
+        XCTAssertEqual(copy.tiboXTitle, "Tibo 的 X 動態")
+        XCTAssertEqual(
+            copy.tiboXAccessibilityLabel,
+            "在瀏覽器中開啟 Tibo 的 X 主頁"
+        )
         XCTAssertEqual(copy.locale.identifier, "zh_TW")
     }
 
@@ -44,6 +54,11 @@ final class QuotaLocalizationTests: XCTestCase {
         XCTAssertEqual(copy.bankDetails, "Bank details")
         XCTAssertEqual(copy.updated, "Updated")
         XCTAssertEqual(copy.noData, "No data")
+        XCTAssertEqual(copy.tiboXTitle, "Tibo on X")
+        XCTAssertEqual(
+            copy.tiboXAccessibilityLabel,
+            "Open Tibo's X profile in the browser"
+        )
         XCTAssertEqual(copy.bankCount(1), "1 reset")
         XCTAssertEqual(copy.bankCount(2), "2 resets")
         XCTAssertEqual(copy.period(minutes: 1_440), "1 day")
