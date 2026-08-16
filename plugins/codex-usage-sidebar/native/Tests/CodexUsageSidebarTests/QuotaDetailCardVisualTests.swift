@@ -289,7 +289,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             visibleFrame: CGRect(x: 100, y: 100, width: 400, height: 800)
         )
 
-        XCTAssertEqual(layout.frame.width, 384)
+        XCTAssertEqual(layout.frame.width, 360)
         XCTAssertGreaterThan(
             layout.rowHeights[0],
             QuotaDetailLayout.rowHeight

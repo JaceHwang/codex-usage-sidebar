@@ -42,20 +42,21 @@ public struct QuotaDetailInformationFrames: Equatable, Sendable {
 }
 
 public enum QuotaDetailLayout {
-    public static let width: CGFloat = 476
-    public static let headerHeight: CGFloat = 204
-    public static let rowHeight: CGFloat = 40
-    public static let verticalPadding: CGFloat = 24
-    public static let maximumHeight: CGFloat = 804
+    /// Compact dimensions tuned to the native Codex popover scale.
+    public static let width: CGFloat = 360
+    public static let headerHeight: CGFloat = 150
+    public static let rowHeight: CGFloat = 32
+    public static let verticalPadding: CGFloat = 16
+    public static let maximumHeight: CGFloat = 620
     public static let screenMargin: CGFloat = 8
     public static let controlGap: CGFloat = 8
-    public static let tokenBandHeight: CGFloat = 250
-    public static let tokenBandGap: CGFloat = 12
+    public static let tokenBandHeight: CGFloat = 190
+    public static let tokenBandGap: CGFloat = 8
     public static let tokenBandReservedHeight: CGFloat =
         tokenBandHeight + tokenBandGap * 2
-    private static let contentHorizontalInset: CGFloat = 28
-    private static let rowTopGap: CGFloat = 20
-    private static let footerHeight: CGFloat = 66
+    public static let contentHorizontalInset: CGFloat = 18
+    public static let rowTopGap: CGFloat = 12
+    public static let footerHeight: CGFloat = 50
 
     public static func titleWidth(
         intrinsicWidth: CGFloat,
@@ -70,34 +71,34 @@ public enum QuotaDetailLayout {
         versionBadgeWidth: CGFloat
     ) -> QuotaDetailHeaderFrames {
         let badgeWidth = max(0, versionBadgeWidth)
-        let titleX = bounds.minX + 28 + 40 + 18
+        let titleX = bounds.minX + contentHorizontalInset + 32 + 10
         let maximumTitleWidth = max(
             0,
             bounds.maxX - contentHorizontalInset - badgeWidth - 8 - titleX
         )
         let title = CGRect(
             x: titleX,
-            y: bounds.maxY - 54,
+            y: bounds.maxY - 42,
             width: min(max(0, titleWidth), maximumTitleWidth),
-            height: 28
+            height: 22
         )
         let versionBadge = CGRect(
-            x: title.maxX + 8,
-            y: title.midY - 14,
+            x: bounds.maxX - contentHorizontalInset - badgeWidth,
+            y: title.midY - 11,
             width: badgeWidth,
-            height: 28
+            height: 22
         )
         let remaining = CGRect(
             x: bounds.minX + contentHorizontalInset,
-            y: bounds.maxY - 137,
+            y: bounds.maxY - 104,
             width: max(0, bounds.width - contentHorizontalInset * 2),
-            height: 42
+            height: 34
         )
         let progress = CGRect(
             x: bounds.minX + contentHorizontalInset,
-            y: bounds.maxY - 143,
+            y: bounds.maxY - 111,
             width: max(0, bounds.width - contentHorizontalInset * 2),
-            height: 8
+            height: 6
         )
         return QuotaDetailHeaderFrames(
             title: title,
@@ -153,7 +154,7 @@ public enum QuotaDetailLayout {
             x: bounds.minX,
             y: bounds.minY + footerHeight + rowTopGap,
             width: bounds.width,
-            height: max(0, bounds.height - rowTopGap - reservedHeight + 8)
+            height: max(0, bounds.height - rowTopGap - reservedHeight)
         )
     }
 

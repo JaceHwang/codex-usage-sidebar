@@ -137,7 +137,7 @@ final class QuotaDetailCardView: NSView {
     ) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer?.cornerRadius = 28
+        layer?.cornerRadius = 18
         layer?.cornerCurve = .continuous
         layer?.masksToBounds = true
 
@@ -147,7 +147,7 @@ final class QuotaDetailCardView: NSView {
 
         let title = label(
             content.title,
-            font: .systemFont(ofSize: 22, weight: .semibold),
+            font: .systemFont(ofSize: 18, weight: .semibold),
             color: .labelColor,
             alignment: .left
         )
@@ -162,7 +162,7 @@ final class QuotaDetailCardView: NSView {
 
         let remaining = label(
             "\(content.remainingPercent)%",
-            font: .systemFont(ofSize: 35, weight: .semibold),
+            font: .systemFont(ofSize: 28, weight: .semibold),
             color: QuotaColorScale.components(
                 remainingPercent: content.remainingPercent
             ).appKitColor,
@@ -178,33 +178,14 @@ final class QuotaDetailCardView: NSView {
         )
         let avatar = QuotaAvatarView()
         avatar.frame = CGRect(
-            x: 28,
-            y: bounds.maxY - 68,
-            width: 40,
-            height: 40
+            x: QuotaDetailLayout.contentHorizontalInset,
+            y: bounds.maxY - 50,
+            width: 32,
+            height: 32
         )
-        title.frame = CGRect(
-            x: avatar.frame.maxX + 18,
-            y: bounds.maxY - 70,
-            width: max(0, bounds.maxX - 116 - (avatar.frame.maxX + 18)),
-            height: 30
-        )
-        versionBadge.frame = CGRect(
-            x: bounds.maxX - 94,
-            y: title.frame.midY - 14,
-            width: versionBadge.intrinsicContentSize.width,
-            height: versionBadge.intrinsicContentSize.height
-        )
-        title.frame.size.width = max(
-            0,
-            versionBadge.frame.minX - 12 - title.frame.minX
-        )
-        remaining.frame = CGRect(
-            x: headerFrames.remaining.minX,
-            y: headerFrames.remaining.minY,
-            width: headerFrames.remaining.width,
-            height: 42
-        )
+        title.frame = headerFrames.title
+        versionBadge.frame = headerFrames.versionBadge
+        remaining.frame = headerFrames.remaining
         addSubview(avatar)
         addSubview(title)
         addSubview(versionBadge)
@@ -213,15 +194,15 @@ final class QuotaDetailCardView: NSView {
         if let summary = content.remainingSummary {
             let summaryLabel = label(
                 summary,
-                font: .systemFont(ofSize: 17, weight: .regular),
+                font: .systemFont(ofSize: 13, weight: .regular),
                 color: .secondaryLabelColor,
                 alignment: .left
             )
             summaryLabel.frame = CGRect(
                 x: headerFrames.remaining.minX,
-                y: bounds.maxY - 178,
-                width: bounds.width - 56,
-                height: 24
+                y: bounds.maxY - 139,
+                width: bounds.width - QuotaDetailLayout.contentHorizontalInset * 2,
+                height: 18
             )
             addSubview(summaryLabel)
         }
@@ -288,10 +269,10 @@ final class QuotaDetailCardView: NSView {
                 )
             )
             icon.frame = CGRect(
-                x: 18,
-                y: rowY + 3,
-                width: 22,
-                height: 22
+                x: QuotaDetailLayout.contentHorizontalInset,
+                y: rowY + 5,
+                width: 18,
+                height: 18
             )
             rowDocument.addSubview(icon)
             let rowLabel = label(
@@ -301,14 +282,14 @@ final class QuotaDetailCardView: NSView {
                 alignment: .left
             )
             let labelWidth = min(
-                160,
+                118,
                 ceil(rowLabel.intrinsicContentSize.width + 2)
             )
             rowLabel.frame = CGRect(
-                x: 54,
-                y: rowY + 3,
+                x: 42,
+                y: rowY + 7,
                 width: labelWidth,
-                height: 18
+                height: 16
             )
             rowDocument.addSubview(rowLabel)
 
@@ -323,32 +304,32 @@ final class QuotaDetailCardView: NSView {
                 remainingPercent: content.remainingPercent
             )
             if isStacked {
-                let valueHeight = rowHeight - 22
-                value.maximumNumberOfLines = Int(valueHeight / 18)
+                let valueHeight = rowHeight - 18
+                value.maximumNumberOfLines = Int(valueHeight / 15)
                 value.lineBreakMode = .byCharWrapping
                 value.frame = CGRect(
-                    x: 54,
-                    y: rowY + 21,
-                    width: rowContentWidth - 56,
+                    x: 42,
+                    y: rowY + 18,
+                    width: rowContentWidth - 52,
                     height: valueHeight
                 )
             } else {
                 value.lineBreakMode = .byTruncatingTail
-                let valueX = max(200, rowLabel.frame.maxX + 14)
+                let valueX = max(148, rowLabel.frame.maxX + 10)
                 value.frame = CGRect(
                     x: valueX,
-                    y: rowY + 3,
-                    width: rowContentWidth - valueX - 16,
-                    height: 18
+                    y: rowY + 7,
+                    width: rowContentWidth - valueX - 12,
+                    height: 16
                 )
             }
             rowDocument.addSubview(value)
             if index < content.rows.indices.last! {
                 let separator = NSBox(
                     frame: CGRect(
-                        x: 54,
+                        x: 42,
                         y: rowY + rowHeight - 1,
-                        width: max(0, rowContentWidth - 70),
+                        width: max(0, rowContentWidth - 54),
                         height: 1
                     )
                 )
@@ -392,16 +373,16 @@ final class QuotaDetailCardView: NSView {
 private final class QuotaFooterView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        let avatar = QuotaAvatarView(frame: CGRect(x: 28, y: 13, width: 36, height: 36))
+        let avatar = QuotaAvatarView(frame: CGRect(x: 18, y: 9, width: 30, height: 30))
         addSubview(avatar)
 
         let name = NSTextField(labelWithString: "Jace")
-        name.font = .systemFont(ofSize: 17, weight: .regular)
+        name.font = .systemFont(ofSize: 14, weight: .regular)
         name.textColor = .labelColor
-        name.frame = CGRect(x: 78, y: 21, width: 160, height: 24)
+        name.frame = CGRect(x: 58, y: 16, width: 120, height: 20)
         addSubview(name)
 
-        let help = QuotaFooterHelpButton(frame: CGRect(x: frameRect.width - 56, y: 16, width: 34, height: 34))
+        let help = QuotaFooterHelpButton(frame: CGRect(x: frameRect.width - 46, y: 11, width: 28, height: 28))
         addSubview(help)
     }
 
@@ -418,7 +399,7 @@ private final class QuotaFooterHelpButton: NSButton {
         title = "?"
         isBordered = false
         setButtonType(.momentaryPushIn)
-        font = .systemFont(ofSize: 18, weight: .medium)
+        font = .systemFont(ofSize: 15, weight: .medium)
         contentTintColor = .secondaryLabelColor
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
@@ -460,7 +441,7 @@ final class QuotaReferenceTiboOutlineView: NSView {
 private final class VersionBadgeView: NSView {
     private let text: String
     private let font = NSFont.systemFont(
-        ofSize: 15,
+        ofSize: 12,
         weight: .medium
     )
 
@@ -473,7 +454,7 @@ private final class VersionBadgeView: NSView {
         let textSize = (text as NSString).size(
             withAttributes: [.font: font]
         )
-        return NSSize(width: ceil(textSize.width) + 20, height: 28)
+        return NSSize(width: ceil(textSize.width) + 14, height: 22)
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -558,8 +539,8 @@ private final class QuotaAvatarView: NSView {
 
 @MainActor
 private enum QuotaDetailRowMetrics {
-    static let labelFont = NSFont.systemFont(ofSize: 17, weight: .semibold)
-    static let valueFont = NSFont.systemFont(ofSize: 16, weight: .regular)
+    static let labelFont = NSFont.systemFont(ofSize: 13, weight: .semibold)
+    static let valueFont = NSFont.systemFont(ofSize: 12, weight: .regular)
 
     static func heights(
         for rows: [QuotaDetailRow],
@@ -567,9 +548,9 @@ private enum QuotaDetailRowMetrics {
         remainingPercent: Int
     ) -> [CGFloat] {
         rows.map { row in
-            let labelWidth = min(160, textWidth(row.label, font: labelFont) + 2)
-            let valueX = max(200, 54 + labelWidth + 14)
-            let columnWidth = max(1, cardWidth - valueX - 16)
+            let labelWidth = min(118, textWidth(row.label, font: labelFont) + 2)
+            let valueX = max(148, 42 + labelWidth + 10)
+            let columnWidth = max(1, cardWidth - valueX - 12)
             let measuredValueWidth = ceil(
                 QuotaDetailValueTypography.string(
                     for: row,
@@ -580,7 +561,7 @@ private enum QuotaDetailRowMetrics {
                 return QuotaDetailLayout.rowHeight
             }
 
-            let fullWidth = max(1, cardWidth - 70)
+            let fullWidth = max(1, cardWidth - 54)
             let lineCount = max(1, Int(ceil(measuredValueWidth / fullWidth)))
             return 22 + CGFloat(lineCount) * 18
         }
@@ -598,15 +579,15 @@ private enum QuotaDetailRowMetrics {
 @MainActor
 private enum QuotaCountdownTypography {
     private static let digitFont = NSFont.systemFont(
-        ofSize: 19,
+        ofSize: 15,
         weight: .semibold
     )
     private static let unitFont = NSFont.systemFont(
-        ofSize: 13,
+        ofSize: 11,
         weight: .medium
     )
     private static let punctuationFont = NSFont.systemFont(
-        ofSize: 12,
+        ofSize: 10,
         weight: .regular
     )
 

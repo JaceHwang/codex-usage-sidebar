@@ -18,8 +18,8 @@ final class QuotaCardMaterialView: NSView {
         let cardBounds = bounds.insetBy(dx: 0.5, dy: 0.5)
         let card = NSBezierPath(
             roundedRect: cardBounds,
-            xRadius: 27.5,
-            yRadius: 27.5
+            xRadius: 17.5,
+            yRadius: 17.5
         )
         let appearanceName = effectiveAppearance.bestMatch(
             from: [.darkAqua, .aqua]

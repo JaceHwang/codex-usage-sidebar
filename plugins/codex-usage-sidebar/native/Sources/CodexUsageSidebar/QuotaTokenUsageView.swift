@@ -3,11 +3,11 @@ import SidebarCore
 
 @MainActor
 final class QuotaTokenUsageView: NSView {
-    private static let titleFont = NSFont.systemFont(ofSize: 18, weight: .semibold)
-    private static let totalFont = NSFont.systemFont(ofSize: 16, weight: .regular)
-    private static let dailyFont = NSFont.systemFont(ofSize: 15, weight: .regular)
-    private static let legendFont = NSFont.systemFont(ofSize: 12, weight: .regular)
-    private static let noteFont = NSFont.systemFont(ofSize: 11, weight: .regular)
+    private static let titleFont = NSFont.systemFont(ofSize: 16, weight: .semibold)
+    private static let totalFont = NSFont.systemFont(ofSize: 12, weight: .regular)
+    private static let dailyFont = NSFont.systemFont(ofSize: 12, weight: .regular)
+    private static let legendFont = NSFont.systemFont(ofSize: 10, weight: .regular)
+    private static let noteFont = NSFont.systemFont(ofSize: 9, weight: .regular)
 
     let barCount: Int
 
@@ -36,9 +36,9 @@ final class QuotaTokenUsageView: NSView {
         )
         title.frame = CGRect(
             x: 0,
-            y: bounds.height - 36,
-            width: 160,
-            height: 24
+            y: bounds.height - 25,
+            width: 120,
+            height: 20
         )
         addSubview(title)
 
@@ -50,10 +50,10 @@ final class QuotaTokenUsageView: NSView {
         )
         total.lineBreakMode = .byTruncatingHead
         total.frame = CGRect(
-            x: 162,
-            y: bounds.height - 34,
-            width: max(0, bounds.width - 162),
-            height: 20
+            x: 120,
+            y: bounds.height - 24,
+            width: max(0, bounds.width - 120),
+            height: 16
         )
         addSubview(total)
 
@@ -65,9 +65,9 @@ final class QuotaTokenUsageView: NSView {
         )
         daily.frame = CGRect(
             x: 0,
-            y: bounds.height - 72,
+            y: bounds.height - 50,
             width: 80,
-            height: 16
+            height: 14
         )
         addSubview(daily)
 
@@ -79,7 +79,7 @@ final class QuotaTokenUsageView: NSView {
                 alignment: .left
             )
             note.lineBreakMode = .byTruncatingTail
-            note.frame = CGRect(x: 0, y: 0, width: bounds.width, height: 14)
+            note.frame = CGRect(x: 0, y: 0, width: bounds.width, height: 12)
             addSubview(note)
         }
 
@@ -90,9 +90,9 @@ final class QuotaTokenUsageView: NSView {
         let chart = TokenUsageChartView(
             frame: CGRect(
                 x: 0,
-                y: 85,
+                y: 43,
                 width: bounds.width,
-                height: 94
+                height: 72
             ),
             days: displayDays,
             remainingPercent: remainingPercent
@@ -101,7 +101,7 @@ final class QuotaTokenUsageView: NSView {
 
         if presentation.availability == .available {
             let legend = TokenUsageLegendView(
-                frame: CGRect(x: 0, y: 38, width: bounds.width, height: 16),
+                frame: CGRect(x: 0, y: 12, width: bounds.width, height: 14),
                 totalLabel: Self.totalLegend(for: presentation),
                 dailyLabel: Self.dailyLegend(for: presentation),
                 accent: QuotaColorScale.components(
@@ -168,7 +168,7 @@ private final class TokenUsageChartView: NSView {
         let columnWidth = bounds.width / CGFloat(max(1, days.count))
         for (index, day) in days.enumerated() {
             let height = day.tokens > 0
-                ? max(4, floor(39 * CGFloat(day.tokens) / CGFloat(maximum)))
+                ? max(3, floor(30 * CGFloat(day.tokens) / CGFloat(maximum)))
                 : 0
             let bar = QuotaTokenUsageBarView(
                 frame: CGRect(
@@ -196,8 +196,8 @@ final class QuotaTokenUsageBarView: NSView {
     private let day: QuotaTokenUsageDay
     private let barHeight: CGFloat
     private let remainingPercent: Int
-    private let numberFont = NSFont.systemFont(ofSize: 12, weight: .regular)
-    private let dateFont = NSFont.systemFont(ofSize: 12, weight: .regular)
+    private let numberFont = NSFont.systemFont(ofSize: 10, weight: .regular)
+    private let dateFont = NSFont.systemFont(ofSize: 10, weight: .regular)
 
     init(
         frame frameRect: NSRect,
@@ -235,7 +235,7 @@ final class QuotaTokenUsageBarView: NSView {
         value.draw(
             at: CGPoint(
                 x: floor((bounds.width - valueSize.width) / 2),
-                y: bounds.height - valueSize.height - 20
+                y: bounds.height - valueSize.height - 14
             ),
             withAttributes: valueAttributes
         )
@@ -245,10 +245,10 @@ final class QuotaTokenUsageBarView: NSView {
                 ? accent
                 : NSColor.secondaryLabelColor.withAlphaComponent(0.38)
             let barRect = CGRect(
-                x: floor((bounds.width - 16) / 2),
-                y: 18,
-                width: 16,
-                height: min(barHeight, max(4, bounds.height - 42))
+                x: floor((bounds.width - 12) / 2),
+                y: 15,
+                width: 12,
+                height: min(barHeight, max(3, bounds.height - 34))
             )
             let path = NSBezierPath(roundedRect: barRect, xRadius: 3, yRadius: 3)
             fillColor.setFill()
@@ -264,7 +264,7 @@ final class QuotaTokenUsageBarView: NSView {
         date.draw(
             at: CGPoint(
                 x: floor((bounds.width - dateSize.width) / 2),
-                y: -3
+                y: -2
             ),
             withAttributes: dateAttributes
         )
@@ -287,7 +287,7 @@ final class TokenUsageLegendView: NSView {
     let totalLabel: String
     let dailyLabel: String
     private let accent: NSColor
-    private let font = NSFont.systemFont(ofSize: 10, weight: .regular)
+    private let font = NSFont.systemFont(ofSize: 9, weight: .regular)
 
     init(frame frameRect: NSRect, totalLabel: String, dailyLabel: String, accent: NSColor) {
         self.totalLabel = totalLabel
@@ -310,14 +310,14 @@ final class TokenUsageLegendView: NSView {
 
     private func drawItem(text: String, at x: CGFloat, color: NSColor) {
         let swatch = NSBezierPath(
-            roundedRect: CGRect(x: x, y: 3, width: 12, height: 12),
-            xRadius: 3,
-            yRadius: 3
+            roundedRect: CGRect(x: x, y: 2, width: 9, height: 9),
+            xRadius: 2,
+            yRadius: 2
         )
         color.setFill()
         swatch.fill()
         (text as NSString).draw(
-            at: CGPoint(x: x + 18, y: 2),
+            at: CGPoint(x: x + 14, y: 1),
             withAttributes: [
                 .font: font,
                 .foregroundColor: NSColor.secondaryLabelColor
