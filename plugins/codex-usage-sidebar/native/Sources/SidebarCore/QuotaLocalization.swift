@@ -89,6 +89,14 @@ public struct QuotaLocalization: Sendable {
         }
     }
 
+    public func remainingSummary(_ percent: Int) -> String {
+        switch language {
+        case .simplifiedChinese: "剩余 \(percent)%"
+        case .traditionalChinese: "剩餘 \(percent)%"
+        case .english: "Remaining \(percent)%"
+        }
+    }
+
     public func tokenUsageTotal(_ tokens: String) -> String {
         switch language {
         case .simplifiedChinese: "本周期总计 \(tokens) tokens"

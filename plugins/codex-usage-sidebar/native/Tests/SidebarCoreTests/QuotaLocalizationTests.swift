@@ -13,6 +13,7 @@ final class QuotaLocalizationTests: XCTestCase {
         XCTAssertEqual(copy.bankExpiryLabel(2), "Bank 2到期时间")
         XCTAssertEqual(copy.bankDetails, "Bank 明细")
         XCTAssertEqual(copy.updated, "数据更新")
+        XCTAssertEqual(copy.remainingSummary(32), "剩余 32%")
         XCTAssertEqual(copy.noData, "暂无数据")
         XCTAssertEqual(copy.tiboXTitle, "Tibo 的 X 动态")
         XCTAssertEqual(
@@ -33,6 +34,7 @@ final class QuotaLocalizationTests: XCTestCase {
         XCTAssertEqual(copy.bankExpiryLabel(2), "Bank 2到期時間")
         XCTAssertEqual(copy.bankDetails, "Bank 詳情")
         XCTAssertEqual(copy.updated, "資料更新")
+        XCTAssertEqual(copy.remainingSummary(32), "剩餘 32%")
         XCTAssertEqual(copy.noData, "暫無資料")
         XCTAssertEqual(copy.tiboXTitle, "Tibo 的 X 動態")
         XCTAssertEqual(
@@ -53,6 +55,7 @@ final class QuotaLocalizationTests: XCTestCase {
         XCTAssertEqual(copy.bankExpiryLabel(2), "Bank 2 expires")
         XCTAssertEqual(copy.bankDetails, "Bank details")
         XCTAssertEqual(copy.updated, "Updated")
+        XCTAssertEqual(copy.remainingSummary(32), "Remaining 32%")
         XCTAssertEqual(copy.noData, "No data")
         XCTAssertEqual(copy.tiboXTitle, "Tibo on X")
         XCTAssertEqual(

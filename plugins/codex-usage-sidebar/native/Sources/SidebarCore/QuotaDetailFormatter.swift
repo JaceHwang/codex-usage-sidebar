@@ -77,6 +77,7 @@ public struct QuotaTokenUsagePresentation: Equatable, Sendable {
 public struct QuotaDetailContent: Equatable, Sendable {
     public let title: String
     public let remainingPercent: Int
+    public let remainingSummary: String?
     public let informationEntry: QuotaInformationEntry
     public let tokenUsage: QuotaTokenUsagePresentation?
     public let rows: [QuotaDetailRow]
@@ -84,12 +85,14 @@ public struct QuotaDetailContent: Equatable, Sendable {
     public init(
         title: String,
         remainingPercent: Int,
+        remainingSummary: String? = nil,
         informationEntry: QuotaInformationEntry,
         tokenUsage: QuotaTokenUsagePresentation? = nil,
         rows: [QuotaDetailRow]
     ) {
         self.title = title
         self.remainingPercent = remainingPercent
+        self.remainingSummary = remainingSummary
         self.informationEntry = informationEntry
         self.tokenUsage = tokenUsage
         self.rows = rows
@@ -203,6 +206,7 @@ public struct QuotaDetailFormatter: Sendable {
         return QuotaDetailContent(
             title: copy.title,
             remainingPercent: snapshot.remainingPercent,
+            remainingSummary: copy.remainingSummary(snapshot.remainingPercent),
             informationEntry: QuotaInformationEntry(
                 title: copy.tiboXTitle,
                 accessibilityLabel: copy.tiboXAccessibilityLabel,

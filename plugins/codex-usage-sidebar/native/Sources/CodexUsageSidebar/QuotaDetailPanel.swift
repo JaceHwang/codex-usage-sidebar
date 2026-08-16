@@ -147,7 +147,7 @@ final class QuotaDetailCardView: NSView {
 
         let title = label(
             content.title,
-            font: .systemFont(ofSize: 21, weight: .semibold),
+            font: .systemFont(ofSize: 22, weight: .semibold),
             color: .labelColor,
             alignment: .left
         )
@@ -162,7 +162,7 @@ final class QuotaDetailCardView: NSView {
 
         let remaining = label(
             "\(content.remainingPercent)%",
-            font: .systemFont(ofSize: 34, weight: .semibold),
+            font: .systemFont(ofSize: 35, weight: .semibold),
             color: QuotaColorScale.components(
                 remainingPercent: content.remainingPercent
             ).appKitColor,
@@ -178,20 +178,20 @@ final class QuotaDetailCardView: NSView {
         )
         let avatar = QuotaAvatarView()
         avatar.frame = CGRect(
-            x: 24,
-            y: bounds.maxY - 82,
-            width: 48,
-            height: 48
+            x: 28,
+            y: bounds.maxY - 68,
+            width: 40,
+            height: 40
         )
         title.frame = CGRect(
-            x: avatar.frame.maxX + 14,
-            y: bounds.maxY - 72,
-            width: max(0, bounds.maxX - 116 - (avatar.frame.maxX + 14)),
+            x: avatar.frame.maxX + 18,
+            y: bounds.maxY - 70,
+            width: max(0, bounds.maxX - 116 - (avatar.frame.maxX + 18)),
             height: 30
         )
         versionBadge.frame = CGRect(
-            x: bounds.maxX - 92,
-            y: title.frame.midY - 11,
+            x: bounds.maxX - 94,
+            y: title.frame.midY - 14,
             width: versionBadge.intrinsicContentSize.width,
             height: versionBadge.intrinsicContentSize.height
         )
@@ -210,6 +210,22 @@ final class QuotaDetailCardView: NSView {
         addSubview(versionBadge)
         addSubview(remaining)
 
+        if let summary = content.remainingSummary {
+            let summaryLabel = label(
+                summary,
+                font: .systemFont(ofSize: 17, weight: .regular),
+                color: .secondaryLabelColor,
+                alignment: .left
+            )
+            summaryLabel.frame = CGRect(
+                x: headerFrames.remaining.minX,
+                y: bounds.maxY - 178,
+                width: bounds.width - 56,
+                height: 24
+            )
+            addSubview(summaryLabel)
+        }
+
         let progress = QuotaProgressView(
             frame: headerFrames.progress,
             value: content.remainingPercent
@@ -225,24 +241,6 @@ final class QuotaDetailCardView: NSView {
         )
         topDivider.boxType = .separator
         addSubview(topDivider)
-
-        let informationOutline = QuotaReferenceTiboOutlineView(
-            frame: informationFrames.control
-        )
-        addSubview(informationOutline)
-
-        let informationLink = QuotaInformationLinkButton(
-            frame: informationFrames.control,
-            entry: content.informationEntry,
-            onActivate: onOpenURL
-        )
-        addSubview(informationLink)
-
-        let bottomDivider = NSBox(
-            frame: informationFrames.bottomDivider
-        )
-        bottomDivider.boxType = .separator
-        addSubview(bottomDivider)
 
         if let tokenUsage = content.tokenUsage {
             let tokenUsageView = QuotaTokenUsageView(
@@ -290,10 +288,10 @@ final class QuotaDetailCardView: NSView {
                 )
             )
             icon.frame = CGRect(
-                x: 16,
+                x: 18,
                 y: rowY + 3,
-                width: 18,
-                height: 18
+                width: 22,
+                height: 22
             )
             rowDocument.addSubview(icon)
             let rowLabel = label(
@@ -303,11 +301,11 @@ final class QuotaDetailCardView: NSView {
                 alignment: .left
             )
             let labelWidth = min(
-                148,
+                160,
                 ceil(rowLabel.intrinsicContentSize.width + 2)
             )
             rowLabel.frame = CGRect(
-                x: 44,
+                x: 54,
                 y: rowY + 3,
                 width: labelWidth,
                 height: 18
@@ -329,14 +327,14 @@ final class QuotaDetailCardView: NSView {
                 value.maximumNumberOfLines = Int(valueHeight / 18)
                 value.lineBreakMode = .byCharWrapping
                 value.frame = CGRect(
-                    x: 44,
+                    x: 54,
                     y: rowY + 21,
                     width: rowContentWidth - 56,
                     height: valueHeight
                 )
             } else {
                 value.lineBreakMode = .byTruncatingTail
-                let valueX = max(190, rowLabel.frame.maxX + 12)
+                let valueX = max(200, rowLabel.frame.maxX + 14)
                 value.frame = CGRect(
                     x: valueX,
                     y: rowY + 3,
@@ -348,9 +346,9 @@ final class QuotaDetailCardView: NSView {
             if index < content.rows.indices.last! {
                 let separator = NSBox(
                     frame: CGRect(
-                        x: 44,
+                        x: 54,
                         y: rowY + rowHeight - 1,
-                        width: max(0, rowContentWidth - 60),
+                        width: max(0, rowContentWidth - 70),
                         height: 1
                     )
                 )
@@ -362,6 +360,11 @@ final class QuotaDetailCardView: NSView {
 
         scrollView.documentView = rowDocument
         addSubview(scrollView)
+
+        let footerDivider = NSBox(frame: informationFrames.footerDivider)
+        footerDivider.boxType = .separator
+        addSubview(footerDivider)
+        addSubview(QuotaFooterView(frame: informationFrames.footer))
     }
 
     @available(*, unavailable)
@@ -386,6 +389,57 @@ final class QuotaDetailCardView: NSView {
 }
 
 @MainActor
+private final class QuotaFooterView: NSView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        let avatar = QuotaAvatarView(frame: CGRect(x: 28, y: 13, width: 36, height: 36))
+        addSubview(avatar)
+
+        let name = NSTextField(labelWithString: "Jace")
+        name.font = .systemFont(ofSize: 17, weight: .regular)
+        name.textColor = .labelColor
+        name.frame = CGRect(x: 78, y: 21, width: 160, height: 24)
+        addSubview(name)
+
+        let help = QuotaFooterHelpButton(frame: CGRect(x: frameRect.width - 56, y: 16, width: 34, height: 34))
+        addSubview(help)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+}
+
+@MainActor
+private final class QuotaFooterHelpButton: NSButton {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        title = "?"
+        isBordered = false
+        setButtonType(.momentaryPushIn)
+        font = .systemFont(ofSize: 18, weight: .medium)
+        contentTintColor = .secondaryLabelColor
+        setAccessibilityElement(true)
+        setAccessibilityRole(.button)
+        setAccessibilityLabel("Help")
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let circle = NSBezierPath(ovalIn: bounds.insetBy(dx: 0.75, dy: 0.75))
+        NSColor.secondaryLabelColor.setStroke()
+        circle.lineWidth = 1.5
+        circle.stroke()
+        super.draw(dirtyRect)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+}
+
+@MainActor
 final class QuotaReferenceTiboOutlineView: NSView {
     override var isOpaque: Bool { false }
 
@@ -406,7 +460,7 @@ final class QuotaReferenceTiboOutlineView: NSView {
 private final class VersionBadgeView: NSView {
     private let text: String
     private let font = NSFont.systemFont(
-        ofSize: 12,
+        ofSize: 15,
         weight: .medium
     )
 
@@ -419,7 +473,7 @@ private final class VersionBadgeView: NSView {
         let textSize = (text as NSString).size(
             withAttributes: [.font: font]
         )
-        return NSSize(width: ceil(textSize.width) + 18, height: 22)
+        return NSSize(width: ceil(textSize.width) + 20, height: 28)
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -459,34 +513,53 @@ private final class QuotaAvatarView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         let circle = NSBezierPath(ovalIn: bounds.insetBy(dx: 0.5, dy: 0.5))
-        NSColor.secondaryLabelColor.withAlphaComponent(0.20).setFill()
-        circle.fill()
-        NSColor.separatorColor.withAlphaComponent(0.85).setStroke()
-        circle.lineWidth = 1
-        circle.stroke()
+        NSGraphicsContext.saveGraphicsState()
+        circle.addClip()
+        let background = NSGradient(
+            starting: NSColor(calibratedRed: 0.18, green: 0.16, blue: 0.30, alpha: 1),
+            ending: NSColor(calibratedRed: 0.27, green: 0.33, blue: 0.55, alpha: 1)
+        )
+        background?.draw(in: bounds, angle: 35)
 
-        let head = NSBezierPath(ovalIn: CGRect(
-            x: bounds.midX - 7,
-            y: bounds.midY + 3,
-            width: 14,
-            height: 14
-        ))
-        NSColor.secondaryLabelColor.withAlphaComponent(0.75).setFill()
-        head.fill()
         let shoulders = NSBezierPath(roundedRect: CGRect(
-            x: bounds.midX - 13,
-            y: bounds.midY - 13,
-            width: 26,
-            height: 16
-        ), xRadius: 8, yRadius: 8)
+            x: bounds.midX - bounds.width * 0.33,
+            y: bounds.minY - 2,
+            width: bounds.width * 0.66,
+            height: bounds.height * 0.48
+        ), xRadius: bounds.width * 0.2, yRadius: bounds.width * 0.2)
+        NSColor(calibratedRed: 0.72, green: 0.48, blue: 0.32, alpha: 1).setFill()
         shoulders.fill()
+
+        let face = NSBezierPath(ovalIn: CGRect(
+            x: bounds.midX - bounds.width * 0.22,
+            y: bounds.midY - bounds.height * 0.24,
+            width: bounds.width * 0.44,
+            height: bounds.height * 0.54
+        ))
+        NSColor(calibratedRed: 0.83, green: 0.64, blue: 0.46, alpha: 1).setFill()
+        face.fill()
+
+        let hair = NSBezierPath(ovalIn: CGRect(
+            x: bounds.midX - bounds.width * 0.30,
+            y: bounds.midY - bounds.height * 0.33,
+            width: bounds.width * 0.60,
+            height: bounds.height * 0.62
+        ))
+        NSColor(calibratedRed: 0.10, green: 0.08, blue: 0.07, alpha: 1).setFill()
+        hair.fill()
+        face.fill()
+        NSGraphicsContext.restoreGraphicsState()
+
+        NSColor.separatorColor.withAlphaComponent(0.42).setStroke()
+        circle.lineWidth = 0.75
+        circle.stroke()
     }
 }
 
 @MainActor
 private enum QuotaDetailRowMetrics {
-    static let labelFont = NSFont.systemFont(ofSize: 13, weight: .semibold)
-    static let valueFont = NSFont.systemFont(ofSize: 13, weight: .regular)
+    static let labelFont = NSFont.systemFont(ofSize: 17, weight: .semibold)
+    static let valueFont = NSFont.systemFont(ofSize: 16, weight: .regular)
 
     static func heights(
         for rows: [QuotaDetailRow],
@@ -494,8 +567,8 @@ private enum QuotaDetailRowMetrics {
         remainingPercent: Int
     ) -> [CGFloat] {
         rows.map { row in
-            let labelWidth = min(148, textWidth(row.label, font: labelFont) + 2)
-            let valueX = max(190, 44 + labelWidth + 12)
+            let labelWidth = min(160, textWidth(row.label, font: labelFont) + 2)
+            let valueX = max(200, 54 + labelWidth + 14)
             let columnWidth = max(1, cardWidth - valueX - 16)
             let measuredValueWidth = ceil(
                 QuotaDetailValueTypography.string(
@@ -507,7 +580,7 @@ private enum QuotaDetailRowMetrics {
                 return QuotaDetailLayout.rowHeight
             }
 
-            let fullWidth = max(1, cardWidth - 56)
+            let fullWidth = max(1, cardWidth - 70)
             let lineCount = max(1, Int(ceil(measuredValueWidth / fullWidth)))
             return 22 + CGFloat(lineCount) * 18
         }

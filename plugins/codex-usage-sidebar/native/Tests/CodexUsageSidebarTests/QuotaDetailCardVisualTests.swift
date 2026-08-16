@@ -19,7 +19,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             )
         }
 
-        for (language, languageName, expectedLinkLabel) in languages {
+        for (language, languageName, _) in languages {
             let content = QuotaDetailFormatter().content(
                 snapshot: longBankSnapshot,
                 tokenUsage: tokenUsageSnapshot,
@@ -56,20 +56,6 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                 let card = try XCTUnwrap(renderedCard)
                 card.layoutSubtreeIfNeeded()
 
-                let link = try XCTUnwrap(
-                    descendants(of: card)
-                        .compactMap { $0 as? QuotaInformationLinkButton }
-                        .first
-                )
-                XCTAssertEqual(link.accessibilityLabel(), expectedLinkLabel)
-                XCTAssertEqual(
-                    link.frame,
-                    QuotaDetailLayout.informationFrames(
-                        in: card.bounds,
-                        tokenUsageVisible: true
-                    ).control
-                )
-
                 let tokenView = try XCTUnwrap(
                     descendants(of: card)
                         .compactMap { $0 as? QuotaTokenUsageView }
@@ -98,11 +84,6 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                 } else if language == .simplifiedChinese {
                     XCTAssertEqual(legend.totalLabel, "总量（tokens）")
                 }
-                XCTAssertTrue(
-                    descendants(of: card)
-                        .contains { $0 is QuotaReferenceTiboOutlineView },
-                    "The Tibo entry is an outlined reference-style row."
-                )
                 XCTAssertEqual(
                     descendants(of: card)
                         .compactMap { $0 as? QuotaDetailIconView }
@@ -115,7 +96,12 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                         .compactMap { $0 as? NSButton }
                         .count,
                     1,
-                    "The redesigned card must not restore Jace or help footer controls."
+                    "The reference card includes one help control in its footer."
+                )
+                XCTAssertFalse(
+                    descendants(of: card)
+                        .contains { $0 is QuotaInformationLinkButton },
+                    "The approved reference image does not include the Tibo row."
                 )
 
                 let scrollView = try XCTUnwrap(
@@ -135,26 +121,6 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                     )
                 }
 
-                let hoverEvent = try XCTUnwrap(
-                    NSEvent.mouseEvent(
-                        with: .mouseMoved,
-                        location: CGPoint(x: link.bounds.midX, y: link.bounds.midY),
-                        modifierFlags: [],
-                        timestamp: 0,
-                        windowNumber: 0,
-                        context: nil,
-                        eventNumber: 0,
-                        clickCount: 0,
-                        pressure: 0
-                    )
-                )
-                appearance.performAsCurrentDrawingAppearance {
-                    link.mouseEntered(with: hoverEvent)
-                }
-                XCTAssertGreaterThan(
-                    link.layer?.backgroundColor?.alpha ?? 0,
-                    0.06
-                )
                 let hoverPNG = try renderPNG(card)
                 if let outputDirectory {
                     try hoverPNG.write(

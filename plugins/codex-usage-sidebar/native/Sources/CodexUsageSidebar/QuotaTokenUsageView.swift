@@ -4,10 +4,10 @@ import SidebarCore
 @MainActor
 final class QuotaTokenUsageView: NSView {
     private static let titleFont = NSFont.systemFont(ofSize: 18, weight: .semibold)
-    private static let totalFont = NSFont.systemFont(ofSize: 13, weight: .medium)
-    private static let dailyFont = NSFont.systemFont(ofSize: 12, weight: .medium)
-    private static let legendFont = NSFont.systemFont(ofSize: 10, weight: .regular)
-    private static let noteFont = NSFont.systemFont(ofSize: 10, weight: .regular)
+    private static let totalFont = NSFont.systemFont(ofSize: 16, weight: .regular)
+    private static let dailyFont = NSFont.systemFont(ofSize: 15, weight: .regular)
+    private static let legendFont = NSFont.systemFont(ofSize: 12, weight: .regular)
+    private static let noteFont = NSFont.systemFont(ofSize: 11, weight: .regular)
 
     let barCount: Int
 
@@ -36,7 +36,7 @@ final class QuotaTokenUsageView: NSView {
         )
         title.frame = CGRect(
             x: 0,
-            y: bounds.height - 28,
+            y: bounds.height - 36,
             width: 160,
             height: 24
         )
@@ -51,7 +51,7 @@ final class QuotaTokenUsageView: NSView {
         total.lineBreakMode = .byTruncatingHead
         total.frame = CGRect(
             x: 162,
-            y: bounds.height - 26,
+            y: bounds.height - 34,
             width: max(0, bounds.width - 162),
             height: 20
         )
@@ -65,21 +65,23 @@ final class QuotaTokenUsageView: NSView {
         )
         daily.frame = CGRect(
             x: 0,
-            y: bounds.height - 52,
+            y: bounds.height - 72,
             width: 80,
             height: 16
         )
         addSubview(daily)
 
-        let note = label(
-            presentation.delayNote,
-            font: Self.noteFont,
-            color: .tertiaryLabelColor,
-            alignment: .left
-        )
-        note.lineBreakMode = .byTruncatingTail
-        note.frame = CGRect(x: 0, y: 0, width: bounds.width, height: 14)
-        addSubview(note)
+        if presentation.availability != .available {
+            let note = label(
+                presentation.delayNote,
+                font: Self.noteFont,
+                color: .tertiaryLabelColor,
+                alignment: .left
+            )
+            note.lineBreakMode = .byTruncatingTail
+            note.frame = CGRect(x: 0, y: 0, width: bounds.width, height: 14)
+            addSubview(note)
+        }
 
         guard !displayDays.isEmpty else {
             return
@@ -88,9 +90,9 @@ final class QuotaTokenUsageView: NSView {
         let chart = TokenUsageChartView(
             frame: CGRect(
                 x: 0,
-                y: 38,
+                y: 85,
                 width: bounds.width,
-                height: max(0, bounds.height - 98)
+                height: 94
             ),
             days: displayDays,
             remainingPercent: remainingPercent
@@ -99,7 +101,7 @@ final class QuotaTokenUsageView: NSView {
 
         if presentation.availability == .available {
             let legend = TokenUsageLegendView(
-                frame: CGRect(x: 0, y: 16, width: bounds.width, height: 16),
+                frame: CGRect(x: 0, y: 38, width: bounds.width, height: 16),
                 totalLabel: Self.totalLegend(for: presentation),
                 dailyLabel: Self.dailyLegend(for: presentation),
                 accent: QuotaColorScale.components(
@@ -166,7 +168,7 @@ private final class TokenUsageChartView: NSView {
         let columnWidth = bounds.width / CGFloat(max(1, days.count))
         for (index, day) in days.enumerated() {
             let height = day.tokens > 0
-                ? max(4, floor(44 * CGFloat(day.tokens) / CGFloat(maximum)))
+                ? max(4, floor(39 * CGFloat(day.tokens) / CGFloat(maximum)))
                 : 0
             let bar = QuotaTokenUsageBarView(
                 frame: CGRect(
@@ -194,8 +196,8 @@ final class QuotaTokenUsageBarView: NSView {
     private let day: QuotaTokenUsageDay
     private let barHeight: CGFloat
     private let remainingPercent: Int
-    private let numberFont = NSFont.systemFont(ofSize: 11, weight: .medium)
-    private let dateFont = NSFont.systemFont(ofSize: 10, weight: .regular)
+    private let numberFont = NSFont.systemFont(ofSize: 12, weight: .regular)
+    private let dateFont = NSFont.systemFont(ofSize: 12, weight: .regular)
 
     init(
         frame frameRect: NSRect,
@@ -233,7 +235,7 @@ final class QuotaTokenUsageBarView: NSView {
         value.draw(
             at: CGPoint(
                 x: floor((bounds.width - valueSize.width) / 2),
-                y: bounds.height - valueSize.height
+                y: bounds.height - valueSize.height - 20
             ),
             withAttributes: valueAttributes
         )
@@ -256,13 +258,13 @@ final class QuotaTokenUsageBarView: NSView {
         let date = day.label as NSString
         let dateAttributes: [NSAttributedString.Key: Any] = [
             .font: dateFont,
-            .foregroundColor: NSColor.tertiaryLabelColor
+            .foregroundColor: NSColor.secondaryLabelColor
         ]
         let dateSize = date.size(withAttributes: dateAttributes)
         date.draw(
             at: CGPoint(
                 x: floor((bounds.width - dateSize.width) / 2),
-                y: 0
+                y: -3
             ),
             withAttributes: dateAttributes
         )

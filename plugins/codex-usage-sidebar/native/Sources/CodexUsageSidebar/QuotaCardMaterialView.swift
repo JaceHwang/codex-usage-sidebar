@@ -28,8 +28,8 @@ final class QuotaCardMaterialView: NSView {
         let border: NSColor
         let shadowColor: NSColor
         if appearanceName == .darkAqua {
-            fill = NSColor(calibratedWhite: 0.12, alpha: 0.97)
-            border = NSColor(calibratedWhite: 0.52, alpha: 0.56)
+            fill = NSColor(calibratedWhite: 0.09, alpha: 0.98)
+            border = NSColor(calibratedWhite: 0.52, alpha: 0.62)
             shadowColor = NSColor.black.withAlphaComponent(0.40)
         } else {
             fill = NSColor.windowBackgroundColor.withAlphaComponent(0.98)

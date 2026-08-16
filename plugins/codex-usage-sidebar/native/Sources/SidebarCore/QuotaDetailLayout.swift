@@ -21,43 +21,41 @@ public struct QuotaDetailHeaderFrames: Equatable, Sendable {
 
 public struct QuotaDetailInformationFrames: Equatable, Sendable {
     public let topDivider: CGRect
-    public let control: CGRect
-    public let bottomDivider: CGRect
     public let tokenBand: CGRect
     public let rowArea: CGRect
+    public let footerDivider: CGRect
+    public let footer: CGRect
 
     public init(
         topDivider: CGRect,
-        control: CGRect,
-        bottomDivider: CGRect,
         tokenBand: CGRect,
-        rowArea: CGRect
+        rowArea: CGRect,
+        footerDivider: CGRect,
+        footer: CGRect
     ) {
         self.topDivider = topDivider
-        self.control = control
-        self.bottomDivider = bottomDivider
         self.tokenBand = tokenBand
         self.rowArea = rowArea
+        self.footerDivider = footerDivider
+        self.footer = footer
     }
 }
 
 public enum QuotaDetailLayout {
-    public static let width: CGFloat = 520
-    public static let headerHeight: CGFloat = 150
-    public static let rowHeight: CGFloat = 24
+    public static let width: CGFloat = 476
+    public static let headerHeight: CGFloat = 204
+    public static let rowHeight: CGFloat = 40
     public static let verticalPadding: CGFloat = 24
-    public static let maximumHeight: CGFloat = 720
+    public static let maximumHeight: CGFloat = 804
     public static let screenMargin: CGFloat = 8
     public static let controlGap: CGFloat = 8
-    public static let tokenBandHeight: CGFloat = 220
-    public static let tokenBandGap: CGFloat = 16
+    public static let tokenBandHeight: CGFloat = 250
+    public static let tokenBandGap: CGFloat = 12
     public static let tokenBandReservedHeight: CGFloat =
         tokenBandHeight + tokenBandGap * 2
-    private static let contentHorizontalInset: CGFloat = 24
-    private static let tiboTopGap: CGFloat = 24
-    private static let tiboHeight: CGFloat = 48
-    private static let tiboBottomGap: CGFloat = 16
+    private static let contentHorizontalInset: CGFloat = 28
     private static let rowTopGap: CGFloat = 20
+    private static let footerHeight: CGFloat = 66
 
     public static func titleWidth(
         intrinsicWidth: CGFloat,
@@ -72,34 +70,34 @@ public enum QuotaDetailLayout {
         versionBadgeWidth: CGFloat
     ) -> QuotaDetailHeaderFrames {
         let badgeWidth = max(0, versionBadgeWidth)
-        let titleX = bounds.minX + contentHorizontalInset
+        let titleX = bounds.minX + 28 + 40 + 18
         let maximumTitleWidth = max(
             0,
             bounds.maxX - contentHorizontalInset - badgeWidth - 8 - titleX
         )
         let title = CGRect(
             x: titleX,
-            y: bounds.maxY - 52,
+            y: bounds.maxY - 54,
             width: min(max(0, titleWidth), maximumTitleWidth),
             height: 28
         )
         let versionBadge = CGRect(
             x: title.maxX + 8,
-            y: title.midY - 7,
+            y: title.midY - 14,
             width: badgeWidth,
-            height: 14
+            height: 28
         )
         let remaining = CGRect(
-            x: titleX,
-            y: bounds.maxY - 104,
+            x: bounds.minX + contentHorizontalInset,
+            y: bounds.maxY - 137,
             width: max(0, bounds.width - contentHorizontalInset * 2),
-            height: 36
+            height: 42
         )
         let progress = CGRect(
-            x: titleX,
-            y: bounds.maxY - 132,
+            x: bounds.minX + contentHorizontalInset,
+            y: bounds.maxY - 143,
             width: max(0, bounds.width - contentHorizontalInset * 2),
-            height: 6
+            height: 8
         )
         return QuotaDetailHeaderFrames(
             title: title,
@@ -113,17 +111,11 @@ public enum QuotaDetailLayout {
         in bounds: CGRect,
         tokenUsageVisible: Bool = false
     ) -> QuotaDetailInformationFrames {
-        let bottomDivider = CGRect(
-            x: bounds.minX,
-            y: bounds.maxY - headerHeight - tiboTopGap - tiboHeight - tiboBottomGap,
-            width: bounds.width,
-            height: 1
-        )
         let tokenBand: CGRect
         if tokenUsageVisible {
             tokenBand = CGRect(
                 x: bounds.minX + contentHorizontalInset,
-                y: bottomDivider.minY - tokenBandGap - tokenBandHeight,
+                y: bounds.maxY - headerHeight - tokenBandGap - tokenBandHeight,
                 width: max(0, bounds.width - contentHorizontalInset * 2),
                 height: tokenBandHeight
             )
@@ -137,18 +129,15 @@ public enum QuotaDetailLayout {
                 width: bounds.width,
                 height: 1
             ),
-            control: CGRect(
-                x: bounds.minX + contentHorizontalInset,
-                y: bounds.maxY - headerHeight - tiboTopGap - tiboHeight,
-                width: max(0, bounds.width - contentHorizontalInset * 2),
-                height: tiboHeight
-            ),
-            bottomDivider: bottomDivider,
             tokenBand: tokenBand,
-            rowArea: rowAreaFrame(
-                in: bounds,
-                tokenUsageVisible: tokenUsageVisible
-            )
+            rowArea: rowAreaFrame(in: bounds, tokenUsageVisible: tokenUsageVisible),
+            footerDivider: CGRect(
+                x: bounds.minX,
+                y: footerFrame(in: bounds).maxY,
+                width: bounds.width,
+                height: 1
+            ),
+            footer: footerFrame(in: bounds)
         )
     }
 
@@ -156,15 +145,24 @@ public enum QuotaDetailLayout {
         in bounds: CGRect,
         tokenUsageVisible: Bool = false
     ) -> CGRect {
-        let informationHeight = headerHeight + tiboTopGap + tiboHeight + tiboBottomGap
+        let informationHeight = headerHeight
         let reservedHeight = informationHeight + (
             tokenUsageVisible ? tokenBandReservedHeight : 0
-        )
+        ) + footerHeight
         return CGRect(
             x: bounds.minX,
-            y: bounds.minY + rowTopGap,
+            y: bounds.minY + footerHeight + rowTopGap,
             width: bounds.width,
-            height: max(0, bounds.height - rowTopGap - reservedHeight)
+            height: max(0, bounds.height - rowTopGap - reservedHeight + 8)
+        )
+    }
+
+    public static func footerFrame(in bounds: CGRect) -> CGRect {
+        CGRect(
+            x: bounds.minX,
+            y: bounds.minY,
+            width: bounds.width,
+            height: footerHeight
         )
     }
 
@@ -184,9 +182,8 @@ public enum QuotaDetailLayout {
     ) -> CGFloat {
         min(
             maximumHeight,
-            headerHeight + tiboTopGap + tiboHeight + tiboBottomGap +
-                verticalPadding + max(0, rowContentHeight) +
-                (tokenUsageVisible ? tokenBandReservedHeight : 0)
+            headerHeight + verticalPadding + max(0, rowContentHeight) +
+                (tokenUsageVisible ? tokenBandReservedHeight : 0) + footerHeight
         )
     }
 
