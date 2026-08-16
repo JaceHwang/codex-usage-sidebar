@@ -23,6 +23,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             let content = QuotaDetailFormatter().content(
                 snapshot: longBankSnapshot,
                 tokenUsage: tokenUsageSnapshot,
+                footerName: "jace@example.com",
                 now: now,
                 language: language,
                 timeZone: timeZone
@@ -103,6 +104,12 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                         .count,
                     1,
                     "The reference card includes one help control in its footer."
+                )
+                XCTAssertTrue(
+                    descendants(of: card)
+                        .compactMap { $0 as? NSTextField }
+                        .contains { $0.stringValue == "jace@example.com" },
+                    "The footer renders the account identity supplied by Codex."
                 )
                 XCTAssertFalse(
                     descendants(of: card)
