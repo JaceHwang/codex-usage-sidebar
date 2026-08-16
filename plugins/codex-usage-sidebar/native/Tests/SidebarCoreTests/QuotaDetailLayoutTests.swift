@@ -86,14 +86,14 @@ final class QuotaDetailLayoutTests: XCTestCase {
     }
 
     func testAccountsForWrappedDetailRows() {
-        XCTAssertEqual(QuotaDetailLayout.contentHeight(rowContentHeight: 210), 420)
+        XCTAssertEqual(QuotaDetailLayout.contentHeight(rowContentHeight: 210), 390)
         let frame = QuotaDetailLayout.frame(
             indicatorFrame: CGRect(x: 100, y: 600, width: 148, height: 46),
             rowContentHeight: 210,
             visibleFrame: CGRect(x: 0, y: 0, width: 900, height: 700)
         )
 
-        XCTAssertEqual(frame.height, 420)
+        XCTAssertEqual(frame.height, 390)
     }
 
     func testInformationBandSeparatesProgressTiboTokenBandAndRows() {
@@ -103,14 +103,14 @@ final class QuotaDetailLayoutTests: XCTestCase {
             tokenUsageVisible: true
         )
 
-        XCTAssertEqual(frames.topDivider.minY, 430)
+        XCTAssertEqual(frames.topDivider.minY, 460)
         XCTAssertEqual(
             frames.tokenBand,
-            CGRect(x: 18, y: 274, width: 324, height: 150)
+            CGRect(x: 18, y: 304, width: 324, height: 150)
         )
         XCTAssertEqual(frames.footer, CGRect(x: 0, y: 0, width: 360, height: 44))
         XCTAssertEqual(frames.footerDivider.minY, 44)
-        XCTAssertEqual(frames.tokenDivider, CGRect(x: 18, y: 271, width: 324, height: 1))
+        XCTAssertEqual(frames.tokenDivider, CGRect(x: 18, y: 301, width: 324, height: 1))
         XCTAssertLessThan(frames.rowArea.maxY, frames.tokenBand.minY)
         XCTAssertGreaterThan(frames.rowArea.minY, frames.footer.maxY)
         XCTAssertTrue(bounds.contains(frames.tokenBand))
@@ -130,7 +130,7 @@ final class QuotaDetailLayoutTests: XCTestCase {
                 rowContentHeight: 240,
                 tokenUsageVisible: false
             ),
-            450
+            420
         )
     }
 
@@ -145,6 +145,24 @@ final class QuotaDetailLayoutTests: XCTestCase {
         XCTAssertEqual(frames.versionBadge, CGRect(x: 294, y: 258, width: 48, height: 22))
         XCTAssertEqual(frames.versionBadge.midY, frames.title.midY)
         XCTAssertLessThan(frames.remaining.maxY, frames.versionBadge.minY)
+    }
+
+    func testCompactHeaderKeepsContentDividerCloseToProgressBar() {
+        let bounds = CGRect(x: 0, y: 0, width: 360, height: 580)
+        let header = QuotaDetailLayout.headerFrames(
+            in: bounds,
+            titleWidth: 180,
+            versionBadgeWidth: 48
+        )
+        let information = QuotaDetailLayout.informationFrames(
+            in: bounds,
+            tokenUsageVisible: true
+        )
+
+        XCTAssertLessThanOrEqual(
+            header.progress.minY - information.topDivider.maxY,
+            20
+        )
     }
 
     func testHeaderTruncatesLongTitleBeforeVersionAndRemaining() {

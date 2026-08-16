@@ -101,7 +101,7 @@ final class RuntimeTokenUsageStateTests: XCTestCase {
         }
 
         coordinator.refreshNow(reason: .startup)
-        try await eventually { transport.sentLines.count == 6 }
+        try await eventually { transport.sentLines.count >= 6 }
         transport.emit(#"{"id":5,"error":{"code":-32000,"message":"temporary failure"}}"#)
         try await Task.sleep(nanoseconds: 50_000_000)
 
@@ -128,13 +128,40 @@ final class RuntimeTokenUsageStateTests: XCTestCase {
         }
 
         coordinator.refreshNow(reason: .startup)
-        try await eventually { transport.sentLines.count == 6 }
+        try await eventually { transport.sentLines.count >= 6 }
         transport.emit(#"{"id":5,"error":{"code":-32601,"message":"Method not found"}}"#)
         try await Task.sleep(nanoseconds: 50_000_000)
 
         let usage = try XCTUnwrap(coordinator.detailContent()?.tokenUsage)
         XCTAssertEqual(usage.availability, .available)
         XCTAssertEqual(usage.totalTokens, 456)
+        coordinator.stop()
+    }
+
+    func testAccountReadResponseFlowsIntoDetailFooter() async throws {
+        let transport = CoordinatorLineTransport()
+        let coordinator = RuntimeCoordinator(
+            appServerClientFactory: { _ in
+                AppServerClient(transportFactory: { transport })
+            }
+        )
+
+        coordinator.replaceClient(using: hostInstallation())
+        try await completeHandshake(on: transport)
+        transport.emit(rateLimitResponse())
+        try await eventually {
+            coordinator.detailContent() != nil
+        }
+
+        try await eventually { transport.sentLines.count >= 5 }
+        transport.emit(
+            #"{"id":4,"result":{"account":{"email":"jace@example.com"}}}"#
+        )
+        try await eventually {
+            coordinator.detailContent()?.footerName == "jace@example.com"
+        }
+        let detail = try XCTUnwrap(coordinator.detailContent())
+        XCTAssertEqual(detail.footerName, "jace@example.com")
         coordinator.stop()
     }
 
@@ -156,7 +183,7 @@ final class RuntimeTokenUsageStateTests: XCTestCase {
     ) async throws {
         try await eventually { transport.sentLines.count == 1 }
         transport.emit(#"{"id":1,"result":{}}"#)
-        try await eventually { transport.sentLines.count == 4 }
+        try await eventually { transport.sentLines.count >= 4 }
     }
 
     private func rateLimitResponse() -> String {

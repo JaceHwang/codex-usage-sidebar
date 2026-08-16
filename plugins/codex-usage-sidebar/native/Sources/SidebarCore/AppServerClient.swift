@@ -35,6 +35,7 @@ public actor AppServerClient {
     private var lastSnapshot: AllowanceSnapshot?
     private var rateLimitReadNeededAfterPending = false
     private var tokenUsageReadNeededAfterPending = false
+    private var accountReadNeededAfterInitialization = false
 
     public init(
         transportFactory: @escaping @Sendable () throws -> any LineTransport,
@@ -108,8 +109,12 @@ public actor AppServerClient {
     }
 
     public func readAccount() async throws {
-        guard initialized else {
+        guard transport != nil else {
             throw AppServerClientError.notInitialized
+        }
+        guard initialized else {
+            accountReadNeededAfterInitialization = true
+            return
         }
         _ = try await sendRequest(method: "account/read", params: [:])
     }
@@ -125,6 +130,7 @@ public actor AppServerClient {
         lastSnapshot = nil
         rateLimitReadNeededAfterPending = false
         tokenUsageReadNeededAfterPending = false
+        accountReadNeededAfterInitialization = false
         await activeTransport?.stop()
         snapshotContinuation.finish()
         tokenUsageContinuation.finish()
@@ -273,6 +279,7 @@ public actor AppServerClient {
                 try await sendNotification(method: "initialized")
                 _ = try await sendRequest(method: "account/rateLimits/read")
                 _ = try await sendRequest(method: "account/usage/read")
+                await sendDeferredAccountReadIfNeeded()
             } catch {
                 await restartAfterFailure()
             }
@@ -322,6 +329,18 @@ public actor AppServerClient {
         tokenUsageReadNeededAfterPending = false
         do {
             _ = try await sendRequest(method: "account/usage/read")
+        } catch {
+            await restartAfterFailure()
+        }
+    }
+
+    private func sendDeferredAccountReadIfNeeded() async {
+        guard initialized, accountReadNeededAfterInitialization else {
+            return
+        }
+        accountReadNeededAfterInitialization = false
+        do {
+            _ = try await sendRequest(method: "account/read", params: [:])
         } catch {
             await restartAfterFailure()
         }

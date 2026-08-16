@@ -47,7 +47,7 @@ public struct QuotaDetailInformationFrames: Equatable, Sendable {
 public enum QuotaDetailLayout {
     /// Compact dimensions tuned to the native Codex popover scale.
     public static let width: CGFloat = 360
-    public static let headerHeight: CGFloat = 150
+    public static let headerHeight: CGFloat = 120
     public static let rowHeight: CGFloat = 32
     public static let verticalPadding: CGFloat = 16
     public static let maximumHeight: CGFloat = 580
