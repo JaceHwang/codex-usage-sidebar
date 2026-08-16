@@ -1,5 +1,14 @@
 import AppKit
 
+enum QuotaChromeStyle {
+    static let separatorLineWidth: CGFloat = 1
+    static let separatorAlpha: CGFloat = 0.78
+
+    static var separatorColor: NSColor {
+        NSColor.separatorColor.withAlphaComponent(separatorAlpha)
+    }
+}
+
 @MainActor
 final class QuotaCardMaterialView: NSView {
     override init(frame frameRect: NSRect) {
@@ -25,15 +34,12 @@ final class QuotaCardMaterialView: NSView {
             from: [.darkAqua, .aqua]
         )
         let fill: NSColor
-        let border: NSColor
         let shadowColor: NSColor
         if appearanceName == .darkAqua {
             fill = NSColor(calibratedWhite: 0.09, alpha: 0.98)
-            border = NSColor(calibratedWhite: 0.58, alpha: 0.42)
             shadowColor = NSColor.black.withAlphaComponent(0.28)
         } else {
             fill = NSColor.windowBackgroundColor.withAlphaComponent(0.98)
-            border = NSColor.separatorColor.withAlphaComponent(0.55)
             shadowColor = NSColor.black.withAlphaComponent(0.14)
         }
 
@@ -44,8 +50,8 @@ final class QuotaCardMaterialView: NSView {
         shadow.set()
         fill.setFill()
         card.fill()
-        border.setStroke()
-        card.lineWidth = 0.75
+        QuotaChromeStyle.separatorColor.setStroke()
+        card.lineWidth = QuotaChromeStyle.separatorLineWidth
         card.stroke()
     }
 

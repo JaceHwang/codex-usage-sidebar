@@ -418,8 +418,8 @@ private final class QuotaFooterHelpButton: NSButton {
 
     override func draw(_ dirtyRect: NSRect) {
         let circle = NSBezierPath(ovalIn: bounds.insetBy(dx: 0.75, dy: 0.75))
-        NSColor.secondaryLabelColor.setStroke()
-        circle.lineWidth = 1.25
+        QuotaChromeStyle.separatorColor.setStroke()
+        circle.lineWidth = QuotaChromeStyle.separatorLineWidth
         circle.stroke()
         super.draw(dirtyRect)
     }
@@ -441,8 +441,8 @@ final class QuotaReferenceTiboOutlineView: NSView {
             xRadius: 10,
             yRadius: 10
         )
-        NSColor.separatorColor.withAlphaComponent(0.78).setStroke()
-        outline.lineWidth = 1
+        QuotaChromeStyle.separatorColor.setStroke()
+        outline.lineWidth = QuotaChromeStyle.separatorLineWidth
         outline.stroke()
     }
 }
@@ -475,8 +475,8 @@ private final class VersionBadgeView: NSView {
             xRadius: capsuleBounds.height / 2,
             yRadius: capsuleBounds.height / 2
         )
-        NSColor.separatorColor.withAlphaComponent(0.86).setStroke()
-        capsule.lineWidth = 1
+        QuotaChromeStyle.separatorColor.setStroke()
+        capsule.lineWidth = QuotaChromeStyle.separatorLineWidth
         capsule.stroke()
 
         let attributes: [NSAttributedString.Key: Any] = [

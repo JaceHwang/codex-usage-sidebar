@@ -316,6 +316,13 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         XCTAssertGreaterThan(material.shadowOpacity(for: .darkAqua), 0)
     }
 
+    func testChromeOutlinesUseTheSharedSeparatorStyle() {
+        XCTAssertEqual(QuotaChromeStyle.separatorLineWidth, 1)
+        let color = QuotaChromeStyle.separatorColor
+            .usingColorSpace(.deviceRGB)
+        XCTAssertEqual(color?.alphaComponent ?? 0, 0.78, accuracy: 0.01)
+    }
+
     func testUnavailableTokenUsageRendersSevenEmptyBarsAndItsUnavailableNote() throws {
         let content = QuotaDetailFormatter().content(
             snapshot: AllowanceSnapshot(
