@@ -22,6 +22,7 @@ public struct QuotaDetailHeaderFrames: Equatable, Sendable {
 public struct QuotaDetailInformationFrames: Equatable, Sendable {
     public let topDivider: CGRect
     public let tokenBand: CGRect
+    public let tokenDivider: CGRect
     public let rowArea: CGRect
     public let footerDivider: CGRect
     public let footer: CGRect
@@ -29,12 +30,14 @@ public struct QuotaDetailInformationFrames: Equatable, Sendable {
     public init(
         topDivider: CGRect,
         tokenBand: CGRect,
+        tokenDivider: CGRect,
         rowArea: CGRect,
         footerDivider: CGRect,
         footer: CGRect
     ) {
         self.topDivider = topDivider
         self.tokenBand = tokenBand
+        self.tokenDivider = tokenDivider
         self.rowArea = rowArea
         self.footerDivider = footerDivider
         self.footer = footer
@@ -47,16 +50,16 @@ public enum QuotaDetailLayout {
     public static let headerHeight: CGFloat = 150
     public static let rowHeight: CGFloat = 32
     public static let verticalPadding: CGFloat = 16
-    public static let maximumHeight: CGFloat = 620
+    public static let maximumHeight: CGFloat = 580
     public static let screenMargin: CGFloat = 8
     public static let controlGap: CGFloat = 8
-    public static let tokenBandHeight: CGFloat = 190
-    public static let tokenBandGap: CGFloat = 8
+    public static let tokenBandHeight: CGFloat = 150
+    public static let tokenBandGap: CGFloat = 6
     public static let tokenBandReservedHeight: CGFloat =
         tokenBandHeight + tokenBandGap * 2
     public static let contentHorizontalInset: CGFloat = 18
-    public static let rowTopGap: CGFloat = 12
-    public static let footerHeight: CGFloat = 50
+    public static let rowTopGap: CGFloat = 10
+    public static let footerHeight: CGFloat = 44
 
     public static func titleWidth(
         intrinsicWidth: CGFloat,
@@ -131,6 +134,14 @@ public enum QuotaDetailLayout {
                 height: 1
             ),
             tokenBand: tokenBand,
+            tokenDivider: tokenUsageVisible
+                ? CGRect(
+                    x: bounds.minX + contentHorizontalInset,
+                    y: tokenBand.minY - tokenBandGap / 2,
+                    width: max(0, bounds.width - contentHorizontalInset * 2),
+                    height: 1
+                )
+                : .zero,
             rowArea: rowAreaFrame(in: bounds, tokenUsageVisible: tokenUsageVisible),
             footerDivider: CGRect(
                 x: bounds.minX,

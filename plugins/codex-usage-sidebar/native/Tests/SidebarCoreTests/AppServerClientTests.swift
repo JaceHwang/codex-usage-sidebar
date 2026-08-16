@@ -57,6 +57,31 @@ final class AppServerClientTests: XCTestCase {
         await client.stop()
     }
 
+    func testReadAccountEmitsCodexIdentity() async throws {
+        let transport = InMemoryLineTransport()
+        let client = AppServerClient(transportFactory: { transport })
+        try await completeHandshake(client: client, transport: transport)
+
+        let identityTask = Task<AccountIdentity?, Never> {
+            var iterator = client.accounts.makeAsyncIterator()
+            return await iterator.next()
+        }
+
+        try await client.readAccount()
+        try await eventually {
+            transport.sentLines.count == 5
+        }
+        transport.emit(
+            #"{"id":4,"result":{"account":{"displayName":"Jace","email":"jace@example.com"}}}"#
+        )
+
+        let identityValue = await identityTask.value
+        let identity = try XCTUnwrap(identityValue)
+        XCTAssertEqual(identity.preferredName, "Jace")
+        XCTAssertEqual(identity.email, "jace@example.com")
+        await client.stop()
+    }
+
     func testRefreshCoalescesPendingReadAndResumesAfterResponse() async throws {
         let transport = InMemoryLineTransport()
         let client = AppServerClient(transportFactory: { transport })

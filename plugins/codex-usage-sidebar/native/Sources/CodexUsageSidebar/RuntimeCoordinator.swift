@@ -46,6 +46,7 @@ final class RuntimeCoordinator: NSObject {
     private var client: AppServerClient?
     private var clientStartedAt: Date?
     private var snapshotState = RuntimeTokenUsageState()
+    private var accountIdentity: AccountIdentity?
     private var snapshot: AllowanceSnapshot? {
         snapshotState.allowanceSnapshot
     }
@@ -54,6 +55,7 @@ final class RuntimeCoordinator: NSObject {
     }
     private var snapshotTask: Task<Void, Never>?
     private var tokenUsageTask: Task<Void, Never>?
+    private var accountTask: Task<Void, Never>?
     private var timer: Timer?
     private var layoutTimer: Timer?
     private var nextPeriodicRefresh = Date.distantPast
@@ -133,6 +135,8 @@ final class RuntimeCoordinator: NSObject {
         snapshotTask = nil
         tokenUsageTask?.cancel()
         tokenUsageTask = nil
+        accountTask?.cancel()
+        accountTask = nil
         if let client {
             Task {
                 await client.stop()
@@ -140,6 +144,7 @@ final class RuntimeCoordinator: NSObject {
         }
         client = nil
         clientStartedAt = nil
+        accountIdentity = nil
         hideOverlay()
     }
 
@@ -420,6 +425,8 @@ final class RuntimeCoordinator: NSObject {
         return detailFormatter.content(
             snapshot: snapshot,
             tokenUsage: tokenUsageSnapshot,
+            footerName: accountIdentity?.preferredName,
+            footerAvatarURL: accountIdentity?.avatarURL,
             now: now,
             language: language ?? languageState.language,
             timeZone: timeZone
@@ -431,6 +438,8 @@ final class RuntimeCoordinator: NSObject {
         snapshotTask = nil
         tokenUsageTask?.cancel()
         tokenUsageTask = nil
+        accountTask?.cancel()
+        accountTask = nil
         snapshotState.clearTokenUsageForAppServerReplacement()
         if let oldClient = client {
             Task {
@@ -439,6 +448,7 @@ final class RuntimeCoordinator: NSObject {
         }
         client = nil
         clientStartedAt = nil
+        accountIdentity = nil
 
         guard let host else {
             hideOverlay()
@@ -464,8 +474,17 @@ final class RuntimeCoordinator: NSObject {
                 self?.receivedTokenUsage(value)
             }
         }
+        accountTask = Task { [weak self] in
+            for await value in newClient.accounts {
+                guard !Task.isCancelled else {
+                    break
+                }
+                self?.receivedAccount(value)
+            }
+        }
         Task {
             try? await newClient.start()
+            try? await newClient.readAccount()
         }
     }
 
@@ -480,6 +499,11 @@ final class RuntimeCoordinator: NSObject {
 
     private func receivedTokenUsage(_ newSnapshot: TokenUsageSnapshot) {
         snapshotState.receive(newSnapshot)
+        reconcileOverlay()
+    }
+
+    private func receivedAccount(_ identity: AccountIdentity) {
+        accountIdentity = identity
         reconcileOverlay()
     }
 

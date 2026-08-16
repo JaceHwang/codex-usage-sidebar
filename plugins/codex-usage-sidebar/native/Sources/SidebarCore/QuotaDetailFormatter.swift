@@ -78,6 +78,8 @@ public struct QuotaDetailContent: Equatable, Sendable {
     public let title: String
     public let remainingPercent: Int
     public let remainingSummary: String?
+    public let footerName: String?
+    public let footerAvatarURL: URL?
     public let informationEntry: QuotaInformationEntry
     public let tokenUsage: QuotaTokenUsagePresentation?
     public let rows: [QuotaDetailRow]
@@ -86,6 +88,8 @@ public struct QuotaDetailContent: Equatable, Sendable {
         title: String,
         remainingPercent: Int,
         remainingSummary: String? = nil,
+        footerName: String? = nil,
+        footerAvatarURL: URL? = nil,
         informationEntry: QuotaInformationEntry,
         tokenUsage: QuotaTokenUsagePresentation? = nil,
         rows: [QuotaDetailRow]
@@ -93,6 +97,8 @@ public struct QuotaDetailContent: Equatable, Sendable {
         self.title = title
         self.remainingPercent = remainingPercent
         self.remainingSummary = remainingSummary
+        self.footerName = footerName
+        self.footerAvatarURL = footerAvatarURL
         self.informationEntry = informationEntry
         self.tokenUsage = tokenUsage
         self.rows = rows
@@ -111,6 +117,8 @@ public struct QuotaDetailFormatter: Sendable {
     public func content(
         snapshot: AllowanceSnapshot,
         tokenUsage: TokenUsageSnapshot? = nil,
+        footerName: String? = nil,
+        footerAvatarURL: URL? = nil,
         now: Date,
         language: CodexDisplayLanguage,
         timeZone: TimeZone
@@ -207,6 +215,8 @@ public struct QuotaDetailFormatter: Sendable {
             title: copy.title,
             remainingPercent: snapshot.remainingPercent,
             remainingSummary: copy.remainingSummary(snapshot.remainingPercent),
+            footerName: footerName,
+            footerAvatarURL: footerAvatarURL,
             informationEntry: QuotaInformationEntry(
                 title: copy.tiboXTitle,
                 accessibilityLabel: copy.tiboXAccessibilityLabel,

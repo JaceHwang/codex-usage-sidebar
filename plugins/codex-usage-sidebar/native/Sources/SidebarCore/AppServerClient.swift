@@ -9,16 +9,19 @@ public enum AppServerClientError: Error, Equatable, Sendable {
 public actor AppServerClient {
     public nonisolated let snapshots: AsyncStream<AllowanceSnapshot>
     public nonisolated let tokenUsages: AsyncStream<TokenUsageSnapshot>
+    public nonisolated let accounts: AsyncStream<AccountIdentity>
     public private(set) var restartAttemptCount = 0
 
     private enum PendingMethod {
         case initialize
         case readRateLimits
         case readTokenUsage
+        case readAccount
     }
 
     private let snapshotContinuation: AsyncStream<AllowanceSnapshot>.Continuation
     private let tokenUsageContinuation: AsyncStream<TokenUsageSnapshot>.Continuation
+    private let accountContinuation: AsyncStream<AccountIdentity>.Continuation
     private let transportFactory: @Sendable () throws -> any LineTransport
     private let restartDelaysNanoseconds: [UInt64]
     private var transport: (any LineTransport)?
@@ -53,6 +56,11 @@ public actor AppServerClient {
         )
         tokenUsages = tokenUsagePair.stream
         tokenUsageContinuation = tokenUsagePair.continuation
+        let accountPair = AsyncStream<AccountIdentity>.makeStream(
+            bufferingPolicy: .bufferingNewest(2)
+        )
+        accounts = accountPair.stream
+        accountContinuation = accountPair.continuation
     }
 
     public init(
@@ -99,6 +107,13 @@ public actor AppServerClient {
         }
     }
 
+    public func readAccount() async throws {
+        guard initialized else {
+            throw AppServerClientError.notInitialized
+        }
+        _ = try await sendRequest(method: "account/read", params: [:])
+    }
+
     public func stop() async {
         stopping = true
         readerTask?.cancel()
@@ -113,6 +128,7 @@ public actor AppServerClient {
         await activeTransport?.stop()
         snapshotContinuation.finish()
         tokenUsageContinuation.finish()
+        accountContinuation.finish()
     }
 
     private func startSession() async throws {
@@ -177,6 +193,8 @@ public actor AppServerClient {
             pending[id] = .readRateLimits
         case "account/usage/read":
             pending[id] = .readTokenUsage
+        case "account/read":
+            pending[id] = .readAccount
         default:
             throw AppServerClientError.remoteError
         }
@@ -240,6 +258,8 @@ public actor AppServerClient {
             case .readTokenUsage:
                 yieldUnavailableTokenUsage(from: Data(line.utf8))
                 await sendDeferredTokenUsageReadIfNeeded()
+            case .readAccount:
+                break
             case .initialize:
                 break
             }
@@ -274,6 +294,12 @@ public actor AppServerClient {
                 yieldUnavailableTokenUsage(from: Data(line.utf8))
             }
             await sendDeferredTokenUsageReadIfNeeded()
+        case .readAccount:
+            if let identity = try? AccountIdentityDecoder.decodeResponse(
+                Data(line.utf8)
+            ) {
+                accountContinuation.yield(identity)
+            }
         }
     }
 

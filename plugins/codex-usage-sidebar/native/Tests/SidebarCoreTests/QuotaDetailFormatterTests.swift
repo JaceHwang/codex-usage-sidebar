@@ -7,6 +7,18 @@ final class QuotaDetailFormatterTests: XCTestCase {
     private let timeZone = TimeZone(identifier: "Asia/Shanghai")!
     private let now = Date(timeIntervalSince1970: 1_785_000_000)
 
+    func testCarriesCodexAccountNameIntoFooterPresentation() {
+        let content = formatter.content(
+            snapshot: fullSnapshot,
+            footerName: "Jace",
+            now: now,
+            language: .simplifiedChinese,
+            timeZone: timeZone
+        )
+
+        XCTAssertEqual(content.footerName, "Jace")
+    }
+
     func testFormatsBankCountAndEveryExpiry() {
         let content = formatter.content(
             snapshot: fullSnapshot,

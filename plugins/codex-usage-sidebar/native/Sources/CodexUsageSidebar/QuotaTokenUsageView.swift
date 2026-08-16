@@ -5,8 +5,6 @@ import SidebarCore
 final class QuotaTokenUsageView: NSView {
     private static let titleFont = NSFont.systemFont(ofSize: 16, weight: .semibold)
     private static let totalFont = NSFont.systemFont(ofSize: 12, weight: .regular)
-    private static let dailyFont = NSFont.systemFont(ofSize: 12, weight: .regular)
-    private static let legendFont = NSFont.systemFont(ofSize: 10, weight: .regular)
     private static let noteFont = NSFont.systemFont(ofSize: 9, weight: .regular)
 
     let barCount: Int
@@ -57,20 +55,6 @@ final class QuotaTokenUsageView: NSView {
         )
         addSubview(total)
 
-        let daily = label(
-            Self.dailyLabel(for: presentation),
-            font: Self.dailyFont,
-            color: .secondaryLabelColor,
-            alignment: .left
-        )
-        daily.frame = CGRect(
-            x: 0,
-            y: bounds.height - 50,
-            width: 80,
-            height: 14
-        )
-        addSubview(daily)
-
         if presentation.availability != .available {
             let note = label(
                 presentation.delayNote,
@@ -90,54 +74,22 @@ final class QuotaTokenUsageView: NSView {
         let chart = TokenUsageChartView(
             frame: CGRect(
                 x: 0,
-                y: 43,
+                y: 24,
                 width: bounds.width,
-                height: 72
+                height: 86
             ),
             days: displayDays,
             remainingPercent: remainingPercent
         )
         addSubview(chart)
 
-        if presentation.availability == .available {
-            let legend = TokenUsageLegendView(
-                frame: CGRect(x: 0, y: 12, width: bounds.width, height: 14),
-                totalLabel: Self.totalLegend(for: presentation),
-                dailyLabel: Self.dailyLegend(for: presentation),
-                accent: QuotaColorScale.components(
-                    remainingPercent: remainingPercent
-                ).appKitColor
-            )
-            addSubview(legend)
-        }
+        // The native compact popover intentionally omits the secondary daily
+        // label and chart legend; the seven columns carry the complete signal.
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         nil
-    }
-
-    private static func dailyLabel(
-        for presentation: QuotaTokenUsagePresentation
-    ) -> String {
-        presentation.title == "Token usage" ? "Daily" : "每日"
-    }
-
-    private static func totalLegend(
-        for presentation: QuotaTokenUsagePresentation
-    ) -> String {
-        if presentation.title == "Token usage" {
-            return "Total (tokens)"
-        }
-        return presentation.totalLabel.contains("本週期")
-            ? "總量（tokens）"
-            : "总量（tokens）"
-    }
-
-    private static func dailyLegend(
-        for presentation: QuotaTokenUsagePresentation
-    ) -> String {
-        presentation.title == "Token usage" ? "Daily (tokens)" : "每日（tokens）"
     }
 
     private func label(

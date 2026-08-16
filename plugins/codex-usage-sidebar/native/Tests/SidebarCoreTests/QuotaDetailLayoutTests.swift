@@ -19,7 +19,7 @@ final class QuotaDetailLayoutTests: XCTestCase {
     }
 
     func testReferenceGeometryOrdersHeaderTiboTokenBandAndScrollableRows() {
-        let bounds = CGRect(x: 0, y: 0, width: 360, height: 620)
+        let bounds = CGRect(x: 0, y: 0, width: 360, height: 580)
         let header = QuotaDetailLayout.headerFrames(
             in: bounds,
             titleWidth: 180,
@@ -30,12 +30,13 @@ final class QuotaDetailLayoutTests: XCTestCase {
             tokenUsageVisible: true
         )
 
-        XCTAssertEqual(QuotaDetailLayout.maximumHeight, 620)
+        XCTAssertEqual(QuotaDetailLayout.maximumHeight, 580)
         XCTAssertEqual(header.title.height, 22)
         XCTAssertGreaterThan(header.title.minY, information.topDivider.maxY)
         XCTAssertGreaterThan(header.remaining.minY, information.topDivider.maxY)
         XCTAssertLessThan(information.tokenBand.maxY, information.topDivider.minY)
         XCTAssertLessThan(information.rowArea.maxY, information.tokenBand.minY)
+        XCTAssertGreaterThan(information.tokenDivider.minY, information.rowArea.maxY)
         XCTAssertGreaterThan(information.rowArea.minY, information.footer.maxY)
         XCTAssertEqual(information.tokenBand.width / 7, 46.3, accuracy: 0.5)
     }
@@ -73,7 +74,7 @@ final class QuotaDetailLayoutTests: XCTestCase {
     }
 
     func testCapsManyRowsForScrollableContent() {
-        XCTAssertEqual(QuotaDetailLayout.contentHeight(rowCount: 100), 620)
+        XCTAssertEqual(QuotaDetailLayout.contentHeight(rowCount: 100), 580)
         let frame = QuotaDetailLayout.frame(
             indicatorFrame: CGRect(x: 205, y: 390, width: 148, height: 46),
             rowCount: 100,
@@ -85,30 +86,31 @@ final class QuotaDetailLayoutTests: XCTestCase {
     }
 
     func testAccountsForWrappedDetailRows() {
-        XCTAssertEqual(QuotaDetailLayout.contentHeight(rowContentHeight: 210), 426)
+        XCTAssertEqual(QuotaDetailLayout.contentHeight(rowContentHeight: 210), 420)
         let frame = QuotaDetailLayout.frame(
             indicatorFrame: CGRect(x: 100, y: 600, width: 148, height: 46),
             rowContentHeight: 210,
             visibleFrame: CGRect(x: 0, y: 0, width: 900, height: 700)
         )
 
-        XCTAssertEqual(frame.height, 426)
+        XCTAssertEqual(frame.height, 420)
     }
 
     func testInformationBandSeparatesProgressTiboTokenBandAndRows() {
-        let bounds = CGRect(x: 0, y: 0, width: 360, height: 620)
+        let bounds = CGRect(x: 0, y: 0, width: 360, height: 580)
         let frames = QuotaDetailLayout.informationFrames(
             in: bounds,
             tokenUsageVisible: true
         )
 
-        XCTAssertEqual(frames.topDivider.minY, 470)
+        XCTAssertEqual(frames.topDivider.minY, 430)
         XCTAssertEqual(
             frames.tokenBand,
-            CGRect(x: 18, y: 272, width: 324, height: 190)
+            CGRect(x: 18, y: 274, width: 324, height: 150)
         )
-        XCTAssertEqual(frames.footer, CGRect(x: 0, y: 0, width: 360, height: 50))
-        XCTAssertEqual(frames.footerDivider.minY, 50)
+        XCTAssertEqual(frames.footer, CGRect(x: 0, y: 0, width: 360, height: 44))
+        XCTAssertEqual(frames.footerDivider.minY, 44)
+        XCTAssertEqual(frames.tokenDivider, CGRect(x: 18, y: 271, width: 324, height: 1))
         XCTAssertLessThan(frames.rowArea.maxY, frames.tokenBand.minY)
         XCTAssertGreaterThan(frames.rowArea.minY, frames.footer.maxY)
         XCTAssertTrue(bounds.contains(frames.tokenBand))
@@ -121,14 +123,14 @@ final class QuotaDetailLayoutTests: XCTestCase {
                 rowContentHeight: 240,
                 tokenUsageVisible: true
             ),
-            620
+            580
         )
         XCTAssertEqual(
             QuotaDetailLayout.contentHeight(
                 rowContentHeight: 240,
                 tokenUsageVisible: false
             ),
-            456
+            450
         )
     }
 

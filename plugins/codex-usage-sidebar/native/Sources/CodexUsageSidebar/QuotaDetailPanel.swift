@@ -176,7 +176,10 @@ final class QuotaDetailCardView: NSView {
             ),
             versionBadgeWidth: versionBadge.intrinsicContentSize.width
         )
-        let avatar = QuotaAvatarView()
+        let avatar = QuotaAvatarView(
+            seed: content.footerName,
+            avatarURL: content.footerAvatarURL
+        )
         avatar.frame = CGRect(
             x: QuotaDetailLayout.contentHorizontalInset,
             y: bounds.maxY - 50,
@@ -190,22 +193,6 @@ final class QuotaDetailCardView: NSView {
         addSubview(title)
         addSubview(versionBadge)
         addSubview(remaining)
-
-        if let summary = content.remainingSummary {
-            let summaryLabel = label(
-                summary,
-                font: .systemFont(ofSize: 13, weight: .regular),
-                color: .secondaryLabelColor,
-                alignment: .left
-            )
-            summaryLabel.frame = CGRect(
-                x: headerFrames.remaining.minX,
-                y: bounds.maxY - 139,
-                width: bounds.width - QuotaDetailLayout.contentHorizontalInset * 2,
-                height: 18
-            )
-            addSubview(summaryLabel)
-        }
 
         let progress = QuotaProgressView(
             frame: headerFrames.progress,
@@ -230,6 +217,12 @@ final class QuotaDetailCardView: NSView {
                 remainingPercent: content.remainingPercent
             )
             addSubview(tokenUsageView)
+        }
+
+        if content.tokenUsage != nil {
+            let tokenDivider = NSBox(frame: informationFrames.tokenDivider)
+            tokenDivider.boxType = .separator
+            addSubview(tokenDivider)
         }
 
         let rowAreaFrame = informationFrames.rowArea
@@ -345,7 +338,14 @@ final class QuotaDetailCardView: NSView {
         let footerDivider = NSBox(frame: informationFrames.footerDivider)
         footerDivider.boxType = .separator
         addSubview(footerDivider)
-        addSubview(QuotaFooterView(frame: informationFrames.footer))
+        addSubview(
+            QuotaFooterView(
+                frame: informationFrames.footer,
+                name: content.footerName,
+                avatarSeed: content.footerName,
+                avatarURL: content.footerAvatarURL
+            )
+        )
     }
 
     @available(*, unavailable)
@@ -371,18 +371,28 @@ final class QuotaDetailCardView: NSView {
 
 @MainActor
 private final class QuotaFooterView: NSView {
-    override init(frame frameRect: NSRect) {
+    init(
+        frame frameRect: NSRect,
+        name: String?,
+        avatarSeed: String?,
+        avatarURL: URL?
+    ) {
         super.init(frame: frameRect)
-        let avatar = QuotaAvatarView(frame: CGRect(x: 18, y: 9, width: 30, height: 30))
+        let avatar = QuotaAvatarView(
+            frame: CGRect(x: 18, y: 8, width: 28, height: 28),
+            seed: avatarSeed,
+            avatarURL: avatarURL
+        )
         addSubview(avatar)
 
-        let name = NSTextField(labelWithString: "Jace")
-        name.font = .systemFont(ofSize: 14, weight: .regular)
-        name.textColor = .labelColor
-        name.frame = CGRect(x: 58, y: 16, width: 120, height: 20)
-        addSubview(name)
+        let nameField = NSTextField(labelWithString: name ?? "Account")
+        nameField.font = .systemFont(ofSize: 13, weight: .regular)
+        nameField.textColor = .labelColor
+        nameField.lineBreakMode = .byTruncatingTail
+        nameField.frame = CGRect(x: 54, y: 14, width: 160, height: 18)
+        addSubview(nameField)
 
-        let help = QuotaFooterHelpButton(frame: CGRect(x: frameRect.width - 46, y: 11, width: 28, height: 28))
+        let help = QuotaFooterHelpButton(frame: CGRect(x: frameRect.width - 40, y: 10, width: 22, height: 22))
         addSubview(help)
     }
 
@@ -399,7 +409,7 @@ private final class QuotaFooterHelpButton: NSButton {
         title = "?"
         isBordered = false
         setButtonType(.momentaryPushIn)
-        font = .systemFont(ofSize: 15, weight: .medium)
+        font = .systemFont(ofSize: 12, weight: .medium)
         contentTintColor = .secondaryLabelColor
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
@@ -409,7 +419,7 @@ private final class QuotaFooterHelpButton: NSButton {
     override func draw(_ dirtyRect: NSRect) {
         let circle = NSBezierPath(ovalIn: bounds.insetBy(dx: 0.75, dy: 0.75))
         NSColor.secondaryLabelColor.setStroke()
-        circle.lineWidth = 1.5
+        circle.lineWidth = 1.25
         circle.stroke()
         super.draw(dirtyRect)
     }
@@ -489,6 +499,38 @@ private final class VersionBadgeView: NSView {
 
 @MainActor
 private final class QuotaAvatarView: NSView {
+    private let seed: String?
+    private let avatarURL: URL?
+    private var remoteImage: NSImage?
+    private var imageLoadTask: Task<Void, Never>?
+
+    init(seed: String? = nil, avatarURL: URL? = nil) {
+        self.seed = seed
+        self.avatarURL = avatarURL
+        super.init(frame: .zero)
+        loadRemoteImageIfNeeded()
+    }
+
+    init(frame frameRect: NSRect, seed: String?, avatarURL: URL? = nil) {
+        self.seed = seed
+        self.avatarURL = avatarURL
+        super.init(frame: frameRect)
+        loadRemoteImageIfNeeded()
+    }
+
+    override convenience init(frame frameRect: NSRect) {
+        self.init(frame: frameRect, seed: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    deinit {
+        imageLoadTask?.cancel()
+    }
+
     override var isOpaque: Bool { false }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -501,6 +543,45 @@ private final class QuotaAvatarView: NSView {
             ending: NSColor(calibratedRed: 0.27, green: 0.33, blue: 0.55, alpha: 1)
         )
         background?.draw(in: bounds, angle: 35)
+
+        if let remoteImage {
+            remoteImage.draw(
+                in: bounds,
+                from: .zero,
+                operation: .sourceOver,
+                fraction: 1
+            )
+            NSGraphicsContext.restoreGraphicsState()
+            NSColor.separatorColor.withAlphaComponent(0.42).setStroke()
+            circle.lineWidth = 0.75
+            circle.stroke()
+            return
+        }
+
+        if let seed, let initial = seed.first {
+            NSGraphicsContext.restoreGraphicsState()
+            let text = String(initial).uppercased() as NSString
+            let font = NSFont.systemFont(
+                ofSize: bounds.width * 0.38,
+                weight: .semibold
+            )
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: NSColor.white.withAlphaComponent(0.9)
+            ]
+            let size = text.size(withAttributes: attributes)
+            text.draw(
+                at: CGPoint(
+                    x: floor((bounds.width - size.width) / 2),
+                    y: floor((bounds.height - size.height) / 2)
+                ),
+                withAttributes: attributes
+            )
+            NSColor.separatorColor.withAlphaComponent(0.42).setStroke()
+            circle.lineWidth = 0.75
+            circle.stroke()
+            return
+        }
 
         let shoulders = NSBezierPath(roundedRect: CGRect(
             x: bounds.midX - bounds.width * 0.33,
@@ -534,6 +615,22 @@ private final class QuotaAvatarView: NSView {
         NSColor.separatorColor.withAlphaComponent(0.42).setStroke()
         circle.lineWidth = 0.75
         circle.stroke()
+    }
+
+    private func loadRemoteImageIfNeeded() {
+        guard let avatarURL else {
+            return
+        }
+        imageLoadTask = Task { [weak self] in
+            guard
+                let (data, _) = try? await URLSession.shared.data(from: avatarURL),
+                let image = NSImage(data: data)
+            else {
+                return
+            }
+            self?.remoteImage = image
+            self?.needsDisplay = true
+        }
     }
 }
 

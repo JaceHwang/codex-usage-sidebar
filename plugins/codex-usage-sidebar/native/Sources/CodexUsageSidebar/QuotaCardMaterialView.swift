@@ -29,23 +29,23 @@ final class QuotaCardMaterialView: NSView {
         let shadowColor: NSColor
         if appearanceName == .darkAqua {
             fill = NSColor(calibratedWhite: 0.09, alpha: 0.98)
-            border = NSColor(calibratedWhite: 0.52, alpha: 0.62)
-            shadowColor = NSColor.black.withAlphaComponent(0.40)
+            border = NSColor(calibratedWhite: 0.58, alpha: 0.42)
+            shadowColor = NSColor.black.withAlphaComponent(0.28)
         } else {
             fill = NSColor.windowBackgroundColor.withAlphaComponent(0.98)
-            border = NSColor.separatorColor.withAlphaComponent(0.72)
-            shadowColor = NSColor.black.withAlphaComponent(0.18)
+            border = NSColor.separatorColor.withAlphaComponent(0.55)
+            shadowColor = NSColor.black.withAlphaComponent(0.14)
         }
 
         let shadow = NSShadow()
         shadow.shadowColor = shadowColor
         shadow.shadowOffset = NSSize(width: 0, height: -2)
-        shadow.shadowBlurRadius = 14
+        shadow.shadowBlurRadius = 10
         shadow.set()
         fill.setFill()
         card.fill()
         border.setStroke()
-        card.lineWidth = 1
+        card.lineWidth = 0.75
         card.stroke()
     }
 

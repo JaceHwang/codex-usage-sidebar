@@ -74,16 +74,22 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                         .contains { $0 is NSScrollView },
                     "Seven reference columns fit directly in the token band."
                 )
-                let legend = try XCTUnwrap(
+                XCTAssertFalse(
                     descendants(of: tokenView)
-                        .compactMap { $0 as? TokenUsageLegendView }
-                        .first
+                        .contains { $0 is TokenUsageLegendView },
+                    "The compact reference omits the chart legend."
                 )
-                if language == .traditionalChinese {
-                    XCTAssertEqual(legend.totalLabel, "總量（tokens）")
-                } else if language == .simplifiedChinese {
-                    XCTAssertEqual(legend.totalLabel, "总量（tokens）")
-                }
+                XCTAssertFalse(
+                    descendants(of: card)
+                        .compactMap { $0 as? NSTextField }
+                        .contains {
+                            guard let summary = content.remainingSummary else {
+                                return false
+                            }
+                            return $0.stringValue == summary
+                        },
+                    "The compact reference omits the duplicate remaining summary."
+                )
                 XCTAssertEqual(
                     descendants(of: card)
                         .compactMap { $0 as? QuotaDetailIconView }
