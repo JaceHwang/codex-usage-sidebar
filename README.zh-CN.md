@@ -40,6 +40,18 @@ Windows `v0.3.0` 是面向 Windows 11 AMD64/x64 的公开发布，说明了受�
 
 <p align="center">v0.2.3 在两种 Codex 主题下的真实截图；剩余天数与小时数字使用更大字号并同步额度颜色，单位则保持弱化，扫一眼即可识别。</p>
 
+## 当前 v0.3.0 浮窗预览
+
+<p align="center">
+  <img src="docs/images/quota-popover-v0.3.0-zh-light.png" alt="Codex Usage Sidebar v0.3.0 浅色主题额度浮窗，包含 Token 使用量和 GitHub 底部链接" width="48%">
+  <img src="docs/images/quota-popover-v0.3.0-zh-dark.png" alt="Codex Usage Sidebar v0.3.0 深色主题额度浮窗，包含 Token 使用量和 GitHub 底部链接" width="48%">
+</p>
+
+<p align="center"><em>当前浅色主题 · 当前深色主题</em></p>
+
+当前源码预览加入了 Codex 账号身份、七日 Token 使用量图表，以及底部无边框紧凑 GitHub
+链接按钮。点击后直接打开项目仓库，悬浮时显示柔和圆角阴影，并跟随 Codex 当前主题。
+
 ## 自适应标题栏定位
 
 <p align="center">
@@ -63,8 +75,9 @@ Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生�
 | --- | --- |
 | 打开或关闭左、右、下侧栏 | 优先跟随原生“打开位置”，遇到占用控件时向左寻找最近空位；本地空间不足才切换到右侧预留位置。 |
 | 移动或缩放窗口 | 每 `0.1 秒`重新核对可用标题栏空间，避免覆盖原生按钮和页签标题。 |
-| 鼠标悬浮 | 展示同步的插件版本、套餐、额度周期、Credits、全部 Bank 次数、状态与过期时间。 |
+| 鼠标悬浮 | 展示同步的插件版本、套餐、额度周期、每日与总 Token 使用量、Credits、全部 Bank 次数、状态与过期时间。 |
 | 鼠标点击 | 浮窗保持常驻，再次点击收回；原有悬浮查看方式继续保留。 |
+| 底部 GitHub 按钮 | 打开 [github.com/JaceHwang/codex-usage-sidebar](https://github.com/JaceHwang/codex-usage-sidebar)。默认态融入底部背景，悬浮时仅显示柔和圆角阴影。 |
 | 剩余额度变化 | 百分比严格按 100% 绿、49% 橙、10% 红连续过渡，已填充进度显示对应光谱。 |
 | Codex 语言变化 | 按 Codex 最终显示语言在 1 秒内切换简体中文、繁体中文或英文。 |
 

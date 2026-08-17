@@ -55,6 +55,19 @@ verified commit history are the handoff source of truth.
 
 <p align="center">Real v0.2.3 captures in both Codex themes. Larger, color-synced countdown numbers make the remaining days and hours easy to scan while the units stay understated.</p>
 
+## Current v0.3.0 popover preview
+
+<p align="center">
+  <img src="docs/images/quota-popover-v0.3.0-en-light.png" alt="Codex Usage Sidebar v0.3.0 quota popover with token usage and GitHub footer link in the light theme" width="48%">
+  <img src="docs/images/quota-popover-v0.3.0-en-dark.png" alt="Codex Usage Sidebar v0.3.0 quota popover with token usage and GitHub footer link in the dark theme" width="48%">
+</p>
+
+<p align="center"><em>Current light theme · Current dark theme</em></p>
+
+The current source preview adds the official account identity, a seven-day token-usage chart, a
+borderless compact GitHub link in the footer, and a soft rounded hover shadow. The GitHub button
+opens the project repository directly and follows the active Codex theme.
+
 ## Adaptive titlebar placement
 
 <p align="center">
@@ -79,8 +92,9 @@ and renders one non-activating control in the nearest safe titlebar slot.
 | --- | --- |
 | Left, right, or bottom pane changes | The quota control prefers the native **Open Location** anchor, slides left around occupied controls, and moves to the reserved right-side position only when the local titlebar cannot fit it. |
 | Window moves or resizes | The collision-aware layout is sampled every 0.1 seconds, so the control tracks the available titlebar space without overlapping native controls or titles. |
-| Hover | A native detail card shows the synchronized plugin version, plan, period, Credits, and every Bank entry with status and expiry. |
+| Hover | A native detail card shows the synchronized plugin version, plan, period, daily and total token usage, Credits, and every Bank entry with status and expiry. |
 | Click | The detail card stays pinned until the quota control is clicked again; hover behavior remains available. |
+| Footer GitHub button | Opens the project repository at [github.com/JaceHwang/codex-usage-sidebar](https://github.com/JaceHwang/codex-usage-sidebar). The resting button blends into the footer; hover adds only a soft rounded shadow. |
 | Quota changes | Percentage color follows the exact 100% green, 49% orange, and 10% red palette while the filled bar reveals the matching spectrum. |
 | Codex language changes | The control and detail card follow Codex's effective Simplified Chinese, Traditional Chinese, or English locale within one second. |
 
