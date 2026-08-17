@@ -343,7 +343,8 @@ final class QuotaDetailCardView: NSView {
                 frame: informationFrames.footer,
                 name: content.footerName,
                 avatarSeed: content.footerName,
-                avatarURL: content.footerAvatarURL
+                avatarURL: content.footerAvatarURL,
+                onOpenURL: onOpenURL
             )
         )
     }
@@ -371,11 +372,14 @@ final class QuotaDetailCardView: NSView {
 
 @MainActor
 private final class QuotaFooterView: NSView {
+    private static let projectURL = URL(string: "https://github.com/JaceHwang/codex-usage-sidebar")!
+
     init(
         frame frameRect: NSRect,
         name: String?,
         avatarSeed: String?,
-        avatarURL: URL?
+        avatarURL: URL?,
+        onOpenURL: @escaping (URL) -> Void
     ) {
         super.init(frame: frameRect)
         let avatar = QuotaAvatarView(
@@ -392,8 +396,12 @@ private final class QuotaFooterView: NSView {
         nameField.frame = CGRect(x: 54, y: 14, width: 160, height: 18)
         addSubview(nameField)
 
-        let help = QuotaFooterHelpButton(frame: CGRect(x: frameRect.width - 40, y: 10, width: 22, height: 22))
-        addSubview(help)
+        let github = QuotaFooterGitHubButton(
+            frame: CGRect(x: frameRect.width - 40, y: 10, width: 22, height: 22),
+            destination: Self.projectURL,
+            onActivate: onOpenURL
+        )
+        addSubview(github)
     }
 
     @available(*, unavailable)
@@ -403,17 +411,32 @@ private final class QuotaFooterView: NSView {
 }
 
 @MainActor
-private final class QuotaFooterHelpButton: NSButton {
-    override init(frame frameRect: NSRect) {
+final class QuotaFooterGitHubButton: NSButton {
+    private let destination: URL
+    private let onActivate: (URL) -> Void
+
+    init(
+        frame frameRect: NSRect,
+        destination: URL,
+        onActivate: @escaping (URL) -> Void
+    ) {
+        self.destination = destination
+        self.onActivate = onActivate
         super.init(frame: frameRect)
-        title = "?"
+        title = ""
         isBordered = false
         setButtonType(.momentaryPushIn)
-        font = .systemFont(ofSize: 12, weight: .medium)
         contentTintColor = .secondaryLabelColor
+        target = self
+        action = #selector(activateLink)
         setAccessibilityElement(true)
-        setAccessibilityRole(.button)
-        setAccessibilityLabel("Help")
+        setAccessibilityRole(.link)
+        setAccessibilityLabel("GitHub")
+        setAccessibilityHelp(destination.absoluteString)
+    }
+
+    @objc func activateLink() {
+        onActivate(destination)
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -421,7 +444,20 @@ private final class QuotaFooterHelpButton: NSButton {
         QuotaChromeStyle.separatorColor.setStroke()
         circle.lineWidth = QuotaChromeStyle.separatorLineWidth
         circle.stroke()
-        super.draw(dirtyRect)
+
+        let markBounds = bounds.insetBy(dx: 3.5, dy: 3.5)
+        if let mark = NSImage(
+            systemSymbolName: "cat.fill",
+            accessibilityDescription: "GitHub"
+        ) {
+            mark.isTemplate = true
+            mark.draw(
+                in: markBounds,
+                from: .zero,
+                operation: .sourceOver,
+                fraction: 1
+            )
+        }
     }
 
     @available(*, unavailable)
