@@ -2,7 +2,7 @@ import AppKit
 
 enum QuotaChromeStyle {
     static let separatorLineWidth: CGFloat = 1
-    static let separatorAlpha: CGFloat = 0.78
+    static let separatorAlpha: CGFloat = 0.28
 
     static var separatorColor: NSColor {
         NSColor.separatorColor.withAlphaComponent(separatorAlpha)
@@ -18,7 +18,7 @@ final class QuotaCardMaterialView: NSView {
     override var isOpaque: Bool { false }
 
     func shadowOpacity(for appearanceName: NSAppearance.Name) -> Float {
-        appearanceName == .darkAqua ? 0.40 : 0.18
+        appearanceName == .darkAqua ? 0.08 : 0.03
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -34,19 +34,18 @@ final class QuotaCardMaterialView: NSView {
             from: [.darkAqua, .aqua]
         )
         let fill: NSColor
-        let shadowColor: NSColor
         if appearanceName == .darkAqua {
             fill = NSColor(calibratedWhite: 0.09, alpha: 0.98)
-            shadowColor = NSColor.black.withAlphaComponent(0.28)
         } else {
             fill = NSColor.windowBackgroundColor.withAlphaComponent(0.98)
-            shadowColor = NSColor.black.withAlphaComponent(0.14)
         }
 
         let shadow = NSShadow()
-        shadow.shadowColor = shadowColor
-        shadow.shadowOffset = NSSize(width: 0, height: -2)
-        shadow.shadowBlurRadius = 10
+        shadow.shadowColor = NSColor.black.withAlphaComponent(
+            CGFloat(shadowOpacity(for: appearanceName ?? .aqua))
+        )
+        shadow.shadowOffset = NSSize(width: 0, height: -1)
+        shadow.shadowBlurRadius = 8
         shadow.set()
         fill.setFill()
         card.fill()

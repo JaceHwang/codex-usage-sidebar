@@ -312,15 +312,15 @@ final class QuotaDetailCardVisualTests: XCTestCase {
     func testCardMaterialResolvesAThemeShadow() {
         let material = QuotaCardMaterialView(frame: CGRect(x: 0, y: 0, width: 520, height: 680))
 
-        XCTAssertGreaterThan(material.shadowOpacity(for: .aqua), 0)
-        XCTAssertGreaterThan(material.shadowOpacity(for: .darkAqua), 0)
+        XCTAssertEqual(material.shadowOpacity(for: .aqua), 0.03, accuracy: 0.001)
+        XCTAssertEqual(material.shadowOpacity(for: .darkAqua), 0.08, accuracy: 0.001)
     }
 
     func testChromeOutlinesUseTheSharedSeparatorStyle() {
         XCTAssertEqual(QuotaChromeStyle.separatorLineWidth, 1)
         let color = QuotaChromeStyle.separatorColor
             .usingColorSpace(.deviceRGB)
-        XCTAssertEqual(color?.alphaComponent ?? 0, 0.78, accuracy: 0.01)
+        XCTAssertEqual(color?.alphaComponent ?? 0, 0.28, accuracy: 0.01)
     }
 
     func testUnavailableTokenUsageRendersSevenEmptyBarsAndItsUnavailableNote() throws {
