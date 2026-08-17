@@ -397,7 +397,7 @@ private final class QuotaFooterView: NSView {
         addSubview(nameField)
 
         let github = QuotaFooterGitHubButton(
-            frame: CGRect(x: frameRect.width - 40, y: 10, width: 22, height: 22),
+            frame: CGRect(x: frameRect.width - 102, y: 9, width: 88, height: 30),
             destination: Self.projectURL,
             onActivate: onOpenURL
         )
@@ -412,8 +412,23 @@ private final class QuotaFooterView: NSView {
 
 @MainActor
 final class QuotaFooterGitHubButton: NSButton {
+    private static let projectMark: NSImage = {
+        let svg = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path fill="#000" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.084-.73.084-.73 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.292-1.552 3.296-1.23 3.296-1.23.647 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.43.372.81 1.102.81 2.222 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.595 24 12.297c0-6.627-5.373-12-12-12"/>
+        </svg>
+        """
+        return NSImage(data: Data(svg.utf8))
+            ?? NSImage(systemSymbolName: "cat.fill", accessibilityDescription: "GitHub")
+            ?? NSImage(size: NSSize(width: 16, height: 16))
+    }()
+
+    private let iconView: NSImageView
+    private let titleLabel: NSTextField
     private let destination: URL
     private let onActivate: (URL) -> Void
+    private var hoverTrackingArea: NSTrackingArea?
+    private var isPointerInside = false
 
     init(
         frame frameRect: NSRect,
@@ -422,41 +437,91 @@ final class QuotaFooterGitHubButton: NSButton {
     ) {
         self.destination = destination
         self.onActivate = onActivate
+        iconView = NSImageView(image: Self.projectMark)
+        titleLabel = NSTextField(labelWithString: "GitHub")
         super.init(frame: frameRect)
         title = ""
         isBordered = false
         setButtonType(.momentaryPushIn)
         contentTintColor = .secondaryLabelColor
+        iconView.image?.isTemplate = true
+        wantsLayer = true
+        layer?.cornerRadius = 15
+        layer?.cornerCurve = .continuous
+        layer?.masksToBounds = false
         target = self
         action = #selector(activateLink)
+        iconView.imageScaling = .scaleProportionallyUpOrDown
+        iconView.contentTintColor = .secondaryLabelColor
+        titleLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        titleLabel.textColor = .secondaryLabelColor
+        titleLabel.alignment = .left
+        titleLabel.isSelectable = false
+        titleLabel.isEditable = false
+        addSubview(iconView)
+        addSubview(titleLabel)
         setAccessibilityElement(true)
         setAccessibilityRole(.link)
         setAccessibilityLabel("GitHub")
         setAccessibilityHelp(destination.absoluteString)
+        updateAppearance()
     }
 
     @objc func activateLink() {
         onActivate(destination)
     }
 
-    override func draw(_ dirtyRect: NSRect) {
-        let circle = NSBezierPath(ovalIn: bounds.insetBy(dx: 0.75, dy: 0.75))
-        QuotaChromeStyle.separatorColor.setStroke()
-        circle.lineWidth = QuotaChromeStyle.separatorLineWidth
-        circle.stroke()
+    override func layout() {
+        super.layout()
+        iconView.frame = CGRect(x: 10, y: 7, width: 16, height: 16)
+        titleLabel.frame = CGRect(x: 32, y: 6, width: bounds.width - 40, height: 18)
+    }
 
-        let markBounds = bounds.insetBy(dx: 3.5, dy: 3.5)
-        if let mark = NSImage(
-            systemSymbolName: "cat.fill",
-            accessibilityDescription: "GitHub"
-        ) {
-            mark.isTemplate = true
-            mark.draw(
-                in: markBounds,
-                from: .zero,
-                operation: .sourceOver,
-                fraction: 1
-            )
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let hoverTrackingArea {
+            removeTrackingArea(hoverTrackingArea)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        hoverTrackingArea = area
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearance()
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isPointerInside = true
+        updateAppearance()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isPointerInside = false
+        updateAppearance()
+    }
+
+    private func updateAppearance() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.labelColor
+                .withAlphaComponent(isPointerInside ? 0.08 : 0)
+                .cgColor
+            layer?.shadowColor = NSColor.black.cgColor
+            layer?.shadowOpacity = isPointerInside ? 0.22 : 0
+            layer?.shadowRadius = isPointerInside ? 8 : 0
+            layer?.shadowOffset = NSSize(width: 0, height: -1)
+            iconView.contentTintColor = .secondaryLabelColor
+            titleLabel.textColor = .secondaryLabelColor
         }
     }
 
