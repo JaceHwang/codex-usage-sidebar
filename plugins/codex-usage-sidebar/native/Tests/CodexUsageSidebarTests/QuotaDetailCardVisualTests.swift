@@ -318,6 +318,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
 
     func testChromeOutlinesUseTheSharedSeparatorStyle() {
         XCTAssertEqual(QuotaChromeStyle.separatorLineWidth, 1)
+        XCTAssertEqual(QuotaChromeStyle.cardBorderLineWidth, 0)
         let color = QuotaChromeStyle.separatorColor
             .usingColorSpace(.deviceRGB)
         XCTAssertEqual(color?.alphaComponent ?? 0, 0.28, accuracy: 0.01)

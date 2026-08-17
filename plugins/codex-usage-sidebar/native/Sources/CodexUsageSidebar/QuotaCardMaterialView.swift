@@ -2,6 +2,7 @@ import AppKit
 
 enum QuotaChromeStyle {
     static let separatorLineWidth: CGFloat = 1
+    static let cardBorderLineWidth: CGFloat = 0
     static let separatorAlpha: CGFloat = 0.28
 
     static var separatorColor: NSColor {
@@ -49,9 +50,11 @@ final class QuotaCardMaterialView: NSView {
         shadow.set()
         fill.setFill()
         card.fill()
-        QuotaChromeStyle.separatorColor.setStroke()
-        card.lineWidth = QuotaChromeStyle.separatorLineWidth
-        card.stroke()
+        if QuotaChromeStyle.cardBorderLineWidth > 0 {
+            QuotaChromeStyle.separatorColor.setStroke()
+            card.lineWidth = QuotaChromeStyle.cardBorderLineWidth
+            card.stroke()
+        }
     }
 
     @available(*, unavailable)
