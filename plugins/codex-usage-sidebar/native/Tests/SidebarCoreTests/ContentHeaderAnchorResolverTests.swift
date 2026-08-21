@@ -910,6 +910,28 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
         )
     }
 
+    func testToolbarEligibilityRejectsAContentCardThatCrossesIntoTheToolbarBand() {
+        let fullscreenWindow = CGRect(x: 72, y: 0, width: 1_848, height: 1_049)
+
+        XCTAssertFalse(
+            ContentHeaderAnchorResolver.isEligibleToolbarItem(
+                frame: CGRect(x: 1_200, y: 990, width: 180, height: 28),
+                windowFrame: fullscreenWindow
+            )
+        )
+    }
+
+    func testToolbarEligibilityRejectsAnOversizedScrolledContentSurface() {
+        let fullscreenWindow = CGRect(x: 72, y: 0, width: 1_848, height: 1_049)
+
+        XCTAssertFalse(
+            ContentHeaderAnchorResolver.isEligibleToolbarItem(
+                frame: CGRect(x: 640, y: 1_012, width: 1_200, height: 28),
+                windowFrame: fullscreenWindow
+            )
+        )
+    }
+
     private func control(
         x: CGFloat,
         y: CGFloat = 1_084,

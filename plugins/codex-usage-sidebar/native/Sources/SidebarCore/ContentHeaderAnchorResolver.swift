@@ -43,6 +43,10 @@ public enum ContentHeaderAnchorResolver {
     // Chinese layout. Keep it eligible so the collision resolver can still
     // move the quota indicator to the right fallback slot.
     private static let maximumAnchorWidth: CGFloat = 240
+    // The real titlebar never exposes a single interactive/text item wider
+    // than the title cluster. A wider element at the toolbar Y coordinate is
+    // normally a scrolled conversation surface crossing the titlebar.
+    private static let maximumToolbarItemWidth: CGFloat = 420
     private static let initialScanAnchorWidth: CGFloat = 160
     private static let minimumToolbarItemHeight: CGFloat = 8
 
@@ -104,14 +108,21 @@ public enum ContentHeaderAnchorResolver {
 
     public static func isEligibleToolbarItem(
         frame: CGRect,
-        windowFrame: CGRect
+        windowFrame: CGRect,
+        isAnchorCandidate: Bool = true
     ) -> Bool {
         let toolbarMinimumY = windowFrame.maxY - OverlayLayout.toolbarHeight
         return frame.width > 0
             && frame.height >= minimumToolbarItemHeight
             && frame.height <= OverlayLayout.toolbarHeight
-            && frame.midY >= toolbarMinimumY
-            && frame.midY <= windowFrame.maxY
+            && (!isAnchorCandidate || frame.width <= maximumToolbarItemWidth)
+            // Require the complete accessibility element to be inside the
+            // toolbar band. A conversation card that is scrolled under the
+            // titlebar can have its midpoint in this band while its bounds
+            // still extend into the content area; accepting it makes its
+            // children become false titlebar anchors/obstacles.
+            && frame.minY >= toolbarMinimumY
+            && frame.maxY <= windowFrame.maxY
             && frame.maxX >= windowFrame.minX
             && frame.minX <= windowFrame.maxX
     }
@@ -218,7 +229,12 @@ public enum ContentHeaderAnchorResolver {
         let toolbarItems = controls.filter { control in
             isEligibleToolbarItem(
                 frame: control.frame,
-                windowFrame: windowFrame
+                windowFrame: windowFrame,
+                // AX extraction applies the interactive-width guard before a
+                // control enters this resolver. Keep structural/static title
+                // barriers available here even when they span a wider title
+                // cluster.
+                isAnchorCandidate: false
             )
         }
 

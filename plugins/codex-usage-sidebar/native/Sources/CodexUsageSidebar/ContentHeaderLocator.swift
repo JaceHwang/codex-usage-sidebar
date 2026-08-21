@@ -236,7 +236,8 @@ final class ContentHeaderLocator {
                     (role == "AXButton" || role == "AXStaticText"),
                     ContentHeaderAnchorResolver.isEligibleToolbarItem(
                         frame: appKitFrame,
-                        windowFrame: windowFrame
+                        windowFrame: windowFrame,
+                        isAnchorCandidate: role == "AXButton"
                     )
                 {
                     if let control = control(
