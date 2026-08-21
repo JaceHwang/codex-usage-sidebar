@@ -16,8 +16,8 @@ Implemented and testable without a Windows Codex session:
 - fake-driven host-window, title-bar scanner, DPI, and non-activating overlay contracts;
 - fixed-argument `codex app-server --stdio` process launching with an isolated `CODEX_HOME`;
 - Win32 Codex window discovery and a bounded UI Automation diagnostic probe;
-- a build-gated semantic title-bar selector for measured Codex file build `151.0.7922.76`, with
-  unknown or incomplete trees hidden instead of using a coordinate fallback;
+- a semantic title-bar selector that is no longer gated by the Codex file version; unknown or
+  incomplete trees remain hidden instead of using a coordinate fallback;
 - non-activating WPF compact/detail surfaces and a three-language WPF installer shell whose default
   development action refuses to install without a validated payload;
 - per-user Windows path planning, exact uninstall guards, autostart plans, atomic payload
@@ -118,14 +118,16 @@ The setup package remains blocked until all of these pass on the real Windows Co
 - Codex restart, update, sleep/resume, app-server authorization, and stream recovery;
 - per-user install, repair, upgrade, uninstall, checksum, provenance, and Windows signing checks.
 
-The captured tree becomes a versioned selector fixture. Unknown Codex builds must hide the overlay
-and request a new diagnostic capture instead of guessing a coordinate or overlapping native UI.
+The captured tree remains a versioned diagnostic fixture, not a version allow-list. A changed Codex
+build may use the semantic selector immediately when its structure is safe; unknown or incomplete
+trees still hide the overlay and request a new diagnostic capture instead of guessing a coordinate
+or overlapping native UI.
 
 The first sanitized fixture records one Windows 11 sample from the `OpenAI.Codex` package: the
 visible host process is `ChatGPT.exe` with Codex product identity, file build `151.0.7922.76`, at
 200% scaling. The PMv2-aware default-redacted report uses physical screen pixels end to end and has
 SHA-256 `65e519a71da6c7dc422253a33f30ecaabe175499a51254f9c6eb00983f721f7c`.
-This is enough to exercise the build-gated selector, but it is not evidence for the
+This is enough to exercise the semantic selector and its measured fallback, but it is not evidence for the
 remaining sidebar, window, theme, language, scaling, focus, lifecycle, or installer matrix.
 
 ## Final release shape

@@ -74,7 +74,7 @@ Automation structures hide the overlay; no coordinates are guessed.
 - macOS 14 or later
 - Apple Silicon Mac (`arm64`)
 - Codex desktop app installed and running
-- `codex` CLI with plugin support
+- `codex` CLI with plugin support; no fixed Codex CLI version is required
 
 Verify the CLI before installing:
 
@@ -82,6 +82,12 @@ Verify the CLI before installing:
 codex --version
 codex plugin --help
 ```
+
+The installer does not compare the version printed by `codex --version`. It discovers `codex` in
+the standard Homebrew/system locations and the current `PATH`, then relies on the command surface
+advertised by `codex plugin --help`. A CLI that predates the plugin marketplace commands cannot
+install this plugin until Codex adds that capability; this is a feature-capability check, not a
+hard-coded version gate.
 
 ## Install with the graphical installer
 

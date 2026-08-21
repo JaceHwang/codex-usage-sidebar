@@ -9,8 +9,9 @@ is required.
 - Branch: `v0.3.0`
 - Stable macOS release: `v0.2.3`; never overwrite or re-upload its release assets
 - Windows status: the non-activating WPF overlay is visible on the Windows 11 AMD64/x64 validation
-  device and follows movement and resizing. Exact Codex file build `151.0.7922.76` may use its
-  controlled relative fallback; unknown builds and unsafe UIA input remain hidden.
+  device and follows movement and resizing. The semantic selector accepts Codex builds without an
+  exact file-version allow-list. The controlled relative fallback remains limited to measured build
+  `151.0.7922.76`; unknown or unsafe UIA input remains hidden.
 - Next phase: complete the canonical 130-case single-monitor real-device matrix and bind both
   release candidates to its immutable source/evidence identities. This release evidence does not
   claim cross-monitor movement, cross-monitor DPI transitions, or negative-coordinate placement.

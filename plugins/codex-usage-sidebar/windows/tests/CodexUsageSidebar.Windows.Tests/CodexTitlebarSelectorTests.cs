@@ -170,7 +170,7 @@ public sealed class CodexTitlebarSelectorTests
     }
 
     [TestMethod]
-    public void RejectsUnknownBuilds()
+    public void AcceptsUnknownBuildsWhenTheUiStructureIsSafe()
     {
         var fixture = LoadFixture();
 
@@ -180,7 +180,7 @@ public sealed class CodexTitlebarSelectorTests
             fixture.HostBounds,
             fixture.Nodes);
 
-        Assert.IsNull(result);
+        Assert.IsNotNull(result);
     }
 
     [TestMethod]

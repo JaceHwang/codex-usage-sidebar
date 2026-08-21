@@ -27,7 +27,8 @@ final class InstallerViewModel: ObservableObject {
         let paths = InstallerPaths(
             homeDirectory: FileManager.default.homeDirectoryForCurrentUser,
             payloadRoot: resources.appendingPathComponent("payload", isDirectory: true),
-            codexExecutable: Self.locateCodexExecutable()
+            codexExecutable: CodexExecutableLocator.locate()
+                ?? URL(fileURLWithPath: "/opt/homebrew/bin/codex")
         )
         self.init(
             copy: InstallerCopy.forLanguageIdentifier(language),
@@ -370,18 +371,6 @@ final class InstallerViewModel: ObservableObject {
         } onCancel: {
             task.cancel()
         }
-    }
-
-    nonisolated private static func locateCodexExecutable() -> URL {
-        let candidates = [
-            "/opt/homebrew/bin/codex",
-            "/usr/local/bin/codex",
-            "/usr/bin/codex",
-        ]
-        return candidates
-            .first { FileManager.default.isExecutableFile(atPath: $0) }
-            .map { URL(fileURLWithPath: $0) }
-            ?? URL(fileURLWithPath: "/opt/homebrew/bin/codex")
     }
 
     private static var liveDependencies: InstallerViewModelDependencies {

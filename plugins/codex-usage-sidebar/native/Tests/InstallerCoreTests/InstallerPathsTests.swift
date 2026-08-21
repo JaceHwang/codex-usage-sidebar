@@ -27,4 +27,25 @@ final class InstallerPathsTests: XCTestCase {
             paths.pluginData.appendingPathComponent("runtime-state.txt").path
         )
     }
+
+    func testCodexExecutableLocatorFindsAUserInstalledCliOnPath() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("codex-usage-sidebar-cli-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let executable = root.appendingPathComponent("codex")
+        FileManager.default.createFile(atPath: executable.path, contents: Data("#!/bin/sh\n".utf8))
+        try FileManager.default.setAttributes(
+            [.posixPermissions: NSNumber(value: Int16(0o755))],
+            ofItemAtPath: executable.path
+        )
+
+        let located = CodexExecutableLocator.locate(
+            environment: ["PATH": root.path],
+            standardCandidates: []
+        )
+
+        XCTAssertEqual(located?.standardizedFileURL, executable.standardizedFileURL)
+    }
 }

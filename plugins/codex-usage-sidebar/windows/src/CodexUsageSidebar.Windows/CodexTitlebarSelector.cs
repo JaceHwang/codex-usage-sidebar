@@ -71,7 +71,6 @@ public static class OpenLocationSeedCandidatePolicy
 
 public static class CodexTitlebarSelector
 {
-    private const string ValidatedBuildIdentity = "151.0.7922.76";
     private const string PaneControlType = "ControlType.Pane";
     private const string ButtonControlType = "ControlType.Button";
     private const string GroupControlType = "ControlType.Group";
@@ -97,8 +96,7 @@ public static class CodexTitlebarSelector
         RectD hostBounds,
         IReadOnlyList<UiaStructureNode> nodes)
     {
-        if (!string.Equals(buildIdentity, ValidatedBuildIdentity, StringComparison.Ordinal)
-            || !double.IsFinite(dpiScale)
+        if (!double.IsFinite(dpiScale)
             || dpiScale <= 0)
         {
             return null;

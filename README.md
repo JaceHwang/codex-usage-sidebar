@@ -37,8 +37,9 @@ Windows `v0.3.0` is the public Windows 11 AMD64/x64 release. It documents the su
 safeguards. The shared quota contracts, .NET core, Win32 window boundary, sanitized UI Automation
 probe, per-user installer backend, payload digest verification, and Windows CI preserve the stable
 macOS payload. The 130-case Windows manual matrix is still incomplete; this release has passed
-automated gates and the limited x64 smoke record only. Unknown or unsupported UI Automation
-structures hide the overlay instead of guessing coordinates. See [Windows beta development](docs/WINDOWS-BETA.md)
+automated gates and the limited x64 smoke record only. The selector no longer rejects a Codex build
+solely because its file version changed; it still requires a safe semantic UI Automation structure,
+and hides the overlay instead of guessing coordinates when that structure is unavailable. See [Windows beta development](docs/WINDOWS-BETA.md)
 for development and validation details, and [Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md)
 for the device procedure. To move the active work into Codex on a Windows computer, follow the
 [Windows Codex continuation guide](docs/WINDOWS-CODEX-CONTINUATION.md); the Git branch and its
@@ -103,7 +104,9 @@ GitHub Release with explicit unsigned-install safeguards.
 ### Windows 11 AMD64/x64
 
 Requirements: Windows 11 on AMD64/x64, Codex desktop for Windows installed and signed in, and
-PowerShell.
+PowerShell. There is no fixed minimum Codex file version. New Codex builds are accepted when their
+title bar exposes the validated semantic UI structure; an unknown or unsafe structure remains
+fail-hidden until it can be validated.
 
 #### Manual setup install
 
@@ -158,7 +161,10 @@ the deterministic playbook.
 
 ### macOS 14+ Apple Silicon
 
-Requirements: Codex desktop for macOS, macOS 14 or later, Apple Silicon, and the `codex` CLI.
+Requirements: Codex desktop for macOS, macOS 14 or later, Apple Silicon, and the `codex` CLI with
+plugin support. The installer does not pin a Codex version. It searches the standard locations and
+the current `PATH`; a CLI release is compatible when it provides the `plugin marketplace` and
+`plugin add` commands used by the installer.
 
 #### Download the installer
 

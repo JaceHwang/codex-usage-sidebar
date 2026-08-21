@@ -23,7 +23,7 @@
 | macOS 14+ Apple Silicon | 正式版 v0.2.3 | 已签名伴随程序与 v0.2.3 DMG |
 | Windows 11 AMD64（`x64`） | 正式发布 `v0.3.0` | 未签名 `x64` 安装程序；Windows ARM64 不在本版本范围内 |
 
-Windows `v0.3.0` 是面向 Windows 11 AMD64/x64 的公开发布，说明了受支持的当前用户安装路径及先校验摘要的未签名安装防护措施。共享额度契约、.NET 核心、Win32 窗口边界、默认脱敏的 UI Automation 探针、用户级安装器后端、载荷摘要校验与 Windows CI 均不会改变稳定的 macOS 载荷。130 个 Windows 人工用例矩阵尚未完成；该版本只声明已通过自动化门禁和有限 x64 冒烟记录。未知或不受支持的 UI Automation 结构会隐藏浮层，不会猜测坐标。开发和验证细节见 [Windows Beta 开发说明](docs/WINDOWS-BETA.md)。
+Windows `v0.3.0` 是面向 Windows 11 AMD64/x64 的公开发布，说明了受支持的当前用户安装路径及先校验摘要的未签名安装防护措施。共享额度契约、.NET 核心、Win32 窗口边界、默认脱敏的 UI Automation 探针、用户级安装器后端、载荷摘要校验与 Windows CI 均不会改变稳定的 macOS 载荷。130 个 Windows 人工用例矩阵尚未完成；该版本只声明已通过自动化门禁和有限 x64 冒烟记录。现在选择器不再因为 Codex 文件版本变化而直接拒绝；只要标题栏仍提供安全的语义 UI Automation 结构即可工作，结构未知或不安全时仍会隐藏浮层，不会猜测坐标。开发和验证细节见 [Windows Beta 开发说明](docs/WINDOWS-BETA.md)。
 后续测试电脑的完整操作步骤见 [Windows 实机诊断交接手册](docs/WINDOWS-DEVICE-HANDOFF.zh-CN.md)。
 准备在 Windows Codex 中继续开发时，请从
 [Windows Codex 开发接力手册](docs/WINDOWS-CODEX-CONTINUATION.zh-CN.md)开始；Git 分支和经过
@@ -84,7 +84,9 @@ Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生�
 
 ### Windows 11 AMD64/x64
 
-要求：Windows 11 AMD64/x64、已安装并登录的 Codex Windows 桌面客户端，以及 PowerShell。
+要求：Windows 11 AMD64/x64、已安装并登录的 Codex Windows 桌面客户端，以及 PowerShell。没有固定的
+Codex 文件最低版本；新版本只要提供已验证的安全标题栏语义结构即可使用。结构未知或不安全时，
+插件会保持隐藏，直到完成验证。
 
 #### 人工安装
 
@@ -134,7 +136,9 @@ Agent 可以自动完成下载、摘要比对和启动安装器；但不能绕�
 
 ### macOS 14+ Apple Silicon
 
-要求：macOS 14+、Apple Silicon、Codex 桌面版与 `codex` CLI。
+要求：macOS 14+、Apple Silicon、Codex 桌面版与支持插件的 `codex` CLI。安装器不绑定某个 Codex
+版本，会同时搜索标准安装路径和当前 `PATH`；只要 CLI 提供安装器使用的 `plugin marketplace` 与
+`plugin add` 命令即可兼容。
 
 #### 下载图形安装器
 
