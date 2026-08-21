@@ -3,9 +3,33 @@
 <plist version="1.0">
 <dict>
 	<key>files</key>
-	<dict/>
+	<dict>
+		<key>Resources/quota-icon-dark.jpg</key>
+		<data>
+		H9CE/4/4f94We+QFOPj7UzibAVE=
+		</data>
+		<key>Resources/quota-icon-light.jpg</key>
+		<data>
+		jWl0BANHzVPvp/yl2XeL7x4m0do=
+		</data>
+	</dict>
 	<key>files2</key>
-	<dict/>
+	<dict>
+		<key>Resources/quota-icon-dark.jpg</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			GEmfWHukzgM1khHJ/UKDIR1gP1UXWlyq9fNiakKB980=
+			</data>
+		</dict>
+		<key>Resources/quota-icon-light.jpg</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			J8/R8xB0rh1ouCuJuRqVmLyL5dhigndukSm9CpMEqzQ=
+			</data>
+		</dict>
+	</dict>
 	<key>rules</key>
 	<dict>
 		<key>^Resources/</key>
