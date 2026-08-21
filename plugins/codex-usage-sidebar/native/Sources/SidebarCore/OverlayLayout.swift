@@ -4,7 +4,15 @@ import Foundation
 public enum OverlayLayout {
     public static let toolbarHeight: CGFloat = 46
     public static let indicatorWidth: CGFloat = 164
+    public static let maximumIndicatorWidth: CGFloat = 280
     public static let indicatorGap: CGFloat = 8
+
+    public static func indicatorWidth(for measuredLabelWidth: CGFloat) -> CGFloat {
+        min(
+            maximumIndicatorWidth,
+            max(indicatorWidth, ceil(measuredLabelWidth + 44))
+        )
+    }
 
     public static func trailingFallbackEdge(
         in windowFrame: CGRect
@@ -14,8 +22,10 @@ public enum OverlayLayout {
 
     public static func indicatorFrame(
         in windowFrame: CGRect,
-        contentTrailingEdge: CGFloat?
+        contentTrailingEdge: CGFloat?,
+        width: CGFloat = indicatorWidth
     ) -> CGRect {
+        let resolvedWidth = max(1, width)
         let resolvedTrailingEdge = contentTrailingEdge.map {
             $0 - indicatorGap
         }
@@ -23,14 +33,14 @@ public enum OverlayLayout {
         let originX = max(
             windowFrame.minX + 8,
             min(
-                resolvedTrailingEdge - indicatorWidth,
-                windowFrame.maxX - indicatorWidth - 8
+                resolvedTrailingEdge - resolvedWidth,
+                windowFrame.maxX - resolvedWidth - 8
             )
         )
         return CGRect(
             x: originX,
             y: windowFrame.maxY - toolbarHeight,
-            width: indicatorWidth,
+            width: resolvedWidth,
             height: toolbarHeight
         )
     }

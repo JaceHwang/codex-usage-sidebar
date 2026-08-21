@@ -20,6 +20,126 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
         XCTAssertEqual(anchor.source, .openLocation)
     }
 
+    func testConversationAnchorSignalSurvivesCollisionFallback() {
+        let openLocation = control(
+            x: 1_040,
+            width: 80,
+            labels: ["打开位置"]
+        )
+        let blocked = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                control(x: 72, width: 828, labels: []),
+                control(x: 900, width: 120, labels: []),
+                openLocation,
+            ],
+            paneFrames: [],
+            windowFrame: window
+        )
+
+        XCTAssertEqual(blocked.source, .fallback)
+        XCTAssertTrue(
+            ContentHeaderAnchorResolver.isOpenLocationControl(openLocation)
+        )
+    }
+
+    func testUnknownLocalizedConversationToolbarControlProvidesHomepageSignal() {
+        let localizedControl = ContentHeaderControl(
+            frame: CGRect(x: 1_040, y: 1_084, width: 132, height: 28),
+            labels: ["位置を開く"]
+        )
+
+        XCTAssertTrue(
+            ContentHeaderAnchorResolver.isConversationToolbarControl(
+                localizedControl,
+                windowFrame: window
+            )
+        )
+    }
+
+    func testLocalizedConversationControlLeftOfWindowMidpointStillAnchorsHomepage() {
+        let localizedControl = ContentHeaderControl(
+            frame: CGRect(x: 820, y: 1_084, width: 132, height: 28),
+            labels: ["位置を開く"]
+        )
+
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [localizedControl],
+            paneFrames: [],
+            windowFrame: window
+        )
+
+        XCTAssertEqual(anchor.source, .labeledControl)
+        XCTAssertEqual(anchor.trailingEdge, localizedControl.frame.minX)
+        XCTAssertTrue(
+            ContentHeaderAnchorResolver.isConversationToolbarControl(
+                localizedControl,
+                windowFrame: window
+            )
+        )
+    }
+
+    func testStaticTitleDoesNotProvideHomepageSignal() {
+        let title = ContentHeaderControl(
+            frame: CGRect(x: 1_040, y: 1_084, width: 132, height: 28),
+            labels: ["Conversation"],
+            isAnchorCandidate: false
+        )
+
+        XCTAssertFalse(
+            ContentHeaderAnchorResolver.isConversationToolbarControl(
+                title,
+                windowFrame: window
+            )
+        )
+    }
+
+    func testUnknownLocalizedControlFallsBackToRightSlotWhenMiddleIsBlocked() {
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                control(x: 72, width: 828, labels: []),
+                control(x: 900, width: 120, labels: []),
+                control(x: 1_040, width: 80, labels: ["位置を開く"]),
+            ],
+            paneFrames: [],
+            windowFrame: window
+        )
+
+        XCTAssertEqual(anchor.source, .fallback)
+        XCTAssertEqual(
+            anchor.trailingEdge,
+            OverlayLayout.trailingFallbackEdge(in: window)
+        )
+        XCTAssertEqual(
+            OverlayLayout.indicatorFrame(
+                in: window,
+                contentTrailingEdge: anchor.trailingEdge
+            ),
+            OverlayLayout.indicatorFrame(in: window, contentTrailingEdge: nil)
+        )
+    }
+
+    func testActualLocalizedIndicatorWidthTriggersRightFallback() {
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                ContentHeaderControl(
+                    frame: CGRect(x: 850, y: 1_084, width: 20, height: 28),
+                    labels: ["标题"],
+                    isAnchorCandidate: false
+                ),
+                control(x: 1_040, width: 80, labels: ["位置を開く"]),
+            ],
+            paneFrames: [],
+            windowFrame: window,
+            indicatorWidth: 183
+        )
+
+        XCTAssertEqual(anchor.source, .fallback)
+        XCTAssertEqual(
+            anchor.trailingEdge,
+            OverlayLayout.trailingFallbackEdge(in: window)
+        )
+    }
+
     func testRecognizesSettingsBackNavigationAtTheTopLeft() {
         let settingsBack = ContentHeaderControl(
             frame: CGRect(x: 80, y: 1_000, width: 224, height: 31),
@@ -54,6 +174,35 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
             ContentHeaderAnchorResolver.isSettingsNavigationControl(
                 englishSettingsBack,
                 windowFrame: window
+            )
+        )
+    }
+
+    func testRecognizesUnlistedSettingsLanguageByWideTopLeftStructure() {
+        let japaneseSettingsBack = ContentHeaderControl(
+            frame: CGRect(x: 80, y: 1_000, width: 224, height: 31),
+            labels: ["アプリに戻る"]
+        )
+
+        XCTAssertTrue(
+            ContentHeaderAnchorResolver.isSettingsNavigationControl(
+                japaneseSettingsBack,
+                windowFrame: window
+            )
+        )
+    }
+
+    func testDoesNotUseStructuralSettingsMatchWhenConversationAnchorExists() {
+        let homepageControl = ContentHeaderControl(
+            frame: CGRect(x: 80, y: 1_000, width: 224, height: 31),
+            labels: ["主页操作"]
+        )
+
+        XCTAssertFalse(
+            ContentHeaderAnchorResolver.isSettingsNavigationControl(
+                homepageControl,
+                windowFrame: window,
+                allowStructuralMatch: false
             )
         )
     }
@@ -148,6 +297,31 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
 
         XCTAssertEqual(anchor.trailingEdge, 1_696)
         XCTAssertEqual(anchor.source, .openLocation)
+    }
+
+    func testRecognizesTraditionalChineseOpenLocationIdentifier() {
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                control(x: 1_696, width: 91, labels: ["開啟位置"]),
+            ],
+            paneFrames: [],
+            windowFrame: window
+        )
+
+        XCTAssertEqual(anchor.source, .openLocation)
+    }
+
+    func testLongLocalizedOpenLocationRemainsEligibleAsAnchor() {
+        let anchor = ContentHeaderAnchorResolver.resolve(
+            controls: [
+                control(x: 1_580, width: 200, labels: ["Open Location"]),
+            ],
+            paneFrames: [],
+            windowFrame: window
+        )
+
+        XCTAssertEqual(anchor.source, .openLocation)
+        XCTAssertEqual(anchor.trailingEdge, 1_580)
     }
 
     func testOpenLocationLeftOfWindowMidpointUsesVisibleFreeSlot() {
@@ -385,6 +559,22 @@ final class ContentHeaderAnchorResolverTests: XCTestCase {
         )
 
         XCTAssertEqual(anchor, ContentHeaderAnchor(trailingEdge: 955, source: .rightPaneBoundary))
+        XCTAssertTrue(
+            ContentHeaderAnchorResolver.hasRightPane(
+                paneFrames: [CGRect(x: 955, y: 0, width: 965, height: 1_049)],
+                windowFrame: wideWindow
+            )
+        )
+    }
+
+    func testRecognizesExpandedRightPaneBeyondSixtyPercent() {
+        let wideWindow = CGRect(x: 70, y: 0, width: 1_850, height: 1_049)
+        XCTAssertTrue(
+            ContentHeaderAnchorResolver.hasRightPane(
+                paneFrames: [CGRect(x: 620, y: 0, width: 1_300, height: 1_049)],
+                windowFrame: wideWindow
+            )
+        )
     }
 
     func testPrefersRealRightPaneOverSimultaneousOuterContentSurface() {

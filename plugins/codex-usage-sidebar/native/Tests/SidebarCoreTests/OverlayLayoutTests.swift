@@ -66,6 +66,23 @@ final class OverlayLayoutTests: XCTestCase {
         XCTAssertLessThanOrEqual(frame.maxX, smallWindow.maxX)
     }
 
+    func testIndicatorWidthExpandsForLongLabelsButKeepsBounds() {
+        XCTAssertEqual(OverlayLayout.indicatorWidth(for: 80), 164)
+        XCTAssertEqual(OverlayLayout.indicatorWidth(for: 190), 234)
+        XCTAssertEqual(OverlayLayout.indicatorWidth(for: 400), 280)
+    }
+
+    func testIndicatorCanUseResolvedAdaptiveWidth() {
+        let frame = OverlayLayout.indicatorFrame(
+            in: window,
+            contentTrailingEdge: 1_604,
+            width: 234
+        )
+
+        XCTAssertEqual(frame.width, 234)
+        XCTAssertEqual(frame.maxX, 1_596)
+    }
+
     func testTextFrameIsVerticallyCenteredInsideIndicator() {
         let indicator = CGRect(x: 0, y: 0, width: 164, height: 46)
         let text = OverlayLayout.centeredTextFrame(

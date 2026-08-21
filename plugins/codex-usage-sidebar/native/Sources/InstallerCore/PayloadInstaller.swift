@@ -215,7 +215,7 @@ public struct PayloadInstaller: PayloadInstalling {
             throw PayloadInstallerError.invalidManifest
         }
         let baseVersion = manifest.version.split(separator: "+", maxSplits: 1).first.map(String.init)
-        guard baseVersion == "0.3.0" else {
+        guard baseVersion == "0.3.1" else {
             throw PayloadInstallerError.versionMismatch(manifest.version)
         }
         guard fileManager.fileExists(atPath: provenanceURL.path) else {

@@ -44,29 +44,18 @@ for the device procedure. To move the active work into Codex on a Windows comput
 [Windows Codex continuation guide](docs/WINDOWS-CODEX-CONTINUATION.md); the Git branch and its
 verified commit history are the handoff source of truth.
 
-## Actual appearance
+## Current v0.3.1 appearance
 
 <p align="center">
-  <img src="docs/images/quota-popover-en-light.png" alt="Codex Usage Sidebar v0.2.3 with emphasized countdown values in the light theme" width="48%">
-  <img src="docs/images/quota-popover-en-dark.png" alt="Codex Usage Sidebar v0.2.3 with emphasized countdown values in the dark theme" width="48%">
-</p>
-
-<p align="center"><em>Light theme · Dark theme</em></p>
-
-<p align="center">Real v0.2.3 captures in both Codex themes. Larger, color-synced countdown numbers make the remaining days and hours easy to scan while the units stay understated.</p>
-
-## Current v0.3.0 popover preview
-
-<p align="center">
-  <img src="docs/images/quota-popover-v0.3.0-en-light.png" alt="Codex Usage Sidebar v0.3.0 quota popover with token usage and GitHub footer link in the light theme" width="48%">
-  <img src="docs/images/quota-popover-v0.3.0-en-dark.png" alt="Codex Usage Sidebar v0.3.0 quota popover with token usage and GitHub footer link in the dark theme" width="48%">
+  <img src="docs/images/quota-popover-v0.3.1-en-light.png" alt="Codex Usage Sidebar v0.3.1 quota popover with token usage, themed app icon, and GitHub footer link in the light theme" width="48%">
+  <img src="docs/images/quota-popover-v0.3.1-en-dark.png" alt="Codex Usage Sidebar v0.3.1 quota popover with token usage, themed app icon, and GitHub footer link in the dark theme" width="48%">
 </p>
 
 <p align="center"><em>Current light theme · Current dark theme</em></p>
 
-The current source preview adds the official account identity, a seven-day token-usage chart, a
-borderless compact GitHub link in the footer, and a soft rounded hover shadow. The GitHub button
-opens the project repository directly and follows the active Codex theme.
+These v0.3.1 captures are generated from the current native AppKit card and bundled theme assets. They
+show the Codex account identity, seven-day token-usage chart, emphasized reset countdown, themed
+quota icon, borderless compact GitHub link, and the light/dark separator and shadow materials.
 
 ## Adaptive titlebar placement
 
@@ -80,7 +69,7 @@ opens the project repository directly and follows the active Codex theme.
   <img src="docs/images/adaptive-titlebar-fallback-dark.png" alt="Quota control moved to the safe right-side titlebar fallback" width="96%">
 </p>
 
-<p align="center"><em>Not enough room: the control moves immediately to the reserved right-side titlebar position.</em></p>
+<p align="center"><em>Not enough room: the control moves immediately to the reserved right-side titlebar position and remains visible while the middle tab continues shrinking.</em></p>
 
 ## What it does
 
@@ -243,7 +232,7 @@ companion never modifies Codex internals.
 
 ## Language matching
 
-Version 0.2.3 follows the language Codex is actually displaying. An explicit Codex language choice
+Version 0.3.1 follows the language Codex is actually displaying. An explicit Codex language choice
 is authoritative; when Codex is set to **Auto**, the running renderer's resolved locale is used.
 Codex preferences and the macOS preferred language remain safe startup fallbacks.
 
@@ -300,7 +289,7 @@ Read the complete [privacy model](docs/PRIVACY.md), [architecture](docs/ARCHITEC
 A healthy precise-positioning result includes the state from the actual LaunchAgent process:
 
 ```text
-pid=12345 version=0.2.3 runtime=shown placement=content-header anchor=labeledControl
+pid=12345 version=0.3.1 runtime=shown placement=content-header anchor=labeledControl
 language=simplifiedChinese language_source=process
 indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app

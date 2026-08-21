@@ -38,7 +38,12 @@ public struct ContentHeaderAnchor: Equatable, Sendable {
 }
 
 public enum ContentHeaderAnchorResolver {
-    private static let maximumAnchorWidth: CGFloat = 160
+    // Long localized labels (notably English and several CJK/European
+    // locales) can make Codex's Open Location control wider than the compact
+    // Chinese layout. Keep it eligible so the collision resolver can still
+    // move the quota indicator to the right fallback slot.
+    private static let maximumAnchorWidth: CGFloat = 240
+    private static let initialScanAnchorWidth: CGFloat = 160
     private static let minimumToolbarItemHeight: CGFloat = 8
 
     public static func shouldScanDescendants(
@@ -57,7 +62,7 @@ public enum ContentHeaderAnchorResolver {
         windowFrame.midX
             - OverlayLayout.indicatorWidth
             - OverlayLayout.indicatorGap
-            - maximumAnchorWidth / 2
+            - initialScanAnchorWidth / 2
     }
 
     public static func expandedScanMinimumX(
@@ -117,7 +122,8 @@ public enum ContentHeaderAnchorResolver {
     /// indicator should be hidden until the user returns to a conversation.
     public static func isSettingsNavigationControl(
         _ control: ContentHeaderControl,
-        windowFrame: CGRect
+        windowFrame: CGRect,
+        allowStructuralMatch: Bool = true
     ) -> Bool {
         let frame = control.frame
         guard
@@ -133,10 +139,51 @@ public enum ContentHeaderAnchorResolver {
         }
 
         let labels = control.labels.map(normalizedLabel)
+        if allowStructuralMatch, frame.width >= 100 {
+            return true
+        }
         return labels.contains("返回应用")
             || labels.contains("返回應用")
             || labels.contains("back to app")
             || (frame.width >= 100 && labels.contains("返回"))
+    }
+
+    /// Returns true when a scanned toolbar control is the conversation's
+    /// Open Location control. This signal must survive collision fallback:
+    /// the quota indicator can move to the right-side fallback slot while the
+    /// page is still a conversation, not Settings.
+    public static func isOpenLocationControl(
+        _ control: ContentHeaderControl
+    ) -> Bool {
+        isOpenLocation(control)
+    }
+
+    /// Identifies the wide central toolbar controls used by the conversation
+    /// surface even when their localized label is unknown. Keeping this
+    /// structural signal separate from the resolved anchor lets a collision
+    /// fall back to the right-side slot without being mistaken for Settings.
+    public static func isConversationToolbarControl(
+        _ control: ContentHeaderControl,
+        windowFrame: CGRect
+    ) -> Bool {
+        guard control.isAnchorCandidate else {
+            return false
+        }
+        let frame = control.frame
+        return frame.width >= 64
+            && frame.width <= maximumAnchorWidth
+            && frame.minX >= initialScanMinimumX(in: windowFrame)
+            && isEligibleToolbarItem(frame: frame, windowFrame: windowFrame)
+    }
+
+    public static func hasRightPane(
+        paneFrames: [CGRect],
+        windowFrame: CGRect
+    ) -> Bool {
+        rightPaneLeadingEdge(
+            paneFrames: paneFrames,
+            windowFrame: windowFrame
+        ) != nil
     }
 
     public static func stabilized(
@@ -160,7 +207,8 @@ public enum ContentHeaderAnchorResolver {
     public static func resolve(
         controls: [ContentHeaderControl],
         paneFrames: [CGRect],
-        windowFrame: CGRect
+        windowFrame: CGRect,
+        indicatorWidth: CGFloat = OverlayLayout.indicatorWidth
     ) -> ContentHeaderAnchor {
         let paneBoundary = rightPaneLeadingEdge(
             paneFrames: paneFrames,
@@ -182,7 +230,7 @@ public enum ContentHeaderAnchorResolver {
 
         let headerControls = eligibleAnchorCandidates.filter { control in
             let frame = control.frame
-            return frame.midX >= windowFrame.midX
+            return frame.minX >= initialScanMinimumX(in: windowFrame)
         }
 
         let centralHeaderControls = headerControls.filter {
@@ -197,7 +245,8 @@ public enum ContentHeaderAnchorResolver {
                 source: .openLocation,
                 selectedFrame: openLocation.frame,
                 toolbarItems: toolbarItems,
-                windowFrame: windowFrame
+                windowFrame: windowFrame,
+                indicatorWidth: indicatorWidth
             )
         }
 
@@ -213,7 +262,8 @@ public enum ContentHeaderAnchorResolver {
                 source: .labeledControl,
                 selectedFrame: labeledControl.frame,
                 toolbarItems: toolbarItems,
-                windowFrame: windowFrame
+                windowFrame: windowFrame,
+                indicatorWidth: indicatorWidth
             )
         }
 
@@ -223,7 +273,8 @@ public enum ContentHeaderAnchorResolver {
                 source: .rightPaneBoundary,
                 selectedFrame: nil,
                 toolbarItems: toolbarItems,
-                windowFrame: windowFrame
+                windowFrame: windowFrame,
+                indicatorWidth: indicatorWidth
             )
         }
         return ContentHeaderAnchor(trailingEdge: nil, source: .fallback)
@@ -234,7 +285,8 @@ public enum ContentHeaderAnchorResolver {
         source: ContentHeaderAnchorSource,
         selectedFrame: CGRect?,
         toolbarItems: [ContentHeaderControl],
-        windowFrame: CGRect
+        windowFrame: CGRect,
+        indicatorWidth: CGFloat
     ) -> ContentHeaderAnchor {
         let obstacles = toolbarItems.filter { item in
             guard let selectedFrame else {
@@ -247,7 +299,8 @@ public enum ContentHeaderAnchorResolver {
         for _ in 0...obstacles.count {
             let candidate = OverlayLayout.indicatorFrame(
                 in: windowFrame,
-                contentTrailingEdge: resolvedEdge
+                contentTrailingEdge: resolvedEdge,
+                width: indicatorWidth
             )
             if let selectedFrame {
                 let expectedMaximumX = resolvedEdge - OverlayLayout.indicatorGap
@@ -302,6 +355,8 @@ public enum ContentHeaderAnchorResolver {
             .map(normalizedLabel)
             .joined(separator: " ")
         return text.contains("打开位置")
+            || text.contains("開啟位置")
+            || text.contains("打開位置")
             || text.contains("open location")
             || text.contains("openlocation")
     }
@@ -319,7 +374,10 @@ public enum ContentHeaderAnchorResolver {
         paneFrames: [CGRect],
         windowFrame: CGRect
     ) -> CGFloat? {
-        let maximumPaneWidth = windowFrame.width * 0.60
+        // Codex can expand the right pane beyond 60% of a narrow central
+        // surface. Keep the upper bound below a full-window group while still
+        // recognizing that legitimate wide-pane state.
+        let maximumPaneWidth = windowFrame.width * 0.72
         let toolbarMinimumY = windowFrame.maxY - OverlayLayout.toolbarHeight
 
         return paneFrames.filter { frame in

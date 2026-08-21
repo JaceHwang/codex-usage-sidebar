@@ -280,7 +280,7 @@ final class InstallerViewModel: ObservableObject {
         let accessibility = try await runRequired(accessibilityCommand)
         let report = InstallationVerifier.evaluate(
             statusOutput: status.standardOutput,
-            expectedVersion: "0.3.0",
+            expectedVersion: "0.3.1",
             statusCommandSucceeded: status.succeeded,
             loginCommandSucceeded: login.succeeded,
             accessibilityOutput: accessibility.standardOutput,
@@ -415,7 +415,7 @@ private enum InstallerViewModelError: Error, CustomStringConvertible {
         case .codexMissing:
             "The codex CLI was not found in a standard installation location."
         case .payloadMissing:
-            "The embedded v0.3.0 payload is missing."
+            "The embedded v0.3.1 payload is missing."
         case .codexLoginNotVerified:
             "Codex login completed but the isolated login status is not authenticated."
         case .marketplaceConflict(let root):

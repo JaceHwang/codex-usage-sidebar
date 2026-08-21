@@ -5,7 +5,7 @@ marketplace manifest. Start at the [repository README](../../README.md) for inst
 screenshots, privacy, support, and contribution instructions.
 
 Its native companion shows one live quota control in a collision-free Codex titlebar slot. Version
-0.3.0 prefers an exact 8-point Open Location gap, slides left to the nearest complete free slot when
+0.3.1 prefers an exact 8-point Open Location gap, slides left to the nearest complete free slot when
 native controls occupy that frame, and uses the safe right-side fallback when no local slot remains.
 Fullscreen content clipped to a 1-point top-edge frame is ignored rather than treated as a titlebar
 obstacle. The companion never creates a second control in the left sidebar.

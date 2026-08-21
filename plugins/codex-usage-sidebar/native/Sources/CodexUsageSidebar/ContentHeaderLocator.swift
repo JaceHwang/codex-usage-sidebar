@@ -27,7 +27,8 @@ final class ContentHeaderLocator {
 
     func resolve(
         for processIdentifier: pid_t,
-        windowFrame: CGRect
+        windowFrame: CGRect,
+        indicatorWidth: CGFloat = OverlayLayout.indicatorWidth
     ) -> ContentHeaderAnchor {
         guard AXIsProcessTrusted() else {
             isSettingsPage = false
@@ -46,11 +47,6 @@ final class ContentHeaderLocator {
             return ContentHeaderAnchor(trailingEdge: nil, source: .fallback)
         }
 
-        isSettingsPage = detectSettingsPage(
-            in: window,
-            windowFrame: windowFrame
-        )
-
         let retainedAnchor = retainedAnchor(
             processIdentifier: processIdentifier,
             window: window
@@ -66,6 +62,18 @@ final class ContentHeaderLocator {
         )
         var scannedAnchor = ContentHeaderAnchorResolver.resolve(
             controls: scan.controls,
+            paneFrames: scan.panes,
+            windowFrame: windowFrame,
+            indicatorWidth: indicatorWidth
+        )
+        var hasConversationAnchor = scan.controls.contains { control in
+            ContentHeaderAnchorResolver.isOpenLocationControl(control)
+                || ContentHeaderAnchorResolver.isConversationToolbarControl(
+                    control,
+                    windowFrame: windowFrame
+                )
+        }
+        var hasRightPane = ContentHeaderAnchorResolver.hasRightPane(
             paneFrames: scan.panes,
             windowFrame: windowFrame
         )
@@ -89,10 +97,30 @@ final class ContentHeaderLocator {
             scannedAnchor = ContentHeaderAnchorResolver.resolve(
                 controls: scan.controls,
                 paneFrames: scan.panes,
+                windowFrame: windowFrame,
+                indicatorWidth: indicatorWidth
+            )
+            hasConversationAnchor = hasConversationAnchor || scan.controls.contains { control in
+                ContentHeaderAnchorResolver.isOpenLocationControl(control)
+                    || ContentHeaderAnchorResolver.isConversationToolbarControl(
+                        control,
+                        windowFrame: windowFrame
+                    )
+            }
+            hasRightPane = hasRightPane || ContentHeaderAnchorResolver.hasRightPane(
+                paneFrames: scan.panes,
                 windowFrame: windowFrame
             )
             scanPasses += 1
         }
+        isSettingsPage = detectSettingsPage(
+            in: window,
+            windowFrame: windowFrame,
+            allowStructuralMatch: !hasConversationAnchor
+                && !hasRightPane
+                && scannedAnchor.source == .fallback
+                && retainedAnchor?.source != .openLocation
+        )
         if scanPasses == maximumScanPasses {
             scannedAnchor = ContentHeaderAnchorResolver.fallbackIfScanIsIncomplete(
                 anchor: scannedAnchor,
@@ -131,7 +159,8 @@ final class ContentHeaderLocator {
 
     private func detectSettingsPage(
         in window: AXUIElement,
-        windowFrame: CGRect
+        windowFrame: CGRect,
+        allowStructuralMatch: Bool
     ) -> Bool {
         var stack = children(of: window).reversed().map {
             QueueEntry(element: $0, depth: 1)
@@ -149,7 +178,6 @@ final class ContentHeaderLocator {
                 (
                     role == "AXButton"
                         || role == "AXLink"
-                        || role == "AXStaticText"
                 ),
                 let topLeftFrame = frame(of: entry.element)
             {
@@ -160,7 +188,8 @@ final class ContentHeaderLocator {
                 ),
                     ContentHeaderAnchorResolver.isSettingsNavigationControl(
                         control,
-                        windowFrame: windowFrame
+                        windowFrame: windowFrame,
+                        allowStructuralMatch: allowStructuralMatch
                     )
                 {
                     return true

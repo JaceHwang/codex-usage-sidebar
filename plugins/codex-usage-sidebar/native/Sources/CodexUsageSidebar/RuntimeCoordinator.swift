@@ -60,6 +60,7 @@ final class RuntimeCoordinator: NSObject {
     private var layoutTimer: Timer?
     private var nextPeriodicRefresh = Date.distantPast
     private var nextResetRefresh: Date?
+    private var currentIndicatorWidth = OverlayLayout.indicatorWidth
     private var lastDiagnosticState: String?
     private var languageState = RuntimeLanguageState()
     private let appServerEnvironmentOverrides: [String: String]
@@ -197,29 +198,33 @@ final class RuntimeCoordinator: NSObject {
             hideOverlay()
             return
         }
-        let anchor = contentHeader.resolve(
-            for: processIdentifier,
-            windowFrame: windowFrame
-        )
-        guard !contentHeader.isSettingsPage else {
-            recordDiagnosticState("hidden:settings")
-            hideOverlay()
-            return
-        }
-        let indicatorFrame = OverlayLayout.indicatorFrame(
-            in: windowFrame,
-            contentTrailingEdge: anchor.trailingEdge
-        )
-        let maximumLabelWidth = min(
-            OverlayLayout.indicatorWidth,
-            max(70, indicatorFrame.width)
-        )
+        let maximumLabelWidth = OverlayLayout.maximumIndicatorWidth - 44
         let label = formatter.label(
             snapshot: snapshot,
             now: Date(),
             language: languageState.language,
             timeZone: .autoupdatingCurrent,
             maxWidth: maximumLabelWidth
+        )
+        let resolvedIndicatorWidth = overlay.preferredIndicatorWidth(
+            label: label,
+            remainingPercent: snapshot.remainingPercent
+        )
+        currentIndicatorWidth = resolvedIndicatorWidth
+        let anchor = contentHeader.resolve(
+            for: processIdentifier,
+            windowFrame: windowFrame,
+            indicatorWidth: resolvedIndicatorWidth
+        )
+        guard !contentHeader.isSettingsPage else {
+            recordDiagnosticState("hidden:settings")
+            hideOverlay()
+            return
+        }
+        let resolvedIndicatorFrame = OverlayLayout.indicatorFrame(
+            in: windowFrame,
+            contentTrailingEdge: anchor.trailingEdge,
+            width: resolvedIndicatorWidth
         )
         guard let detail = detailContent() else {
             recordDiagnosticState("hidden:no-snapshot")
@@ -229,7 +234,7 @@ final class RuntimeCoordinator: NSObject {
         overlay.show(
             snapshot: snapshot,
             label: label,
-            indicatorFrame: indicatorFrame,
+            indicatorFrame: resolvedIndicatorFrame,
             theme: currentTheme,
             detail: detail,
             dimmed: freshness == .dimmed
@@ -237,10 +242,10 @@ final class RuntimeCoordinator: NSObject {
 
         recordDiagnosticState(
             "shown placement=content-header anchor=\(anchor.source.rawValue) " +
-                "indicator=\(Int(indicatorFrame.minX))," +
-                "\(Int(indicatorFrame.minY))," +
-                "\(Int(indicatorFrame.width))," +
-                "\(Int(indicatorFrame.height)) " +
+                "indicator=\(Int(resolvedIndicatorFrame.minX))," +
+                "\(Int(resolvedIndicatorFrame.minY))," +
+                "\(Int(resolvedIndicatorFrame.width))," +
+                "\(Int(resolvedIndicatorFrame.height)) " +
                 contentHeader.latestDiagnosticDetail
         )
     }
@@ -291,19 +296,23 @@ final class RuntimeCoordinator: NSObject {
         }
         let anchor = contentHeader.resolve(
             for: processIdentifier,
-            windowFrame: windowFrame
+            windowFrame: windowFrame,
+            indicatorWidth: currentIndicatorWidth
         )
         guard !contentHeader.isSettingsPage else {
             hideOverlay()
             return
         }
-        guard anchor.trailingEdge != nil else {
-            return
-        }
+        // A missing content anchor is an expected state while Codex is
+        // resizing the middle tab or rebuilding its toolbar. Keep the
+        // indicator alive in the independent right-side fallback slot
+        // instead of leaving the previous frame behind (or skipping the
+        // update entirely).
         overlay.reposition(
             to: OverlayLayout.indicatorFrame(
                 in: windowFrame,
-                contentTrailingEdge: anchor.trailingEdge
+                contentTrailingEdge: anchor.trailingEdge,
+                width: currentIndicatorWidth
             )
         )
     }

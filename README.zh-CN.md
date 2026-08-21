@@ -29,28 +29,18 @@ Windows `v0.3.0` 是面向 Windows 11 AMD64/x64 的公开发布，说明了受�
 [Windows Codex 开发接力手册](docs/WINDOWS-CODEX-CONTINUATION.zh-CN.md)开始；Git 分支和经过
 验证的提交历史是跨电脑接力的唯一源码依据。
 
-## 当前实际效果
+## 当前 v0.3.1 实际效果
 
 <p align="center">
-  <img src="docs/images/quota-popover-zh-light.png" alt="浅色主题下突出显示剩余时间数字的 Codex Usage Sidebar v0.2.3" width="48%">
-  <img src="docs/images/quota-popover-zh-dark.png" alt="深色主题下突出显示剩余时间数字的 Codex Usage Sidebar v0.2.3" width="48%">
-</p>
-
-<p align="center"><em>浅色主题 · 深色主题</em></p>
-
-<p align="center">v0.2.3 在两种 Codex 主题下的真实截图；剩余天数与小时数字使用更大字号并同步额度颜色，单位则保持弱化，扫一眼即可识别。</p>
-
-## 当前 v0.3.0 浮窗预览
-
-<p align="center">
-  <img src="docs/images/quota-popover-v0.3.0-zh-light.png" alt="Codex Usage Sidebar v0.3.0 浅色主题额度浮窗，包含 Token 使用量和 GitHub 底部链接" width="48%">
-  <img src="docs/images/quota-popover-v0.3.0-zh-dark.png" alt="Codex Usage Sidebar v0.3.0 深色主题额度浮窗，包含 Token 使用量和 GitHub 底部链接" width="48%">
+  <img src="docs/images/quota-popover-v0.3.1-zh-light.png" alt="Codex Usage Sidebar v0.3.1 浅色主题额度浮窗，包含 Token 使用量、主题图标和 GitHub 底部链接" width="48%">
+  <img src="docs/images/quota-popover-v0.3.1-zh-dark.png" alt="Codex Usage Sidebar v0.3.1 深色主题额度浮窗，包含 Token 使用量、主题图标和 GitHub 底部链接" width="48%">
 </p>
 
 <p align="center"><em>当前浅色主题 · 当前深色主题</em></p>
 
-当前源码预览加入了 Codex 账号身份、七日 Token 使用量图表，以及底部无边框紧凑 GitHub
-链接按钮。点击后直接打开项目仓库，悬浮时显示柔和圆角阴影，并跟随 Codex 当前主题。
+这些 v0.3.1 截图由当前原生 AppKit 浮窗和安装包内的主题图标生成，展示了 Codex 账号身份、七日
+Token 使用量图表、醒目的重置倒计时、主题自适应额度图标、无边框紧凑 GitHub 链接，以及
+浅色/深色主题下的分隔线和阴影材质。
 
 ## 自适应标题栏定位
 
@@ -64,7 +54,7 @@ Windows `v0.3.0` 是面向 Windows 11 AMD64/x64 的公开发布，说明了受�
   <img src="docs/images/adaptive-titlebar-fallback-dark.png" alt="额度按钮移动到右侧标题栏安全回退位置" width="96%">
 </p>
 
-<p align="center"><em>空间不足：立即切换到标题栏右侧预留位置。</em></p>
+<p align="center"><em>空间不足：立即切换到标题栏右侧预留位置；中间页签继续缩窄时仍保持显示。</em></p>
 
 ## 功能效果
 
@@ -74,7 +64,7 @@ Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生�
 | 场景 | 表现 |
 | --- | --- |
 | 打开或关闭左、右、下侧栏 | 优先跟随原生“打开位置”，遇到占用控件时向左寻找最近空位；本地空间不足才切换到右侧预留位置。 |
-| 移动或缩放窗口 | 每 `0.1 秒`重新核对可用标题栏空间，避免覆盖原生按钮和页签标题。 |
+| 移动或缩放窗口 | 每 `0.1 秒`重新核对可用标题栏空间，避免覆盖原生按钮和页签标题；没有可靠中间锚点时固定回退到右侧停靠位。 |
 | 鼠标悬浮 | 展示同步的插件版本、套餐、额度周期、每日与总 Token 使用量、Credits、全部 Bank 次数、状态与过期时间。 |
 | 鼠标点击 | 浮窗保持常驻，再次点击收回；原有悬浮查看方式继续保留。 |
 | 底部 GitHub 按钮 | 打开 [github.com/JaceHwang/codex-usage-sidebar](https://github.com/JaceHwang/codex-usage-sidebar)。默认态融入底部背景，悬浮时仅显示柔和圆角阴影。 |
@@ -207,7 +197,7 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 
 ## 语言自动匹配
 
-v0.2.3 直接跟随 Codex **最终实际显示的语言**。Codex 明确选择的语言优先；设为“自动”时，
+v0.3.1 直接跟随 Codex **最终实际显示的语言**。Codex 明确选择的语言优先；设为“自动”时，
 插件跟随运行中的 Codex 渲染进程语言。Codex 偏好设置与 macOS 首选语言仅作为启动阶段的安全回退。
 
 | Codex 最终语言 | 插件显示 |
@@ -257,7 +247,7 @@ v0.2.3 直接跟随 Codex **最终实际显示的语言**。Codex 明确选择�
 精确定位正常时会返回常驻 LaunchAgent 进程的真实状态：
 
 ```text
-pid=12345 version=0.2.3 runtime=shown placement=content-header anchor=labeledControl
+pid=12345 version=0.3.1 runtime=shown placement=content-header anchor=labeledControl
 language=simplifiedChinese language_source=process
 indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app

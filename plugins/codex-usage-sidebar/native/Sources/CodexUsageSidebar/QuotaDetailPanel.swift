@@ -641,6 +641,13 @@ final class QuotaThemeIconView: NSView {
 
     override var isOpaque: Bool { false }
 
+    func updateAppearance(_ appearance: NSAppearance) {
+        self.appearance = appearance
+        appearance.performAsCurrentDrawingAppearance {
+            loadThemeIcon()
+        }
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         let circle = NSBezierPath(ovalIn: bounds.insetBy(dx: 0.5, dy: 0.5))
@@ -665,10 +672,6 @@ final class QuotaThemeIconView: NSView {
             ring.stroke()
         }
         NSGraphicsContext.restoreGraphicsState()
-
-        QuotaChromeStyle.separatorColor.withAlphaComponent(0.42).setStroke()
-        circle.lineWidth = 0.75
-        circle.stroke()
     }
 
     private func loadThemeIcon() {
