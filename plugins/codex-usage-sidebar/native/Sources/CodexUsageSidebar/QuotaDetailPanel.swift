@@ -176,20 +176,16 @@ final class QuotaDetailCardView: NSView {
             ),
             versionBadgeWidth: versionBadge.intrinsicContentSize.width
         )
-        let avatar = QuotaAvatarView(
-            seed: content.footerName,
-            avatarURL: content.footerAvatarURL
-        )
-        avatar.frame = CGRect(
+        let themeIcon = QuotaThemeIconView(frame: CGRect(
             x: QuotaDetailLayout.contentHorizontalInset,
             y: bounds.maxY - 50,
             width: 32,
             height: 32
-        )
+        ))
         title.frame = headerFrames.title
         versionBadge.frame = headerFrames.versionBadge
         remaining.frame = headerFrames.remaining
-        addSubview(avatar)
+        addSubview(themeIcon)
         addSubview(title)
         addSubview(versionBadge)
         addSubview(remaining)
@@ -595,6 +591,93 @@ private final class VersionBadgeView: NSView {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         nil
+    }
+}
+
+@MainActor
+enum QuotaThemeIconAsset: Equatable {
+    case dark
+    case light
+
+    var resourceName: String {
+        switch self {
+        case .dark:
+            return "quota-icon-dark"
+        case .light:
+            return "quota-icon-light"
+        }
+    }
+
+    static func forAppearance(_ appearance: NSAppearance?) -> Self {
+        guard
+            let appearance,
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        else {
+            return .light
+        }
+        return .dark
+    }
+}
+
+@MainActor
+final class QuotaThemeIconView: NSView {
+    private var iconImage: NSImage?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        loadThemeIcon()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        loadThemeIcon()
+    }
+
+    override var isOpaque: Bool { false }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let circle = NSBezierPath(ovalIn: bounds.insetBy(dx: 0.5, dy: 0.5))
+        NSGraphicsContext.saveGraphicsState()
+        circle.addClip()
+        if let iconImage {
+            iconImage.draw(
+                in: bounds,
+                from: .zero,
+                operation: .sourceOver,
+                fraction: 1,
+                respectFlipped: true,
+                hints: [.interpolation: NSImageInterpolation.high]
+            )
+        } else {
+            let fallback = NSColor.controlBackgroundColor
+            fallback.setFill()
+            circle.fill()
+            NSColor.secondaryLabelColor.setStroke()
+            let ring = NSBezierPath(ovalIn: bounds.insetBy(dx: 4, dy: 4))
+            ring.lineWidth = 3
+            ring.stroke()
+        }
+        NSGraphicsContext.restoreGraphicsState()
+
+        QuotaChromeStyle.separatorColor.withAlphaComponent(0.42).setStroke()
+        circle.lineWidth = 0.75
+        circle.stroke()
+    }
+
+    private func loadThemeIcon() {
+        let asset = QuotaThemeIconAsset.forAppearance(effectiveAppearance)
+        iconImage = Bundle.main.url(
+            forResource: asset.resourceName,
+            withExtension: "jpg"
+        ).flatMap(NSImage.init(contentsOf:))
+        needsDisplay = true
     }
 }
 

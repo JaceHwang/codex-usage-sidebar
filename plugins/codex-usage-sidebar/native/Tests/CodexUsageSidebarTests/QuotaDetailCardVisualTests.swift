@@ -8,6 +8,17 @@ final class QuotaDetailCardVisualTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_786_800_000)
     private let timeZone = TimeZone(identifier: "Asia/Shanghai")!
 
+    func testThemeIconAssetFollowsCodexAppearance() {
+        XCTAssertEqual(
+            QuotaThemeIconAsset.forAppearance(NSAppearance(named: .darkAqua)),
+            .dark
+        )
+        XCTAssertEqual(
+            QuotaThemeIconAsset.forAppearance(NSAppearance(named: .aqua)),
+            .light
+        )
+    }
+
     func testRendersEveryLocalizedThemeFixtureWithFixedInformationBand() throws {
         let outputDirectory = ProcessInfo.processInfo.environment[
             "CUS_VISUAL_OUTPUT_DIR"
