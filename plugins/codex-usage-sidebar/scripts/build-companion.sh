@@ -50,11 +50,11 @@ release_binary="$release_bin_path/CodexUsageSidebar"
   "$release_binary" \
   "$staged_app/Contents/MacOS/CodexUsageSidebar"
 /usr/bin/install -m 0644 \
-  "$plugin_root/assets/quota-icon-dark.jpg" \
-  "$staged_app/Contents/Resources/quota-icon-dark.jpg"
+  "$plugin_root/assets/quota-icon-dark.png" \
+  "$staged_app/Contents/Resources/quota-icon-dark.png"
 /usr/bin/install -m 0644 \
-  "$plugin_root/assets/quota-icon-light.jpg" \
-  "$staged_app/Contents/Resources/quota-icon-light.jpg"
+  "$plugin_root/assets/quota-icon-light.png" \
+  "$staged_app/Contents/Resources/quota-icon-light.png"
 
 /bin/cat >"$staged_app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

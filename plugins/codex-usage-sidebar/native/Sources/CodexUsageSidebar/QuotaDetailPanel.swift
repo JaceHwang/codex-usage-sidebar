@@ -675,7 +675,7 @@ final class QuotaThemeIconView: NSView {
         let asset = QuotaThemeIconAsset.forAppearance(effectiveAppearance)
         iconImage = Bundle.main.url(
             forResource: asset.resourceName,
-            withExtension: "jpg"
+            withExtension: "png"
         ).flatMap(NSImage.init(contentsOf:))
         needsDisplay = true
     }
