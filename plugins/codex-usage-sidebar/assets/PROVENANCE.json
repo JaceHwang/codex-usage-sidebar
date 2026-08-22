@@ -3,10 +3,10 @@
   "build": {
     "kind": "local-unpublished"
   },
-  "sourceCommit": "7afae20c405d1e746e2a3ff4f3544aee13b35459",
+  "sourceCommit": "7b0335eec89dd3c10f76841e636fdf211f780d67",
   "companion": {
-    "executableSha256": "3f2ce6f8b4d2fee56d708c29fc819791991e385eb2b45419bbd67676031328ca",
-    "cdhashSha256": "3405bbe1b999f925f25cb188392c8a347f8a7e46974b664629c8f650a1d75c29",
-    "signature": "local-signing"
+    "executableSha256": "49e82ddd65e64f2eec94b8bcd213f8ca94a78bfe4b2cf2610d38085506d41123",
+    "cdhashSha256": "7b13663295637e33a7795bed4a0121d54b79f46dc35cc8130061bce408252870",
+    "signature": "adhoc"
   }
 }
