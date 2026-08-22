@@ -161,6 +161,34 @@ public sealed class CodexTitlebarSelectorTests
     }
 
     [TestMethod]
+    public void FindsTheLeftmostRightToolbarButtonInsteadOfOnlyTheTrailingButton()
+    {
+        var fixture = LoadFixture("windows-codex-151.0.7922.76-narrow-200.json");
+        var firstButton = new UiaStructureNode(
+            18,
+            "ControlType.Button",
+            "",
+            "no-drag h-token-button-composer aspect-square shrink-0",
+            new RectD(2500, 88, 56, 56),
+            0);
+
+        var result = CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity,
+            fixture.DpiScale,
+            fixture.HostBounds,
+            fixture.Nodes.Append(firstButton).ToArray());
+
+        Assert.IsNotNull(result);
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                firstButton.Bounds,
+                new RectD(2856, 88, 56, 56),
+            },
+            result.RightObstacles.ToArray());
+    }
+
+    [TestMethod]
     public void ResolvesScannerEmittedRightToolbarButtonsOneDepthBelowTheToolbar()
     {
         var fixture = LoadFixture("windows-codex-151.0.7922.76-narrow-200.json");

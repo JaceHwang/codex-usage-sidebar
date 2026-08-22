@@ -247,8 +247,7 @@ public static class CodexTitlebarSelector
                 && node.ClassName.Contains("aspect-square", StringComparison.Ordinal)
                 && Contains(rightPane.Bounds, node.Bounds)
                 && Math.Abs(node.Bounds.Y - rightTitlebarAnchor.Bounds.Y) <= 2 * dpiScale
-                && Math.Abs(node.Bounds.Height - rightTitlebarAnchor.Bounds.Height) <= 2 * dpiScale
-                && node.Bounds.X >= rightToolbar.Bounds.Right - (2 * dpiScale)).ToArray();
+                && Math.Abs(node.Bounds.Height - rightTitlebarAnchor.Bounds.Height) <= 2 * dpiScale).ToArray();
             if (alignedButtons.Length == 0)
             {
                 return null;
