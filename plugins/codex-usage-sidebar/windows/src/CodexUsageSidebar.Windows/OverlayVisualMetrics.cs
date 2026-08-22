@@ -2,7 +2,7 @@ namespace CodexUsageSidebar.Windows;
 
 public static class OverlayVisualMetrics
 {
-    public const double IndicatorWidth = 164;
+    public const double IndicatorWidth = 132;
     public const double IndicatorHorizontalPadding = 4;
     public const double DetailWidth = 360;
     public const double HeaderTitleFontSize = 18;

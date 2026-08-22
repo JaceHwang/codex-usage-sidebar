@@ -39,9 +39,9 @@ public sealed class HostCoordinatorTests
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
         Assert.AreEqual(PlacementSurface.Content, overlay.LastPresentation?.Placement.Surface);
-        Assert.AreEqual(1164, overlay.LastPresentation?.Placement.Frame.X);
+        Assert.AreEqual(1228, overlay.LastPresentation?.Placement.Frame.X);
         Assert.AreEqual(98, overlay.LastPresentation?.Placement.Frame.Y);
-        Assert.AreEqual(328, overlay.LastPresentation?.Placement.Frame.Width);
+        Assert.AreEqual(264, overlay.LastPresentation?.Placement.Frame.Width);
         Assert.AreEqual(56, overlay.LastPresentation?.Placement.Frame.Height);
         Assert.AreEqual(76, overlay.LastPresentation?.Snapshot.RemainingPercent);
     }
@@ -135,7 +135,7 @@ public sealed class HostCoordinatorTests
         Assert.AreEqual(1, scanner.InvalidateCount);
         Assert.AreEqual(DisplayLanguage.English, overlay.LastPresentation?.Language);
         Assert.AreNotEqual(simplifiedFrame, overlay.LastPresentation?.Placement.Frame);
-        Assert.AreEqual(new RectD(1685, 88, 328, 56), overlay.LastPresentation?.Placement.Frame);
+        Assert.AreEqual(new RectD(1749, 88, 264, 56), overlay.LastPresentation?.Placement.Frame);
     }
 
     [TestMethod]
@@ -168,7 +168,7 @@ public sealed class HostCoordinatorTests
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
         Assert.AreEqual(PlacementSurface.Content, overlay.LastPresentation?.Placement.Surface);
-        Assert.AreEqual(new RectD(1336, 88, 328, 56), overlay.LastPresentation?.Placement.Frame);
+        Assert.AreEqual(new RectD(1368, 88, 264, 56), overlay.LastPresentation?.Placement.Frame);
         Assert.AreEqual(window.Handle, overlay.LastPresentation?.OwnerHandle);
     }
 
@@ -230,7 +230,7 @@ public sealed class HostCoordinatorTests
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
         Assert.AreEqual(PlacementSurface.RightToolbar, overlay.LastPresentation?.Placement.Surface);
-        Assert.AreEqual(new RectD(2520, 88, 328, 56), overlay.LastPresentation?.Placement.Frame);
+        Assert.AreEqual(new RectD(2584, 88, 264, 56), overlay.LastPresentation?.Placement.Frame);
     }
 
     [TestMethod]
@@ -265,7 +265,7 @@ public sealed class HostCoordinatorTests
         var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
-        Assert.AreEqual(328, overlay.LastPresentation?.Placement.Frame.Width);
+        Assert.AreEqual(264, overlay.LastPresentation?.Placement.Frame.Width);
         Assert.AreEqual(56, overlay.LastPresentation?.Placement.Frame.Height);
         Assert.AreEqual(88, overlay.LastPresentation?.Placement.Frame.Y);
     }
@@ -341,7 +341,7 @@ public sealed class HostCoordinatorTests
     [TestMethod]
     public void OverlayVisualMetricsMatchTheMacOsV023Baseline()
     {
-        Assert.AreEqual(164, OverlayVisualMetrics.IndicatorWidth);
+        Assert.AreEqual(132, OverlayVisualMetrics.IndicatorWidth);
         Assert.AreEqual(4, OverlayVisualMetrics.IndicatorHorizontalPadding);
         Assert.AreEqual(360, OverlayVisualMetrics.DetailWidth);
         Assert.AreEqual(18, OverlayVisualMetrics.HeaderTitleFontSize);
@@ -363,13 +363,13 @@ public sealed class HostCoordinatorTests
     [TestMethod]
     public void PassiveOverlayPointerHitTestingUsesPhysicalWindowRectangles()
     {
-        var indicator = new RectD(2512, 88, 328, 56);
+        var indicator = new RectD(2584, 88, 264, 56);
         var detail = new RectD(2240, 156, 600, 400);
 
         Assert.IsTrue(OverlayPointerPolicy.IsInside(new PointD(2676, 116), indicator));
         Assert.IsTrue(OverlayPointerPolicy.IsInside(new PointD(2300, 200), detail));
         Assert.IsFalse(OverlayPointerPolicy.IsInside(new PointD(2511, 116), indicator));
-        Assert.IsFalse(OverlayPointerPolicy.IsInside(new PointD(2840, 116), indicator));
+        Assert.IsFalse(OverlayPointerPolicy.IsInside(new PointD(2848, 116), indicator));
         Assert.IsFalse(OverlayPointerPolicy.IsInside(new PointD(double.NaN, 116), indicator));
     }
 
