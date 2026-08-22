@@ -144,6 +144,13 @@
 - Windows solution 测试：`53 + 64 + 80 = 197/197` 通过；Release x64 构建 `0` 警告、`0` 错误。
 - 已安装当前载荷：`runtime=running pid=1840 version=0.3.1`，`sourceCommit=1553e8f4068bba387943c167292bc71cb2c80477`。
 
+2026-08-22 更正内边距比例基准为按钮高度（源提交 `56bffcd`）：
+
+- 内边距改为 `IndicatorHeight / 3`，不再按按钮宽度计算；当前逻辑高度为 `28`，200% DPI 下每侧约 `18.67` 个物理像素。
+- 按钮宽度改为“文字宽度 + 两侧高度比例内边距”；实机探针确认文字宽度 `240`、按钮宽度 `277`，左右内间距各约 `18` 个物理像素。探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\20-height-third-late.json`。
+- Windows solution 测试：`53 + 64 + 80 = 197/197` 通过；Release x64 构建 `0` 警告、`0` 错误。
+- 已安装当前载荷：`runtime=running pid=13320 version=0.3.1`，`sourceCommit=56bffcd4c7fc1360364c4928b7eef8753a60c7b8`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
