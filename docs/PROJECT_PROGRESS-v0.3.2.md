@@ -121,6 +121,13 @@
 - Windows solution 测试：`53 + 63 + 80 = 196/196` 通过。
 - 已安装当前载荷：`runtime=running pid=24220 version=0.3.1`，`sourceCommit=9f3c37f24c29ad4629271eef848cabd8d5131262`；探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\16-indicator-compact.json`。
 
+2026-08-22 将左侧透明余量压缩至约 1 个物理像素（源提交 `5cbdce7`）：
+
+- 将 indicator 固定宽度从 `132` 调整为 `124.5` 个逻辑像素；在当前 200% DPI 下，物理宽度从 `264` 缩小为 `249`。
+- 保留文字两侧各 `4` 个逻辑像素的内部边距；实时探针确认浮层宽度为 `249`、文字区域宽度约 `232`，文字区域加左右各约 `8` 个物理像素内边距后为 `248`，因此左侧透明余量约 `1` 个物理像素。
+- Windows solution 测试：`53 + 63 + 80 = 196/196` 通过；Release x64 构建 `0` 警告、`0` 错误。
+- 已安装当前载荷：`runtime=running pid=24680 version=0.3.1`，`sourceCommit=5cbdce7359b3c6a442c2a92466d3e1ad397f6ef2`；探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\17-indicator-one-left.json`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
