@@ -55,6 +55,13 @@
 - 当前 Codex 客户端默认脱敏 UIA 探针：通过；报告保存在系统临时目录 `codex-usage-sidebar-v0.3.2-probes\01-current-default.json`，`IncludesText=false`，未采集原始 UIA 文本。
 - 以上证据只是单次本地检查，不替代完整的 130 项实机矩阵；Windows 实机与安装资产门禁仍未完成。
 
+2026-08-22 本地安装修复与刷新（源提交 `6efda99`）：
+
+- 修复 device-test 安装流程的版本漂移：安装器要求 `0.3.1`，旧脚本却生成 `0.3.0`，导致原子安装静默返回退出码 `70`。
+- 版本对齐回归测试先失败后通过；manifest、payload 计划和 device-test 测试均通过。
+- 已删除旧 `%LOCALAPPDATA%\CodexUsageSidebar\Current` 载荷并安装当前分支载荷；当前状态为 `runtime=running version=0.3.1`。
+- 当前安装 payload 的 `sourceCommit` 为 `6efda99fff4361bb931c14d4405ae2f414952d7c`，manifest SHA-256 为 `02679fc3477cdc2f9988af22016c84af40f3e48d29c47d3f4bcb1f8bc6d65e47`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
