@@ -62,6 +62,12 @@
 - 已删除旧 `%LOCALAPPDATA%\CodexUsageSidebar\Current` 载荷并安装当前分支载荷；当前状态为 `runtime=running version=0.3.1`。
 - 当前安装 payload 的 `sourceCommit` 为 `6efda99fff4361bb931c14d4405ae2f414952d7c`，manifest SHA-256 为 `02679fc3477cdc2f9988af22016c84af40f3e48d29c47d3f4bcb1f8bc6d65e47`。
 
+2026-08-22 中间页签窄宽度定位修复（源提交 `67bdf4b`）：
+
+- 根因：当前 Codex build `151.0.7922.170` 的右侧 pane 工具栏位于 pane 深度 `+4`，selector 只接受旧的 `+3`，因此右侧回退位置无法解析。
+- 新增回归测试覆盖 `+4` 深度；修复后 Windows solution 测试为 `51 + 58 + 80 = 189/189` 通过。
+- 已重新安装当前载荷；默认脱敏探针确认 `TitlebarResolved=true`、右侧工具栏 `x=2378..2856`、右侧障碍数 `1`，不再因 selector 失败而隐藏浮层。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
