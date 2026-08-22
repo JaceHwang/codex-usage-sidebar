@@ -158,6 +158,14 @@
 - 新增 UIA 回归测试覆盖“右侧栏内部存在一个比尾部按钮更靠左的第一个按钮”；Windows solution 测试：`54 + 64 + 80 = 198/198` 通过；Release x64 构建 `0` 警告、`0` 错误。
 - 已安装当前载荷：`runtime=running pid=18888 version=0.3.1`，`sourceCommit=2c6d46c20597646a0664ae58e56abb08a5be2eb3`；实时探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\23-selector-expanded.json`。
 
+2026-08-22 修复中间页签按钮与右侧箭头按钮之间的大段空白（源提交 `9608e07`）：
+
+- 根因是中间页签优先时，`PlacementResolver` 从标题右边界向右放置固定宽度按钮；当中间空间很宽时，按钮停在左侧，导致与第一个原生箭头按钮之间出现大段空白。
+- 中间页签现在以第一个原生箭头按钮的左边界为右锚点，使用 `openLocationBounds.X - gap - indicatorWidth` 反向计算位置；同时保留标题右边界和 UIA 障碍物碰撞检查。空间不足或发生碰撞时，才回退到右侧工具栏的默认锚点。
+- 当前 200% DPI 实机探针确认：第一个箭头按钮左边界 `x=1905`，插件窗口范围 `x=1640..1904`，两者仅保留 `1` 个物理像素的中间间隔。探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\24-middle-right-aligned.json`。
+- Windows solution 测试：`54 + 64 + 80 = 198/198` 通过；Release x64 构建 `0` 警告、`0` 错误。
+- 已安装当前载荷：`runtime=running pid=24784 version=0.3.1`，`sourceCommit=9608e0709af56f19172ab503dc63e842f31d86ca`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
