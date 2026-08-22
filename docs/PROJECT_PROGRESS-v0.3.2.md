@@ -136,6 +136,13 @@
 - Windows solution 测试：`53 + 63 + 80 = 196/196` 通过；Release x64 构建 `0` 警告、`0` 错误。
 - 已安装当前载荷：`runtime=running pid=5492 version=0.3.1`，`sourceCommit=8afb0cf42cd6efc7df16b98b38ec273c80cc71fb`。
 
+2026-08-22 回退动态按钮尺寸实验，恢复稳定版本（源提交 `d2d430d`）：
+
+- 撤销按文字宽度、按钮高度和比例动态计算 indicator 宽度/内边距的改动，恢复固定宽度 `132` 个逻辑像素、左右内边距各 `4` 个逻辑像素；当前 200% DPI 下窗口宽度为 `264` 个物理像素。
+- 保留中间页签优先、空间不足时回退右侧默认锚点，以及从标题右边界约 `1` 个物理像素开始的稳定定位逻辑。
+- Windows solution 测试：`53 + 63 + 80 = 196/196` 通过；Release x64 构建 `0` 警告、`0` 错误。
+- 已安装当前载荷：`runtime=running pid=20696 version=0.3.1`，`sourceCommit=d2d430d0637169b154d29d2c696b5778be07bc5f`；运行时探针确认浮层宽度 `264`、文字区域宽度 `240`。探针：`%TEMP%\\codex-usage-sidebar-v0.3.2-probes\\21-rollback-stable.json`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
