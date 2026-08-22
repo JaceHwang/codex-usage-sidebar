@@ -31,6 +31,7 @@
 2. 将本看板文档纳入仓库，记录当前功能边界、验证证据和未完成门禁。
 3. 保留 v0.3.1 的产品版本元数据和历史发布资产，避免在没有新安装包和实机验证时制造虚假的 v0.3.2 发布声明。
 4. 将分支推送到远端，供 Windows 设备继续完成实机验证和安装资产构建。
+5. 在 Windows 11 x64 上完成本地源码基线、非发布 device-test 载荷和默认脱敏 UIA 探针检查；未生成 setup 或 GitHub Release。
 
 ## 验证证据
 
@@ -43,6 +44,16 @@
 - 插件 manifest validator：通过。
 - 公共仓库 validator：通过。
 - `git diff --check`：通过。
+
+2026-08-22 本地 Windows 继续执行检查（源提交 `cc6976c`）：
+
+- Windows 11 build `26200` / `x64`；solution restore：通过。
+- Windows solution 测试：`51 + 57 + 80 = 188/188` 通过，0 失败。
+- Windows Host 构建：0 warnings、0 errors。
+- Windows-only source boundary：通过；payload manifest 负向/正向检查在 WSL 中通过。Git for Windows 因当前设备未启用 symlink 创建权限，未能执行该负向分支，未修改测试或生产代码。
+- 本地 device-test payload：通过 manifest 和嵌入管理器自检；`status=device-test`、`realDeviceValidated=false`、`publishableInstaller=false`；payload manifest SHA-256 为 `92462f22319c258724807818d6c39c9b4766aae923c81d6441d34b14d2ca9e6b`。
+- 当前 Codex 客户端默认脱敏 UIA 探针：通过；报告保存在系统临时目录 `codex-usage-sidebar-v0.3.2-probes\01-current-default.json`，`IncludesText=false`，未采集原始 UIA 文本。
+- 以上证据只是单次本地检查，不替代完整的 130 项实机矩阵；Windows 实机与安装资产门禁仍未完成。
 
 ## 未完成门禁与下一步
 
@@ -66,7 +77,7 @@
 本次新增的文档文件：
 
 - `docs/PROJECT_PROGRESS-v0.3.2.md`
+- `docs/superpowers/plans/2026-08-22-v0.3.2-windows-device-gate.md`
 
 本次分支不修改既有 macOS/Windows 业务逻辑，不重写历史 v0.3.1 发布记录，也不提交本机生成的签名
 载荷或临时构建输出。
-
