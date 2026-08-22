@@ -198,6 +198,15 @@
 - Windows solution 测试：`54 + 64 + 80 = 198/198` 通过；Release x64 构建 `0` 警告、`0` 错误。
 - 已安装当前载荷：`runtime=running pid=14196 version=0.3.1`，`sourceCommit=2d04e75de7f1f83b18a5195501e7097ed0670156`。
 
+2026-08-22 调整详情悬浮窗布局与内容（源提交 `1b9fb49`）：
+
+- 详情悬浮窗优先将左边界与标题栏插件按钮左边界对齐；只有屏幕工作区不足时才按工作区边界收缩。新增 `OverlayDetailLayout.LeftForIndicator` 单元测试覆盖正常对齐和右侧溢出收缩。
+- 详情卡片顶部 logo 使用无描边圆形裁剪；套餐、额度周期、重置时间等数据行之间增加主题色分割线。
+- 移除 Token 用量区域中的“数据可能延迟”提示渲染，保留数据模型字段以兼容现有格式化协议。
+- UIA 实机探针确认安装后标题栏按钮范围为 `x=1366..1699`，logo 为 `40 × 40` 个物理像素、文字从 `x=1441` 开始；探针：`%TEMP%\\codex-usage-sidebar-v0.3.2-probes\\31-detail-hover.json`。详情窗交互探针受桌面自动移标影响，未将未稳定捕获的悬浮状态计入实机结论。
+- Windows solution 测试：`54 + 65 + 80 = 199/199` 通过；Release x64 构建 `0` 警告、`0` 错误。
+- 已安装当前载荷：`runtime=running pid=3184 version=0.3.1`，`sourceCommit=1b9fb4927601b6ac9239702f140cb489aeb42e77`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
