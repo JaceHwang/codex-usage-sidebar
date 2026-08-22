@@ -143,6 +143,14 @@
 - Windows solution 测试：`53 + 63 + 80 = 196/196` 通过；Release x64 构建 `0` 警告、`0` 错误。
 - 已安装当前载荷：`runtime=running pid=20696 version=0.3.1`，`sourceCommit=d2d430d0637169b154d29d2c696b5778be07bc5f`；运行时探针确认浮层宽度 `264`、文字区域宽度 `240`。探针：`%TEMP%\\codex-usage-sidebar-v0.3.2-probes\\21-rollback-stable.json`。
 
+2026-08-22 修复右侧回退按钮未贴合第一个右侧按钮（源提交 `81bba41`）：
+
+- 根因是中间页签和右侧回退共用同一个 `IndicatorGap`；回退后的固定尺寸版本仍保留了 1 个物理像素的右侧间隔。
+- 拆分为两个间隔：中间页签继续保留 `0.5` 个逻辑像素（当前 200% DPI 下约 1 个物理像素），右侧回退使用 `0`，使插件窗口右边界直接对齐第一个右侧按钮的左边界。
+- 新增右侧独立间隔回归测试；Windows solution 测试：`54 + 63 + 80 = 197/197` 通过；Release x64 构建 `0` 警告、`0` 错误。
+- 当前 UIA 探针确认右侧第一个按钮左边界为 `x=2856`；右侧回退测试确认插件窗口右边界为 `x=2856`。探针：`%TEMP%\\codex-usage-sidebar-v0.3.2-probes\\22-right-buttons.json`。
+- 已安装当前载荷：`runtime=running pid=1800 version=0.3.1`，`sourceCommit=81bba41c170e848f43d55444d67312a0a9511433`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
