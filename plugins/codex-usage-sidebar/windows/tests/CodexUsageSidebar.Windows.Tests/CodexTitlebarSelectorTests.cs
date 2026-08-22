@@ -28,6 +28,38 @@ public sealed class CodexTitlebarSelectorTests
     }
 
     [TestMethod]
+    public void UsesTheFirstRightSideTitlebarButtonInsteadOfTheOpenLocationButton()
+    {
+        var fixture = LoadFixture();
+        var shareButton = new UiaStructureNode(
+            16,
+            "ControlType.Button",
+            "",
+            "no-drag h-token-button-composer aspect-square shrink-0",
+            new RectD(2550, 88, 56, 56),
+            5);
+        var currentTree = fixture.Nodes.Append(shareButton).ToArray();
+
+        var result = CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity,
+            fixture.DpiScale,
+            fixture.HostBounds,
+            currentTree);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(2550, result.PreferredAnchorTrailingEdge, 0.001);
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                shareButton.Bounds,
+                new RectD(2620, 88, 182, 56),
+                new RectD(2802, 88, 46, 56),
+                new RectD(2860, 88, 56, 56),
+            },
+            result.Obstacles.ToArray());
+    }
+
+    [TestMethod]
     public void ResolvesTheValidatedNarrowRightToolbarWithoutUsingTheOuterCaption()
     {
         var fixture = LoadFixture("windows-codex-151.0.7922.76-narrow-200.json");
@@ -239,29 +271,16 @@ public sealed class CodexTitlebarSelectorTests
     }
 
     [TestMethod]
-    public void RejectsMissingAndAmbiguousOpenLocationControls()
+    public void RejectsMissingRightSideTitlebarButtons()
     {
         var fixture = LoadFixture();
-        var openLocation = fixture.Nodes.Single(node => node.SemanticRole == UiaSemanticRoles.OpenLocation);
-        var missing = fixture.Nodes.Select(node =>
-            node == openLocation
-                ? node with
-                {
-                    SemanticRole = UiaSemanticRoles.None,
-                    ClassName = node.ClassName.Replace("rounded-e-none", "rounded-start", StringComparison.Ordinal),
-                }
-                : node).ToArray();
-        var duplicate = fixture.Nodes.Concat([
-            openLocation with
-            {
-                Bounds = new RectD(1600, 88, 183, 56),
-            },
-        ]).ToArray();
+        var missing = fixture.Nodes.Where(node =>
+            node.Depth != 16
+            || !node.ClassName.Contains("h-token-button-composer", StringComparison.Ordinal)
+            || node.Bounds.X <= fixture.Expected.TitleBounds.Right).ToArray();
 
         Assert.IsNull(CodexTitlebarSelector.TryResolve(
             fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, missing));
-        Assert.IsNull(CodexTitlebarSelector.TryResolve(
-            fixture.BuildIdentity, fixture.DpiScale, fixture.HostBounds, duplicate));
     }
 
     [TestMethod]

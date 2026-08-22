@@ -182,28 +182,34 @@ public static class CodexTitlebarSelector
         {
             return null;
         }
-        var openLocationButtons = nodes.Where(node =>
+        var rightTitlebarButtons = nodes.Where(node =>
             node.ControlType == ButtonControlType
             && node.Depth == contentGroup.Depth + 1
             && node.ClassName.Contains(ComposerButtonClassMarker, StringComparison.Ordinal)
-            && node.ClassName.Contains(OpenLocationEndClassMarker, StringComparison.Ordinal)
-            && Contains(contentGroup.Bounds, node.Bounds)).ToArray();
-        if (openLocationButtons.Length != 1)
+            && (node.ClassName.Contains("aspect-square", StringComparison.Ordinal)
+                || node.ClassName.Contains(OpenLocationEndClassMarker, StringComparison.Ordinal))
+            && Contains(contentGroup.Bounds, node.Bounds)
+            && node.Bounds.X >= titleBounds.Value.Right
+            && Math.Abs(node.Bounds.Y - titleBounds.Value.Y) <= 2 * dpiScale
+            && Math.Abs(node.Bounds.Height - titleBounds.Value.Height) <= 2 * dpiScale)
+            .OrderBy(node => node.Bounds.X)
+            .ToArray();
+        if (rightTitlebarButtons.Length == 0)
         {
             return null;
         }
 
-        var openLocation = openLocationButtons[0];
+        var rightTitlebarAnchor = rightTitlebarButtons[0];
         var obstacles = nodes.Where(node =>
                 node.ControlType == ButtonControlType
-                && node.Depth == openLocation.Depth
+                && node.Depth == rightTitlebarAnchor.Depth
                 && node.ClassName.Contains(ComposerButtonClassMarker, StringComparison.Ordinal)
-                && node.Bounds.X >= openLocation.Bounds.X
+                && node.Bounds.X >= rightTitlebarAnchor.Bounds.X
                 && Contains(contentGroup.Bounds, node.Bounds))
             .OrderBy(node => node.Bounds.X)
             .Select(node => node.Bounds)
             .ToArray();
-        if (obstacles.Length == 0 || obstacles[0] != openLocation.Bounds)
+        if (obstacles.Length == 0 || obstacles[0] != rightTitlebarAnchor.Bounds)
         {
             return null;
         }
@@ -241,8 +247,8 @@ public static class CodexTitlebarSelector
                 && node.ClassName.Contains("h-token-button-composer", StringComparison.Ordinal)
                 && node.ClassName.Contains("aspect-square", StringComparison.Ordinal)
                 && Contains(rightPane.Bounds, node.Bounds)
-                && Math.Abs(node.Bounds.Y - openLocation.Bounds.Y) <= 2 * dpiScale
-                && Math.Abs(node.Bounds.Height - openLocation.Bounds.Height) <= 2 * dpiScale
+                && Math.Abs(node.Bounds.Y - rightTitlebarAnchor.Bounds.Y) <= 2 * dpiScale
+                && Math.Abs(node.Bounds.Height - rightTitlebarAnchor.Bounds.Height) <= 2 * dpiScale
                 && node.Bounds.X >= rightToolbar.Bounds.Right - (2 * dpiScale)).ToArray();
             if (alignedButtons.Length != 1)
             {
@@ -253,10 +259,10 @@ public static class CodexTitlebarSelector
         }
 
         return new TitlebarSnapshot(
-            openLocation.Bounds.X,
+            rightTitlebarAnchor.Bounds.X,
             obstacles,
             toolbar.Bounds,
-            openLocation.Bounds,
+            rightTitlebarAnchor.Bounds,
             titleBounds.Value,
             rightToolbarBounds,
             rightObstacles);
