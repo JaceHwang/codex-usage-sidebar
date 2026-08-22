@@ -29,6 +29,29 @@ public sealed class PlacementResolverTests
     }
 
     [TestMethod]
+    public void PrefersTheRightToolbarWhenTheRightPaneIsAvailable()
+    {
+        var result = PlacementResolver.ResolveResponsive(
+            toolbarBounds: new RectD(478, 70, 2522, 92),
+            openLocationBounds: new RectD(2620, 88, 182, 56),
+            titleBounds: new RectD(494, 88, 542, 56),
+            indicatorWidth: 328,
+            gap: 16,
+            localObstacles:
+            [
+                new RectD(2620, 88, 182, 56),
+                new RectD(2802, 88, 46, 56),
+                new RectD(2860, 88, 56, 56),
+            ],
+            rightToolbarBounds: new RectD(1395, 70, 1461, 92),
+            rightObstacles: [new RectD(2856, 88, 56, 56)]);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(PlacementSurface.RightToolbar, result.Value.Surface);
+        Assert.AreEqual(new RectD(2512, 88, 328, 56), result.Value.Frame);
+    }
+
+    [TestMethod]
     public void UsesValidatedRightToolbarWhenTheLocalFrameWouldOverlapTheTitle()
     {
         var result = ResolveNarrow();

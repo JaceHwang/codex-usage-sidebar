@@ -35,6 +35,27 @@ public static class PlacementResolver
             return null;
         }
 
+        // A visible right page owns the stable default titlebar slot. Prefer it
+        // whenever its measured button cluster can contain the indicator; the
+        // middle titlebar is only used when no right page is present.
+        if (IsUsable(rightToolbarBounds)
+            && rightObstacles.Count > 0
+            && Contains(toolbarBounds, rightToolbarBounds)
+            && rightObstacles.All(IsUsable))
+        {
+            var trailingObstacle = rightObstacles.OrderBy(obstacle => obstacle.X).First();
+            var fallback = new RectD(
+                trailingObstacle.X - gap - indicatorWidth,
+                openLocationBounds.Y,
+                indicatorWidth,
+                openLocationBounds.Height);
+            if (Contains(rightToolbarBounds, fallback)
+                && !IntersectsAny(fallback, rightObstacles))
+            {
+                return new PlacementResult(PlacementSurface.RightToolbar, fallback);
+            }
+        }
+
         var local = new RectD(
             openLocationBounds.X - gap - indicatorWidth,
             openLocationBounds.Y,
@@ -46,26 +67,7 @@ public static class PlacementResolver
         {
             return new PlacementResult(PlacementSurface.Content, local);
         }
-
-        if (!IsUsable(rightToolbarBounds)
-            || rightObstacles.Count == 0
-            || !Contains(toolbarBounds, rightToolbarBounds)
-            || rightObstacles.Any(obstacle => !IsUsable(obstacle)))
-        {
-            return null;
-        }
-        var trailingObstacle = rightObstacles.OrderBy(obstacle => obstacle.X).First();
-        var fallback = new RectD(
-            trailingObstacle.X - gap - indicatorWidth,
-            openLocationBounds.Y,
-            indicatorWidth,
-            openLocationBounds.Height);
-        if (!Contains(rightToolbarBounds, fallback)
-            || IntersectsAny(fallback, rightObstacles))
-        {
-            return null;
-        }
-        return new PlacementResult(PlacementSurface.RightToolbar, fallback);
+        return null;
     }
 
     private static bool IntersectsAny(RectD candidate, IReadOnlyList<RectD> obstacles) =>
