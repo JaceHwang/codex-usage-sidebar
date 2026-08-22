@@ -84,6 +84,14 @@
 - 已安装当前载荷：`runtime=running pid=18204 version=0.3.1`，`sourceCommit=68966af`，manifest SHA-256 为 `6a67ddd5f82715c67e18b30f673d926a327587ec082733e648b99ba7d0f6ad02`。
 - 最新默认脱敏探针：`05-current-gap-after-fix.json`，`IncludesText=false`、`TitlebarResolved=true`，当前实际右侧锚点为 `x=2552`。
 
+2026-08-22 右侧默认位置未展示的根因修复（源提交 `cd7c894`）：
+
+- 根因：右侧工具栏 selector 仍限制在 pane 深度 `+3/+4`；窄页签布局新增两层 UIA 包装时，selector 返回空，coordinator 无法进入右侧回退位置，因此此前间距调整也不会体现在该分支上。
+- 改为使用右侧 pane 内唯一的工具栏结构类名、边界包含关系和右侧障碍按钮进行识别，不再依赖固定 UIA 深度；新增 `+5` 深度回归测试，旧实现先失败、修复后通过。
+- Windows solution 测试：`51 + 60 + 80 = 191/191` 通过。
+- 已安装当前载荷：`runtime=running pid=17160 version=0.3.1`，`sourceCommit=cd7c894`，manifest SHA-256 为 `b20e62e3735a069aa0e27681b1e27af0b94275e52e4561c67731c1ebed718b9c`。
+- 最新默认脱敏探针：`06-structure-fix.json`，`IncludesText=false`、`TitlebarResolved=true`、`RightToolbarBounds=x=2378..2856`；4 个逻辑像素间距仍由 `WindowsHostCoordinator` 生效。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
