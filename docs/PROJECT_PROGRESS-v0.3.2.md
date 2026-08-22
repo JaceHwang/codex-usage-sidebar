@@ -114,6 +114,13 @@
 - 已重新安装当前载荷：`runtime=running pid=24820 version=0.3.1`，`sourceCommit=49a3c74447feefc6fc33975b03528b62f13b03ac`。
 - 实际运行探针确认当前宽度使用中间位置：浮层 `x=1586..1914`；探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\14-runtime-middle-first.json`。
 
+2026-08-22 缩小中间页签浮层冗余宽度（源提交 `9f3c37f`）：
+
+- 将 indicator 固定宽度从 `164` 调整为 `132` 个逻辑像素；在当前 200% DPI 下，物理宽度从 `328` 缩小为 `264`，空间判断同步收紧。
+- 保持文字右侧 4 个逻辑像素内边距和原有文字内容不变，实际左侧冗余空白由约 `80` 个物理像素降至约 `16` 个物理像素。
+- Windows solution 测试：`53 + 63 + 80 = 196/196` 通过。
+- 已安装当前载荷：`runtime=running pid=24220 version=0.3.1`，`sourceCommit=9f3c37f24c29ad4629271eef848cabd8d5131262`；探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\16-indicator-compact.json`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
