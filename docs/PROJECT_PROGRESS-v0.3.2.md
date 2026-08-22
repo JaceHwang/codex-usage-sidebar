@@ -92,12 +92,12 @@
 - 已安装当前载荷：`runtime=running pid=17160 version=0.3.1`，`sourceCommit=cd7c894`，manifest SHA-256 为 `b20e62e3735a069aa0e27681b1e27af0b94275e52e4561c67731c1ebed718b9c`。
 - 最新默认脱敏探针：`06-structure-fix.json`，`IncludesText=false`、`TitlebarResolved=true`、`RightToolbarBounds=x=2378..2856`；4 个逻辑像素间距仍由 `WindowsHostCoordinator` 生效。
 
-2026-08-22 按钮内容紧凑化（源提交 `13ceb24`）：
+2026-08-22 按钮边缘紧凑化与右侧障碍修复（源提交 `7deaf6e`）：
 
-- 根因：紧凑按钮文本实际由 `QuotaDetailFormatter.FormatCompact` 生成了分隔符两侧的装饰空格，WPF 分段又保留了分隔符前空格，视觉上抵消了外层间距调整。
-- 文本改为无装饰空格的紧凑形式，例如 `76%·8月2日 08:00`；WPF 分段同步从分隔符位置开始，避免百分比重复。
-- 新增格式回归测试；Windows solution 测试：`52 + 60 + 80 = 192/192` 通过。
-- 已安装当前载荷：`runtime=running pid=3212 version=0.3.1`，`sourceCommit=13ceb24`，manifest SHA-256 为 `60e479698f9c72c6beb7a25a242b9807e8d9ceb4726d36fe76b7684754d7e47`。
+- 根据实机截图撤回“删除 `%` 与日期之间分隔空格”的错误调整，恢复为 `76% · 8月2日 08:00`；真正的紧凑化改为将 WPF 按钮表面左右内边距从 `8` 缩小为 `4` 个逻辑像素，并将表面右对齐，使文字首尾贴近按钮边缘。
+- 右侧工具栏 selector 不再因对齐按钮数量超过一个而整棵结构判定失败；所有对齐的右侧按钮都会进入回退障碍列表，窄页签仍使用右侧默认回退位。
+- 新增格式、视觉指标和多右侧按钮回归测试；Windows solution 测试：`52 + 61 + 80 = 193/193` 通过，Release Host 构建 0 warnings、0 errors。
+- 已安装当前载荷：`runtime=running pid=4280 version=0.3.1`，`sourceCommit=7deaf6e0240acad30f32d3e6cd151fcaca2457fd`；默认脱敏探针 `08-edge-padding-right-obstacles.json` 通过，Codex build `151.0.7922.170`、`TitlebarResolved=true`、`RightToolbarBounds=x=1865..2856`、`RightObstacles=1`，未采集原始 UIA 文本。
 
 ## 未完成门禁与下一步
 
