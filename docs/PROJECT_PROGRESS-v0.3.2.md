@@ -68,6 +68,15 @@
 - 新增回归测试覆盖 `+4` 深度；修复后 Windows solution 测试为 `51 + 58 + 80 = 189/189` 通过。
 - 已重新安装当前载荷；默认脱敏探针确认 `TitlebarResolved=true`、右侧工具栏 `x=2378..2856`、右侧障碍数 `1`，不再因 selector 失败而隐藏浮层。
 
+2026-08-22 分享按钮重叠修复（源提交 `0ecc7c7`、安装门禁修复提交 `acc672d`）：
+
+- 根因：selector 将“打开方式”按钮硬编码为中间页标题栏右锚点，无法避让其左侧新增的分享按钮。
+- 现在从标题区域右侧、同一按钮层级和对齐带中选择最靠左的合规按钮作为锚点，并将后续 composer 按钮全部纳入障碍列表；新增回归测试覆盖分享按钮位于“打开方式”之前的场景。
+- Windows solution 测试：`51 + 59 + 80 = 190/190` 通过，0 失败。
+- 安装脚本启动版本校验同步修复为 `0.3.1`，避免已成功启动的当前载荷被旧 `0.3.0` 检查误报失败；相关 device-test 版本回归检查通过。
+- 已安装当前载荷：`runtime=running pid=412 version=0.3.1`，`sourceCommit=acc672d`，manifest SHA-256 为 `072174471b4cdaf7f6f14b5fbed7bfbe363212dd5199afa58dfb2a68dd763833`。
+- 最新默认脱敏探针：`04-current-anchor-after-fix.json`，Codex build `151.0.7922.170`，`IncludesText=false`，`TitlebarResolved=true`；右侧第一个按钮/新锚点左边界 `x=1393`，原“打开方式”按钮左边界 `x=1461`，障碍列表从 `x=1393` 开始。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
@@ -92,5 +101,5 @@
 - `docs/PROJECT_PROGRESS-v0.3.2.md`
 - `docs/superpowers/plans/2026-08-22-v0.3.2-windows-device-gate.md`
 
-本次分支不修改既有 macOS/Windows 业务逻辑，不重写历史 v0.3.1 发布记录，也不提交本机生成的签名
-载荷或临时构建输出。
+本次分支不修改既有 macOS 业务逻辑，不重写历史 v0.3.1 发布记录，也不提交本机生成的签名
+载荷或临时构建输出；Windows 仅提交标题栏定位与 device-test 安装门禁修复。
