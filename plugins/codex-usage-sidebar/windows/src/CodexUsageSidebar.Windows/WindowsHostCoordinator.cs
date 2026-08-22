@@ -150,7 +150,7 @@ public sealed class WindowsHostCoordinator
     {
         var scale = host.DpiScale;
         var width = overlay.MeasureIndicatorWidth(snapshot, language) * scale;
-        var height = 28 * scale;
+        var height = OverlayVisualMetrics.IndicatorHeight * scale;
         if (!string.Equals(host.BuildIdentity, FallbackBuildIdentity, StringComparison.Ordinal)
             || !double.IsFinite(scale)
             || scale <= 0

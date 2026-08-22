@@ -102,7 +102,8 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             var frame = presentation.Placement.Frame;
             UpdateIndicator(presentation.Snapshot, presentation.Language);
             var indicatorWidth = frame.Width / presentation.DpiScale;
-            var indicatorPadding = OverlayVisualMetrics.IndicatorHorizontalPaddingForWidth(indicatorWidth);
+            var indicatorPadding = OverlayVisualMetrics.IndicatorHorizontalPaddingForHeight(
+                frame.Height / presentation.DpiScale);
             indicatorSurface.Padding = new Thickness(indicatorPadding, 0, indicatorPadding, 0);
             indicator.Width = indicatorWidth;
             indicator.Height = frame.Height / presentation.DpiScale;
@@ -118,7 +119,9 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     {
         UpdateIndicator(snapshot, language);
         indicatorText.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        return OverlayVisualMetrics.IndicatorWidthForText(indicatorText.DesiredSize.Width);
+        return OverlayVisualMetrics.IndicatorWidthForTextAndHeight(
+            indicatorText.DesiredSize.Width,
+            OverlayVisualMetrics.IndicatorHeight);
     }
 
     public ValueTask HideAsync(CancellationToken cancellationToken)

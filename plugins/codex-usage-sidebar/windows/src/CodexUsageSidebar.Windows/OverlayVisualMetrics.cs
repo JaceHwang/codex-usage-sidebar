@@ -2,7 +2,7 @@ namespace CodexUsageSidebar.Windows;
 
 public static class OverlayVisualMetrics
 {
-    public const double IndicatorHorizontalPaddingRatio = 1d / 3d;
+    public const double IndicatorHeight = 28;
     public const double DetailWidth = 360;
     public const double HeaderTitleFontSize = 18;
     public const double HeaderTitleMaximumWidth = 190;
@@ -14,11 +14,11 @@ public static class OverlayVisualMetrics
     public const double CountdownUnitFontSize = 11;
     public const double ProgressTrackHeight = 4;
 
-    public static double IndicatorWidthForText(double textWidth) =>
-        textWidth / (1 - (2 * IndicatorHorizontalPaddingRatio));
+    public static double IndicatorWidthForTextAndHeight(double textWidth, double height) =>
+        textWidth + (2 * IndicatorHorizontalPaddingForHeight(height));
 
-    public static double IndicatorHorizontalPaddingForWidth(double width) =>
-        width * IndicatorHorizontalPaddingRatio;
+    public static double IndicatorHorizontalPaddingForHeight(double height) =>
+        height / 3;
 }
 
 public static class OverlayWindowPolicy
