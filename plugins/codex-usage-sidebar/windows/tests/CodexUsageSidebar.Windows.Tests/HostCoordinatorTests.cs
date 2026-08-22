@@ -39,7 +39,7 @@ public sealed class HostCoordinatorTests
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
         Assert.AreEqual(PlacementSurface.Content, overlay.LastPresentation?.Placement.Surface);
-        Assert.AreEqual(721, overlay.LastPresentation?.Placement.Frame.X);
+        Assert.AreEqual(1235, overlay.LastPresentation?.Placement.Frame.X);
         Assert.AreEqual(98, overlay.LastPresentation?.Placement.Frame.Y);
         Assert.AreEqual(264, overlay.LastPresentation?.Placement.Frame.Width);
         Assert.AreEqual(56, overlay.LastPresentation?.Placement.Frame.Height);
@@ -134,8 +134,8 @@ public sealed class HostCoordinatorTests
 
         Assert.AreEqual(1, scanner.InvalidateCount);
         Assert.AreEqual(DisplayLanguage.English, overlay.LastPresentation?.Language);
-        Assert.AreEqual(simplifiedFrame, overlay.LastPresentation?.Placement.Frame);
-        Assert.AreEqual(new RectD(1037, 88, 264, 56), overlay.LastPresentation?.Placement.Frame);
+        Assert.AreNotEqual(simplifiedFrame, overlay.LastPresentation?.Placement.Frame);
+        Assert.AreEqual(new RectD(1756, 88, 264, 56), overlay.LastPresentation?.Placement.Frame);
     }
 
     [TestMethod]

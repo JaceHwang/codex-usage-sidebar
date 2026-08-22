@@ -43,11 +43,12 @@ public static class PlacementResolver
         // enough room. The right page is only the overflow fallback when the
         // middle titlebar cannot contain a collision-free frame.
         var local = new RectD(
-            titleBounds.Right + gap,
+            openLocationBounds.X - gap - indicatorWidth,
             openLocationBounds.Y,
             indicatorWidth,
             openLocationBounds.Height);
         if (Contains(toolbarBounds, local)
+            && local.X >= titleBounds.Right + gap
             && !IntersectsAny(local, localObstacles))
         {
             return new PlacementResult(PlacementSurface.Content, local);

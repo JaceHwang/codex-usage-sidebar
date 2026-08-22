@@ -6,7 +6,7 @@ namespace CodexUsageSidebar.Core.Tests;
 public sealed class PlacementResolverTests
 {
     [TestMethod]
-    public void UsesTheLeftmostTitlebarSlotWhenTheCompleteFrameClearsTheTitle()
+    public void UsesTheRightmostTitlebarSlotBeforeTheFirstNativeButton()
     {
         var result = PlacementResolver.ResolveResponsive(
             toolbarBounds: new RectD(478, 70, 2522, 92),
@@ -25,7 +25,7 @@ public sealed class PlacementResolverTests
 
         Assert.IsNotNull(result);
         Assert.AreEqual(PlacementSurface.Content, result.Value.Surface);
-        Assert.AreEqual(new RectD(1052, 88, 328, 56), result.Value.Frame);
+        Assert.AreEqual(new RectD(2276, 88, 328, 56), result.Value.Frame);
     }
 
     [TestMethod]
@@ -48,7 +48,7 @@ public sealed class PlacementResolverTests
 
         Assert.IsNotNull(result);
         Assert.AreEqual(PlacementSurface.Content, result.Value.Surface);
-        Assert.AreEqual(new RectD(1052, 88, 328, 56), result.Value.Frame);
+        Assert.AreEqual(new RectD(2276, 88, 328, 56), result.Value.Frame);
     }
 
     [TestMethod]
@@ -144,7 +144,7 @@ public sealed class PlacementResolverTests
             []);
 
         Assert.AreEqual(PlacementSurface.Content, restored!.Value.Surface);
-        Assert.AreEqual(new RectD(1052, 88, 328, 56), restored.Value.Frame);
+        Assert.AreEqual(new RectD(2276, 88, 328, 56), restored.Value.Frame);
     }
 
     private static PlacementResult? ResolveNarrow() => PlacementResolver.ResolveResponsive(
