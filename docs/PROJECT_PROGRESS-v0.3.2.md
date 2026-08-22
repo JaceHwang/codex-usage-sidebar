@@ -99,6 +99,14 @@
 - 新增格式、视觉指标和多右侧按钮回归测试；Windows solution 测试：`52 + 61 + 80 = 193/193` 通过，Release Host 构建 0 warnings、0 errors。
 - 已安装当前载荷：`runtime=running pid=4280 version=0.3.1`，`sourceCommit=7deaf6e0240acad30f32d3e6cd151fcaca2457fd`；默认脱敏探针 `08-edge-padding-right-obstacles.json` 通过，Codex build `151.0.7922.170`、`TitlebarResolved=true`、`RightToolbarBounds=x=1865..2856`、`RightObstacles=1`，未采集原始 UIA 文本。
 
+2026-08-22 右侧默认位置最终修复（源提交 `b719628`、`2010779`）：
+
+- 根因一：新版 Codex 的右侧 pane 比旧结构多了一层包装；运行时扫描器按固定父级深度取错容器。现在按 `relative z-[41] ... shrink-0 overflow-visible` 结构标记向上查找真实右侧 pane。
+- 根因二：当前 Codex build `151.0.7922.170` 下，Win32 `GetWindowRect` 返回逻辑像素，而 UI Automation 返回物理像素；主窗口边界被缩小一半，导致 selector 将完整右侧结构判定为越界。现在按窗口 DPI 将定位边界转换到 UIA 的物理坐标系。
+- Windows solution 测试：`53 + 63 + 80 = 196/196` 通过；Release Host 构建 0 warnings、0 errors。
+- 已安装当前载荷：`runtime=running pid=17580 version=0.3.1`，`sourceCommit=20107794ad1e1aeb1819dbb857cf9bbc40518455`，manifest SHA-256 为 `9ff578941939e8214bfc6be678f865b8f140c61655beff70adf8589e4aaf5f90`。
+- 运行时扫描确认：`RightToolbarBounds=x=1923..2856`、右侧障碍 `x=2856..2912`；实际浮层窗口已位于 `x=2520..2848`，即右侧默认位置并保留 8 个物理像素间隔。探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\13-runtime-right-slot.json`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
