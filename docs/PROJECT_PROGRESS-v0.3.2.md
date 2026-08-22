@@ -128,6 +128,14 @@
 - Windows solution 测试：`53 + 63 + 80 = 196/196` 通过；Release x64 构建 `0` 警告、`0` 错误。
 - 已安装当前载荷：`runtime=running pid=24680 version=0.3.1`，`sourceCommit=5cbdce7359b3c6a442c2a92466d3e1ad397f6ef2`；探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\17-indicator-one-left.json`。
 
+2026-08-22 修正中间页签移动范围并恢复按钮宽度（源提交 `8afb0cf`）：
+
+- 恢复 indicator 宽度为 `132` 个逻辑像素，即当前 200% DPI 下的 `264` 个物理像素。
+- 中间页签不再把按钮右侧固定锚定在“打开位置”按钮左侧；改为从标题右边界向右约 `1` 个物理像素开始，只要完整按钮不碰撞就使用该最左位置。
+- 实时探针确认标题右边界为 `985`，indicator 窗口为 `x=986..1250`、宽度 `264`；“打开位置”按钮从 `1269` 开始。探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\18-middle-left-range.json`。
+- Windows solution 测试：`53 + 63 + 80 = 196/196` 通过；Release x64 构建 `0` 警告、`0` 错误。
+- 已安装当前载荷：`runtime=running pid=5492 version=0.3.1`，`sourceCommit=8afb0cf42cd6efc7df16b98b38ec273c80cc71fb`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
