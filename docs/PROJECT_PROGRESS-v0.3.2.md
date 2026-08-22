@@ -77,6 +77,13 @@
 - 已安装当前载荷：`runtime=running pid=412 version=0.3.1`，`sourceCommit=acc672d`，manifest SHA-256 为 `072174471b4cdaf7f6f14b5fbed7bfbe363212dd5199afa58dfb2a68dd763833`。
 - 最新默认脱敏探针：`04-current-anchor-after-fix.json`，Codex build `151.0.7922.170`，`IncludesText=false`，`TitlebarResolved=true`；右侧第一个按钮/新锚点左边界 `x=1393`，原“打开方式”按钮左边界 `x=1461`，障碍列表从 `x=1393` 开始。
 
+2026-08-22 标题栏间距调整（源提交 `68966af`）：
+
+- 将插件按钮与右侧第一个标题栏按钮的间距从 `8` 个逻辑像素调整为 `4` 个逻辑像素；在 200% DPI 下由 `16` 个物理像素缩小为 `8` 个物理像素。
+- coordinator 几何回归测试先失败后通过；Windows solution 测试保持 `51 + 59 + 80 = 190/190` 通过。
+- 已安装当前载荷：`runtime=running pid=18204 version=0.3.1`，`sourceCommit=68966af`，manifest SHA-256 为 `6a67ddd5f82715c67e18b30f673d926a327587ec082733e648b99ba7d0f6ad02`。
+- 最新默认脱敏探针：`05-current-gap-after-fix.json`，`IncludesText=false`、`TitlebarResolved=true`，当前实际右侧锚点为 `x=2552`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
