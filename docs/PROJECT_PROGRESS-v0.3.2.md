@@ -107,6 +107,13 @@
 - 已安装当前载荷：`runtime=running pid=17580 version=0.3.1`，`sourceCommit=20107794ad1e1aeb1819dbb857cf9bbc40518455`，manifest SHA-256 为 `9ff578941939e8214bfc6be678f865b8f140c61655beff70adf8589e4aaf5f90`。
 - 运行时扫描确认：`RightToolbarBounds=x=1923..2856`、右侧障碍 `x=2856..2912`；实际浮层窗口已位于 `x=2520..2848`，即右侧默认位置并保留 8 个物理像素间隔。探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\13-runtime-right-slot.json`。
 
+2026-08-22 中间页签优先、右侧页溢出回退（源提交 `49a3c74`）：
+
+- 修正定位优先级：先尝试中间页签标题栏；只有中间空间不足、与标题或原生按钮碰撞时，才使用右侧页默认锚点。
+- 新增回归测试覆盖“右侧 pane 存在但中间空间足够时仍留在中间页签”的场景；窄页签回退测试继续通过。
+- 已重新安装当前载荷：`runtime=running pid=24820 version=0.3.1`，`sourceCommit=49a3c74447feefc6fc33975b03528b62f13b03ac`。
+- 实际运行探针确认当前宽度使用中间位置：浮层 `x=1586..1914`；探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\14-runtime-middle-first.json`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
