@@ -55,7 +55,12 @@ public sealed class WpfOverlaySurface : IOverlaySurface
                 indicatorColor.G,
                 indicatorColor.B)),
             CornerRadius = new CornerRadius(10),
-            Padding = new Thickness(8, 0, 8, 0),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Padding = new Thickness(
+                OverlayVisualMetrics.IndicatorHorizontalPadding,
+                0,
+                OverlayVisualMetrics.IndicatorHorizontalPadding,
+                0),
             Child = indicatorText,
         };
         indicator = CreatePassiveWindow(indicatorSurface);
@@ -189,7 +194,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         var compact = QuotaDetailFormatter.FormatCompact(snapshot, language, timeZone);
         var separator = compact.IndexOf('·');
         indicatorText.Inlines.Add(new System.Windows.Documents.Run(
-            separator > 0 ? compact[separator..] : string.Empty)
+            separator > 0 ? compact[(separator - 1)..] : string.Empty)
         {
             Foreground = palette.Primary,
         });

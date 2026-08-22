@@ -133,6 +133,34 @@ public sealed class CodexTitlebarSelectorTests
     }
 
     [TestMethod]
+    public void KeepsAllAlignedRightToolbarButtonsAsFallbackObstacles()
+    {
+        var fixture = LoadFixture("windows-codex-151.0.7922.76-narrow-200.json");
+        var secondButton = new UiaStructureNode(
+            18,
+            "ControlType.Button",
+            "",
+            "no-drag h-token-button-composer aspect-square shrink-0",
+            new RectD(2920, 88, 56, 56),
+            0);
+
+        var result = CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity,
+            fixture.DpiScale,
+            fixture.HostBounds,
+            fixture.Nodes.Append(secondButton).ToArray());
+
+        Assert.IsNotNull(result);
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                new RectD(2856, 88, 56, 56),
+                secondButton.Bounds,
+            },
+            result.RightObstacles.ToArray());
+    }
+
+    [TestMethod]
     public void ResolvesTheMeasuredFlatTitleChildrenForTheValidatedBuild()
     {
         var fixture = LoadFixture("windows-codex-151.0.7922.76-default-flat-200.json");

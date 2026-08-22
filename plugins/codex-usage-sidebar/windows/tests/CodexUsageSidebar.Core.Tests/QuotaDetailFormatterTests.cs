@@ -67,14 +67,14 @@ public sealed class QuotaDetailFormatterTests
     }
 
     [TestMethod]
-    public void FormatsTheCompactIndicatorWithoutDecorativeSeparatorWhitespace()
+    public void PreservesTheCompactIndicatorDateSeparatorWhitespace()
     {
         var compact = QuotaDetailFormatter.FormatCompact(
             FullSnapshot(),
             DisplayLanguage.SimplifiedChinese,
             ChinaTime);
 
-        Assert.AreEqual("76%·8月2日 08:00", compact);
+        Assert.AreEqual("76% · 8月2日 08:00", compact);
     }
 
     [TestMethod]

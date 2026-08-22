@@ -248,12 +248,15 @@ public static class CodexTitlebarSelector
                 && Math.Abs(node.Bounds.Y - rightTitlebarAnchor.Bounds.Y) <= 2 * dpiScale
                 && Math.Abs(node.Bounds.Height - rightTitlebarAnchor.Bounds.Height) <= 2 * dpiScale
                 && node.Bounds.X >= rightToolbar.Bounds.Right - (2 * dpiScale)).ToArray();
-            if (alignedButtons.Length != 1)
+            if (alignedButtons.Length == 0)
             {
                 return null;
             }
             rightToolbarBounds = rightToolbar.Bounds;
-            rightObstacles = [alignedButtons[0].Bounds];
+            rightObstacles = alignedButtons
+                .OrderBy(button => button.Bounds.X)
+                .Select(button => button.Bounds)
+                .ToArray();
         }
 
         return new TitlebarSnapshot(
