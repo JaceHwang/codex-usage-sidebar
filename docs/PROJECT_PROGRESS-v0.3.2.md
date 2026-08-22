@@ -174,6 +174,14 @@
 - Windows solution 测试：`54 + 64 + 80 = 198/198` 通过；Release x64 构建 `0` 警告、`0` 错误。
 - 已安装当前载荷：`runtime=running pid=3252 version=0.3.1`，`sourceCommit=e4ea144bd7f586dc16850f7e97ffc3ca1e4a060b`。
 
+2026-08-22 按内边距同步扩展按钮整体宽度（源提交 `e877471`）：
+
+- 保留原有文字可用宽度 `124` 个逻辑像素；按钮总宽度改为 `124 + 2 × (按钮高度 / 3)`。默认高度 `28` 时，总宽度约为 `142.667` 个逻辑像素，确保增大的内边距不会遮挡文字。
+- HostCoordinator 根据 UIA 实际按钮高度计算宽度，再交给 `PlacementResolver`，因此中间页签和右侧回退路径都会用扩展后的真实宽度重新避让，右边界保持原有贴合关系。
+- 实机 UIA 探针确认插件窗口为 `x=1472..1757`、宽度 `285` 物理像素；文字区域为 `x=1499..1739`、宽度 `240`；原生按钮从 `x=1758` 开始，右侧间隔仍为 `1` 个物理像素。探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\26-width-follows-padding.json`。
+- Windows solution 测试：`54 + 64 + 80 = 198/198` 通过；Release x64 构建 `0` 警告、`0` 错误。
+- 已安装当前载荷：`runtime=running pid=3188 version=0.3.1`，`sourceCommit=e87747123b5902c89cdf24343e47545dce79630a`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
