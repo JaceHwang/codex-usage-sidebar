@@ -333,6 +333,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             RemainingPercent = content.RemainingPercent,
             TrackBrush = palette.Track,
         });
+        body.Children.Add(BuildFullWidthSeparator(palette));
 
         if (content.TokenUsage is { } tokenUsage)
         {
@@ -377,6 +378,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             MaxHeight = 360,
         });
+        body.Children.Add(BuildFullWidthSeparator(palette));
         body.Children.Add(BuildFooter(content, palette, accountAvatarSource));
         return new Border
         {
@@ -388,6 +390,19 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             Child = body,
         };
     }
+
+    private static Border BuildFullWidthSeparator(WpfOverlayPalette palette) => new()
+    {
+        Height = OverlayDetailLayout.SectionSeparatorHeight,
+        Margin = new Thickness(
+            OverlayDetailLayout.SectionSeparatorHorizontalMargin,
+            0,
+            OverlayDetailLayout.SectionSeparatorHorizontalMargin,
+            0),
+        Background = palette.Border,
+        Opacity = 0.6,
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+    };
 
     private static UIElement BuildThemeIcon(WpfOverlayPalette palette)
     {

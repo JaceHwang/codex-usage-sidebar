@@ -382,6 +382,27 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public void DetailCardReservesTwoFullWidthSectionSeparators()
+    {
+        var separatorCount = typeof(OverlayDetailLayout)
+            .GetField("FullWidthSectionSeparatorCount")
+            ?.GetValue(null);
+        var separatorHeight = typeof(OverlayDetailLayout)
+            .GetField("SectionSeparatorHeight")
+            ?.GetValue(null);
+        var horizontalMargin = typeof(OverlayDetailLayout)
+            .GetField("SectionSeparatorHorizontalMargin")
+            ?.GetValue(null);
+
+        Assert.IsNotNull(separatorCount);
+        Assert.IsNotNull(separatorHeight);
+        Assert.IsNotNull(horizontalMargin);
+        Assert.AreEqual(2, (int)separatorCount!);
+        Assert.AreEqual(1d, (double)separatorHeight!, 0.000001);
+        Assert.AreEqual(0d, (double)horizontalMargin!, 0.000001);
+    }
+
+    [TestMethod]
     public void PassiveOverlayReassertsNativeVisibilityWithoutActivation()
     {
         Assert.AreEqual(0x0250u, OverlayWindowPolicy.PositionFlags);

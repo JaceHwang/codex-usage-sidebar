@@ -6,6 +6,9 @@ public static class OverlayDetailLayout
 {
     public const double LogoSize = 28;
     public const double RowSeparatorHeight = 1;
+    public const int FullWidthSectionSeparatorCount = 2;
+    public const double SectionSeparatorHeight = 1;
+    public const double SectionSeparatorHorizontalMargin = 0;
 
     public static double LeftForIndicator(RectD indicatorFrame, RectD workArea, double detailWidth)
     {
