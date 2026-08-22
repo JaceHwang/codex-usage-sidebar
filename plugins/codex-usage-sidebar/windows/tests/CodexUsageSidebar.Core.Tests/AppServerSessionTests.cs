@@ -29,7 +29,7 @@ public sealed class AppServerSessionTests
         }, CancellationToken.None);
 
         CollectionAssert.AreEqual(
-            new[] { "initialize", "initialized", "account/rateLimits/read", "account/rateLimits/read" },
+            new[] { "initialize", "initialized", "account/rateLimits/read", "account/usage/read", "account/read", "account/rateLimits/read" },
             connection.WrittenMethods.ToArray());
         CollectionAssert.AreEqual(new[] { 76, 69 }, snapshots.Select(x => x.RemainingPercent).ToArray());
         Assert.AreEqual(2, snapshots[1].Bank?.AvailableCount);
@@ -46,7 +46,7 @@ public sealed class AppServerSessionTests
             "{\"id\":1,\"result\":{}}",
             notification,
             oldResponse,
-            freshResponse.Replace("\"id\": 2", "\"id\": 3", StringComparison.Ordinal),
+            freshResponse.Replace("\"id\": 2", "\"id\": 5", StringComparison.Ordinal),
         });
         var snapshots = new List<AllowanceSnapshot>();
         var session = new AppServerSession(
@@ -62,7 +62,7 @@ public sealed class AppServerSessionTests
 
         CollectionAssert.AreEqual(new[] { 69, 69 }, snapshots.Select(x => x.RemainingPercent).ToArray());
         CollectionAssert.AreEqual(
-            new[] { "initialize", "initialized", "account/rateLimits/read", "account/rateLimits/read" },
+            new[] { "initialize", "initialized", "account/rateLimits/read", "account/usage/read", "account/read", "account/rateLimits/read" },
             connection.WrittenMethods.ToArray());
         Assert.AreEqual(2, snapshots[^1].Bank?.AvailableCount);
     }
@@ -82,12 +82,12 @@ public sealed class AppServerSessionTests
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(2));
 
         var run = session.RunAsync(_ => ValueTask.CompletedTask, cancellation.Token);
-        await connection.WaitForWritesAsync(4, cancellation.Token);
+        await connection.WaitForWritesAsync(5, cancellation.Token);
         cancellation.Cancel();
         await Assert.ThrowsExceptionAsync<TaskCanceledException>(async () => await run);
 
         CollectionAssert.AreEqual(
-            new[] { "initialize", "initialized", "account/rateLimits/read", "account/rateLimits/read" },
+            new[] { "initialize", "initialized", "account/rateLimits/read", "account/usage/read", "account/read" },
             connection.WrittenMethods.ToArray());
     }
 
@@ -106,12 +106,60 @@ public sealed class AppServerSessionTests
             await session.RunAsync(_ => ValueTask.CompletedTask, CancellationToken.None));
 
         CollectionAssert.AreEqual(
-            new[] { "initialize", "initialized", "account/rateLimits/read" },
+            new[] { "initialize", "initialized", "account/rateLimits/read", "account/usage/read", "account/read" },
             connection.WrittenMethods.ToArray());
     }
 
-    private static string ContractPath(string file) =>
-        Path.Combine(AppContext.BaseDirectory, "contracts", "rate-limits", file);
+    [TestMethod]
+    public async Task StreamsTokenUsageAndAccountIdentityAlongsideAllowance()
+    {
+        var connection = new ReplayConnection(new[]
+        {
+            "{\"id\":1,\"result\":{}}",
+            File.ReadAllText(ContractPath("read-response.json")),
+            File.ReadAllText(ContractPathUnder("usage", "read-response.json")),
+            File.ReadAllText(ContractPathUnder("account", "read-response.json")),
+        });
+        TokenUsageSnapshot? tokenUsage = null;
+        AccountIdentity? account = null;
+        var session = new AppServerSession(
+            new StubConnectionFactory(connection),
+            new AppServerProtocol("test", "0.3.1"),
+            () => DateTimeOffset.UnixEpoch);
+
+        await session.RunAsync(
+            _ => ValueTask.CompletedTask,
+            CancellationToken.None,
+            usage =>
+            {
+                tokenUsage = usage;
+                return ValueTask.CompletedTask;
+            },
+            identity =>
+            {
+                account = identity;
+                return ValueTask.CompletedTask;
+            });
+
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                "initialize",
+                "initialized",
+                "account/rateLimits/read",
+                "account/usage/read",
+                "account/read",
+            },
+            connection.WrittenMethods.ToArray());
+        Assert.AreEqual(2, tokenUsage?.DailyBuckets.Count);
+        Assert.AreEqual("Jace", account?.PreferredName);
+    }
+
+    private static string ContractPath(params string[] parts) =>
+        Path.Combine(new[] { AppContext.BaseDirectory, "contracts", "rate-limits" }.Concat(parts).ToArray());
+
+    private static string ContractPathUnder(string folder, string file) =>
+        Path.Combine(AppContext.BaseDirectory, "contracts", folder, file);
 
     private sealed class StubConnectionFactory(IJsonLineConnection connection) : IJsonLineConnectionFactory
     {

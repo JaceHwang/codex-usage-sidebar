@@ -36,20 +36,25 @@ public sealed class Win32CodexWindowLocator : IHostWindowLocator
                 {
                     return true;
                 }
-                var width = Math.Max(0, rectangle.Right - rectangle.Left);
-                var height = Math.Max(0, rectangle.Bottom - rectangle.Top);
-                if (width < 400 || height < 300)
+                var dpiScale = Math.Max(1, NativeMethods.GetDpiForWindow(handle)) / 96d;
+                var bounds = WindowsCoordinateSpace.ToPhysicalBounds(
+                    rectangle.Left,
+                    rectangle.Top,
+                    rectangle.Right,
+                    rectangle.Bottom,
+                    dpiScale);
+                if (bounds.Width < 400 * dpiScale || bounds.Height < 300 * dpiScale)
                 {
                     return true;
                 }
                 var version = versionInfo?.FileVersion ?? "unknown";
-                var dpiScale = Math.Max(1, NativeMethods.GetDpiForWindow(handle)) / 96d;
                 candidates.Add((new HostWindowSnapshot(
                     handle,
-                    new RectD(rectangle.Left, rectangle.Top, width, height),
+                    bounds,
                     handle == foreground,
                     dpiScale,
-                    version), width * height));
+                    version),
+                    bounds.Width * bounds.Height));
             }
             catch (ArgumentException)
             {

@@ -20,8 +20,10 @@ public static class PlacementResolver
         double gap,
         IReadOnlyList<RectD> localObstacles,
         RectD rightToolbarBounds,
-        IReadOnlyList<RectD> rightObstacles)
+        IReadOnlyList<RectD> rightObstacles,
+        double? rightGap = null)
     {
+        var fallbackGap = rightGap ?? gap;
         if (!IsUsable(toolbarBounds)
             || !IsUsable(openLocationBounds)
             || !IsUsable(titleBounds)
@@ -29,12 +31,17 @@ public static class PlacementResolver
             || indicatorWidth <= 0
             || !double.IsFinite(gap)
             || gap < 0
+            || !double.IsFinite(fallbackGap)
+            || fallbackGap < 0
             || !Contains(toolbarBounds, openLocationBounds)
             || !Contains(toolbarBounds, titleBounds))
         {
             return null;
         }
 
+        // Keep the indicator in the middle titlebar whenever the title has
+        // enough room. The right page is only the overflow fallback when the
+        // middle titlebar cannot contain a collision-free frame.
         var local = new RectD(
             openLocationBounds.X - gap - indicatorWidth,
             openLocationBounds.Y,
@@ -47,25 +54,24 @@ public static class PlacementResolver
             return new PlacementResult(PlacementSurface.Content, local);
         }
 
-        if (!IsUsable(rightToolbarBounds)
-            || rightObstacles.Count == 0
-            || !Contains(toolbarBounds, rightToolbarBounds)
-            || rightObstacles.Any(obstacle => !IsUsable(obstacle)))
+        if (IsUsable(rightToolbarBounds)
+            && rightObstacles.Count > 0
+            && Contains(toolbarBounds, rightToolbarBounds)
+            && rightObstacles.All(IsUsable))
         {
-            return null;
+            var trailingObstacle = rightObstacles.OrderBy(obstacle => obstacle.X).First();
+            var fallback = new RectD(
+                trailingObstacle.X - fallbackGap - indicatorWidth,
+                openLocationBounds.Y,
+                indicatorWidth,
+                openLocationBounds.Height);
+            if (Contains(rightToolbarBounds, fallback)
+                && !IntersectsAny(fallback, rightObstacles))
+            {
+                return new PlacementResult(PlacementSurface.RightToolbar, fallback);
+            }
         }
-        var trailingObstacle = rightObstacles.OrderBy(obstacle => obstacle.X).First();
-        var fallback = new RectD(
-            trailingObstacle.X - gap - indicatorWidth,
-            openLocationBounds.Y,
-            indicatorWidth,
-            openLocationBounds.Height);
-        if (!Contains(rightToolbarBounds, fallback)
-            || IntersectsAny(fallback, rightObstacles))
-        {
-            return null;
-        }
-        return new PlacementResult(PlacementSurface.RightToolbar, fallback);
+        return null;
     }
 
     private static bool IntersectsAny(RectD candidate, IReadOnlyList<RectD> obstacles) =>

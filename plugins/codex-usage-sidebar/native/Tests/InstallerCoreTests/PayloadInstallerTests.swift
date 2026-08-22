@@ -5,13 +5,13 @@ import XCTest
 
 final class PayloadInstallerTests: XCTestCase {
     func testPayloadInstallAtomicallyCopiesTheVersionedMarketplace() throws {
-        let fixture = try PayloadFixture.make(version: "0.3.0+codex.release")
+        let fixture = try PayloadFixture.make(version: "0.3.1+codex.release")
         defer { fixture.cleanup() }
 
         try PayloadInstaller().install(from: fixture.payloadRoot, to: fixture.paths)
 
         let manifest = try String(contentsOf: fixture.paths.pluginManifest, encoding: .utf8)
-        XCTAssertTrue(manifest.contains("0.3.0+codex.release"))
+        XCTAssertTrue(manifest.contains("0.3.1+codex.release"))
         XCTAssertTrue(FileManager.default.isExecutableFile(atPath: fixture.paths.controlScript.path))
         XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.previous.path))
         XCTAssertEqual(
@@ -201,7 +201,7 @@ private struct PayloadFixture {
     }
 
     static func make(
-        version: String = "0.3.0+codex.release"
+        version: String = "0.3.1+codex.release"
     ) throws -> PayloadFixture {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("cus-payload-tests-\(UUID().uuidString)", isDirectory: true)
@@ -255,7 +255,7 @@ private struct PayloadFixture {
             "CFBundleExecutable": "CodexUsageSidebar",
             "CFBundleIdentifier": "com.jace.codex-usage-sidebar.fixture",
             "CFBundlePackageType": "APPL",
-            "CFBundleShortVersionString": "0.3.0",
+            "CFBundleShortVersionString": "0.3.1",
         ]
         try PropertyListSerialization.data(
             fromPropertyList: plist,

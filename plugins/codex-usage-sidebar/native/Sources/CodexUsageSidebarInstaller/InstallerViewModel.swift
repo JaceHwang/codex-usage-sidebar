@@ -27,7 +27,8 @@ final class InstallerViewModel: ObservableObject {
         let paths = InstallerPaths(
             homeDirectory: FileManager.default.homeDirectoryForCurrentUser,
             payloadRoot: resources.appendingPathComponent("payload", isDirectory: true),
-            codexExecutable: Self.locateCodexExecutable()
+            codexExecutable: CodexExecutableLocator.locate()
+                ?? URL(fileURLWithPath: "/opt/homebrew/bin/codex")
         )
         self.init(
             copy: InstallerCopy.forLanguageIdentifier(language),
@@ -280,7 +281,7 @@ final class InstallerViewModel: ObservableObject {
         let accessibility = try await runRequired(accessibilityCommand)
         let report = InstallationVerifier.evaluate(
             statusOutput: status.standardOutput,
-            expectedVersion: "0.3.0",
+            expectedVersion: "0.3.1",
             statusCommandSucceeded: status.succeeded,
             loginCommandSucceeded: login.succeeded,
             accessibilityOutput: accessibility.standardOutput,
@@ -372,18 +373,6 @@ final class InstallerViewModel: ObservableObject {
         }
     }
 
-    nonisolated private static func locateCodexExecutable() -> URL {
-        let candidates = [
-            "/opt/homebrew/bin/codex",
-            "/usr/local/bin/codex",
-            "/usr/bin/codex",
-        ]
-        return candidates
-            .first { FileManager.default.isExecutableFile(atPath: $0) }
-            .map { URL(fileURLWithPath: $0) }
-            ?? URL(fileURLWithPath: "/opt/homebrew/bin/codex")
-    }
-
     private static var liveDependencies: InstallerViewModelDependencies {
         InstallerViewModelDependencies(
             runCommand: { try await run($0) },
@@ -415,7 +404,7 @@ private enum InstallerViewModelError: Error, CustomStringConvertible {
         case .codexMissing:
             "The codex CLI was not found in a standard installation location."
         case .payloadMissing:
-            "The embedded v0.3.0 payload is missing."
+            "The embedded v0.3.1 payload is missing."
         case .codexLoginNotVerified:
             "Codex login completed but the isolated login status is not authenticated."
         case .marketplaceConflict(let root):

@@ -6,7 +6,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using System.Diagnostics;
 using CodexUsageSidebar.Core;
 
 namespace CodexUsageSidebar.Windows;
@@ -22,12 +24,15 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     private readonly Window indicator;
     private readonly Window detail;
     private readonly Border indicatorSurface;
+    private readonly Image indicatorLogo;
     private readonly TextBlock indicatorText;
     private readonly DispatcherTimer hoverTimer;
     private DetailInteractionState interaction = DetailInteractionState.Initial;
     private OverlayPresentation? latestPresentation;
     private QuotaDetailContent? latestContent;
     private WpfOverlayPalette palette = WpfOverlayPalette.Light;
+    private Uri? accountAvatarURL;
+    private ImageSource? accountAvatarSource;
 
     public WpfOverlaySurface(DisplayLanguage language, TimeZoneInfo timeZone)
     {
@@ -37,11 +42,40 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             FontFamily = new FontFamily("Segoe UI"),
             FontSize = 13,
             FontWeight = FontWeights.SemiBold,
-            TextAlignment = TextAlignment.Center,
+            TextAlignment = TextAlignment.Left,
             VerticalAlignment = VerticalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
             Foreground = palette.Primary,
         };
+        indicatorLogo = new Image
+        {
+            Source = LoadThemeIconSource(palette),
+            Width = OverlayVisualMetrics.IndicatorLogoSize,
+            Height = OverlayVisualMetrics.IndicatorLogoSize,
+            Stretch = Stretch.Uniform,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var indicatorContent = new Grid
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        indicatorContent.ColumnDefinitions.Add(new ColumnDefinition
+        {
+            Width = new GridLength(OverlayVisualMetrics.IndicatorLogoSize),
+        });
+        indicatorContent.ColumnDefinitions.Add(new ColumnDefinition
+        {
+            Width = new GridLength(OverlayVisualMetrics.IndicatorLogoTextGap),
+        });
+        indicatorContent.ColumnDefinitions.Add(new ColumnDefinition
+        {
+            Width = new GridLength(1, GridUnitType.Star),
+        });
+        Grid.SetColumn(indicatorLogo, 0);
+        Grid.SetColumn(indicatorText, 2);
+        indicatorContent.Children.Add(indicatorLogo);
+        indicatorContent.Children.Add(indicatorText);
         var indicatorColor = SystemColors.WindowTextColor;
         indicatorSurface = new Border
         {
@@ -51,8 +85,13 @@ public sealed class WpfOverlaySurface : IOverlaySurface
                 indicatorColor.G,
                 indicatorColor.B)),
             CornerRadius = new CornerRadius(10),
-            Padding = new Thickness(8, 0, 8, 0),
-            Child = indicatorText,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Padding = new Thickness(
+                OverlayVisualMetrics.IndicatorHorizontalPadding,
+                0,
+                OverlayVisualMetrics.IndicatorHorizontalPadding,
+                0),
+            Child = indicatorContent,
         };
         indicator = CreatePassiveWindow(indicatorSurface);
         indicator.Width = OverlayVisualMetrics.IndicatorWidth;
@@ -82,19 +121,26 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             latestPresentation = presentation;
             palette = ResolvePalette(presentation.ThemeProbePoint);
             indicatorText.Foreground = palette.Primary;
+            indicatorLogo.Source = LoadThemeIconSource(palette);
             indicator.Opacity = presentation.Freshness == SnapshotFreshness.Dimmed ? 0.58 : 1;
             detail.Opacity = presentation.Freshness == SnapshotFreshness.Dimmed ? 0.58 : 1;
             latestContent = QuotaDetailFormatter.Format(
                 presentation.Snapshot,
                 DateTimeOffset.Now,
                 presentation.Language,
-                timeZone);
+                timeZone,
+                presentation.TokenUsage,
+                presentation.Account,
+                presentation.Version);
+            UpdateAccountAvatar(presentation.Account?.AvatarUrl);
             SetOwner(indicator, presentation.OwnerHandle);
             SetOwner(detail, presentation.OwnerHandle);
             var frame = presentation.Placement.Frame;
             UpdateIndicator(presentation.Snapshot, presentation.Language);
             indicator.Width = frame.Width / presentation.DpiScale;
             indicator.Height = frame.Height / presentation.DpiScale;
+            var horizontalPadding = OverlayVisualMetrics.IndicatorHorizontalPaddingForHeight(indicator.Height);
+            indicatorSurface.Padding = new Thickness(horizontalPadding, 0, horizontalPadding, 0);
             if (!indicator.IsVisible) new WindowInteropHelper(indicator).EnsureHandle();
             PositionPhysical(indicator, frame);
             if (!indicator.IsVisible) indicator.Show();
@@ -189,7 +235,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
 
     private void ShowDetail(OverlayPresentation presentation, QuotaDetailContent content)
     {
-        detail.Content = BuildDetailCard(content, palette);
+        detail.Content = BuildDetailCard(content, palette, accountAvatarSource);
         detail.SizeToContent = SizeToContent.Height;
         detail.UpdateLayout();
         var indicatorFrame = presentation.Placement.Frame;
@@ -201,9 +247,10 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         }
         var detailWidth = detail.Width * presentation.DpiScale;
         var detailHeight = detail.ActualHeight * presentation.DpiScale;
-        var left = Math.Min(
-            Math.Max(workArea.Value.X, indicatorFrame.Right - detailWidth),
-            workArea.Value.Right - detailWidth);
+        var left = OverlayDetailLayout.LeftForIndicator(
+            indicatorFrame,
+            workArea.Value,
+            detailWidth);
         var gap = 6 * presentation.DpiScale;
         var below = indicatorFrame.Bottom + gap;
         var above = indicatorFrame.Y - detailHeight - gap;
@@ -215,15 +262,22 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         if (!detail.IsVisible) detail.Show();
     }
 
-    private static Border BuildDetailCard(QuotaDetailContent content, WpfOverlayPalette palette)
+    private static Border BuildDetailCard(
+        QuotaDetailContent content,
+        WpfOverlayPalette palette,
+        ImageSource? accountAvatarSource)
     {
         var accent = WpfQuotaColors.ForRemainingPercent(content.RemainingPercent);
         var body = new StackPanel();
-        var header = new Grid { Margin = new Thickness(14, 11, 14, 9) };
+        var header = new Grid { Margin = new Thickness(16, 13, 16, 9) };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(32) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var icon = BuildThemeIcon(palette);
+        Grid.SetColumn(icon, 0);
+        header.Children.Add(icon);
         var title = new TextBlock
         {
             Text = content.Title,
@@ -235,25 +289,21 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             TextTrimming = TextTrimming.CharacterEllipsis,
             Foreground = palette.Primary,
         };
-        Grid.SetColumn(title, 0);
+        Grid.SetColumn(title, 1);
         header.Children.Add(title);
         var highlight = palette.BadgeColor;
         var badge = new Border
         {
-            BorderBrush = new SolidColorBrush(Color.FromArgb(
-                133,
-                highlight.R,
-                highlight.G,
-                highlight.B)),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(110, highlight.R, highlight.G, highlight.B)),
             BorderThickness = new Thickness(0.75),
-            CornerRadius = new CornerRadius(7),
-            Margin = new Thickness(6, 0, 8, 0),
+            CornerRadius = new CornerRadius(8),
+            Margin = new Thickness(7, 0, 8, 0),
             Padding = new Thickness(5, 0, 5, 0),
             Height = OverlayVisualMetrics.VersionBadgeHeight,
             VerticalAlignment = VerticalAlignment.Center,
             Child = new TextBlock
             {
-                Text = "v0.3.0",
+                Text = $"v{content.Version}",
                 FontFamily = new FontFamily("Segoe UI"),
                 FontSize = OverlayVisualMetrics.VersionBadgeFontSize,
                 FontWeight = FontWeights.Medium,
@@ -262,7 +312,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
                 VerticalAlignment = VerticalAlignment.Center,
             },
         };
-        Grid.SetColumn(badge, 1);
+        Grid.SetColumn(badge, 2);
         header.Children.Add(badge);
         var remaining = new TextBlock
         {
@@ -271,40 +321,51 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             FontSize = OverlayVisualMetrics.RemainingPercentFontSize,
             FontWeight = FontWeights.SemiBold,
             Foreground = new SolidColorBrush(accent),
+            VerticalAlignment = VerticalAlignment.Center,
         };
-        Grid.SetColumn(remaining, 3);
+        Grid.SetColumn(remaining, 4);
         header.Children.Add(remaining);
         body.Children.Add(header);
-
         body.Children.Add(new WpfQuotaProgressBar
         {
             Height = OverlayVisualMetrics.ProgressTrackHeight,
-            Margin = new Thickness(12, 0, 12, 11),
+            Margin = new Thickness(16, 0, 16, 13),
             RemainingPercent = content.RemainingPercent,
             TrackBrush = palette.Track,
         });
-        body.Children.Add(new Border
-        {
-            Height = 1,
-            Background = palette.Border,
-            Opacity = 0.55,
-        });
+        body.Children.Add(BuildFullWidthSeparator(palette));
 
-        var rows = new StackPanel { Margin = new Thickness(12, 7, 12, 8) };
-        foreach (var row in content.Rows)
+        if (content.TokenUsage is { } tokenUsage)
         {
-            var grid = new Grid { Margin = new Thickness(0, 3, 0, 3) };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(108) });
+            body.Children.Add(BuildTokenUsageBand(tokenUsage, accent, palette));
+            body.Children.Add(new Border { Height = 1, Background = palette.Border, Opacity = 0.6 });
+        }
+
+        var rows = new StackPanel { Margin = new Thickness(16, 8, 16, 8) };
+        for (var index = 0; index < content.Rows.Count; index++)
+        {
+            if (index > 0)
+            {
+                rows.Children.Add(new Border
+                {
+                    Height = OverlayDetailLayout.RowSeparatorHeight,
+                    Background = palette.Border,
+                    Opacity = 0.6,
+                });
+            }
+
+            var row = content.Rows[index];
+            var grid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(126) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            var label = new TextBlock
+            grid.Children.Add(new TextBlock
             {
                 Text = row.Label,
                 FontFamily = new FontFamily("Segoe UI"),
-                FontSize = 12,
+                FontSize = 13,
                 Foreground = palette.Secondary,
                 TextWrapping = TextWrapping.Wrap,
-            };
-            grid.Children.Add(label);
+            });
             var value = BuildDetailValue(row.Value, accent, palette);
             Grid.SetColumn(value, 1);
             grid.Children.Add(value);
@@ -315,8 +376,10 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             Content = rows,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            MaxHeight = 390,
+            MaxHeight = 360,
         });
+        body.Children.Add(BuildFullWidthSeparator(palette));
+        body.Children.Add(BuildFooter(content, palette, accountAvatarSource));
         return new Border
         {
             Width = OverlayVisualMetrics.DetailWidth,
@@ -326,6 +389,300 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             CornerRadius = new CornerRadius(12),
             Child = body,
         };
+    }
+
+    private static Border BuildFullWidthSeparator(WpfOverlayPalette palette) => new()
+    {
+        Height = OverlayDetailLayout.SectionSeparatorHeight,
+        Margin = new Thickness(
+            OverlayDetailLayout.SectionSeparatorHorizontalMargin,
+            0,
+            OverlayDetailLayout.SectionSeparatorHorizontalMargin,
+            0),
+        Background = palette.Border,
+        Opacity = 0.6,
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+    };
+
+    private static UIElement BuildThemeIcon(WpfOverlayPalette palette)
+    {
+        var imageSource = LoadThemeIconSource(palette);
+        if (imageSource is not null)
+        {
+            return new Image
+            {
+                Source = imageSource,
+                Width = OverlayDetailLayout.LogoSize,
+                Height = OverlayDetailLayout.LogoSize,
+                Stretch = Stretch.Uniform,
+                VerticalAlignment = VerticalAlignment.Center,
+                Clip = new EllipseGeometry(
+                    new Point(
+                        OverlayDetailLayout.LogoSize / 2,
+                        OverlayDetailLayout.LogoSize / 2),
+                    OverlayDetailLayout.LogoSize / 2,
+                    OverlayDetailLayout.LogoSize / 2),
+            };
+        }
+
+        return new Border
+        {
+            Width = OverlayDetailLayout.LogoSize,
+            Height = OverlayDetailLayout.LogoSize,
+            CornerRadius = new CornerRadius(OverlayDetailLayout.LogoSize / 2),
+            Background = new SolidColorBrush(palette.BadgeColor),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+    }
+
+    private static ImageSource? LoadThemeIconSource(WpfOverlayPalette palette)
+    {
+        var resource = ReferenceEquals(palette, WpfOverlayPalette.Dark)
+            ? "pack://application:,,,/Assets/quota-icon-dark.png"
+            : "pack://application:,,,/Assets/quota-icon-light.png";
+        try
+        {
+            return new BitmapImage(new Uri(resource));
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private static Border BuildTokenUsageBand(
+        QuotaTokenUsageContent usage,
+        Color accent,
+        WpfOverlayPalette palette)
+    {
+        var panel = new StackPanel { Margin = new Thickness(16, 7, 16, 9) };
+        var heading = new Grid();
+        heading.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        heading.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        heading.Children.Add(new TextBlock
+        {
+            Text = usage.Title,
+            FontFamily = new FontFamily("Segoe UI"),
+            FontSize = 17,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = palette.Primary,
+        });
+        var total = new TextBlock
+        {
+            Text = usage.Availability == TokenUsageAvailability.Available
+                ? usage.TotalLabel
+                : usage.UnavailableLabel,
+            FontFamily = new FontFamily("Segoe UI"),
+            FontSize = 13,
+            Foreground = palette.Secondary,
+            TextAlignment = TextAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        Grid.SetColumn(total, 1);
+        heading.Children.Add(total);
+        panel.Children.Add(heading);
+        var chart = new Grid { Height = 96, Margin = new Thickness(0, 10, 0, 0) };
+        for (var index = 0; index < usage.Days.Count; index++)
+        {
+            chart.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var day = usage.Days[index];
+            var slot = new Grid();
+            var labels = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom };
+            labels.Children.Add(new TextBlock
+            {
+                Text = day.TokensLabel,
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = 10,
+                Foreground = day.IsCurrent ? new SolidColorBrush(accent) : palette.Secondary,
+                HorizontalAlignment = HorizontalAlignment.Center,
+            });
+            var bar = new Border
+            {
+                Width = 18,
+                Height = day.Tokens == 0 ? 2 : Math.Max(4, Math.Min(42, 42 * day.Tokens / Math.Max(1, usage.Days.Max(item => item.Tokens)))),
+                Background = day.IsCurrent ? new SolidColorBrush(accent) : palette.Border,
+                CornerRadius = new CornerRadius(3),
+                Margin = new Thickness(0, 4, 0, 4),
+                HorizontalAlignment = HorizontalAlignment.Center,
+            };
+            labels.Children.Add(bar);
+            labels.Children.Add(new TextBlock
+            {
+                Text = day.DateLabel,
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = 9,
+                Foreground = palette.Secondary,
+                HorizontalAlignment = HorizontalAlignment.Center,
+            });
+            slot.Children.Add(labels);
+            Grid.SetColumn(slot, index);
+            chart.Children.Add(slot);
+        }
+        panel.Children.Add(chart);
+        return new Border { Child = panel };
+    }
+
+    private static UIElement BuildFooter(
+        QuotaDetailContent content,
+        WpfOverlayPalette palette,
+        ImageSource? accountAvatarSource)
+    {
+        var footer = new Grid { Margin = new Thickness(16, 8, 12, 10) };
+        footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        footer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var account = content.Account?.PreferredName ?? content.AccountLabel;
+        var avatar = BuildAccountAvatar(content.Account, palette, accountAvatarSource);
+        Grid.SetColumn(avatar, 0);
+        footer.Children.Add(avatar);
+        var nameLabel = new TextBlock
+        {
+            Text = account,
+            FontFamily = new FontFamily("Segoe UI"),
+            FontSize = 13,
+            Foreground = palette.Primary,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(8, 0, 8, 0),
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        };
+        Grid.SetColumn(nameLabel, 1);
+        footer.Children.Add(nameLabel);
+        var github = new Button
+        {
+            Content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Children =
+                {
+                    new System.Windows.Shapes.Path
+                    {
+                        Data = Geometry.Parse("M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.084-.73.084-.73 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.292-1.552 3.296-1.23 3.296-1.23.647 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.43.372.81 1.102.81 2.222 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.595 24 12.297c0-6.627-5.373-12-12-12z"),
+                        Width = 15,
+                        Height = 15,
+                        Stretch = Stretch.Uniform,
+                        Fill = new SolidColorBrush(palette.Secondary is SolidColorBrush brush ? brush.Color : Colors.Gray),
+                        Margin = new Thickness(0, 0, 5, 0),
+                    },
+                    new TextBlock { Text = "GitHub" },
+                },
+            },
+            FontFamily = new FontFamily("Segoe UI"),
+            FontSize = 11,
+            Foreground = palette.Secondary,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(8, 4, 8, 4),
+            Cursor = Cursors.Hand,
+            ToolTip = "Open GitHub project",
+        };
+        var buttonChrome = new FrameworkElementFactory(typeof(Border));
+        buttonChrome.Name = "GitHubChrome";
+        buttonChrome.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
+        buttonChrome.SetValue(Border.BackgroundProperty, Brushes.Transparent);
+        buttonChrome.SetValue(Border.PaddingProperty, new Thickness(8, 4, 8, 4));
+        var presenter = new FrameworkElementFactory(typeof(ContentPresenter));
+        presenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        presenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+        buttonChrome.AppendChild(presenter);
+        var template = new ControlTemplate(typeof(Button)) { VisualTree = buttonChrome };
+        var hover = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
+        hover.Setters.Add(new Setter(Border.BackgroundProperty,
+            new SolidColorBrush(Color.FromArgb(24, palette.PrimaryColor.R, palette.PrimaryColor.G, palette.PrimaryColor.B)),
+            "GitHubChrome"));
+        hover.Setters.Add(new Setter(Border.EffectProperty,
+            new System.Windows.Media.Effects.DropShadowEffect
+            {
+                BlurRadius = 8,
+                ShadowDepth = 1,
+                Opacity = 0.18,
+                Color = Colors.Black,
+            },
+            "GitHubChrome"));
+        template.Triggers.Add(hover);
+        github.Template = template;
+        github.Click += (_, _) =>
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "https://github.com/JaceHwang/codex-usage-sidebar",
+                    UseShellExecute = true,
+                });
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        };
+        Grid.SetColumn(github, 2);
+        footer.Children.Add(github);
+        return footer;
+    }
+
+    private static FrameworkElement BuildAccountAvatar(
+        AccountIdentity? account,
+        WpfOverlayPalette palette,
+        ImageSource? accountAvatarSource)
+    {
+        if (accountAvatarSource is not null)
+        {
+            try
+            {
+                return new Image
+                {
+                    Source = accountAvatarSource,
+                    Width = 24,
+                    Height = 24,
+                    Stretch = Stretch.UniformToFill,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Clip = new EllipseGeometry(new Point(12, 12), 12, 12),
+                };
+            }
+            catch (Exception)
+            {
+                // Fall back to an initials avatar when the optional image is unavailable.
+            }
+        }
+
+        var name = account?.PreferredName;
+        var initial = string.IsNullOrWhiteSpace(name) ? "·" : name.Trim()[0].ToString().ToUpperInvariant();
+        return new Border
+        {
+            Width = 24,
+            Height = 24,
+            CornerRadius = new CornerRadius(12),
+            Background = new SolidColorBrush(palette.BadgeColor),
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = new TextBlock
+            {
+                Text = initial,
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = palette.Primary,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextAlignment = TextAlignment.Center,
+            },
+        };
+    }
+
+    private void UpdateAccountAvatar(Uri? avatarURL)
+    {
+        if (Equals(accountAvatarURL, avatarURL)) return;
+        accountAvatarURL = avatarURL;
+        accountAvatarSource = null;
+        if (avatarURL is null) return;
+        try
+        {
+            var image = new BitmapImage(avatarURL);
+            image.Freeze();
+            accountAvatarSource = image;
+        }
+        catch (Exception)
+        {
+            // An optional remote avatar must never prevent the quota card from rendering.
+        }
     }
 
     private static TextBlock BuildDetailValue(string value, Color accent, WpfOverlayPalette palette)

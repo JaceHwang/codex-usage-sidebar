@@ -1,7 +1,7 @@
 # Install with an Agent
 
 This playbook is for a coding agent with terminal access to the target computer. Use the Windows
-path for the public `v0.3.0` setup, and the macOS path for the stable v0.2.3 marketplace/DMG
+path for the public `v0.3.1` setup once its real-device gate is published, and the macOS path for the stable v0.2.3 marketplace/DMG
 installation.
 
 ## Windows 11 AMD64/x64 automatic setup install
@@ -9,14 +9,14 @@ installation.
 ### Copy-paste task
 
 ```text
-Install Codex Usage Sidebar v0.3.0 from the GitHub Release on this Windows 11 AMD64/x64 machine.
+Install Codex Usage Sidebar v0.3.1 from the GitHub Release on this Windows 11 AMD64/x64 machine.
 
 Requirements:
 1. Confirm this is Windows 11 on AMD64/x64. Windows ARM64 is unsupported.
-2. Download only codex-usage-sidebar-v0.3.0-windows-x64-setup.exe and WINDOWS-V030-SHA256SUMS.txt
-   from https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.0.
-   Setup URL: https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe.
-3. Verify the setup SHA-256 is 7ca231489d550bee708b0138cb7f5afd51c5a31f09e32cba3151d75d8bc2a9e3 and matches WINDOWS-V030-SHA256SUMS.txt.
+2. Download only codex-usage-sidebar-v0.3.1-windows-x64-setup.exe and WINDOWS-V031-SHA256SUMS.txt
+   from https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.1.
+   Setup URL: https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.1/codex-usage-sidebar-v0.3.1-windows-x64-setup.exe.
+3. Verify the setup SHA-256 matches the corresponding entry in WINDOWS-V031-SHA256SUMS.txt.
 4. Run the setup only if the digest matches.
 5. Do not disable or bypass Defender, SmartScreen, antivirus, or system policy.
 6. If installer, SmartScreen, uninstall, or Windows security UI appears, stop and ask me for
@@ -46,10 +46,10 @@ unsupported installation.
 
 ```powershell
 $ErrorActionPreference = 'Stop'
-$release = 'https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0'
-$asset = 'codex-usage-sidebar-v0.3.0-windows-x64-setup.exe'
-$checksum = 'WINDOWS-V030-SHA256SUMS.txt'
-$dest = Join-Path $env:TEMP 'codex-usage-sidebar-v0.3.0'
+$release = 'https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.1'
+$asset = 'codex-usage-sidebar-v0.3.1-windows-x64-setup.exe'
+$checksum = 'WINDOWS-V031-SHA256SUMS.txt'
+$dest = Join-Path $env:TEMP 'codex-usage-sidebar-v0.3.1'
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Invoke-WebRequest "$release/$asset" -OutFile (Join-Path $dest $asset)
 Invoke-WebRequest "$release/$checksum" -OutFile (Join-Path $dest $checksum)
@@ -60,9 +60,11 @@ Invoke-WebRequest "$release/$checksum" -OutFile (Join-Path $dest $checksum)
 ```powershell
 $setup = Join-Path $dest $asset
 $actual = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant()
-$expected = '7ca231489d550bee708b0138cb7f5afd51c5a31f09e32cba3151d75d8bc2a9e3'
-if ($actual -ne $expected) { throw "SHA-256 mismatch: $actual" }
 $checksumText = Get-Content -Raw (Join-Path $dest $checksum)
+$checksumLine = $checksumText -split "`r?`n" | Where-Object { $_ -match [regex]::Escape($asset) } | Select-Object -First 1
+if ([string]::IsNullOrWhiteSpace($checksumLine)) { throw 'Checksum file has no entry for the setup asset.' }
+$expected = ($checksumLine -split '\s+', 2)[0].ToLowerInvariant()
+if ($actual -ne $expected) { throw "SHA-256 mismatch: $actual" }
 if ($checksumText.ToLowerInvariant() -notmatch [regex]::Escape($expected)) {
   throw 'Checksum file does not contain the expected setup digest.'
 }
@@ -99,7 +101,7 @@ that status output over inferred process names. Interpret Windows status conserv
 - `runtime=stopped` means the installed runtime is present but not running.
 - `runtime=running` means the approved runtime is active.
 - Unknown or unsupported UI Automation structures hide the overlay; do not guess coordinates.
-- The `v0.3.0` package has automated gates and a limited x64 smoke record only. Do not claim
+- The `v0.3.1` package has automated gates and still requires the real-device matrix. Do not claim
   full 130-case or setup lifecycle validation unless you performed it on that machine.
 
 #### 6. Repair or uninstall when explicitly requested

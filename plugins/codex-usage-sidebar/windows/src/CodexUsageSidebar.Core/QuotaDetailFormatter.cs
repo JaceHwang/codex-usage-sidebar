@@ -2,13 +2,34 @@ namespace CodexUsageSidebar.Core;
 
 public sealed record QuotaDetailRow(string Label, string Value);
 
+public sealed record QuotaTokenUsageDay(
+    DateOnly Date,
+    string DateLabel,
+    string TokensLabel,
+    long Tokens,
+    bool IsCurrent);
+
+public sealed record QuotaTokenUsageContent(
+    string Title,
+    TokenUsageAvailability Availability,
+    IReadOnlyList<QuotaTokenUsageDay> Days,
+    long CurrentPeriodTotal,
+    string TotalLabel,
+    string UnavailableLabel,
+    string? DelayLabel);
+
 public sealed record QuotaDetailContent(
     string Title,
     int RemainingPercent,
-    IReadOnlyList<QuotaDetailRow> Rows);
+    IReadOnlyList<QuotaDetailRow> Rows,
+    QuotaTokenUsageContent? TokenUsage = null,
+    AccountIdentity? Account = null,
+    string Version = QuotaDetailFormatter.ProductVersion,
+    string AccountLabel = "Account");
 
 public static class QuotaDetailFormatter
 {
+    public const string ProductVersion = "0.3.1";
     private static readonly string[] EnglishMonths =
         ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -16,7 +37,10 @@ public static class QuotaDetailFormatter
         AllowanceSnapshot snapshot,
         DateTimeOffset now,
         DisplayLanguage language,
-        TimeZoneInfo timeZone)
+        TimeZoneInfo timeZone,
+        TokenUsageSnapshot? tokenUsage = null,
+        AccountIdentity? account = null,
+        string? version = null)
     {
         var copy = QuotaCopy.For(language);
         var rows = new List<QuotaDetailRow>();
@@ -62,7 +86,88 @@ public static class QuotaDetailFormatter
         }
         rows.Add(new QuotaDetailRow(copy.Updated, FormatFreshness(snapshot.ReceivedAt, now, language, copy)));
 
-        return new QuotaDetailContent(copy.Title, snapshot.RemainingPercent, rows);
+        return new QuotaDetailContent(
+            copy.Title,
+            snapshot.RemainingPercent,
+            rows,
+            FormatTokenUsage(snapshot, tokenUsage, now, language, timeZone, copy),
+            account,
+            string.IsNullOrWhiteSpace(version) ? ProductVersion : version,
+            copy.Account);
+    }
+
+    private static QuotaTokenUsageContent? FormatTokenUsage(
+        AllowanceSnapshot snapshot,
+        TokenUsageSnapshot? tokenUsage,
+        DateTimeOffset now,
+        DisplayLanguage language,
+        TimeZoneInfo timeZone,
+        QuotaCopy copy)
+    {
+        if (tokenUsage is null) return null;
+        var localNow = TimeZoneInfo.ConvertTime(now, timeZone);
+        var localReset = TimeZoneInfo.ConvertTime(snapshot.ResetsAt, timeZone);
+        var cycleStart = snapshot.WindowDurationMinutes is > 0
+            ? localReset.Date.AddMinutes(-snapshot.WindowDurationMinutes.Value)
+            : localNow.Date.AddDays(-6);
+        var buckets = tokenUsage.DailyBuckets.ToDictionary(bucket => bucket.Date, bucket => bucket.Tokens);
+        var days = Enumerable.Range(0, 7)
+            .Select(offset => cycleStart.AddDays(offset))
+            .Select(date =>
+            {
+                var dateOnly = DateOnly.FromDateTime(date);
+                var tokens = tokenUsage.Availability == TokenUsageAvailability.Available
+                    && date < localReset.Date
+                    && buckets.TryGetValue(dateOnly, out var value)
+                        ? value
+                        : 0L;
+                return new QuotaTokenUsageDay(
+                    dateOnly,
+                    FormatChartDate(dateOnly, language),
+                    FormatTokenCount(tokens),
+                    tokens,
+                    dateOnly == DateOnly.FromDateTime(localNow.DateTime));
+            })
+            .ToArray();
+        var total = tokenUsage.Availability == TokenUsageAvailability.Available
+            ? days.Sum(day => day.Tokens)
+            : 0L;
+        return new QuotaTokenUsageContent(
+            copy.TokenTitle,
+            tokenUsage.Availability,
+            days,
+            total,
+            FormatTokenTotal(total, language),
+            copy.TokenUnavailable,
+            tokenUsage.Availability == TokenUsageAvailability.Available
+                ? copy.TokenDelay
+                : null);
+    }
+
+    private static string FormatChartDate(DateOnly date, DisplayLanguage language) => language switch
+    {
+        DisplayLanguage.English => $"{EnglishMonths[date.Month - 1]} {date.Day}",
+        DisplayLanguage.TraditionalChinese => $"{date.Month}月{date.Day}日",
+        _ => $"{date.Month}月{date.Day}日",
+    };
+
+    private static string FormatTokenTotal(long total, DisplayLanguage language)
+    {
+        var label = FormatTokenCount(total);
+        return language switch
+        {
+            DisplayLanguage.English => $"This period total {label} tokens",
+            DisplayLanguage.TraditionalChinese => $"本週期總計 {label} tokens",
+            _ => $"本周期总计 {label} tokens",
+        };
+    }
+
+    private static string FormatTokenCount(long tokens)
+    {
+        if (tokens >= 1_000_000_000) return $"{tokens / 1_000_000_000d:0.##}B";
+        if (tokens >= 1_000_000) return $"{tokens / 1_000_000d:0.##}M";
+        if (tokens >= 1_000) return $"{tokens / 1_000d:0.##}K";
+        return tokens.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     public static string FormatCompact(
@@ -230,22 +335,32 @@ public static class QuotaDetailFormatter
         string NoExpiry,
         string Used,
         string Expired,
-        string JustNow)
+        string JustNow,
+        string Account,
+        string TokenTitle,
+        string TokenUnavailable,
+        string TokenDelay)
     {
         public static QuotaCopy For(DisplayLanguage language) => language switch
         {
             DisplayLanguage.SimplifiedChinese => new(
                 "Codex 剩余额度", "套餐", "额度周期", "下次重置", "Bank 可用重置",
                 index => $"Bank {index}到期时间", "Bank 明细", "数据更新", "暂无数据",
-                "无限", "可用", "无", "未提供到期时间", "已使用", "已过期", "刚刚"),
+                "无限", "可用", "无", "未提供到期时间", "已使用", "已过期", "刚刚",
+                "账户", "Token 用量",
+                "Token 使用量暂不可用", "数据可能延迟"),
             DisplayLanguage.TraditionalChinese => new(
                 "Codex 剩餘額度", "方案", "額度週期", "下次重設", "Bank 可用重設",
                 index => $"Bank {index}到期時間", "Bank 詳情", "資料更新", "暫無資料",
-                "無限", "可用", "無", "未提供到期時間", "已使用", "已過期", "剛剛"),
+                "無限", "可用", "無", "未提供到期時間", "已使用", "已過期", "剛剛",
+                "帳戶", "Token 用量",
+                "Token 使用量暫不可用", "資料可能延遲"),
             _ => new(
                 "Codex quota", "Plan", "Quota window", "Next reset", "Bank resets available",
                 index => $"Bank {index} expires", "Bank details", "Updated", "No data",
-                "Unlimited", "Available", "None", "No expiry provided", "Used", "Expired", "Just now"),
+                "Unlimited", "Available", "None", "No expiry provided", "Used", "Expired", "Just now",
+                "Account", "Token usage",
+                "Token usage unavailable", "Usage data may be delayed"),
         };
     }
 }

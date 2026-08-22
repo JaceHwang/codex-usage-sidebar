@@ -43,6 +43,8 @@ internal sealed class WindowsOverlayRuntime : IDisposable
     private readonly WindowsCodexLanguageProvider languageProvider;
     private readonly RuntimeLanguageState languageState;
     private AllowanceSnapshot? latestSnapshot;
+    private TokenUsageSnapshot? latestTokenUsage;
+    private AccountIdentity? latestAccount;
     private DateTimeOffset nextLanguageRefresh = DateTimeOffset.MinValue;
     private int reconcileInProgress;
     private Task? sessionTask;
@@ -91,7 +93,9 @@ internal sealed class WindowsOverlayRuntime : IDisposable
             await coordinator.ReconcileAsync(
                 Volatile.Read(ref latestSnapshot),
                 CurrentLanguage(),
-                cancellation.Token);
+                cancellation.Token,
+                Volatile.Read(ref latestTokenUsage),
+                Volatile.Read(ref latestAccount));
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
@@ -134,13 +138,32 @@ internal sealed class WindowsOverlayRuntime : IDisposable
             {
                 var session = new AppServerSession(
                     new AppServerProcessConnectionFactory(launchPlan),
-                    new AppServerProtocol("codex-usage-sidebar", "0.3.0"),
+                    new AppServerProtocol("codex-usage-sidebar", QuotaDetailFormatter.ProductVersion),
                     () => DateTimeOffset.Now);
-                await session.RunAsync(snapshot =>
-                {
-                    Volatile.Write(ref latestSnapshot, snapshot);
-                    return ValueTask.CompletedTask;
-                }, cancellationToken);
+                await session.RunAsync(
+                    snapshot =>
+                    {
+                        Volatile.Write(ref latestSnapshot, snapshot);
+                        return ValueTask.CompletedTask;
+                    },
+                    cancellationToken,
+                    usage =>
+                    {
+                        if (usage.Availability == TokenUsageAvailability.Available)
+                        {
+                            Volatile.Write(ref latestTokenUsage, usage);
+                        }
+                        else if (Volatile.Read(ref latestTokenUsage) is null)
+                        {
+                            Volatile.Write(ref latestTokenUsage, usage);
+                        }
+                        return ValueTask.CompletedTask;
+                    },
+                    account =>
+                    {
+                        Volatile.Write(ref latestAccount, account);
+                        return ValueTask.CompletedTask;
+                    });
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -149,6 +172,8 @@ internal sealed class WindowsOverlayRuntime : IDisposable
             catch (Exception)
             {
                 Volatile.Write(ref latestSnapshot, null);
+                Volatile.Write(ref latestTokenUsage, null);
+                Volatile.Write(ref latestAccount, null);
                 try
                 {
                     await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);

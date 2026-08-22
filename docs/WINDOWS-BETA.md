@@ -1,11 +1,11 @@
-# Windows v0.3.0-beta.1 Development
+# Windows v0.3.1 Parity and Device Gate
 
 ## Current status
 
-The Windows line is an explicitly gated AMD64 beta (`x64` in .NET and artifact names). It is based
-on the latest stable Mac source but does not alter or replace the v0.2.3 plugin, companion, DMG, or
-GitHub Release assets. Windows ARM64 is outside the build, device, packaging, and publication scope
-of v0.3.0-beta.1.
+The Windows line is an explicitly gated AMD64 parity build (`x64` in .NET and artifact names). It is
+based on the current macOS-visible v0.3.1 card without altering or replacing the v0.2.3 macOS
+plugin, companion, DMG, or GitHub Release assets. Windows ARM64 is outside the build, device,
+packaging, and publication scope of v0.3.1.
 
 Implemented and testable without a Windows Codex session:
 
@@ -16,10 +16,13 @@ Implemented and testable without a Windows Codex session:
 - fake-driven host-window, title-bar scanner, DPI, and non-activating overlay contracts;
 - fixed-argument `codex app-server --stdio` process launching with an isolated `CODEX_HOME`;
 - Win32 Codex window discovery and a bounded UI Automation diagnostic probe;
-- a build-gated semantic title-bar selector for measured Codex file build `151.0.7922.76`, with
-  unknown or incomplete trees hidden instead of using a coordinate fallback;
+- a semantic title-bar selector that is no longer gated by the Codex file version; unknown or
+  incomplete trees remain hidden instead of using a coordinate fallback;
 - non-activating WPF compact/detail surfaces and a three-language WPF installer shell whose default
   development action refuses to install without a validated payload;
+- the macOS-visible quota model on Windows: seven-day Token usage, account identity, theme-aware
+  quota icon, reset countdown emphasis, Credits, Bank details, and a borderless GitHub footer link;
+- an intentional Windows difference: the Tibo X information row is not rendered;
 - per-user Windows path planning, exact uninstall guards, autostart plans, atomic payload
   replacement, rollback, link/reparse-point rejection, and full-file SHA-256 verification;
 - a Windows 2025 CI job that builds and uploads only a self-contained diagnostic candidate.
@@ -71,7 +74,7 @@ codex-usage-sidebar-public/
             └── CodexUsageSidebar.Installer.Tests/
 ```
 
-## Diagnostic candidate
+## Legacy diagnostic candidate
 
 The `Windows beta diagnostic candidate` workflow produces:
 
@@ -81,8 +84,8 @@ WINDOWS-BETA-SHA256SUMS.txt
 WINDOWS-BETA-PROVENANCE.json
 ```
 
-This artifact is not an installer. Its provenance explicitly sets `realDeviceValidated=false` and
-`publishableInstaller=false`. On a Windows 11 AMD64 test device (`x64` in artifact metadata) with
+This legacy diagnostic artifact is not an installer. Its provenance explicitly sets
+`realDeviceValidated=false` and `publishableInstaller=false`. On a Windows 11 AMD64 test device (`x64` in artifact metadata) with
 Codex open and signed in,
 extract it and run:
 
@@ -107,7 +110,7 @@ cross-machine Git workflow.
 
 ## Required real-device gate
 
-The setup package remains blocked until all of these pass on the real Windows Codex client:
+The v0.3.1 setup package remains blocked until all of these pass on the real Windows Codex client:
 
 - expanded and collapsed left, right, and bottom panes;
 - narrow, wide, maximized, restored, fullscreen, and multi-monitor windows;
@@ -118,22 +121,24 @@ The setup package remains blocked until all of these pass on the real Windows Co
 - Codex restart, update, sleep/resume, app-server authorization, and stream recovery;
 - per-user install, repair, upgrade, uninstall, checksum, provenance, and Windows signing checks.
 
-The captured tree becomes a versioned selector fixture. Unknown Codex builds must hide the overlay
-and request a new diagnostic capture instead of guessing a coordinate or overlapping native UI.
+The captured tree remains a versioned diagnostic fixture, not a version allow-list. A changed Codex
+build may use the semantic selector immediately when its structure is safe; unknown or incomplete
+trees still hide the overlay and request a new diagnostic capture instead of guessing a coordinate
+or overlapping native UI.
 
 The first sanitized fixture records one Windows 11 sample from the `OpenAI.Codex` package: the
 visible host process is `ChatGPT.exe` with Codex product identity, file build `151.0.7922.76`, at
 200% scaling. The PMv2-aware default-redacted report uses physical screen pixels end to end and has
 SHA-256 `65e519a71da6c7dc422253a33f30ecaabe175499a51254f9c6eb00983f721f7c`.
-This is enough to exercise the build-gated selector, but it is not evidence for the
+This is enough to exercise the semantic selector and its measured fallback, but it is not evidence for the
 remaining sidebar, window, theme, language, scaling, focus, lifecycle, or installer matrix.
 
-## Final release shape
+## v0.3.1 final release shape
 
 After the gate passes, the installer pipeline will publish a prerelease asset named:
 
 ```text
-codex-usage-sidebar-v0.3.0-beta.1-windows-x64-setup.exe
+codex-usage-sidebar-v0.3.1-windows-x64-setup.exe
 ```
 
 It will install under `%LOCALAPPDATA%\CodexUsageSidebar`, register only a per-user startup entry,

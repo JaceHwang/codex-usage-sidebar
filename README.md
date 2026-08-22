@@ -31,29 +31,35 @@
 | Platform | Status | Distribution |
 | --- | --- | --- |
 | macOS 14+ Apple Silicon | Stable v0.2.3 | Signed companion plus v0.2.3 DMG |
-| Windows 11 AMD64 (`x64`) | Release `v0.3.0` | Unsigned `x64` setup; Windows ARM64 is out of scope |
+| Windows 11 AMD64 (`x64`) | v0.3.2 release | Unsigned `x64` setup asset; Windows ARM64 is out of scope |
 
-Windows `v0.3.0` is the public Windows 11 AMD64/x64 release. It documents the supported current-user install path and its hash-first unsigned setup
-safeguards. The shared quota contracts, .NET core, Win32 window boundary, sanitized UI Automation
-probe, per-user installer backend, payload digest verification, and Windows CI preserve the stable
-macOS payload. The 130-case Windows manual matrix is still incomplete; this release has passed
-automated gates and the limited x64 smoke record only. Unknown or unsupported UI Automation
-structures hide the overlay instead of guessing coordinates. See [Windows beta development](docs/WINDOWS-BETA.md)
+Windows `v0.3.2` is the Windows 11 AMD64/x64 release line. It carries the macOS-visible quota card
+model (token usage, account identity, theme-aware icon, reset countdown, Credits, Bank details, and
+the GitHub footer) without the Tibo X row. The shared quota contracts, .NET core, Win32 window
+boundary, sanitized UI Automation probe, per-user installer backend, payload digest verification,
+and Windows CI preserve the stable macOS payload. The v0.3.2 Windows asset is locally packaged and
+includes quick-prerelease validation metadata; the 130-case Windows manual matrix is still incomplete,
+so this release does not claim complete real-device validation. The selector no longer rejects a Codex build
+solely because its file version changed; it still requires a safe semantic UI Automation structure,
+and hides the overlay instead of guessing coordinates when that structure is unavailable. See [Windows beta development](docs/WINDOWS-BETA.md)
 for development and validation details, and [Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md)
 for the device procedure. To move the active work into Codex on a Windows computer, follow the
 [Windows Codex continuation guide](docs/WINDOWS-CODEX-CONTINUATION.md); the Git branch and its
-verified commit history are the handoff source of truth.
+verified commit history are the handoff source of truth. The complete feature matrix is in
+[Windows v0.3.1 parity notes](docs/WINDOWS-V031-PARITY.md).
 
-## Actual appearance
+## Current v0.3.1 appearance
 
 <p align="center">
-  <img src="docs/images/quota-popover-en-light.png" alt="Codex Usage Sidebar v0.2.3 with emphasized countdown values in the light theme" width="48%">
-  <img src="docs/images/quota-popover-en-dark.png" alt="Codex Usage Sidebar v0.2.3 with emphasized countdown values in the dark theme" width="48%">
+  <img src="docs/images/quota-popover-v0.3.1-en-light.png" alt="Codex Usage Sidebar v0.3.1 quota popover with token usage, themed app icon, and GitHub footer link in the light theme" width="48%">
+  <img src="docs/images/quota-popover-v0.3.1-en-dark.png" alt="Codex Usage Sidebar v0.3.1 quota popover with token usage, themed app icon, and GitHub footer link in the dark theme" width="48%">
 </p>
 
-<p align="center"><em>Light theme · Dark theme</em></p>
+<p align="center"><em>Current light theme · Current dark theme</em></p>
 
-<p align="center">Real v0.2.3 captures in both Codex themes. Larger, color-synced countdown numbers make the remaining days and hours easy to scan while the units stay understated.</p>
+These v0.3.1 captures are generated from the current native AppKit card and bundled theme assets. They
+show the Codex account identity, seven-day token-usage chart, emphasized reset countdown, themed
+quota icon, borderless compact GitHub link, and the light/dark separator and shadow materials.
 
 ## Adaptive titlebar placement
 
@@ -67,7 +73,7 @@ verified commit history are the handoff source of truth.
   <img src="docs/images/adaptive-titlebar-fallback-dark.png" alt="Quota control moved to the safe right-side titlebar fallback" width="96%">
 </p>
 
-<p align="center"><em>Not enough room: the control moves immediately to the reserved right-side titlebar position.</em></p>
+<p align="center"><em>Not enough room: the control moves immediately to the reserved right-side titlebar position and remains visible while the middle tab continues shrinking.</em></p>
 
 ## What it does
 
@@ -79,8 +85,9 @@ and renders one non-activating control in the nearest safe titlebar slot.
 | --- | --- |
 | Left, right, or bottom pane changes | The quota control prefers the native **Open Location** anchor, slides left around occupied controls, and moves to the reserved right-side position only when the local titlebar cannot fit it. |
 | Window moves or resizes | The collision-aware layout is sampled every 0.1 seconds, so the control tracks the available titlebar space without overlapping native controls or titles. |
-| Hover | A native detail card shows the synchronized plugin version, plan, period, Credits, and every Bank entry with status and expiry. |
+| Hover | A native detail card shows the synchronized plugin version, account identity, theme icon, plan, period, daily and total token usage, Credits, and every Bank entry with status and expiry. |
 | Click | The detail card stays pinned until the quota control is clicked again; hover behavior remains available. |
+| Footer GitHub button | Opens the project repository at [github.com/JaceHwang/codex-usage-sidebar](https://github.com/JaceHwang/codex-usage-sidebar). The resting button blends into the footer; hover adds only a soft rounded shadow. |
 | Quota changes | Percentage color follows the exact 100% green, 49% orange, and 10% red palette while the filled bar reveals the matching spectrum. |
 | Codex language changes | The control and detail card follow Codex's effective Simplified Chinese, Traditional Chinese, or English locale within one second. |
 
@@ -94,35 +101,31 @@ quota control.
 ## Quick install
 
 Choose the platform-specific installation path below. Windows support is Windows 11 AMD64/x64 only;
-Windows ARM64 is not supported. The Windows setup is published from the `v0.3.0`
-GitHub Release with explicit unsigned-install safeguards.
+Windows ARM64 is not supported. The v0.3.2 setup uses explicit unsigned-install safeguards and must
+be verified by SHA-256 before launch.
 
 ### Windows 11 AMD64/x64
 
 Requirements: Windows 11 on AMD64/x64, Codex desktop for Windows installed and signed in, and
-PowerShell.
+PowerShell. There is no fixed minimum Codex file version. New Codex builds are accepted when their
+title bar exposes the validated semantic UI structure; an unknown or unsafe structure remains
+fail-hidden until it can be validated.
 
 #### Manual setup install
 
-1. Open the [v0.3.0 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.0) and download only
-   [`codex-usage-sidebar-v0.3.0-windows-x64-setup.exe`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe) plus `WINDOWS-V030-SHA256SUMS.txt`.
+1. Open the [v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2) and download only
+   `codex-usage-sidebar-v0.3.2-windows-x64-setup.exe` plus `WINDOWS-V032-SHA256SUMS.txt`.
 2. Verify the setup SHA-256 before launching it:
 
    ```powershell
-   Get-FileHash .\codex-usage-sidebar-v0.3.0-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+   Get-FileHash .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
    ```
 
-   Expected SHA-256:
-
-   ```text
-   7ca231489d550bee708b0138cb7f5afd51c5a31f09e32cba3151d75d8bc2a9e3
-   ```
-
-   Compare it case-insensitively with the matching entry in `WINDOWS-V030-SHA256SUMS.txt`.
+   Compare it case-insensitively with the matching entry in `WINDOWS-V032-SHA256SUMS.txt`.
 3. Run the verified setup for the current user:
 
    ```powershell
-   Start-Process .\codex-usage-sidebar-v0.3.0-windows-x64-setup.exe
+   Start-Process .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe
    ```
 
 4. The setup is intentionally unsigned (`NotSigned`), so Windows may show **Unknown publisher**.
@@ -140,9 +143,9 @@ of guessing coordinates. See [Installation and operations](docs/INSTALL.md) for 
 Give your Windows coding agent this task:
 
 ```text
-Install Codex Usage Sidebar v0.3.0 from the GitHub Release on this Windows 11 AMD64/x64 machine.
-Download codex-usage-sidebar-v0.3.0-windows-x64-setup.exe and WINDOWS-V030-SHA256SUMS.txt only,
-verify the setup SHA-256 is 7ca231489d550bee708b0138cb7f5afd51c5a31f09e32cba3151d75d8bc2a9e3, run the setup only if the digest matches, and report the install
+Install Codex Usage Sidebar v0.3.2 from the GitHub Release on this Windows 11 AMD64/x64 machine.
+Download codex-usage-sidebar-v0.3.2-windows-x64-setup.exe and WINDOWS-V032-SHA256SUMS.txt only,
+verify the setup SHA-256 against the matching release entry, run the setup only if the digest matches, and report the install
 path and runtime status. Do not disable or bypass Defender, SmartScreen, antivirus, or system policy.
 If an installer, SmartScreen, uninstall, or Windows security dialog appears, stop and ask me for
 immediate confirmation before clicking it.
@@ -155,7 +158,10 @@ the deterministic playbook.
 
 ### macOS 14+ Apple Silicon
 
-Requirements: Codex desktop for macOS, macOS 14 or later, Apple Silicon, and the `codex` CLI.
+Requirements: Codex desktop for macOS, macOS 14 or later, Apple Silicon, and the `codex` CLI with
+plugin support. The installer does not pin a Codex version. It searches the standard locations and
+the current `PATH`; a CLI release is compatible when it provides the `plugin marketplace` and
+`plugin add` commands used by the installer.
 
 #### Download the installer
 
@@ -229,7 +235,7 @@ companion never modifies Codex internals.
 
 ## Language matching
 
-Version 0.2.3 follows the language Codex is actually displaying. An explicit Codex language choice
+Version 0.3.1 follows the language Codex is actually displaying. An explicit Codex language choice
 is authoritative; when Codex is set to **Auto**, the running renderer's resolved locale is used.
 Codex preferences and the macOS preferred language remain safe startup fallbacks.
 
@@ -286,7 +292,7 @@ Read the complete [privacy model](docs/PRIVACY.md), [architecture](docs/ARCHITEC
 A healthy precise-positioning result includes the state from the actual LaunchAgent process:
 
 ```text
-pid=12345 version=0.2.3 runtime=shown placement=content-header anchor=labeledControl
+pid=12345 version=0.3.1 runtime=shown placement=content-header anchor=labeledControl
 language=simplifiedChinese language_source=process
 indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app

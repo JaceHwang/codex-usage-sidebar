@@ -10,6 +10,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../CodexUsageSidebar.Core/CodexUsageSidebar.Core.csproj" />
+    <Resource Include="../../../assets/quota-icon-light.png" Link="Assets/quota-icon-light.png" />
+    <Resource Include="../../../assets/quota-icon-dark.png" Link="Assets/quota-icon-dark.png" />
     <Using Include="System.IO" />
   </ItemGroup>
 </Project>

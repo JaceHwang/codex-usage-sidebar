@@ -2,23 +2,18 @@
 
 ## Windows 11 AMD64/x64
 
-Windows `v0.3.0` supports Windows 11 on AMD64/x64 only; Windows ARM64 is not supported. The current-user setup is unsigned (`NotSigned`)
+Windows `v0.3.1` supports Windows 11 on AMD64/x64 only; Windows ARM64 is not supported. The current-user setup is unsigned (`NotSigned`)
 and does not require administrator privileges.
 
 ### Download and verify
 
-From the [v0.3.0 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.0), download only
-[`codex-usage-sidebar-v0.3.0-windows-x64-setup.exe`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.0/codex-usage-sidebar-v0.3.0-windows-x64-setup.exe) and `WINDOWS-V030-SHA256SUMS.txt`. Before launching the setup,
+After the Windows v0.3.1 real-device gate is published, download only
+`codex-usage-sidebar-v0.3.1-windows-x64-setup.exe` and `WINDOWS-V031-SHA256SUMS.txt` from the
+[v0.3.1 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.1). Before launching the setup,
 calculate its SHA-256:
 
 ```powershell
-Get-FileHash .\codex-usage-sidebar-v0.3.0-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
-```
-
-Expected SHA-256:
-
-```text
-7ca231489d550bee708b0138cb7f5afd51c5a31f09e32cba3151d75d8bc2a9e3
+Get-FileHash .\codex-usage-sidebar-v0.3.1-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
 ```
 
 Compare the digest case-insensitively with the matching checksum-file entry. A matching digest is
@@ -31,7 +26,7 @@ system policy.
 Run the verified setup normally to install for the current user:
 
 ```powershell
-Start-Process .\codex-usage-sidebar-v0.3.0-windows-x64-setup.exe
+Start-Process .\codex-usage-sidebar-v0.3.1-windows-x64-setup.exe
 ```
 
 Because this public setup is unsigned, Windows may show **Unknown publisher**. Only after the
@@ -64,7 +59,7 @@ the deterministic prompt and evidence checklist.
 
 ### Validation boundary
 
-The `v0.3.0` Windows setup passed automated gates and the limited x64 smoke record only; the
+The `v0.3.1` Windows source has passed the portable automated gates; the
 130-case Windows manual matrix is incomplete. Do not claim full real-device setup lifecycle
 validation unless you have run that validation on the target machine. Unknown or unsupported UI
 Automation structures hide the overlay; no coordinates are guessed.
@@ -74,7 +69,7 @@ Automation structures hide the overlay; no coordinates are guessed.
 - macOS 14 or later
 - Apple Silicon Mac (`arm64`)
 - Codex desktop app installed and running
-- `codex` CLI with plugin support
+- `codex` CLI with plugin support; no fixed Codex CLI version is required
 
 Verify the CLI before installing:
 
@@ -82,6 +77,12 @@ Verify the CLI before installing:
 codex --version
 codex plugin --help
 ```
+
+The installer does not compare the version printed by `codex --version`. It discovers `codex` in
+the standard Homebrew/system locations and the current `PATH`, then relies on the command surface
+advertised by `codex plugin --help`. A CLI that predates the plugin marketplace commands cannot
+install this plugin until Codex adds that capability; this is a feature-capability check, not a
+hard-coded version gate.
 
 ## Install with the graphical installer
 

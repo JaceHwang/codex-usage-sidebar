@@ -3,6 +3,35 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Add current-cycle daily and total token usage to the native quota popover.
+- Add a compact borderless GitHub project link to the footer with the official GitHub mark,
+  theme-aware hover shadow, and direct navigation to the repository.
+- Add Codex account identity to the footer and refresh the visual documentation for light and dark
+  themes.
+
+### Changed
+
+- Remove the outer quota-card stroke while retaining the native shadow and internal separators.
+- Keep the footer GitHub control compact, rounded, and visually quiet until hovered.
+
+## [0.3.1] - 2026-08-21
+
+### Added
+
+- Publish the current native quota card, themed quota icons, account footer, token-usage chart,
+  reset countdown emphasis, and adaptive titlebar fallback as the v0.3.1 source payload.
+- Refresh the English and Simplified Chinese README screenshots with the current light and dark
+  theme rendering.
+
+### Fixed
+
+- Keep the quota control visible in the reserved right titlebar position while the middle tab
+  continues shrinking and no reliable native anchor remains.
+
 ## [0.3.0] - 2026-08-13
 
 ### Added

@@ -23,6 +23,7 @@ final class OverlayPanel: NSObject {
 
     private let panel: NSPanel
     private let textField: NSTextField
+    private let indicatorIconView = QuotaThemeIconView(frame: .zero)
     private let pillView = NSView()
     private let detailPanel = QuotaDetailPanel()
     private var hoverTimer: Timer?
@@ -31,6 +32,14 @@ final class OverlayPanel: NSObject {
     private var isIndicatorVisible = false
     private var isHoveringIndicator = false
     private var detailInteraction = QuotaDetailInteractionState()
+    private lazy var externalLinkActivator = QuotaExternalLinkActivator(
+        dismiss: { [weak self] in
+            self?.dismissDetailForExternalNavigation()
+        },
+        open: { destination in
+            NSWorkspace.shared.open(destination)
+        }
+    )
 
     override init() {
         panel = PassivePanel(
@@ -55,6 +64,7 @@ final class OverlayPanel: NSObject {
         pillView.wantsLayer = true
         pillView.layer?.cornerRadius = 10
         pillView.layer?.borderWidth = 0
+        indicatorIconView.wantsLayer = true
         textField.isBezeled = false
         textField.drawsBackground = false
         textField.isEditable = false
@@ -66,6 +76,10 @@ final class OverlayPanel: NSObject {
         guard let contentView = panel.contentView else {
             return
         }
+        detailPanel.onOpenURL = { [weak self] destination in
+            self?.externalLinkActivator.activate(destination)
+        }
+        pillView.addSubview(indicatorIconView)
         contentView.addSubview(pillView)
         contentView.addSubview(textField)
         contentView.addGestureRecognizer(
@@ -88,6 +102,7 @@ final class OverlayPanel: NSObject {
         panel.appearance = appearance
         panel.contentView?.appearance = appearance
         pillView.appearance = appearance
+        indicatorIconView.updateAppearance(appearance)
         textField.appearance = appearance
         appearance.performAsCurrentDrawingAppearance {
             textField.attributedStringValue = attributedLabel(
@@ -105,15 +120,36 @@ final class OverlayPanel: NSObject {
         let controlSurface = OverlayLayout.controlSurfaceFrame(in: indicatorBounds)
         pillView.isHidden = false
         pillView.frame = controlSurface
-        textField.frame = OverlayLayout.centeredTextFrame(
-            in: controlSurface,
-            intrinsicHeight: textField.intrinsicContentSize.height,
-            horizontalInset: 8
+        let iconSize = min(20, max(0, controlSurface.height - 8))
+        indicatorIconView.frame = CGRect(
+            x: 6,
+            y: floor((controlSurface.height - iconSize) / 2),
+            width: iconSize,
+            height: iconSize
+        )
+        let textHeight = max(
+            0,
+            min(textField.intrinsicContentSize.height, controlSurface.height)
+        )
+        textField.frame = CGRect(
+            x: controlSurface.minX + iconSize + 12,
+            y: controlSurface.minY + floor((controlSurface.height - textHeight) / 2),
+            width: max(0, controlSurface.width - iconSize - 20),
+            height: textHeight
         )
         updateControlAppearance()
         panel.orderFrontRegardless()
         updateDetailVisibility()
         startHoverTimerIfNeeded()
+    }
+
+    func preferredIndicatorWidth(label: String, remainingPercent: Int) -> CGFloat {
+        let measuredLabel = attributedLabel(
+            label,
+            remainingPercent: remainingPercent,
+            alignment: .left
+        ).size().width
+        return OverlayLayout.indicatorWidth(for: measuredLabel)
     }
 
     func hide() {
@@ -125,10 +161,16 @@ final class OverlayPanel: NSObject {
     }
 
     func reposition(to frame: CGRect) {
-        guard isIndicatorVisible, panel.frame != frame else {
+        guard isIndicatorVisible else {
             return
         }
-        panel.setFrame(frame, display: true)
+        if panel.frame != frame {
+            panel.setFrame(frame, display: true)
+        }
+        // Codex can rebuild/reorder its title-bar views while a side pane is
+        // being resized. Reassert the non-activating panel's z-order so the
+        // fallback indicator cannot be covered by the host window.
+        panel.orderFrontRegardless()
     }
 
     private func attributedLabel(
@@ -239,6 +281,13 @@ final class OverlayPanel: NSObject {
         } else {
             detailPanel.hide()
         }
+    }
+
+    private func dismissDetailForExternalNavigation() {
+        detailInteraction.reset()
+        isHoveringIndicator = false
+        detailPanel.hide()
+        updateControlAppearance()
     }
 
     private func updateControlAppearance() {

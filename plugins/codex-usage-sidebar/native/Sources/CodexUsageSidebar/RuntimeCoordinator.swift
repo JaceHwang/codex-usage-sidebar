@@ -3,6 +3,33 @@ import Foundation
 import SidebarCore
 
 @MainActor
+struct RuntimeTokenUsageState {
+    private(set) var allowanceSnapshot: AllowanceSnapshot?
+    private(set) var tokenUsageSnapshot: TokenUsageSnapshot?
+
+    var hasAllowanceSnapshot: Bool {
+        allowanceSnapshot != nil
+    }
+
+    mutating func receive(_ snapshot: AllowanceSnapshot) {
+        allowanceSnapshot = snapshot
+    }
+
+    mutating func receive(_ snapshot: TokenUsageSnapshot) {
+        guard snapshot.availability == .available ||
+                tokenUsageSnapshot?.availability != .available
+        else {
+            return
+        }
+        tokenUsageSnapshot = snapshot
+    }
+
+    mutating func clearTokenUsageForAppServerReplacement() {
+        tokenUsageSnapshot = nil
+    }
+}
+
+@MainActor
 final class RuntimeCoordinator: NSObject {
     private let overlay = OverlayPanel()
     private let accessibility = AccessibilityLocator()
@@ -18,23 +45,41 @@ final class RuntimeCoordinator: NSObject {
     private var host: HostInstallation?
     private var client: AppServerClient?
     private var clientStartedAt: Date?
-    private var snapshot: AllowanceSnapshot?
+    private var snapshotState = RuntimeTokenUsageState()
+    private var accountIdentity: AccountIdentity?
+    private var snapshot: AllowanceSnapshot? {
+        snapshotState.allowanceSnapshot
+    }
+    private var tokenUsageSnapshot: TokenUsageSnapshot? {
+        snapshotState.tokenUsageSnapshot
+    }
     private var snapshotTask: Task<Void, Never>?
+    private var tokenUsageTask: Task<Void, Never>?
+    private var accountTask: Task<Void, Never>?
     private var timer: Timer?
     private var layoutTimer: Timer?
     private var nextPeriodicRefresh = Date.distantPast
     private var nextResetRefresh: Date?
+    private var currentIndicatorWidth = OverlayLayout.indicatorWidth
     private var lastDiagnosticState: String?
     private var languageState = RuntimeLanguageState()
     private let appServerEnvironmentOverrides: [String: String]
     private let runtimeStateURL: URL?
+    private let appServerClientFactory: (HostInstallation) -> AppServerClient
 
     init(
         appServerEnvironmentOverrides: [String: String] = [:],
-        runtimeStateURL: URL? = nil
+        runtimeStateURL: URL? = nil,
+        appServerClientFactory: ((HostInstallation) -> AppServerClient)? = nil
     ) {
         self.appServerEnvironmentOverrides = appServerEnvironmentOverrides
         self.runtimeStateURL = runtimeStateURL
+        self.appServerClientFactory = appServerClientFactory ?? { host in
+            AppServerClient(
+                executableURL: host.appServerExecutableURL,
+                environmentOverrides: appServerEnvironmentOverrides
+            )
+        }
         super.init()
     }
 
@@ -89,6 +134,10 @@ final class RuntimeCoordinator: NSObject {
         layoutTimer = nil
         snapshotTask?.cancel()
         snapshotTask = nil
+        tokenUsageTask?.cancel()
+        tokenUsageTask = nil
+        accountTask?.cancel()
+        accountTask = nil
         if let client {
             Task {
                 await client.stop()
@@ -96,6 +145,7 @@ final class RuntimeCoordinator: NSObject {
         }
         client = nil
         clientStartedAt = nil
+        accountIdentity = nil
         hideOverlay()
     }
 
@@ -148,18 +198,7 @@ final class RuntimeCoordinator: NSObject {
             hideOverlay()
             return
         }
-        let anchor = contentHeader.resolve(
-            for: processIdentifier,
-            windowFrame: windowFrame
-        )
-        let indicatorFrame = OverlayLayout.indicatorFrame(
-            in: windowFrame,
-            contentTrailingEdge: anchor.trailingEdge
-        )
-        let maximumLabelWidth = min(
-            OverlayLayout.indicatorWidth,
-            max(70, indicatorFrame.width)
-        )
+        let maximumLabelWidth = OverlayLayout.maximumIndicatorWidth - 44
         let label = formatter.label(
             snapshot: snapshot,
             now: Date(),
@@ -167,16 +206,35 @@ final class RuntimeCoordinator: NSObject {
             timeZone: .autoupdatingCurrent,
             maxWidth: maximumLabelWidth
         )
-        let detail = detailFormatter.content(
-            snapshot: snapshot,
-            now: Date(),
-            language: languageState.language,
-            timeZone: .autoupdatingCurrent
+        let resolvedIndicatorWidth = overlay.preferredIndicatorWidth(
+            label: label,
+            remainingPercent: snapshot.remainingPercent
         )
+        currentIndicatorWidth = resolvedIndicatorWidth
+        let anchor = contentHeader.resolve(
+            for: processIdentifier,
+            windowFrame: windowFrame,
+            indicatorWidth: resolvedIndicatorWidth
+        )
+        guard !contentHeader.isSettingsPage else {
+            recordDiagnosticState("hidden:settings")
+            hideOverlay()
+            return
+        }
+        let resolvedIndicatorFrame = OverlayLayout.indicatorFrame(
+            in: windowFrame,
+            contentTrailingEdge: anchor.trailingEdge,
+            width: resolvedIndicatorWidth
+        )
+        guard let detail = detailContent() else {
+            recordDiagnosticState("hidden:no-snapshot")
+            hideOverlay()
+            return
+        }
         overlay.show(
             snapshot: snapshot,
             label: label,
-            indicatorFrame: indicatorFrame,
+            indicatorFrame: resolvedIndicatorFrame,
             theme: currentTheme,
             detail: detail,
             dimmed: freshness == .dimmed
@@ -184,10 +242,10 @@ final class RuntimeCoordinator: NSObject {
 
         recordDiagnosticState(
             "shown placement=content-header anchor=\(anchor.source.rawValue) " +
-                "indicator=\(Int(indicatorFrame.minX))," +
-                "\(Int(indicatorFrame.minY))," +
-                "\(Int(indicatorFrame.width))," +
-                "\(Int(indicatorFrame.height)) " +
+                "indicator=\(Int(resolvedIndicatorFrame.minX))," +
+                "\(Int(resolvedIndicatorFrame.minY))," +
+                "\(Int(resolvedIndicatorFrame.width))," +
+                "\(Int(resolvedIndicatorFrame.height)) " +
                 contentHeader.latestDiagnosticDetail
         )
     }
@@ -238,15 +296,23 @@ final class RuntimeCoordinator: NSObject {
         }
         let anchor = contentHeader.resolve(
             for: processIdentifier,
-            windowFrame: windowFrame
+            windowFrame: windowFrame,
+            indicatorWidth: currentIndicatorWidth
         )
-        guard anchor.trailingEdge != nil else {
+        guard !contentHeader.isSettingsPage else {
+            hideOverlay()
             return
         }
+        // A missing content anchor is an expected state while Codex is
+        // resizing the middle tab or rebuilding its toolbar. Keep the
+        // indicator alive in the independent right-side fallback slot
+        // instead of leaving the previous frame behind (or skipping the
+        // update entirely).
         overlay.reposition(
             to: OverlayLayout.indicatorFrame(
                 in: windowFrame,
-                contentTrailingEdge: anchor.trailingEdge
+                contentTrailingEdge: anchor.trailingEdge,
+                width: currentIndicatorWidth
             )
         )
     }
@@ -357,9 +423,33 @@ final class RuntimeCoordinator: NSObject {
             "language_source=\(source)"
     }
 
-    private func replaceClient(using host: HostInstallation?) {
+    func detailContent(
+        now: Date = Date(),
+        language: CodexDisplayLanguage? = nil,
+        timeZone: TimeZone = .autoupdatingCurrent
+    ) -> QuotaDetailContent? {
+        guard let snapshot else {
+            return nil
+        }
+        return detailFormatter.content(
+            snapshot: snapshot,
+            tokenUsage: tokenUsageSnapshot,
+            footerName: accountIdentity?.preferredName,
+            footerAvatarURL: accountIdentity?.avatarURL,
+            now: now,
+            language: language ?? languageState.language,
+            timeZone: timeZone
+        )
+    }
+
+    func replaceClient(using host: HostInstallation?) {
         snapshotTask?.cancel()
         snapshotTask = nil
+        tokenUsageTask?.cancel()
+        tokenUsageTask = nil
+        accountTask?.cancel()
+        accountTask = nil
+        snapshotState.clearTokenUsageForAppServerReplacement()
         if let oldClient = client {
             Task {
                 await oldClient.stop()
@@ -367,16 +457,14 @@ final class RuntimeCoordinator: NSObject {
         }
         client = nil
         clientStartedAt = nil
+        accountIdentity = nil
 
         guard let host else {
             hideOverlay()
             return
         }
 
-        let newClient = AppServerClient(
-            executableURL: host.appServerExecutableURL,
-            environmentOverrides: appServerEnvironmentOverrides
-        )
+        let newClient = appServerClientFactory(host)
         client = newClient
         clientStartedAt = Date()
         snapshotTask = Task { [weak self] in
@@ -387,17 +475,44 @@ final class RuntimeCoordinator: NSObject {
                 self?.received(value)
             }
         }
+        tokenUsageTask = Task { [weak self] in
+            for await value in newClient.tokenUsages {
+                guard !Task.isCancelled else {
+                    break
+                }
+                self?.receivedTokenUsage(value)
+            }
+        }
+        accountTask = Task { [weak self] in
+            for await value in newClient.accounts {
+                guard !Task.isCancelled else {
+                    break
+                }
+                self?.receivedAccount(value)
+            }
+        }
         Task {
             try? await newClient.start()
+            try? await newClient.readAccount()
         }
     }
 
     private func received(_ newSnapshot: AllowanceSnapshot) {
-        snapshot = newSnapshot
+        snapshotState.receive(newSnapshot)
         nextResetRefresh = policy.nextResetRefresh(
             resetsAt: newSnapshot.resetsAt
         )
         refreshNow(reason: .notification)
+        reconcileOverlay()
+    }
+
+    private func receivedTokenUsage(_ newSnapshot: TokenUsageSnapshot) {
+        snapshotState.receive(newSnapshot)
+        reconcileOverlay()
+    }
+
+    private func receivedAccount(_ identity: AccountIdentity) {
+        accountIdentity = identity
         reconcileOverlay()
     }
 

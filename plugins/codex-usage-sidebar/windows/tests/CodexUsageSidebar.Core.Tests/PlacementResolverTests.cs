@@ -6,7 +6,7 @@ namespace CodexUsageSidebar.Core.Tests;
 public sealed class PlacementResolverTests
 {
     [TestMethod]
-    public void UsesTheExactOpenLocationSlotWhenTheCompleteFrameClearsTheTitle()
+    public void UsesTheRightmostTitlebarSlotBeforeTheFirstNativeButton()
     {
         var result = PlacementResolver.ResolveResponsive(
             toolbarBounds: new RectD(478, 70, 2522, 92),
@@ -22,6 +22,29 @@ public sealed class PlacementResolverTests
             ],
             rightToolbarBounds: default,
             rightObstacles: []);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(PlacementSurface.Content, result.Value.Surface);
+        Assert.AreEqual(new RectD(2276, 88, 328, 56), result.Value.Frame);
+    }
+
+    [TestMethod]
+    public void PrefersTheMiddleTitlebarWhenItHasEnoughSpaceEvenIfTheRightPaneIsAvailable()
+    {
+        var result = PlacementResolver.ResolveResponsive(
+            toolbarBounds: new RectD(478, 70, 2522, 92),
+            openLocationBounds: new RectD(2620, 88, 182, 56),
+            titleBounds: new RectD(494, 88, 542, 56),
+            indicatorWidth: 328,
+            gap: 16,
+            localObstacles:
+            [
+                new RectD(2620, 88, 182, 56),
+                new RectD(2802, 88, 46, 56),
+                new RectD(2860, 88, 56, 56),
+            ],
+            rightToolbarBounds: new RectD(1395, 70, 1461, 92),
+            rightObstacles: [new RectD(2856, 88, 56, 56)]);
 
         Assert.IsNotNull(result);
         Assert.AreEqual(PlacementSurface.Content, result.Value.Surface);
@@ -69,6 +92,24 @@ public sealed class PlacementResolverTests
 
         Assert.IsNotNull(result);
         Assert.AreEqual(new RectD(2256, 88, 328, 56), result.Value.Frame);
+    }
+
+    [TestMethod]
+    public void AllowsTheRightToolbarFallbackToUseItsOwnGap()
+    {
+        var result = PlacementResolver.ResolveResponsive(
+            new RectD(478, 70, 2522, 92),
+            new RectD(1069, 88, 183, 56),
+            new RectD(494, 88, 533, 56),
+            328,
+            16,
+            [new RectD(1069, 88, 183, 56)],
+            new RectD(1395, 70, 1461, 92),
+            [new RectD(2856, 88, 56, 56)],
+            0);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(new RectD(2528, 88, 328, 56), result.Value.Frame);
     }
 
     [TestMethod]

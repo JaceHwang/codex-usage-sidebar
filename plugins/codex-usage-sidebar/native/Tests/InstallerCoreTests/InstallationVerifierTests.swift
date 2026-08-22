@@ -4,8 +4,8 @@ import XCTest
 final class InstallationVerifierTests: XCTestCase {
     func testVerificationRequiresAuthenticatedGrantedHealthyRuntimeEvidence() {
         let report = InstallationVerifier.evaluate(
-            statusOutput: "pid=42 version=0.3.0 runtime=shown placement=content-header",
-            expectedVersion: "0.3.0",
+            statusOutput: "pid=42 version=0.3.1 runtime=shown placement=content-header",
+            expectedVersion: "0.3.1",
             statusCommandSucceeded: true,
             loginCommandSucceeded: true,
             accessibilityOutput: "host=found app_server=found accessibility=granted",
@@ -14,13 +14,13 @@ final class InstallationVerifierTests: XCTestCase {
 
         XCTAssertTrue(report.isHealthy)
         XCTAssertEqual(report.pid, 42)
-        XCTAssertEqual(report.version, "0.3.0")
+        XCTAssertEqual(report.version, "0.3.1")
     }
 
     func testVerificationReportsEveryMissingHealthSignal() {
         let report = InstallationVerifier.evaluate(
             statusOutput: "pid=none version=0.2.2",
-            expectedVersion: "0.3.0",
+            expectedVersion: "0.3.1",
             statusCommandSucceeded: false,
             loginCommandSucceeded: false,
             accessibilityOutput: "host=missing app_server=missing accessibility=required",
@@ -46,8 +46,8 @@ final class InstallationVerifierTests: XCTestCase {
 
     func testVerificationRejectsUnauthenticatedIsolatedCodexHome() {
         let report = InstallationVerifier.evaluate(
-            statusOutput: "pid=42 version=0.3.0 runtime=shown placement=content-header",
-            expectedVersion: "0.3.0",
+            statusOutput: "pid=42 version=0.3.1 runtime=shown placement=content-header",
+            expectedVersion: "0.3.1",
             statusCommandSucceeded: true,
             loginCommandSucceeded: false,
             accessibilityOutput: "host=found app_server=found accessibility=granted",
@@ -60,8 +60,8 @@ final class InstallationVerifierTests: XCTestCase {
 
     func testVerificationRejectsAccessibilityRequiredFromInstalledCompanion() {
         let report = InstallationVerifier.evaluate(
-            statusOutput: "pid=42 version=0.3.0 runtime=shown placement=content-header",
-            expectedVersion: "0.3.0",
+            statusOutput: "pid=42 version=0.3.1 runtime=shown placement=content-header",
+            expectedVersion: "0.3.1",
             statusCommandSucceeded: true,
             loginCommandSucceeded: true,
             accessibilityOutput: "host=found app_server=found accessibility=required",
@@ -74,16 +74,16 @@ final class InstallationVerifierTests: XCTestCase {
 
     func testVerificationRejectsNoHostAndNoSnapshotStates() {
         let noHost = InstallationVerifier.evaluate(
-            statusOutput: "pid=42 version=0.3.0 runtime=hidden:no-running-host",
-            expectedVersion: "0.3.0",
+            statusOutput: "pid=42 version=0.3.1 runtime=hidden:no-running-host",
+            expectedVersion: "0.3.1",
             statusCommandSucceeded: true,
             loginCommandSucceeded: true,
             accessibilityOutput: "host=missing app_server=missing accessibility=unknown",
             accessibilityCommandSucceeded: true
         )
         let noSnapshot = InstallationVerifier.evaluate(
-            statusOutput: "pid=42 version=0.3.0 runtime=hidden:no-snapshot",
-            expectedVersion: "0.3.0",
+            statusOutput: "pid=42 version=0.3.1 runtime=hidden:no-snapshot",
+            expectedVersion: "0.3.1",
             statusCommandSucceeded: true,
             loginCommandSucceeded: true,
             accessibilityOutput: "host=found app_server=found accessibility=granted",
@@ -98,8 +98,8 @@ final class InstallationVerifierTests: XCTestCase {
 
     func testForegroundInstallerMayObserveLegitimateNotForegroundRuntime() {
         let report = InstallationVerifier.evaluate(
-            statusOutput: "pid=42 version=0.3.0 runtime=hidden:not-foreground",
-            expectedVersion: "0.3.0",
+            statusOutput: "pid=42 version=0.3.1 runtime=hidden:not-foreground",
+            expectedVersion: "0.3.1",
             statusCommandSucceeded: true,
             loginCommandSucceeded: true,
             accessibilityOutput: "host=found app_server=found accessibility=granted",

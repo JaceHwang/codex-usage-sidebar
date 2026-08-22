@@ -98,3 +98,81 @@ public enum RateLimitDecodingError: Error, Equatable, Sendable {
     case missingResetTime
     case invalidNumber
 }
+
+public enum TokenUsageAvailability: Equatable, Sendable {
+    case available
+    case unavailable
+    case unsupported
+}
+
+public struct TokenUsageDay: Equatable, Sendable {
+    public let date: Date
+    public let tokens: Int64
+
+    public init(date: Date, tokens: Int64, timeZone: TimeZone = .current) {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        self.date = calendar.startOfDay(for: date)
+        self.tokens = tokens
+    }
+}
+
+public struct TokenUsageSummary: Equatable, Sendable {
+    public let lifetimeTokens: Int64?
+    public let peakDailyTokens: Int64?
+    public let longestRunningTurnSec: Int?
+    public let currentStreakDays: Int?
+    public let longestStreakDays: Int?
+
+    public init(
+        lifetimeTokens: Int64?,
+        peakDailyTokens: Int64?,
+        longestRunningTurnSec: Int?,
+        currentStreakDays: Int?,
+        longestStreakDays: Int?
+    ) {
+        self.lifetimeTokens = lifetimeTokens
+        self.peakDailyTokens = peakDailyTokens
+        self.longestRunningTurnSec = longestRunningTurnSec
+        self.currentStreakDays = currentStreakDays
+        self.longestStreakDays = longestStreakDays
+    }
+}
+
+public struct TokenUsageSnapshot: Equatable, Sendable {
+    public let receivedAt: Date
+    public let dailyBuckets: [TokenUsageDay]
+    public let summary: TokenUsageSummary?
+    public let availability: TokenUsageAvailability
+
+    public init(
+        receivedAt: Date,
+        dailyBuckets: [TokenUsageDay],
+        summary: TokenUsageSummary?,
+        availability: TokenUsageAvailability
+    ) {
+        self.receivedAt = receivedAt
+        self.dailyBuckets = dailyBuckets
+        self.summary = summary
+        self.availability = availability
+    }
+}
+
+public struct TokenUsageCycle: Equatable, Sendable {
+    public let dailyBuckets: [TokenUsageDay]
+    public let totalTokens: Int64
+
+    public init(dailyBuckets: [TokenUsageDay], totalTokens: Int64) {
+        self.dailyBuckets = dailyBuckets
+        self.totalTokens = totalTokens
+    }
+}
+
+public enum TokenUsageDecodingError: Error, Equatable, Sendable {
+    case invalidJSON
+    case unavailable
+    case unsupported
+    case invalidDate
+    case invalidTokens
+    case invalidNumber
+}

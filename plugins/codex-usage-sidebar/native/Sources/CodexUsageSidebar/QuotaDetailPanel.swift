@@ -12,6 +12,7 @@ final class QuotaDetailPanel {
     private var lastContent: QuotaDetailContent?
     private var lastIndicatorFrame: CGRect?
     private var lastTheme: CodexInterfaceTheme?
+    var onOpenURL: ((URL) -> Void)?
 
     init() {
         panel = PassivePanel(
@@ -60,16 +61,13 @@ final class QuotaDetailPanel {
             dx: -400,
             dy: -400
         )
-        let rowHeights = QuotaDetailRowMetrics.heights(
-            for: content.rows,
-            cardWidth: QuotaDetailLayout.width,
-            remainingPercent: content.remainingPercent
-        )
-        let panelFrame = QuotaDetailLayout.frame(
+        let resolvedLayout = QuotaDetailPanelResolvedLayout.resolve(
+            content: content,
             indicatorFrame: indicatorFrame,
-            rowContentHeight: rowHeights.reduce(0, +),
             visibleFrame: visibleFrame
         )
+        let rowHeights = resolvedLayout.rowHeights
+        let panelFrame = resolvedLayout.frame
         let appearance = theme.appKitAppearance
         panel.appearance = appearance
         var card: QuotaDetailCardView?
@@ -77,7 +75,10 @@ final class QuotaDetailPanel {
             card = QuotaDetailCardView(
                 frame: CGRect(origin: .zero, size: panelFrame.size),
                 content: content,
-                rowHeights: rowHeights
+                rowHeights: rowHeights,
+                onOpenURL: { [weak self] destination in
+                    self?.onOpenURL?(destination)
+                }
             )
             card?.appearance = appearance
         }
@@ -92,41 +93,80 @@ final class QuotaDetailPanel {
 }
 
 @MainActor
-private final class QuotaDetailCardView: NSView {
+struct QuotaDetailPanelResolvedLayout {
+    let frame: CGRect
+    let rowHeights: [CGFloat]
+
+    static func resolve(
+        content: QuotaDetailContent,
+        indicatorFrame: CGRect,
+        visibleFrame: CGRect
+    ) -> QuotaDetailPanelResolvedLayout {
+        let widthFrame = QuotaDetailLayout.frame(
+            indicatorFrame: indicatorFrame,
+            rowContentHeight: 0,
+            visibleFrame: visibleFrame,
+            tokenUsageVisible: content.tokenUsage != nil
+        )
+        let rowHeights = QuotaDetailRowMetrics.heights(
+            for: content.rows,
+            cardWidth: widthFrame.width,
+            remainingPercent: content.remainingPercent
+        )
+        let frame = QuotaDetailLayout.frame(
+            indicatorFrame: indicatorFrame,
+            rowContentHeight: rowHeights.reduce(0, +),
+            visibleFrame: visibleFrame,
+            tokenUsageVisible: content.tokenUsage != nil
+        )
+        return QuotaDetailPanelResolvedLayout(
+            frame: frame,
+            rowHeights: rowHeights
+        )
+    }
+}
+
+@MainActor
+final class QuotaDetailCardView: NSView {
     init(
         frame frameRect: NSRect,
         content: QuotaDetailContent,
-        rowHeights: [CGFloat]
+        rowHeights: [CGFloat],
+        version: String? = nil,
+        onOpenURL: @escaping (URL) -> Void
     ) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer?.cornerRadius = 12
+        layer?.cornerRadius = 18
         layer?.cornerCurve = .continuous
         layer?.masksToBounds = true
-        layer?.borderWidth = 0.5
-        layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        layer?.borderColor = NSColor.separatorColor.cgColor
+
+        let material = QuotaCardMaterialView(frame: bounds)
+        material.autoresizingMask = [.width, .height]
+        addSubview(material)
 
         let title = label(
             content.title,
-            font: .systemFont(ofSize: 13, weight: .semibold),
+            font: .systemFont(ofSize: 18, weight: .semibold),
             color: .labelColor,
             alignment: .left
         )
         title.lineBreakMode = .byTruncatingTail
 
-        let version = Bundle.main.object(
-            forInfoDictionaryKey: "CFBundleShortVersionString"
-        ) as? String ?? "dev"
-        let versionBadge = VersionBadgeView(text: "v\(version)")
+        let displayedVersion = version ?? (
+            Bundle.main.object(
+                forInfoDictionaryKey: "CFBundleShortVersionString"
+            ) as? String ?? "dev"
+        )
+        let versionBadge = VersionBadgeView(text: "v\(displayedVersion)")
 
         let remaining = label(
             "\(content.remainingPercent)%",
-            font: .systemFont(ofSize: 17, weight: .semibold),
+            font: .systemFont(ofSize: 28, weight: .semibold),
             color: QuotaColorScale.components(
                 remainingPercent: content.remainingPercent
             ).appKitColor,
-            alignment: .right
+            alignment: .left
         )
         let headerFrames = QuotaDetailLayout.headerFrames(
             in: bounds,
@@ -136,60 +176,109 @@ private final class QuotaDetailCardView: NSView {
             ),
             versionBadgeWidth: versionBadge.intrinsicContentSize.width
         )
+        let themeIcon = QuotaThemeIconView(frame: CGRect(
+            x: QuotaDetailLayout.contentHorizontalInset,
+            y: bounds.maxY - 50,
+            width: 32,
+            height: 32
+        ))
         title.frame = headerFrames.title
         versionBadge.frame = headerFrames.versionBadge
         remaining.frame = headerFrames.remaining
+        addSubview(themeIcon)
         addSubview(title)
         addSubview(versionBadge)
         addSubview(remaining)
 
         let progress = QuotaProgressView(
-            frame: CGRect(x: 12, y: bounds.height - 50, width: bounds.width - 24, height: 4),
+            frame: headerFrames.progress,
             value: content.remainingPercent
         )
         addSubview(progress)
 
-        let divider = NSBox(
-            frame: CGRect(x: 0, y: bounds.height - 66, width: bounds.width, height: 1)
+        let informationFrames = QuotaDetailLayout.informationFrames(
+            in: bounds,
+            tokenUsageVisible: content.tokenUsage != nil
         )
-        divider.boxType = .separator
-        addSubview(divider)
+        let topDivider = NSBox(
+            frame: informationFrames.topDivider
+        )
+        topDivider.boxType = .separator
+        addSubview(topDivider)
 
-        let rowAreaFrame = CGRect(
-            x: 0,
-            y: 8,
-            width: bounds.width,
-            height: max(0, bounds.height - QuotaDetailLayout.headerHeight - 8)
-        )
-        let rowDocumentHeight = rowHeights.reduce(0, +)
+        if let tokenUsage = content.tokenUsage {
+            let tokenUsageView = QuotaTokenUsageView(
+                frame: informationFrames.tokenBand,
+                presentation: tokenUsage,
+                remainingPercent: content.remainingPercent
+            )
+            addSubview(tokenUsageView)
+        }
+
+        if content.tokenUsage != nil {
+            let tokenDivider = NSBox(frame: informationFrames.tokenDivider)
+            tokenDivider.boxType = .separator
+            addSubview(tokenDivider)
+        }
+
+        let rowAreaFrame = informationFrames.rowArea
+        let scrollView = NSScrollView(frame: rowAreaFrame)
+        scrollView.drawsBackground = false
+        scrollView.borderType = .noBorder
+        scrollView.hasHorizontalScroller = false
+        scrollView.hasVerticalScroller = rowHeights.reduce(0, +) > rowAreaFrame.height
+        scrollView.autohidesScrollers = true
+
+        let rowContentWidth = scrollView.contentSize.width
+        let effectiveRowHeights = scrollView.hasVerticalScroller
+            ? QuotaDetailRowMetrics.heights(
+                for: content.rows,
+                cardWidth: rowContentWidth,
+                remainingPercent: content.remainingPercent
+            )
+            : rowHeights
+        let rowDocumentHeight = effectiveRowHeights.reduce(0, +)
         let rowDocument = FlippedView(
             frame: CGRect(
                 x: 0,
                 y: 0,
-                width: rowAreaFrame.width,
+                width: rowContentWidth,
                 height: max(rowAreaFrame.height, rowDocumentHeight)
             )
         )
 
         var rowY: CGFloat = 0
         for (index, row) in content.rows.enumerated() {
-            let rowHeight = rowHeights[index]
+            let rowHeight = effectiveRowHeights[index]
             let isStacked = rowHeight > QuotaDetailLayout.rowHeight
+            let icon = QuotaDetailIconView(
+                kind: QuotaDetailIconKind.kind(
+                    forRowAt: index,
+                    count: content.rows.count
+                )
+            )
+            icon.frame = CGRect(
+                x: QuotaDetailLayout.contentHorizontalInset,
+                y: rowY + 5,
+                width: 18,
+                height: 18
+            )
+            rowDocument.addSubview(icon)
             let rowLabel = label(
                 row.label,
                 font: QuotaDetailRowMetrics.labelFont,
-                color: .secondaryLabelColor,
+                color: .labelColor,
                 alignment: .left
             )
             let labelWidth = min(
-                108,
+                118,
                 ceil(rowLabel.intrinsicContentSize.width + 2)
             )
             rowLabel.frame = CGRect(
-                x: 12,
-                y: rowY + 3,
+                x: 42,
+                y: rowY + 7,
                 width: labelWidth,
-                height: 18
+                height: 16
             )
             rowDocument.addSubview(rowLabel)
 
@@ -199,42 +288,61 @@ private final class QuotaDetailCardView: NSView {
                 color: .labelColor,
                 alignment: .right
             )
-            value.attributedStringValue = QuotaCountdownTypography.string(
-                row.value,
+            value.attributedStringValue = QuotaDetailValueTypography.string(
+                for: row,
                 remainingPercent: content.remainingPercent
             )
             if isStacked {
-                let valueHeight = rowHeight - 22
-                value.maximumNumberOfLines = Int(valueHeight / 18)
+                let valueHeight = rowHeight - 18
+                value.maximumNumberOfLines = Int(valueHeight / 15)
                 value.lineBreakMode = .byCharWrapping
                 value.frame = CGRect(
-                    x: 12,
-                    y: rowY + 21,
-                    width: bounds.width - 24,
+                    x: 42,
+                    y: rowY + 18,
+                    width: rowContentWidth - 52,
                     height: valueHeight
                 )
             } else {
                 value.lineBreakMode = .byTruncatingTail
-                let valueX = max(68, rowLabel.frame.maxX + 6)
+                let valueX = max(148, rowLabel.frame.maxX + 10)
                 value.frame = CGRect(
                     x: valueX,
-                    y: rowY + 3,
-                    width: bounds.width - valueX - 12,
-                    height: 18
+                    y: rowY + 7,
+                    width: rowContentWidth - valueX - 12,
+                    height: 16
                 )
             }
             rowDocument.addSubview(value)
+            if index < content.rows.indices.last! {
+                let separator = NSBox(
+                    frame: CGRect(
+                        x: 42,
+                        y: rowY + rowHeight - 1,
+                        width: max(0, rowContentWidth - 54),
+                        height: 1
+                    )
+                )
+                separator.boxType = .separator
+                rowDocument.addSubview(separator)
+            }
             rowY += rowHeight
         }
 
-        let scrollView = NSScrollView(frame: rowAreaFrame)
-        scrollView.drawsBackground = false
-        scrollView.borderType = .noBorder
-        scrollView.hasHorizontalScroller = false
-        scrollView.hasVerticalScroller = rowDocumentHeight > rowAreaFrame.height
-        scrollView.autohidesScrollers = true
         scrollView.documentView = rowDocument
         addSubview(scrollView)
+
+        let footerDivider = NSBox(frame: informationFrames.footerDivider)
+        footerDivider.boxType = .separator
+        addSubview(footerDivider)
+        addSubview(
+            QuotaFooterView(
+                frame: informationFrames.footer,
+                name: content.footerName,
+                avatarSeed: content.footerName,
+                avatarURL: content.footerAvatarURL,
+                onOpenURL: onOpenURL
+            )
+        )
     }
 
     @available(*, unavailable)
@@ -259,10 +367,188 @@ private final class QuotaDetailCardView: NSView {
 }
 
 @MainActor
+private final class QuotaFooterView: NSView {
+    private static let projectURL = URL(string: "https://github.com/JaceHwang/codex-usage-sidebar")!
+
+    init(
+        frame frameRect: NSRect,
+        name: String?,
+        avatarSeed: String?,
+        avatarURL: URL?,
+        onOpenURL: @escaping (URL) -> Void
+    ) {
+        super.init(frame: frameRect)
+        let avatar = QuotaAvatarView(
+            frame: CGRect(x: 18, y: 8, width: 28, height: 28),
+            seed: avatarSeed,
+            avatarURL: avatarURL
+        )
+        addSubview(avatar)
+
+        let nameField = NSTextField(labelWithString: name ?? "Account")
+        nameField.font = .systemFont(ofSize: 13, weight: .regular)
+        nameField.textColor = .labelColor
+        nameField.lineBreakMode = .byTruncatingTail
+        nameField.frame = CGRect(x: 54, y: 14, width: 160, height: 18)
+        addSubview(nameField)
+
+        let github = QuotaFooterGitHubButton(
+            frame: CGRect(x: frameRect.width - 102, y: 9, width: 88, height: 30),
+            destination: Self.projectURL,
+            onActivate: onOpenURL
+        )
+        addSubview(github)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+}
+
+@MainActor
+final class QuotaFooterGitHubButton: NSButton {
+    private static let projectMark: NSImage = {
+        let svg = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path fill="#000" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.084-.73.084-.73 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.292-1.552 3.296-1.23 3.296-1.23.647 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.43.372.81 1.102.81 2.222 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.595 24 12.297c0-6.627-5.373-12-12-12"/>
+        </svg>
+        """
+        return NSImage(data: Data(svg.utf8))
+            ?? NSImage(systemSymbolName: "cat.fill", accessibilityDescription: "GitHub")
+            ?? NSImage(size: NSSize(width: 16, height: 16))
+    }()
+
+    private let iconView: NSImageView
+    private let titleLabel: NSTextField
+    private let destination: URL
+    private let onActivate: (URL) -> Void
+    private var hoverTrackingArea: NSTrackingArea?
+    private var isPointerInside = false
+
+    init(
+        frame frameRect: NSRect,
+        destination: URL,
+        onActivate: @escaping (URL) -> Void
+    ) {
+        self.destination = destination
+        self.onActivate = onActivate
+        iconView = NSImageView(image: Self.projectMark)
+        titleLabel = NSTextField(labelWithString: "GitHub")
+        super.init(frame: frameRect)
+        title = ""
+        isBordered = false
+        setButtonType(.momentaryPushIn)
+        contentTintColor = .secondaryLabelColor
+        iconView.image?.isTemplate = true
+        wantsLayer = true
+        layer?.cornerRadius = 15
+        layer?.cornerCurve = .continuous
+        layer?.masksToBounds = false
+        target = self
+        action = #selector(activateLink)
+        iconView.imageScaling = .scaleProportionallyUpOrDown
+        iconView.contentTintColor = .secondaryLabelColor
+        titleLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        titleLabel.textColor = .secondaryLabelColor
+        titleLabel.alignment = .left
+        titleLabel.isSelectable = false
+        titleLabel.isEditable = false
+        addSubview(iconView)
+        addSubview(titleLabel)
+        setAccessibilityElement(true)
+        setAccessibilityRole(.link)
+        setAccessibilityLabel("GitHub")
+        setAccessibilityHelp(destination.absoluteString)
+        updateAppearance()
+    }
+
+    @objc func activateLink() {
+        onActivate(destination)
+    }
+
+    override func layout() {
+        super.layout()
+        iconView.frame = CGRect(x: 10, y: 7, width: 16, height: 16)
+        titleLabel.frame = CGRect(x: 32, y: 6, width: bounds.width - 40, height: 18)
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let hoverTrackingArea {
+            removeTrackingArea(hoverTrackingArea)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        hoverTrackingArea = area
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearance()
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isPointerInside = true
+        updateAppearance()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isPointerInside = false
+        updateAppearance()
+    }
+
+    private func updateAppearance() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.labelColor
+                .withAlphaComponent(isPointerInside ? 0.08 : 0)
+                .cgColor
+            layer?.shadowColor = NSColor.black.cgColor
+            layer?.shadowOpacity = isPointerInside ? 0.22 : 0
+            layer?.shadowRadius = isPointerInside ? 8 : 0
+            layer?.shadowOffset = NSSize(width: 0, height: -1)
+            iconView.contentTintColor = .secondaryLabelColor
+            titleLabel.textColor = .secondaryLabelColor
+        }
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+}
+
+@MainActor
+final class QuotaReferenceTiboOutlineView: NSView {
+    override var isOpaque: Bool { false }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let outline = NSBezierPath(
+            roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5),
+            xRadius: 10,
+            yRadius: 10
+        )
+        QuotaChromeStyle.separatorColor.setStroke()
+        outline.lineWidth = QuotaChromeStyle.separatorLineWidth
+        outline.stroke()
+    }
+}
+
+@MainActor
 private final class VersionBadgeView: NSView {
     private let text: String
     private let font = NSFont.systemFont(
-        ofSize: 8,
+        ofSize: 12,
         weight: .medium
     )
 
@@ -275,7 +561,7 @@ private final class VersionBadgeView: NSView {
         let textSize = (text as NSString).size(
             withAttributes: [.font: font]
         )
-        return NSSize(width: ceil(textSize.width) + 10, height: 14)
+        return NSSize(width: ceil(textSize.width) + 14, height: 22)
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -286,13 +572,13 @@ private final class VersionBadgeView: NSView {
             xRadius: capsuleBounds.height / 2,
             yRadius: capsuleBounds.height / 2
         )
-        NSColor.systemBlue.withAlphaComponent(0.52).setStroke()
-        capsule.lineWidth = 0.75
+        QuotaChromeStyle.separatorColor.setStroke()
+        capsule.lineWidth = QuotaChromeStyle.separatorLineWidth
         capsule.stroke()
 
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: NSColor.systemBlue
+            .foregroundColor: NSColor.secondaryLabelColor
         ]
         let textSize = (text as NSString).size(withAttributes: attributes)
         let textPoint = CGPoint(
@@ -309,8 +595,235 @@ private final class VersionBadgeView: NSView {
 }
 
 @MainActor
+enum QuotaThemeIconAsset: Equatable {
+    case dark
+    case light
+
+    var resourceName: String {
+        switch self {
+        case .dark:
+            return "quota-icon-dark"
+        case .light:
+            return "quota-icon-light"
+        }
+    }
+
+    static func forAppearance(_ appearance: NSAppearance?) -> Self {
+        guard
+            let appearance,
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        else {
+            return .light
+        }
+        return .dark
+    }
+}
+
+@MainActor
+final class QuotaThemeIconView: NSView {
+    private var iconImage: NSImage?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        loadThemeIcon()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        loadThemeIcon()
+    }
+
+    override var isOpaque: Bool { false }
+
+    func updateAppearance(_ appearance: NSAppearance) {
+        self.appearance = appearance
+        appearance.performAsCurrentDrawingAppearance {
+            loadThemeIcon()
+        }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let circle = NSBezierPath(ovalIn: bounds.insetBy(dx: 0.5, dy: 0.5))
+        NSGraphicsContext.saveGraphicsState()
+        circle.addClip()
+        if let iconImage {
+            iconImage.draw(
+                in: bounds,
+                from: .zero,
+                operation: .sourceOver,
+                fraction: 1,
+                respectFlipped: true,
+                hints: [.interpolation: NSImageInterpolation.high]
+            )
+        } else {
+            let fallback = NSColor.controlBackgroundColor
+            fallback.setFill()
+            circle.fill()
+            NSColor.secondaryLabelColor.setStroke()
+            let ring = NSBezierPath(ovalIn: bounds.insetBy(dx: 4, dy: 4))
+            ring.lineWidth = 3
+            ring.stroke()
+        }
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    private func loadThemeIcon() {
+        let asset = QuotaThemeIconAsset.forAppearance(effectiveAppearance)
+        iconImage = Bundle.main.url(
+            forResource: asset.resourceName,
+            withExtension: "png"
+        ).flatMap(NSImage.init(contentsOf:))
+        needsDisplay = true
+    }
+}
+
+@MainActor
+private final class QuotaAvatarView: NSView {
+    private let seed: String?
+    private let avatarURL: URL?
+    private var remoteImage: NSImage?
+    private var imageLoadTask: Task<Void, Never>?
+
+    init(seed: String? = nil, avatarURL: URL? = nil) {
+        self.seed = seed
+        self.avatarURL = avatarURL
+        super.init(frame: .zero)
+        loadRemoteImageIfNeeded()
+    }
+
+    init(frame frameRect: NSRect, seed: String?, avatarURL: URL? = nil) {
+        self.seed = seed
+        self.avatarURL = avatarURL
+        super.init(frame: frameRect)
+        loadRemoteImageIfNeeded()
+    }
+
+    override convenience init(frame frameRect: NSRect) {
+        self.init(frame: frameRect, seed: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    deinit {
+        imageLoadTask?.cancel()
+    }
+
+    override var isOpaque: Bool { false }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let circle = NSBezierPath(ovalIn: bounds.insetBy(dx: 0.5, dy: 0.5))
+        NSGraphicsContext.saveGraphicsState()
+        circle.addClip()
+        let background = NSGradient(
+            starting: NSColor(calibratedRed: 0.18, green: 0.16, blue: 0.30, alpha: 1),
+            ending: NSColor(calibratedRed: 0.27, green: 0.33, blue: 0.55, alpha: 1)
+        )
+        background?.draw(in: bounds, angle: 35)
+
+        if let remoteImage {
+            remoteImage.draw(
+                in: bounds,
+                from: .zero,
+                operation: .sourceOver,
+                fraction: 1
+            )
+            NSGraphicsContext.restoreGraphicsState()
+            NSColor.separatorColor.withAlphaComponent(0.42).setStroke()
+            circle.lineWidth = 0.75
+            circle.stroke()
+            return
+        }
+
+        if let seed, let initial = seed.first {
+            NSGraphicsContext.restoreGraphicsState()
+            let text = String(initial).uppercased() as NSString
+            let font = NSFont.systemFont(
+                ofSize: bounds.width * 0.38,
+                weight: .semibold
+            )
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: NSColor.white.withAlphaComponent(0.9)
+            ]
+            let size = text.size(withAttributes: attributes)
+            text.draw(
+                at: CGPoint(
+                    x: floor((bounds.width - size.width) / 2),
+                    y: floor((bounds.height - size.height) / 2)
+                ),
+                withAttributes: attributes
+            )
+            NSColor.separatorColor.withAlphaComponent(0.42).setStroke()
+            circle.lineWidth = 0.75
+            circle.stroke()
+            return
+        }
+
+        let shoulders = NSBezierPath(roundedRect: CGRect(
+            x: bounds.midX - bounds.width * 0.33,
+            y: bounds.minY - 2,
+            width: bounds.width * 0.66,
+            height: bounds.height * 0.48
+        ), xRadius: bounds.width * 0.2, yRadius: bounds.width * 0.2)
+        NSColor(calibratedRed: 0.72, green: 0.48, blue: 0.32, alpha: 1).setFill()
+        shoulders.fill()
+
+        let face = NSBezierPath(ovalIn: CGRect(
+            x: bounds.midX - bounds.width * 0.22,
+            y: bounds.midY - bounds.height * 0.24,
+            width: bounds.width * 0.44,
+            height: bounds.height * 0.54
+        ))
+        NSColor(calibratedRed: 0.83, green: 0.64, blue: 0.46, alpha: 1).setFill()
+        face.fill()
+
+        let hair = NSBezierPath(ovalIn: CGRect(
+            x: bounds.midX - bounds.width * 0.30,
+            y: bounds.midY - bounds.height * 0.33,
+            width: bounds.width * 0.60,
+            height: bounds.height * 0.62
+        ))
+        NSColor(calibratedRed: 0.10, green: 0.08, blue: 0.07, alpha: 1).setFill()
+        hair.fill()
+        face.fill()
+        NSGraphicsContext.restoreGraphicsState()
+
+        NSColor.separatorColor.withAlphaComponent(0.42).setStroke()
+        circle.lineWidth = 0.75
+        circle.stroke()
+    }
+
+    private func loadRemoteImageIfNeeded() {
+        guard let avatarURL else {
+            return
+        }
+        imageLoadTask = Task { [weak self] in
+            guard
+                let (data, _) = try? await URLSession.shared.data(from: avatarURL),
+                let image = NSImage(data: data)
+            else {
+                return
+            }
+            self?.remoteImage = image
+            self?.needsDisplay = true
+        }
+    }
+}
+
+@MainActor
 private enum QuotaDetailRowMetrics {
-    static let labelFont = NSFont.systemFont(ofSize: 12, weight: .regular)
+    static let labelFont = NSFont.systemFont(ofSize: 13, weight: .semibold)
     static let valueFont = NSFont.systemFont(ofSize: 12, weight: .regular)
 
     static func heights(
@@ -319,12 +832,12 @@ private enum QuotaDetailRowMetrics {
         remainingPercent: Int
     ) -> [CGFloat] {
         rows.map { row in
-            let labelWidth = min(108, textWidth(row.label, font: labelFont) + 2)
-            let valueX = max(68, 12 + labelWidth + 6)
+            let labelWidth = min(118, textWidth(row.label, font: labelFont) + 2)
+            let valueX = max(148, 42 + labelWidth + 10)
             let columnWidth = max(1, cardWidth - valueX - 12)
             let measuredValueWidth = ceil(
-                QuotaCountdownTypography.string(
-                    row.value,
+                QuotaDetailValueTypography.string(
+                    for: row,
                     remainingPercent: remainingPercent
                 ).size().width
             )
@@ -332,7 +845,7 @@ private enum QuotaDetailRowMetrics {
                 return QuotaDetailLayout.rowHeight
             }
 
-            let fullWidth = max(1, cardWidth - 24)
+            let fullWidth = max(1, cardWidth - 54)
             let lineCount = max(1, Int(ceil(measuredValueWidth / fullWidth)))
             return 22 + CGFloat(lineCount) * 18
         }
@@ -350,11 +863,11 @@ private enum QuotaDetailRowMetrics {
 @MainActor
 private enum QuotaCountdownTypography {
     private static let digitFont = NSFont.systemFont(
-        ofSize: 14,
+        ofSize: 15,
         weight: .semibold
     )
     private static let unitFont = NSFont.systemFont(
-        ofSize: 10,
+        ofSize: 11,
         weight: .medium
     )
     private static let punctuationFont = NSFont.systemFont(
@@ -411,6 +924,33 @@ private enum QuotaCountdownTypography {
             range: NSRange(location: 0, length: result.length)
         )
         return result
+    }
+}
+
+@MainActor
+private enum QuotaDetailValueTypography {
+    static func string(
+        for row: QuotaDetailRow,
+        remainingPercent: Int
+    ) -> NSAttributedString {
+        switch row.valueStyle {
+        case .standard:
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = .right
+            return NSAttributedString(
+                string: row.value,
+                attributes: [
+                    .font: QuotaDetailRowMetrics.valueFont,
+                    .foregroundColor: NSColor.labelColor,
+                    .paragraphStyle: paragraph
+                ]
+            )
+        case .resetCountdown:
+            return QuotaCountdownTypography.string(
+                row.value,
+                remainingPercent: remainingPercent
+            )
+        }
     }
 }
 

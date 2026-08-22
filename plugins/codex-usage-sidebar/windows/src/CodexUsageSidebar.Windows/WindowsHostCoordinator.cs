@@ -5,7 +5,8 @@ namespace CodexUsageSidebar.Windows;
 public sealed class WindowsHostCoordinator
 {
     private const string FallbackBuildIdentity = "151.0.7922.76";
-    private const double IndicatorGap = 8;
+    private const double MiddleIndicatorGap = 0.5;
+    private const double RightIndicatorGap = 0;
     private readonly IHostWindowLocator locator;
     private readonly ITitlebarScanner scanner;
     private readonly IOverlaySurface overlay;
@@ -33,7 +34,9 @@ public sealed class WindowsHostCoordinator
     public async ValueTask<HostRuntimeState> ReconcileAsync(
         AllowanceSnapshot? snapshot,
         DisplayLanguage language,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        TokenUsageSnapshot? tokenUsage = null,
+        AccountIdentity? account = null)
     {
         var host = await locator.FindAsync(cancellationToken).ConfigureAwait(false);
         if (host is null)
@@ -86,7 +89,7 @@ public sealed class WindowsHostCoordinator
                 if (titlebar is null)
                 {
                     return await ShowKnownBuildFallbackAsync(
-                        host, snapshot, language, freshness, cancellationToken).ConfigureAwait(false);
+                        host, snapshot, language, freshness, tokenUsage, account, cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -99,20 +102,23 @@ public sealed class WindowsHostCoordinator
                 if (titlebar is null)
                 {
                     return await ShowKnownBuildFallbackAsync(
-                        host, snapshot, language, freshness, cancellationToken).ConfigureAwait(false);
+                        host, snapshot, language, freshness, tokenUsage, account, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
         var scale = host.DpiScale;
+        var indicatorHeight = titlebar.OpenLocationBounds.Height / scale;
+        var indicatorWidth = OverlayVisualMetrics.IndicatorWidthForHeight(indicatorHeight) * scale;
         var placement = PlacementResolver.ResolveResponsive(
             titlebar.ToolbarBounds,
             titlebar.OpenLocationBounds,
             titlebar.TitleBounds,
-            OverlayVisualMetrics.IndicatorWidth * scale,
-            IndicatorGap * scale,
+            indicatorWidth,
+            MiddleIndicatorGap * scale,
             titlebar.Obstacles,
             titlebar.RightToolbarBounds,
-            titlebar.RightObstacles);
+            titlebar.RightObstacles,
+            RightIndicatorGap * scale);
         if (placement is null)
         {
             await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
@@ -126,10 +132,12 @@ public sealed class WindowsHostCoordinator
                 language,
                 snapshot,
                 placement.Value,
-                freshness,
-                new PointD(
-                    titlebar.ToolbarBounds.X + (4 * scale),
-                    titlebar.ToolbarBounds.Y + (4 * scale))),
+                    freshness,
+                    new PointD(
+                        titlebar.ToolbarBounds.X + (4 * scale),
+                    titlebar.ToolbarBounds.Y + (4 * scale)),
+                tokenUsage,
+                account),
             cancellationToken).ConfigureAwait(false);
         return HostRuntimeState.Visible;
     }
@@ -139,6 +147,8 @@ public sealed class WindowsHostCoordinator
         AllowanceSnapshot snapshot,
         DisplayLanguage language,
         SnapshotFreshness freshness,
+        TokenUsageSnapshot? tokenUsage,
+        AccountIdentity? account,
         CancellationToken cancellationToken)
     {
         var scale = host.DpiScale;
@@ -173,7 +183,9 @@ public sealed class WindowsHostCoordinator
                 snapshot,
                 placement,
                 freshness,
-                new PointD(host.Bounds.X + (4 * scale), host.Bounds.Y + (42 * scale))),
+                new PointD(host.Bounds.X + (4 * scale), host.Bounds.Y + (42 * scale)),
+                tokenUsage,
+                account),
             cancellationToken).ConfigureAwait(false);
         return HostRuntimeState.Visible;
     }

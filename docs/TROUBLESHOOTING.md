@@ -1,19 +1,21 @@
 # Troubleshooting
 
-## Windows v0.3.0 setup and runtime
+## Windows v0.3.1 setup and runtime
 
 ### SmartScreen shows Unknown publisher
 
 The Windows x64 setup is intentionally unsigned. Verify the SHA-256 against
-`WINDOWS-V030-SHA256SUMS.txt` first. If it matches, **Unknown publisher** is expected: select
+`WINDOWS-V031-SHA256SUMS.txt` first. If it matches, **Unknown publisher** is expected: select
 **More info**, then **Run anyway**. If it does not match, do not run the setup; download it again
-from the v0.3.0 release. Never disable Defender, SmartScreen, antivirus, or system policy.
+from the v0.3.1 release. Never disable Defender, SmartScreen, antivirus, or system policy.
 
 ### The overlay is hidden after a Codex upgrade
 
-For an unknown Codex build, a hidden overlay is safe behavior. Collect only a default-redacted
-probe; do not force the overlay to attach. The approved fallback requires the official Codex host,
-a valid quota, and known build `151.0.7922.76`. `runtime=unavailable` means no approved runtime
+The Windows selector does not require a particular Codex file version anymore. A hidden overlay
+means the current title-bar UI Automation structure could not be proven safe; collect only a
+default-redacted probe and do not force the overlay to attach. The bounded coordinate fallback is
+still limited to the measured build `151.0.7922.76`; newer builds use the semantic selector and
+remain hidden until their structure is validated. `runtime=unavailable` means no approved runtime
 was found, `runtime=stopped` means the approved runtime is installed but not running, and
 `runtime=running` means it is active.
 
@@ -82,7 +84,7 @@ indicator=654,1003,164,46 anchor_scan=...cached:false,source:labeledControl,edge
 For any resolved non-fallback source with `indicator=x,y,width,height` and `edge=n`, the geometry
 satisfies `x + width = n - 8`. Drag the right pane through the failing width and confirm the control
 either moves into the nearest free slot or switches to the safe right-side position. If the badge
-or status reports a version older than 0.2.3, upgrade first. Otherwise bring Codex to the
+or status reports a plugin version older than 0.2.3, upgrade the plugin first. Otherwise bring Codex to the
 foreground, confirm Accessibility, run repair, and include sanitized status output, the visible
 version badge, the Codex build number, and a cropped titlebar screenshot in a bug report.
 

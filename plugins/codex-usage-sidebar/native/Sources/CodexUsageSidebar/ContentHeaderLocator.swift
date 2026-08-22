@@ -22,13 +22,16 @@ final class ContentHeaderLocator {
     private let maximumScanPasses = 4
     private let cacheLifetime: TimeInterval = 0.75
     private var cachedAnchor: CachedAnchor?
+    private(set) var isSettingsPage = false
     private(set) var latestDiagnosticDetail = "anchor_scan=not-run"
 
     func resolve(
         for processIdentifier: pid_t,
-        windowFrame: CGRect
+        windowFrame: CGRect,
+        indicatorWidth: CGFloat = OverlayLayout.indicatorWidth
     ) -> ContentHeaderAnchor {
         guard AXIsProcessTrusted() else {
+            isSettingsPage = false
             latestDiagnosticDetail = "anchor_scan=accessibility-required"
             return ContentHeaderAnchor(trailingEdge: nil, source: .fallback)
         }
@@ -39,6 +42,7 @@ final class ContentHeaderLocator {
             for: application,
             matching: windowFrame
         ) else {
+            isSettingsPage = false
             latestDiagnosticDetail = "anchor_scan=window-unavailable"
             return ContentHeaderAnchor(trailingEdge: nil, source: .fallback)
         }
@@ -58,6 +62,18 @@ final class ContentHeaderLocator {
         )
         var scannedAnchor = ContentHeaderAnchorResolver.resolve(
             controls: scan.controls,
+            paneFrames: scan.panes,
+            windowFrame: windowFrame,
+            indicatorWidth: indicatorWidth
+        )
+        var hasConversationAnchor = scan.controls.contains { control in
+            ContentHeaderAnchorResolver.isOpenLocationControl(control)
+                || ContentHeaderAnchorResolver.isConversationToolbarControl(
+                    control,
+                    windowFrame: windowFrame
+                )
+        }
+        var hasRightPane = ContentHeaderAnchorResolver.hasRightPane(
             paneFrames: scan.panes,
             windowFrame: windowFrame
         )
@@ -81,10 +97,30 @@ final class ContentHeaderLocator {
             scannedAnchor = ContentHeaderAnchorResolver.resolve(
                 controls: scan.controls,
                 paneFrames: scan.panes,
+                windowFrame: windowFrame,
+                indicatorWidth: indicatorWidth
+            )
+            hasConversationAnchor = hasConversationAnchor || scan.controls.contains { control in
+                ContentHeaderAnchorResolver.isOpenLocationControl(control)
+                    || ContentHeaderAnchorResolver.isConversationToolbarControl(
+                        control,
+                        windowFrame: windowFrame
+                    )
+            }
+            hasRightPane = hasRightPane || ContentHeaderAnchorResolver.hasRightPane(
+                paneFrames: scan.panes,
                 windowFrame: windowFrame
             )
             scanPasses += 1
         }
+        isSettingsPage = detectSettingsPage(
+            in: window,
+            windowFrame: windowFrame,
+            allowStructuralMatch: !hasConversationAnchor
+                && !hasRightPane
+                && scannedAnchor.source == .fallback
+                && retainedAnchor?.source != .openLocation
+        )
         if scanPasses == maximumScanPasses {
             scannedAnchor = ContentHeaderAnchorResolver.fallbackIfScanIsIncomplete(
                 anchor: scannedAnchor,
@@ -115,9 +151,59 @@ final class ContentHeaderLocator {
             "controls:\(scan.controls.count),panes:\(scan.panes.count)," +
             "passes:\(scanPasses),minimumX:\(Int(scanMinimumX))," +
             "cached:\(usedCachedAnchor),source:\(anchor.source.rawValue),edge:\(edge)," +
+            "page=\(isSettingsPage ? "settings" : "conversation")," +
             "window:\(Int(windowFrame.minX)),\(Int(windowFrame.minY))," +
             "\(Int(windowFrame.width)),\(Int(windowFrame.height))"
         return anchor
+    }
+
+    private func detectSettingsPage(
+        in window: AXUIElement,
+        windowFrame: CGRect,
+        allowStructuralMatch: Bool
+    ) -> Bool {
+        var stack = children(of: window).reversed().map {
+            QueueEntry(element: $0, depth: 1)
+        }
+        var visited = 0
+
+        while let entry = stack.popLast(), visited < maximumElements {
+            visited += 1
+
+            if
+                let role: String = attribute(
+                    entry.element,
+                    name: kAXRoleAttribute as CFString
+                ),
+                (
+                    role == "AXButton"
+                        || role == "AXLink"
+                ),
+                let topLeftFrame = frame(of: entry.element)
+            {
+                let appKitFrame = appKitFrame(fromTopLeftFrame: topLeftFrame)
+                if let control = control(
+                    for: entry.element,
+                    appKitFrame: appKitFrame
+                ),
+                    ContentHeaderAnchorResolver.isSettingsNavigationControl(
+                        control,
+                        windowFrame: windowFrame,
+                        allowStructuralMatch: allowStructuralMatch
+                    )
+                {
+                    return true
+                }
+            }
+
+            guard entry.depth < maximumDepth else {
+                continue
+            }
+            stack.append(contentsOf: children(of: entry.element).reversed().map {
+                QueueEntry(element: $0, depth: entry.depth + 1)
+            })
+        }
+        return false
     }
 
     private func scanLayout(
@@ -150,7 +236,8 @@ final class ContentHeaderLocator {
                     (role == "AXButton" || role == "AXStaticText"),
                     ContentHeaderAnchorResolver.isEligibleToolbarItem(
                         frame: appKitFrame,
-                        windowFrame: windowFrame
+                        windowFrame: windowFrame,
+                        isAnchorCandidate: role == "AXButton"
                     )
                 {
                     if let control = control(

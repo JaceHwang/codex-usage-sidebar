@@ -39,7 +39,7 @@ public sealed record InstallerUiModel(
         InstallerUiState state,
         string? error = null,
         InstallerUiFlavor flavor = InstallerUiFlavor.DeviceTest,
-        string displayVersion = "0.3.0")
+        string displayVersion = "0.3.1")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayVersion);
         var language = ResolveLanguage(locale);
@@ -180,7 +180,7 @@ public sealed class InstallerUiController
         InstallerUiMode mode,
         IInstallerUiActions actions,
         InstallerUiFlavor flavor = InstallerUiFlavor.DeviceTest,
-        string displayVersion = "0.3.0")
+        string displayVersion = "0.3.1")
     {
         this.locale = locale;
         this.flavor = flavor;
