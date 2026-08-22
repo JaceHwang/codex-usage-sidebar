@@ -108,6 +108,8 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             UpdateIndicator(presentation.Snapshot, presentation.Language);
             indicator.Width = frame.Width / presentation.DpiScale;
             indicator.Height = frame.Height / presentation.DpiScale;
+            var horizontalPadding = OverlayVisualMetrics.IndicatorHorizontalPaddingForHeight(indicator.Height);
+            indicatorSurface.Padding = new Thickness(horizontalPadding, 0, horizontalPadding, 0);
             if (!indicator.IsVisible) new WindowInteropHelper(indicator).EnsureHandle();
             PositionPhysical(indicator, frame);
             if (!indicator.IsVisible) indicator.Show();

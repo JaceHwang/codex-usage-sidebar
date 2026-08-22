@@ -342,7 +342,7 @@ public sealed class HostCoordinatorTests
     public void OverlayVisualMetricsMatchTheMacOsV023Baseline()
     {
         Assert.AreEqual(132, OverlayVisualMetrics.IndicatorWidth);
-        Assert.AreEqual(4, OverlayVisualMetrics.IndicatorHorizontalPadding);
+        Assert.AreEqual(28d / 3d, OverlayVisualMetrics.IndicatorHorizontalPadding, 0.000001);
         Assert.AreEqual(360, OverlayVisualMetrics.DetailWidth);
         Assert.AreEqual(18, OverlayVisualMetrics.HeaderTitleFontSize);
         Assert.AreEqual(9, OverlayVisualMetrics.VersionBadgeFontSize);
