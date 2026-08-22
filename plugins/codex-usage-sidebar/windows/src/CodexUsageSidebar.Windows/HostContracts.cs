@@ -97,6 +97,7 @@ public interface ITitlebarScanner
 
 public interface IOverlaySurface
 {
+    double MeasureIndicatorWidth(AllowanceSnapshot snapshot, DisplayLanguage language);
     ValueTask ShowAsync(OverlayPresentation presentation, CancellationToken cancellationToken);
     ValueTask HideAsync(CancellationToken cancellationToken);
 }
