@@ -35,9 +35,21 @@ public static class PlacementResolver
             return null;
         }
 
-        // A visible right page owns the stable default titlebar slot. Prefer it
-        // whenever its measured button cluster can contain the indicator; the
-        // middle titlebar is only used when no right page is present.
+        // Keep the indicator in the middle titlebar whenever the title has
+        // enough room. The right page is only the overflow fallback when the
+        // middle titlebar cannot contain a collision-free frame.
+        var local = new RectD(
+            openLocationBounds.X - gap - indicatorWidth,
+            openLocationBounds.Y,
+            indicatorWidth,
+            openLocationBounds.Height);
+        if (Contains(toolbarBounds, local)
+            && local.X >= titleBounds.Right + gap
+            && !IntersectsAny(local, localObstacles))
+        {
+            return new PlacementResult(PlacementSurface.Content, local);
+        }
+
         if (IsUsable(rightToolbarBounds)
             && rightObstacles.Count > 0
             && Contains(toolbarBounds, rightToolbarBounds)
@@ -54,18 +66,6 @@ public static class PlacementResolver
             {
                 return new PlacementResult(PlacementSurface.RightToolbar, fallback);
             }
-        }
-
-        var local = new RectD(
-            openLocationBounds.X - gap - indicatorWidth,
-            openLocationBounds.Y,
-            indicatorWidth,
-            openLocationBounds.Height);
-        if (Contains(toolbarBounds, local)
-            && local.X >= titleBounds.Right + gap
-            && !IntersectsAny(local, localObstacles))
-        {
-            return new PlacementResult(PlacementSurface.Content, local);
         }
         return null;
     }

@@ -29,7 +29,7 @@ public sealed class PlacementResolverTests
     }
 
     [TestMethod]
-    public void PrefersTheRightToolbarWhenTheRightPaneIsAvailable()
+    public void PrefersTheMiddleTitlebarWhenItHasEnoughSpaceEvenIfTheRightPaneIsAvailable()
     {
         var result = PlacementResolver.ResolveResponsive(
             toolbarBounds: new RectD(478, 70, 2522, 92),
@@ -47,8 +47,8 @@ public sealed class PlacementResolverTests
             rightObstacles: [new RectD(2856, 88, 56, 56)]);
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(PlacementSurface.RightToolbar, result.Value.Surface);
-        Assert.AreEqual(new RectD(2512, 88, 328, 56), result.Value.Frame);
+        Assert.AreEqual(PlacementSurface.Content, result.Value.Surface);
+        Assert.AreEqual(new RectD(2276, 88, 328, 56), result.Value.Frame);
     }
 
     [TestMethod]
