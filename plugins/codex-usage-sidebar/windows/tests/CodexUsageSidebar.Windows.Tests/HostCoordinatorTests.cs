@@ -364,6 +364,24 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public void DetailPopupPrefersTheIndicatorLeftEdgeAndClampsToTheWorkArea()
+    {
+        var aligned = OverlayDetailLayout.LeftForIndicator(
+            new RectD(600, 100, 333, 56),
+            new RectD(0, 0, 1600, 900),
+            720d);
+        var clamped = OverlayDetailLayout.LeftForIndicator(
+            new RectD(1400, 100, 333, 56),
+            new RectD(0, 0, 1600, 900),
+            720d);
+
+        Assert.AreEqual(600, aligned, 0.000001);
+        Assert.AreEqual(880, clamped, 0.000001);
+        Assert.AreEqual(28, OverlayDetailLayout.LogoSize, 0.000001);
+        Assert.AreEqual(1, OverlayDetailLayout.RowSeparatorHeight, 0.000001);
+    }
+
+    [TestMethod]
     public void PassiveOverlayReassertsNativeVisibilityWithoutActivation()
     {
         Assert.AreEqual(0x0250u, OverlayWindowPolicy.PositionFlags);

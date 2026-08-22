@@ -247,9 +247,10 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         }
         var detailWidth = detail.Width * presentation.DpiScale;
         var detailHeight = detail.ActualHeight * presentation.DpiScale;
-        var left = Math.Min(
-            Math.Max(workArea.Value.X, indicatorFrame.Right - detailWidth),
-            workArea.Value.Right - detailWidth);
+        var left = OverlayDetailLayout.LeftForIndicator(
+            indicatorFrame,
+            workArea.Value,
+            detailWidth);
         var gap = 6 * presentation.DpiScale;
         var below = indicatorFrame.Bottom + gap;
         var above = indicatorFrame.Y - detailHeight - gap;
@@ -340,8 +341,19 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         }
 
         var rows = new StackPanel { Margin = new Thickness(16, 8, 16, 8) };
-        foreach (var row in content.Rows)
+        for (var index = 0; index < content.Rows.Count; index++)
         {
+            if (index > 0)
+            {
+                rows.Children.Add(new Border
+                {
+                    Height = OverlayDetailLayout.RowSeparatorHeight,
+                    Background = palette.Border,
+                    Opacity = 0.6,
+                });
+            }
+
+            var row = content.Rows[index];
             var grid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(126) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -385,18 +397,24 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             return new Image
             {
                 Source = imageSource,
-                Width = 28,
-                Height = 28,
+                Width = OverlayDetailLayout.LogoSize,
+                Height = OverlayDetailLayout.LogoSize,
                 Stretch = Stretch.Uniform,
                 VerticalAlignment = VerticalAlignment.Center,
+                Clip = new EllipseGeometry(
+                    new Point(
+                        OverlayDetailLayout.LogoSize / 2,
+                        OverlayDetailLayout.LogoSize / 2),
+                    OverlayDetailLayout.LogoSize / 2,
+                    OverlayDetailLayout.LogoSize / 2),
             };
         }
 
         return new Border
         {
-            Width = 26,
-            Height = 26,
-            CornerRadius = new CornerRadius(13),
+            Width = OverlayDetailLayout.LogoSize,
+            Height = OverlayDetailLayout.LogoSize,
+            CornerRadius = new CornerRadius(OverlayDetailLayout.LogoSize / 2),
             Background = new SolidColorBrush(palette.BadgeColor),
             VerticalAlignment = VerticalAlignment.Center,
         };
@@ -486,17 +504,6 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             chart.Children.Add(slot);
         }
         panel.Children.Add(chart);
-        if (!string.IsNullOrWhiteSpace(usage.DelayLabel))
-        {
-            panel.Children.Add(new TextBlock
-            {
-                Text = usage.DelayLabel,
-                FontFamily = new FontFamily("Segoe UI"),
-                FontSize = 10,
-                Foreground = palette.Secondary,
-                Margin = new Thickness(0, 2, 0, 0),
-            });
-        }
         return new Border { Child = panel };
     }
 
