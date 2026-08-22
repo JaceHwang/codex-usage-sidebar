@@ -230,7 +230,7 @@ public sealed class HostCoordinatorTests
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
         Assert.AreEqual(PlacementSurface.RightToolbar, overlay.LastPresentation?.Placement.Surface);
-        Assert.AreEqual(new RectD(2591, 88, 264, 56), overlay.LastPresentation?.Placement.Frame);
+        Assert.AreEqual(new RectD(2592, 88, 264, 56), overlay.LastPresentation?.Placement.Frame);
     }
 
     [TestMethod]

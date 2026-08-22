@@ -95,6 +95,24 @@ public sealed class PlacementResolverTests
     }
 
     [TestMethod]
+    public void AllowsTheRightToolbarFallbackToUseItsOwnGap()
+    {
+        var result = PlacementResolver.ResolveResponsive(
+            new RectD(478, 70, 2522, 92),
+            new RectD(1069, 88, 183, 56),
+            new RectD(494, 88, 533, 56),
+            328,
+            16,
+            [new RectD(1069, 88, 183, 56)],
+            new RectD(1395, 70, 1461, 92),
+            [new RectD(2856, 88, 56, 56)],
+            0);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(new RectD(2528, 88, 328, 56), result.Value.Frame);
+    }
+
+    [TestMethod]
     public void HidesWhenResponsiveGeometryIsMissingOrNonFinite()
     {
         Assert.IsNull(PlacementResolver.ResolveResponsive(

@@ -5,7 +5,8 @@ namespace CodexUsageSidebar.Windows;
 public sealed class WindowsHostCoordinator
 {
     private const string FallbackBuildIdentity = "151.0.7922.76";
-    private const double IndicatorGap = 0.5;
+    private const double MiddleIndicatorGap = 0.5;
+    private const double RightIndicatorGap = 0;
     private readonly IHostWindowLocator locator;
     private readonly ITitlebarScanner scanner;
     private readonly IOverlaySurface overlay;
@@ -111,10 +112,11 @@ public sealed class WindowsHostCoordinator
             titlebar.OpenLocationBounds,
             titlebar.TitleBounds,
             OverlayVisualMetrics.IndicatorWidth * scale,
-            IndicatorGap * scale,
+            MiddleIndicatorGap * scale,
             titlebar.Obstacles,
             titlebar.RightToolbarBounds,
-            titlebar.RightObstacles);
+            titlebar.RightObstacles,
+            RightIndicatorGap * scale);
         if (placement is null)
         {
             await overlay.HideAsync(cancellationToken).ConfigureAwait(false);

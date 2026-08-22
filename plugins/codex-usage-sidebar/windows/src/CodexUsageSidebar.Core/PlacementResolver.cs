@@ -20,8 +20,10 @@ public static class PlacementResolver
         double gap,
         IReadOnlyList<RectD> localObstacles,
         RectD rightToolbarBounds,
-        IReadOnlyList<RectD> rightObstacles)
+        IReadOnlyList<RectD> rightObstacles,
+        double? rightGap = null)
     {
+        var fallbackGap = rightGap ?? gap;
         if (!IsUsable(toolbarBounds)
             || !IsUsable(openLocationBounds)
             || !IsUsable(titleBounds)
@@ -29,6 +31,8 @@ public static class PlacementResolver
             || indicatorWidth <= 0
             || !double.IsFinite(gap)
             || gap < 0
+            || !double.IsFinite(fallbackGap)
+            || fallbackGap < 0
             || !Contains(toolbarBounds, openLocationBounds)
             || !Contains(toolbarBounds, titleBounds))
         {
@@ -56,7 +60,7 @@ public static class PlacementResolver
         {
             var trailingObstacle = rightObstacles.OrderBy(obstacle => obstacle.X).First();
             var fallback = new RectD(
-                trailingObstacle.X - gap - indicatorWidth,
+                trailingObstacle.X - fallbackGap - indicatorWidth,
                 openLocationBounds.Y,
                 indicatorWidth,
                 openLocationBounds.Height);
