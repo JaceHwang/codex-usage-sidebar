@@ -39,9 +39,9 @@ public sealed class HostCoordinatorTests
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
         Assert.AreEqual(PlacementSurface.Content, overlay.LastPresentation?.Placement.Surface);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 1213.6666666666667) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 1177.6666666666667) < 0.0001);
         Assert.AreEqual(98, overlay.LastPresentation?.Placement.Frame.Y);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.Width - 285.3333333333333) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.Width - 321.3333333333333) < 0.0001);
         Assert.AreEqual(56, overlay.LastPresentation?.Placement.Frame.Height);
         Assert.AreEqual(76, overlay.LastPresentation?.Snapshot.RemainingPercent);
     }
@@ -135,8 +135,8 @@ public sealed class HostCoordinatorTests
         Assert.AreEqual(1, scanner.InvalidateCount);
         Assert.AreEqual(DisplayLanguage.English, overlay.LastPresentation?.Language);
         Assert.AreNotEqual(simplifiedFrame, overlay.LastPresentation?.Placement.Frame);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 1734.6666666666667) < 0.0001);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation.Placement.Frame.Width - 285.3333333333333) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 1698.6666666666667) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation.Placement.Frame.Width - 321.3333333333333) < 0.0001);
     }
 
     [TestMethod]
@@ -169,8 +169,8 @@ public sealed class HostCoordinatorTests
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
         Assert.AreEqual(PlacementSurface.Content, overlay.LastPresentation?.Placement.Surface);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 1357.3333333333333) < 0.0001);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation.Placement.Frame.Width - 285.3333333333333) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 1339.3333333333333) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation.Placement.Frame.Width - 321.3333333333333) < 0.0001);
         Assert.AreEqual(window.Handle, overlay.LastPresentation?.OwnerHandle);
     }
 
@@ -232,8 +232,8 @@ public sealed class HostCoordinatorTests
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
         Assert.AreEqual(PlacementSurface.RightToolbar, overlay.LastPresentation?.Placement.Surface);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 2570.6666666666665) < 0.0001);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation.Placement.Frame.Width - 285.3333333333333) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 2534.6666666666665) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation.Placement.Frame.Width - 321.3333333333333) < 0.0001);
         Assert.IsTrue(Math.Abs(overlay.LastPresentation.Placement.Frame.Right - 2856) < 0.0001);
     }
 
@@ -269,7 +269,7 @@ public sealed class HostCoordinatorTests
         var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.Width - 285.3333333333333) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.Width - 321.3333333333333) < 0.0001);
         Assert.AreEqual(56, overlay.LastPresentation?.Placement.Frame.Height);
         Assert.AreEqual(88, overlay.LastPresentation?.Placement.Frame.Y);
     }
@@ -345,9 +345,12 @@ public sealed class HostCoordinatorTests
     [TestMethod]
     public void OverlayVisualMetricsMatchTheMacOsV023Baseline()
     {
-        Assert.AreEqual(124, OverlayVisualMetrics.IndicatorContentWidth);
-        Assert.AreEqual(124 + (2 * (28d / 3d)), OverlayVisualMetrics.IndicatorWidth, 0.000001);
-        Assert.AreEqual(124 + (2 * (56d / 3d)), OverlayVisualMetrics.IndicatorWidthForHeight(56), 0.000001);
+        Assert.AreEqual(142, OverlayVisualMetrics.IndicatorContentWidth, 0.000001);
+        Assert.AreEqual(124, OverlayVisualMetrics.IndicatorTextWidth, 0.000001);
+        Assert.AreEqual(16, OverlayVisualMetrics.IndicatorLogoSize, 0.000001);
+        Assert.AreEqual(2, OverlayVisualMetrics.IndicatorLogoTextGap, 0.000001);
+        Assert.AreEqual(142 + (2 * (28d / 3d)), OverlayVisualMetrics.IndicatorWidth, 0.000001);
+        Assert.AreEqual(142 + (2 * (56d / 3d)), OverlayVisualMetrics.IndicatorWidthForHeight(56), 0.000001);
         Assert.AreEqual(28d / 3d, OverlayVisualMetrics.IndicatorHorizontalPadding, 0.000001);
         Assert.AreEqual(360, OverlayVisualMetrics.DetailWidth);
         Assert.AreEqual(18, OverlayVisualMetrics.HeaderTitleFontSize);

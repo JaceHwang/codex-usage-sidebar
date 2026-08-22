@@ -24,6 +24,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     private readonly Window indicator;
     private readonly Window detail;
     private readonly Border indicatorSurface;
+    private readonly Image indicatorLogo;
     private readonly TextBlock indicatorText;
     private readonly DispatcherTimer hoverTimer;
     private DetailInteractionState interaction = DetailInteractionState.Initial;
@@ -41,11 +42,40 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             FontFamily = new FontFamily("Segoe UI"),
             FontSize = 13,
             FontWeight = FontWeights.SemiBold,
-            TextAlignment = TextAlignment.Center,
+            TextAlignment = TextAlignment.Left,
             VerticalAlignment = VerticalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
             Foreground = palette.Primary,
         };
+        indicatorLogo = new Image
+        {
+            Source = LoadThemeIconSource(palette),
+            Width = OverlayVisualMetrics.IndicatorLogoSize,
+            Height = OverlayVisualMetrics.IndicatorLogoSize,
+            Stretch = Stretch.Uniform,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var indicatorContent = new Grid
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        indicatorContent.ColumnDefinitions.Add(new ColumnDefinition
+        {
+            Width = new GridLength(OverlayVisualMetrics.IndicatorLogoSize),
+        });
+        indicatorContent.ColumnDefinitions.Add(new ColumnDefinition
+        {
+            Width = new GridLength(OverlayVisualMetrics.IndicatorLogoTextGap),
+        });
+        indicatorContent.ColumnDefinitions.Add(new ColumnDefinition
+        {
+            Width = new GridLength(1, GridUnitType.Star),
+        });
+        Grid.SetColumn(indicatorLogo, 0);
+        Grid.SetColumn(indicatorText, 2);
+        indicatorContent.Children.Add(indicatorLogo);
+        indicatorContent.Children.Add(indicatorText);
         var indicatorColor = SystemColors.WindowTextColor;
         indicatorSurface = new Border
         {
@@ -61,7 +91,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
                 0,
                 OverlayVisualMetrics.IndicatorHorizontalPadding,
                 0),
-            Child = indicatorText,
+            Child = indicatorContent,
         };
         indicator = CreatePassiveWindow(indicatorSurface);
         indicator.Width = OverlayVisualMetrics.IndicatorWidth;
@@ -91,6 +121,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             latestPresentation = presentation;
             palette = ResolvePalette(presentation.ThemeProbePoint);
             indicatorText.Foreground = palette.Primary;
+            indicatorLogo.Source = LoadThemeIconSource(palette);
             indicator.Opacity = presentation.Freshness == SnapshotFreshness.Dimmed ? 0.58 : 1;
             detail.Opacity = presentation.Freshness == SnapshotFreshness.Dimmed ? 0.58 : 1;
             latestContent = QuotaDetailFormatter.Format(
@@ -348,31 +379,41 @@ public sealed class WpfOverlaySurface : IOverlaySurface
 
     private static UIElement BuildThemeIcon(WpfOverlayPalette palette)
     {
-        var resource = ReferenceEquals(palette, WpfOverlayPalette.Dark)
-            ? "pack://application:,,,/Assets/quota-icon-dark.png"
-            : "pack://application:,,,/Assets/quota-icon-light.png";
-        try
+        var imageSource = LoadThemeIconSource(palette);
+        if (imageSource is not null)
         {
-            var image = new BitmapImage(new Uri(resource));
             return new Image
             {
-                Source = image,
+                Source = imageSource,
                 Width = 28,
                 Height = 28,
                 Stretch = Stretch.Uniform,
                 VerticalAlignment = VerticalAlignment.Center,
             };
         }
+
+        return new Border
+        {
+            Width = 26,
+            Height = 26,
+            CornerRadius = new CornerRadius(13),
+            Background = new SolidColorBrush(palette.BadgeColor),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+    }
+
+    private static ImageSource? LoadThemeIconSource(WpfOverlayPalette palette)
+    {
+        var resource = ReferenceEquals(palette, WpfOverlayPalette.Dark)
+            ? "pack://application:,,,/Assets/quota-icon-dark.png"
+            : "pack://application:,,,/Assets/quota-icon-light.png";
+        try
+        {
+            return new BitmapImage(new Uri(resource));
+        }
         catch (Exception)
         {
-            return new Border
-            {
-                Width = 26,
-                Height = 26,
-                CornerRadius = new CornerRadius(13),
-                Background = new SolidColorBrush(palette.BadgeColor),
-                VerticalAlignment = VerticalAlignment.Center,
-            };
+            return null;
         }
     }
 
