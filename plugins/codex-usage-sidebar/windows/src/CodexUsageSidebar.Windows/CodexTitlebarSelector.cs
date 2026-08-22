@@ -230,8 +230,6 @@ public static class CodexTitlebarSelector
             var rightPane = rightPanes[0];
             var rightToolbars = nodes.Where(node =>
                 node.ControlType == GroupControlType
-                && node.Depth >= rightPane.Depth + 3
-                && node.Depth <= rightPane.Depth + 4
                 && node.ClassName.Contains(RightToolbarClassMarker, StringComparison.Ordinal)
                 && node.ClassName.Contains(RightToolbarOverflowMarker, StringComparison.Ordinal)
                 && Contains(rightPane.Bounds, node.Bounds)
