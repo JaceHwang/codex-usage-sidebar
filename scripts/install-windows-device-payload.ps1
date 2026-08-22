@@ -196,7 +196,7 @@ try {
             return $null -ne $managed
         } | Out-Null
         $runtimeStatus = (& $controlScript status | Out-String).Trim()
-        if ($LASTEXITCODE -ne 0 -or $runtimeStatus -notmatch '^runtime=running pid=\d+ version=0\.3\.0$') {
+        if ($LASTEXITCODE -ne 0 -or $runtimeStatus -notmatch '^runtime=running pid=\d+ version=0\.3\.1$') {
             throw "The Windows overlay host is not running: $runtimeStatus"
         }
         Write-Output $runtimeStatus
