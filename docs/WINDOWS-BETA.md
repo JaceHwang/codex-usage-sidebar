@@ -1,146 +1,41 @@
-# Windows v0.3.1 Parity and Device Gate
+# Windows v0.3.2 release and device gate
 
-## Current status
+## Release status
 
-The Windows line is an explicitly gated AMD64 parity build (`x64` in .NET and artifact names). It is
-based on the current macOS-visible v0.3.1 card without altering or replacing the v0.2.3 macOS
-plugin, companion, DMG, or GitHub Release assets. Windows ARM64 is outside the build, device,
-packaging, and publication scope of v0.3.1.
+`v0.3.2` publishes an unsigned, current-user Windows 11 AMD64/x64 setup:
 
-Implemented and testable without a Windows Codex session:
+- `codex-usage-sidebar-v0.3.2-windows-x64-setup.exe`
+- `WINDOWS-V032-SHA256SUMS.txt`
+- `WINDOWS-V032-PROVENANCE.json`
 
-- shared, sanitized app-server rate-limit and placement contracts;
-- .NET 8 decoding, language mapping, compact duration segments, quota colors, freshness,
-  hover/pin interaction, and collision-aware horizontal placement;
-- app-server JSON-RPC initialization, reads, notifications, and supplementary Bank-data merging;
-- fake-driven host-window, title-bar scanner, DPI, and non-activating overlay contracts;
-- fixed-argument `codex app-server --stdio` process launching with an isolated `CODEX_HOME`;
-- Win32 Codex window discovery and a bounded UI Automation diagnostic probe;
-- a semantic title-bar selector that is no longer gated by the Codex file version; unknown or
-  incomplete trees remain hidden instead of using a coordinate fallback;
-- non-activating WPF compact/detail surfaces and a three-language WPF installer shell whose default
-  development action refuses to install without a validated payload;
-- the macOS-visible quota model on Windows: seven-day Token usage, account identity, theme-aware
-  quota icon, reset countdown emphasis, Credits, Bank details, and a borderless GitHub footer link;
-- an intentional Windows difference: the Tibo X information row is not rendered;
-- per-user Windows path planning, exact uninstall guards, autostart plans, atomic payload
-  replacement, rollback, link/reparse-point rejection, and full-file SHA-256 verification;
-- a Windows 2025 CI job that builds and uploads only a self-contained diagnostic candidate.
+Download all three only from the [v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2), verify the setup SHA-256 before launching it, and never bypass SmartScreen, Defender, antivirus, or system policy. Windows ARM64 is unsupported. The setup installs below `%LOCALAPPDATA%\CodexUsageSidebar\Current`, creates only a current-user Run-key entry, and leaves the official Codex package read-only.
 
-Not yet claimed as complete:
+## Implemented parity
 
-- selector and placement validation outside the single measured restored-window, 200% DPI sample;
-- WPF visual parity under real light/dark themes and DPI scaling;
-- a publishable `setup.exe` or GitHub prerelease.
+The Windows WPF overlay uses the same official local `codex app-server --stdio` contracts as macOS:
 
-## Resulting repository tree
+- live remaining percentage, reset countdown, plan, period, Credits, and all Bank entries;
+- seven-day Token usage and current-cycle total from `account/usage/read`;
+- account name/email fallback and optional avatar URL from `account/read`;
+- Simplified Chinese, Traditional Chinese, English, and English fallback for other locales;
+- theme-aware plugin icon, synchronized `v0.3.2` version badge, shared countdown emphasis, hover/pin behavior, and GitHub footer link;
+- safe degradation when optional Token or account responses are unsupported, malformed, or delayed.
 
-```text
-codex-usage-sidebar-public/
-├── .github/workflows/
-│   ├── ci.yml
-│   ├── publish-installer.yml
-│   └── windows-beta.yml
-├── docs/
-│   └── WINDOWS-BETA.md
-├── scripts/
-│   ├── build-windows-payload-manifest.py
-│   └── verify-windows-payload.py
-├── tests/
-│   ├── test-windows-beta-workflow.sh
-│   └── test-windows-payload-manifest.sh
-└── plugins/codex-usage-sidebar/
-    ├── contracts/
-    │   ├── uia/
-    │   ├── rate-limits/
-    │   └── placement/
-    ├── hooks/hooks.json
-    ├── native/
-    ├── scripts/
-    │   └── sidebar-control-windows.ps1
-    ├── tests/
-    │   └── test-windows-hook.sh
-    └── windows/
-        ├── CodexUsageSidebar.Windows.sln
-        ├── Directory.Build.props
-        ├── src/
-        │   ├── CodexUsageSidebar.Core/
-        │   ├── CodexUsageSidebar.Windows/
-        │   ├── CodexUsageSidebar.Control/
-        │   └── CodexUsageSidebar.Installer/
-        └── tests/
-            ├── CodexUsageSidebar.Core.Tests/
-            ├── CodexUsageSidebar.Windows.Tests/
-            └── CodexUsageSidebar.Installer.Tests/
-```
+The current v0.3.2 card does not render a Tibo X row. It never reads browser cookies, scrapes X, or sends telemetry.
 
-## Legacy diagnostic candidate
+## Compatibility and safety
 
-The `Windows beta diagnostic candidate` workflow produces:
+There is no fixed Codex file-version allow list. The selector accepts a running Codex build only when its title bar exposes the required semantic UI Automation structure and collision-free geometry. An unknown or incomplete structure hides the overlay instead of guessing coordinates. The process boundary uses a fixed `codex app-server --stdio` argument contract and an isolated `CODEX_HOME`.
 
-```text
-codex-usage-sidebar-v0.3.0-beta.1-windows-x64-diagnostic.zip
-WINDOWS-BETA-SHA256SUMS.txt
-WINDOWS-BETA-PROVENANCE.json
-```
+Portable .NET tests, payload-manifest validation, installer path/rollback guards, SHA-256 verification, and Windows workflow checks cover the source release. They do not replace target-device validation.
 
-This legacy diagnostic artifact is not an installer. Its provenance explicitly sets
-`realDeviceValidated=false` and `publishableInstaller=false`. On a Windows 11 AMD64 test device (`x64` in artifact metadata) with
-Codex open and signed in,
-extract it and run:
+## Remaining real-device matrix
 
-```powershell
-CodexUsageSidebar.Control.exe probe C:\Temp\codex-usage-sidebar-probe.json
-```
+The v0.3.2 asset is published, but it does **not** claim completion of the 130-case Windows real-device matrix. Before asserting complete Windows coverage, collect evidence on Windows 11 AMD64/x64 for:
 
-Use the exact privacy, checksum, layout, theme, language, DPI, screenshot, and handoff procedure in
-[Windows real-device diagnostic handoff](WINDOWS-DEVICE-HANDOFF.md). A Simplified Chinese version
-is available in [Windows 实机诊断交接手册](WINDOWS-DEVICE-HANDOFF.zh-CN.md).
+- collapsed/expanded left, right, and bottom panes; narrow, restored, maximized, and fullscreen windows;
+- 100%, 125%, 150%, and 200% DPI; light, dark, and system themes; Simplified Chinese, Traditional Chinese, English, and another locale;
+- hover, pin/dismiss, non-activation, Codex restart/update, sleep/resume, app-server recovery, and unsupported UIA fallback;
+- install, repair, update, uninstall, Run-key cleanup, checksum/provenance verification, and SmartScreen handling.
 
-The default report assigns per-report random HMAC tokens to executable paths and UIA names, so
-equal values can be correlated only inside that single report. Add `--include-text` only when the person
-collecting the report intentionally agrees to include visible UI Automation names; conversation
-content should be closed or replaced with a disposable task first.
-
-To continue the implementation in Codex on a Windows computer, use the tracked
-[Windows Codex continuation guide](WINDOWS-CODEX-CONTINUATION.md) or its
-[Simplified Chinese version](WINDOWS-CODEX-CONTINUATION.zh-CN.md). It records the exact branch,
-approved macOS visual baseline, environment checks, first prompt, baseline commands, and safe
-cross-machine Git workflow.
-
-## Required real-device gate
-
-The v0.3.1 setup package remains blocked until all of these pass on the real Windows Codex client:
-
-- expanded and collapsed left, right, and bottom panes;
-- narrow, wide, maximized, restored, fullscreen, and multi-monitor windows;
-- 100%, 125%, 150%, and 200% display scaling;
-- light, dark, and system themes;
-- Simplified Chinese, Traditional Chinese, English, and an unsupported-locale fallback;
-- hover, click-to-pin, second-click dismissal, keyboard focus, and non-activation;
-- Codex restart, update, sleep/resume, app-server authorization, and stream recovery;
-- per-user install, repair, upgrade, uninstall, checksum, provenance, and Windows signing checks.
-
-The captured tree remains a versioned diagnostic fixture, not a version allow-list. A changed Codex
-build may use the semantic selector immediately when its structure is safe; unknown or incomplete
-trees still hide the overlay and request a new diagnostic capture instead of guessing a coordinate
-or overlapping native UI.
-
-The first sanitized fixture records one Windows 11 sample from the `OpenAI.Codex` package: the
-visible host process is `ChatGPT.exe` with Codex product identity, file build `151.0.7922.76`, at
-200% scaling. The PMv2-aware default-redacted report uses physical screen pixels end to end and has
-SHA-256 `65e519a71da6c7dc422253a33f30ecaabe175499a51254f9c6eb00983f721f7c`.
-This is enough to exercise the semantic selector and its measured fallback, but it is not evidence for the
-remaining sidebar, window, theme, language, scaling, focus, lifecycle, or installer matrix.
-
-## v0.3.1 final release shape
-
-After the gate passes, the installer pipeline will publish a prerelease asset named:
-
-```text
-codex-usage-sidebar-v0.3.1-windows-x64-setup.exe
-```
-
-It will install under `%LOCALAPPDATA%\CodexUsageSidebar`, register only a per-user startup entry,
-keep the official Codex application read-only, verify every bundled file and its Codex runtime
-provenance, and expose install, repair, status, probe, and uninstall actions.
+Use the [Windows device handoff](WINDOWS-DEVICE-HANDOFF.md) or [Chinese handoff](WINDOWS-DEVICE-HANDOFF.zh-CN.md) to capture sanitized evidence. Continue development with [the Windows Codex continuation guide](WINDOWS-CODEX-CONTINUATION.md).

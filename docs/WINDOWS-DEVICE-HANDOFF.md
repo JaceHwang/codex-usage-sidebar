@@ -1,133 +1,43 @@
-# Windows real-device diagnostic handoff
+# Windows v0.3.2 real-device handoff
 
-This procedure is for the future Windows validation phase of `v0.3.0-beta.1`. The artifact is a
-diagnostic candidate, not an installer. Run it as the signed-in desktop user, not as Administrator,
-and do not publish any resulting report or screenshot.
+Use this procedure to validate the published v0.3.2 Windows setup on a real Windows 11 AMD64/x64 computer. It is a validation protocol, not authorization to bypass Windows security UI or publish new assets.
 
-## 1. Prepare a disposable Codex task
+## 1. Prepare safely
 
-1. Use Windows 11 on AMD64 (`x64` in artifact metadata) with the current Codex desktop client
-   installed and signed in. Windows ARM64 is outside the v0.3.0-beta.1 validation scope.
-2. Close conversations that contain private material.
-3. Create a disposable task containing only non-sensitive placeholder text.
-4. Keep the Codex window visible while capturing each state.
+Use a signed-in, non-administrator Windows desktop account with Codex open. Create a disposable Codex task containing no private material. Do not capture account data, unrelated windows, real task titles, notifications, or `--include-text` UIA output unless a maintainer explicitly requests a controlled capture.
 
-The default probe never stores raw UI Automation names or an executable path. It creates a fresh
-random HMAC key for each report, records only per-report tokens and text lengths, and discards the
-key. Do not use `--include-text` unless a maintainer explicitly requests a second, controlled
-capture after the default report proves insufficient.
+## 2. Download and verify the exact release
 
-## 2. Verify the diagnostic candidate
-
-This section is retained as the historical beta diagnostic path. Prefer the
-[complete v0.3.0 release plan](superpowers/plans/2026-08-13-v0.3.0-complete-release-chain.md),
-which builds a local nonpublishable device-test manager bound to the final validated source `S`.
-Use the historical diagnostic artifact only when a beta regression investigation requires it.
-
-Resolve an exact Actions run ID with the authenticated GitHub CLI, then download the named artifact;
-never rely on an unspecified latest run:
-
-```powershell
-$runs = @(gh run list --repo JaceHwang/codex-usage-sidebar `
-  --workflow windows-beta.yml --branch codex/v0.3.0-beta.1 --event push --limit 2 `
-  --json databaseId,headSha,status,conclusion,url | ConvertFrom-Json)
-if ($runs.Count -lt 1) { throw 'No historical Windows beta run is available.' }
-$runId = [long]$runs[0].databaseId
-gh run download $runId --repo JaceHwang/codex-usage-sidebar `
-  --name codex-usage-sidebar-v0.3.0-beta.1-windows-x64-diagnostic `
-  --dir .\diagnostic-download
-```
-
-Confirm the selected run, head SHA, and conclusion. Put the downloaded ZIP, checksum, and provenance
-files in one directory, then run PowerShell from that directory:
+Download `codex-usage-sidebar-v0.3.2-windows-x64-setup.exe`, `WINDOWS-V032-SHA256SUMS.txt`, and `WINDOWS-V032-PROVENANCE.json` from the [v0.3.2 Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2). In PowerShell:
 
 ```powershell
 $ErrorActionPreference = 'Stop'
-$line = Get-Content -LiteralPath .\WINDOWS-BETA-SHA256SUMS.txt
-$expected, $archiveName = $line -split '  ', 2
-$actual = (Get-FileHash -LiteralPath ".\$archiveName" -Algorithm SHA256).Hash.ToLowerInvariant()
-if ($actual -ne $expected) { throw 'Diagnostic ZIP checksum mismatch.' }
-
-$provenance = Get-Content -Raw -LiteralPath .\WINDOWS-BETA-PROVENANCE.json | ConvertFrom-Json
-if ($provenance.version -ne '0.3.0-beta.1' -or
-    $provenance.architecture -ne 'x64' -or
-    $provenance.status -ne 'diagnostic-candidate' -or
-    $provenance.realDeviceValidated -ne $false -or
-    $provenance.publishableInstaller -ne $false) {
-    throw 'Unexpected diagnostic provenance.'
-}
-
-Expand-Archive -LiteralPath ".\$archiveName" -DestinationPath .\diagnostic -Force
+$asset = 'codex-usage-sidebar-v0.3.2-windows-x64-setup.exe'
+$actual = (Get-FileHash -LiteralPath ".\\$asset" -Algorithm SHA256).Hash.ToLowerInvariant()
+$line = Get-Content .\WINDOWS-V032-SHA256SUMS.txt | Where-Object { $_ -match [regex]::Escape($asset) } | Select-Object -First 1
+if ([string]::IsNullOrWhiteSpace($line)) { throw 'Checksum entry missing.' }
+$expected = ($line -split '\s+', 2)[0].ToLowerInvariant()
+if ($actual -ne $expected) { throw "SHA-256 mismatch: $actual" }
+$provenance = Get-Content -Raw .\WINDOWS-V032-PROVENANCE.json | ConvertFrom-Json
+if ($provenance.version -ne '0.3.2' -or $provenance.architecture -ne 'x64') { throw 'Unexpected v0.3.2 provenance.' }
 ```
 
-Stop if either verification fails. A diagnostic candidate must never be treated as a setup
-program or a usable Windows release.
+Only after a matching digest may the user choose **More info** then **Run anyway** for the expected unsigned-publisher prompt. Do not disable Defender, SmartScreen, antivirus, or system policy.
 
-## 3. Capture the geometry states
+## 3. Validate runtime states
 
-Create an output directory and run one default probe for every row below. Use the exact file names
-so reports and screenshots remain paired:
+Install, then verify `%LOCALAPPDATA%\CodexUsageSidebar\Current` and the current-user `CodexUsageSidebar` Run-key value. Test `--repair` and `--uninstall` only with explicit user authorization. Confirm that installation and removal never modify the official Codex package.
 
-```powershell
-New-Item -ItemType Directory -Force C:\Temp\codex-usage-sidebar-probes | Out-Null
-Set-Location .\diagnostic
-.\CodexUsageSidebar.Control.exe probe C:\Temp\codex-usage-sidebar-probes\01-restored-collapsed.json
-```
+## 4. Capture the visible matrix
 
-| File prefix | Codex state to capture |
+For each row, record a sanitized status/probe result and a cropped titlebar screenshot from the disposable task:
+
+| Group | Required states |
 | --- | --- |
-| `01-restored-collapsed` | Restored window; left, right, and bottom panes collapsed |
-| `02-left-expanded` | Left pane expanded |
-| `03-right-expanded` | Right pane expanded at its default width |
-| `04-right-wide` | Right pane dragged left until it is wide |
-| `05-left-right-expanded` | Left and right panes both expanded |
-| `06-bottom-expanded` | Bottom pane expanded |
-| `07-narrow-window` | Narrowest practical restored window |
-| `08-maximized` | Maximized window |
-| `09-fullscreen` | Fullscreen window |
+| Pane/window | collapsed and expanded left/right/bottom panes; narrow, restored, maximized, fullscreen |
+| Visual | light, dark, system; 100%, 125%, 150%, 200% DPI when available |
+| Language | Simplified Chinese, Traditional Chinese, English, one unsupported locale |
+| Interaction | hover, click-to-pin, second-click dismissal, non-activation, insufficient-space fallback |
+| Lifecycle | Codex restart/update, sleep/resume, app-server recovery, repair, uninstall |
 
-For every state, save a matching PNG screenshot using the same prefix. The disposable task must be
-visible, and the screenshot must not include notifications, account names, unrelated windows, or
-private task titles.
-
-The v0.3.0 release matrix is single-monitor. Do not add a cross-monitor result, skip, or waiver:
-cross-monitor movement, cross-monitor DPI transitions, and negative-coordinate placement are not
-claimed by this release evidence.
-
-## 4. Capture theme, language, and scaling variants
-
-Repeat `01-restored-collapsed`, `04-right-wide`, and `05-left-right-expanded` for:
-
-- light, dark, and system themes;
-- Simplified Chinese, Traditional Chinese, and English;
-- 100%, 125%, 150%, and 200% display scaling when the hardware supports them.
-
-Name variants as `<base>-<theme>-<language>-<scale>.json`, for example:
-
-```text
-04-right-wide-dark-zh-CN-150.json
-```
-
-Restart Codex after changing a setting when the client does not update the visible UI immediately.
-
-## 5. Package the handoff locally
-
-Review the screenshots one last time, then create a local bundle and checksum:
-
-```powershell
-$root = 'C:\Temp\codex-usage-sidebar-probes'
-$bundle = 'C:\Temp\codex-usage-sidebar-probes.zip'
-Compress-Archive -Path "$root\*" -DestinationPath $bundle -Force
-Get-FileHash -LiteralPath $bundle -Algorithm SHA256 | Format-List
-```
-
-Send the ZIP and its SHA-256 only through the private channel agreed with the maintainer. Keep the
-original reports until the maintainer confirms that the bundle opens and the digest matches.
-
-## 6. What happens next
-
-The reports are used to bind semantic UIA selectors and geometry fixtures. The first Windows build
-that displays an overlay must then pass placement, hover/pin, focus, DPI, language, theme,
-sleep/resume, Codex restart/update, install, repair, and uninstall testing on the same source and
-provenance chain. Until that evidence exists, unknown Codex UIA trees must keep the overlay hidden
-and no Windows setup asset may be published.
+Unknown or incomplete UIA structures must leave the overlay hidden; never approve a coordinate guess. Send the resulting sanitized bundle and SHA-256 through the agreed private channel only.

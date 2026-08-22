@@ -12,8 +12,8 @@
 4. **SidebarCore** contains pure rate-limit decoding, formatting, color, layout, transport, and
    anchor-resolution logic covered by Swift tests.
 
-The v0.3.1 parity line adds a parallel Windows implementation without renaming or replacing the stable
-Mac tree. Sanitized `contracts/` fixtures are decoded by both Swift and .NET tests. The Windows
+The v0.3.2 line ships a parallel Windows implementation without renaming or replacing the macOS
+tree. Sanitized `contracts/` fixtures are decoded by both Swift and .NET tests. The Windows
 solution separates a portable core, host boundary, control probe, and installer backend. Real UIA
 selectors are not accepted until captured and verified on a Windows Codex device.
 
@@ -36,7 +36,7 @@ plugins/codex-usage-sidebar/
 Codex app-server over stdio
         |
         v
-AllowanceSnapshot + Bank entries
+AllowanceSnapshot + Token usage + account identity + Bank entries
         |
         v
 Native AppKit companion
@@ -108,8 +108,9 @@ The compact control and hover panel are native AppKit surfaces. They follow the 
 not activate or replace native controls. Both percentage labels use one HSB state-color function
 with exact anchors at 100% green, 49% orange, and 10% red. The progress fill clips a fixed AppKit
 gradient with stops at 0%, 10%, 49%, and 100% across the full track. The hover header also reads
-`CFBundleShortVersionString` into a compact outlined badge. The detail model includes plan, period,
-Credits, aggregate Bank availability, and every Bank entry with expiry and status.
+`CFBundleShortVersionString` into a compact outlined badge. The detail model includes seven-day Token
+usage, account identity, plan, period, Credits, aggregate Bank availability, and every Bank entry
+with expiry and status.
 
 Hover shows the detail card transiently. Clicking the quota control pins the same card; clicking
 again dismisses it. A one-second language check re-renders visible content from the current

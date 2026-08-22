@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.2
+
+- Published macOS 14+ Apple Silicon DMG and Windows 11 AMD64/x64 setup assets with SHA-256 and provenance files.
+- Added Windows parity for Token usage, account identity, themed plugin icon, reset emphasis, GitHub footer, and safe localized fallback behavior; Windows intentionally omits the Tibo X row.
+- Relaxed host recognition from a fixed Codex file-version allow list to validated semantic titlebar structure checks; unknown layouts remain fail-hidden.
+- Added companion/provenance SHA-256 regression coverage and synchronized the promoted companion metadata used by CI.
+- Documented the published asset workflow and the remaining Windows real-device validation boundary.
+
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 

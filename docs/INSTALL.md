@@ -2,18 +2,18 @@
 
 ## Windows 11 AMD64/x64
 
-Windows `v0.3.1` supports Windows 11 on AMD64/x64 only; Windows ARM64 is not supported. The current-user setup is unsigned (`NotSigned`)
+Windows `v0.3.2` supports Windows 11 on AMD64/x64 only; Windows ARM64 is not supported. The current-user setup is unsigned (`NotSigned`)
 and does not require administrator privileges.
 
 ### Download and verify
 
-After the Windows v0.3.1 real-device gate is published, download only
-`codex-usage-sidebar-v0.3.1-windows-x64-setup.exe` and `WINDOWS-V031-SHA256SUMS.txt` from the
-[v0.3.1 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.1). Before launching the setup,
+Download only `codex-usage-sidebar-v0.3.2-windows-x64-setup.exe` and
+`WINDOWS-V032-SHA256SUMS.txt` from the
+[v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2). Before launching the setup,
 calculate its SHA-256:
 
 ```powershell
-Get-FileHash .\codex-usage-sidebar-v0.3.1-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+Get-FileHash .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
 ```
 
 Compare the digest case-insensitively with the matching checksum-file entry. A matching digest is
@@ -26,7 +26,7 @@ system policy.
 Run the verified setup normally to install for the current user:
 
 ```powershell
-Start-Process .\codex-usage-sidebar-v0.3.1-windows-x64-setup.exe
+Start-Process .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe
 ```
 
 Because this public setup is unsigned, Windows may show **Unknown publisher**. Only after the
@@ -59,7 +59,7 @@ the deterministic prompt and evidence checklist.
 
 ### Validation boundary
 
-The `v0.3.1` Windows source has passed the portable automated gates; the
+The `v0.3.2` Windows source has passed the portable automated gates; the published setup is available, but the
 130-case Windows manual matrix is incomplete. Do not claim full real-device setup lifecycle
 validation unless you have run that validation on the target machine. Unknown or unsupported UI
 Automation structures hide the overlay; no coordinates are guessed.
@@ -86,19 +86,15 @@ hard-coded version gate.
 
 ## Install with the graphical installer
 
-Build the local v0.3.2 arm64 installer from the checked-out `v0.3.2` branch:
+Download the v0.3.2 arm64 DMG, its checksum file, and its provenance from the
+[v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2):
 
 ```bash
-bash scripts/build-macos-v032-installer.sh
-bash scripts/package-macos-v032-installer.sh
-bash scripts/verify-macos-v032-installer-package.sh \
-  ".dist/v0.3.2/macos/Codex Usage Sidebar Installer.app" \
-  ".dist/v0.3.2/macos/codex-usage-sidebar-v0.3.2-macos-arm64.dmg"
+shasum -a 256 codex-usage-sidebar-v0.3.2-macos-arm64.dmg
 ```
 
-The verified local asset is `.dist/v0.3.2/macos/codex-usage-sidebar-v0.3.2-macos-arm64.dmg`; its
-adjacent `MACOS-V032-SHA256SUMS.txt` and `MACOS-V032-PROVENANCE.json` record the digest and exact
-source commit. Open the DMG, then open **Codex Usage Sidebar Installer**. The raw local asset is not
+Compare the output with `MACOS-V032-SHA256SUMS.txt`. `MACOS-V032-PROVENANCE.json` records the
+digest and exact source commit. Open the verified DMG, then open **Codex Usage Sidebar Installer**. The asset is not
 notarized. If macOS blocks it, right-click the installer in Finder and choose Open. Click **Install**,
 complete the isolated Codex login when prompted, enable Accessibility, then click **Verify**.
 

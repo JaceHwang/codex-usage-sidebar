@@ -1,21 +1,20 @@
 # Install with an Agent
 
 This playbook is for a coding agent with terminal access to the target computer. Use the Windows
-path for the public `v0.3.1` setup once its real-device gate is published, and the macOS path for the stable v0.2.3 marketplace/DMG
-installation.
+path for the published `v0.3.2` setup and DMG installation.
 
 ## Windows 11 AMD64/x64 automatic setup install
 
 ### Copy-paste task
 
 ```text
-Install Codex Usage Sidebar v0.3.1 from the GitHub Release on this Windows 11 AMD64/x64 machine.
+Install Codex Usage Sidebar v0.3.2 from the GitHub Release on this Windows 11 AMD64/x64 machine.
 
 Requirements:
 1. Confirm this is Windows 11 on AMD64/x64. Windows ARM64 is unsupported.
-2. Download only codex-usage-sidebar-v0.3.1-windows-x64-setup.exe and WINDOWS-V031-SHA256SUMS.txt
-   from https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.1.
-   Setup URL: https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.1/codex-usage-sidebar-v0.3.1-windows-x64-setup.exe.
+2. Download only codex-usage-sidebar-v0.3.2-windows-x64-setup.exe and WINDOWS-V032-SHA256SUMS.txt
+   from https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2.
+   Setup URL: https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.2/codex-usage-sidebar-v0.3.2-windows-x64-setup.exe.
 3. Verify the setup SHA-256 matches the corresponding entry in WINDOWS-V031-SHA256SUMS.txt.
 4. Run the setup only if the digest matches.
 5. Do not disable or bypass Defender, SmartScreen, antivirus, or system policy.
@@ -46,10 +45,10 @@ unsupported installation.
 
 ```powershell
 $ErrorActionPreference = 'Stop'
-$release = 'https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.1'
-$asset = 'codex-usage-sidebar-v0.3.1-windows-x64-setup.exe'
-$checksum = 'WINDOWS-V031-SHA256SUMS.txt'
-$dest = Join-Path $env:TEMP 'codex-usage-sidebar-v0.3.1'
+$release = 'https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.3.2'
+$asset = 'codex-usage-sidebar-v0.3.2-windows-x64-setup.exe'
+$checksum = 'WINDOWS-V032-SHA256SUMS.txt'
+$dest = Join-Path $env:TEMP 'codex-usage-sidebar-v0.3.2'
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Invoke-WebRequest "$release/$asset" -OutFile (Join-Path $dest $asset)
 Invoke-WebRequest "$release/$checksum" -OutFile (Join-Path $dest $checksum)
@@ -101,7 +100,7 @@ that status output over inferred process names. Interpret Windows status conserv
 - `runtime=stopped` means the installed runtime is present but not running.
 - `runtime=running` means the approved runtime is active.
 - Unknown or unsupported UI Automation structures hide the overlay; do not guess coordinates.
-- The `v0.3.1` package has automated gates and still requires the real-device matrix. Do not claim
+- The `v0.3.2` package has automated gates and still requires the real-device matrix. Do not claim
   full 130-case or setup lifecycle validation unless you performed it on that machine.
 
 #### 6. Repair or uninstall when explicitly requested
@@ -208,7 +207,7 @@ Interpret status conservatively:
   a resolved collision-free local placement.
 - `fallback` with a numeric edge confirms the intentional safe right-side placement used when no
   complete local slot remains; it is not a failure.
-- `cached:false` is the expected v0.2.3 steady state because every 0.1-second tick re-scans eligible
+- `cached:false` is the expected v0.3.2 steady state because every 0.1-second tick re-scans eligible
   titlebar geometry for collisions.
 - `pid=<LaunchAgent PID>` confirms status came from the managed process rather than a standalone
   diagnostic invocation.

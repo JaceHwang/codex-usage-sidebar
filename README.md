@@ -30,12 +30,12 @@
 
 | Platform | Status | Distribution |
 | --- | --- | --- |
-| macOS 14+ Apple Silicon | Local v0.3.2 release asset | Signed companion plus a reproducible v0.3.2 arm64 DMG |
+| macOS 14+ Apple Silicon | v0.3.2 release | Signed companion plus a published v0.3.2 arm64 DMG |
 | Windows 11 AMD64 (`x64`) | v0.3.2 release | Unsigned `x64` setup asset; Windows ARM64 is out of scope |
 
 Windows `v0.3.2` is the Windows 11 AMD64/x64 release line. It carries the macOS-visible quota card
 model (token usage, account identity, theme-aware icon, reset countdown, Credits, Bank details, and
-the GitHub footer) without the Tibo X row. The shared quota contracts, .NET core, Win32 window
+the GitHub footer). The current v0.3.2 card does not render a Tibo X row on either platform. The shared quota contracts, .NET core, Win32 window
 boundary, sanitized UI Automation probe, per-user installer backend, payload digest verification,
 and Windows CI preserve the stable macOS payload. The v0.3.2 Windows asset is locally packaged and
 includes quick-prerelease validation metadata; the 130-case Windows manual matrix is still incomplete,
@@ -46,13 +46,13 @@ for development and validation details, and [Windows real-device diagnostic hand
 for the device procedure. To move the active work into Codex on a Windows computer, follow the
 [Windows Codex continuation guide](docs/WINDOWS-CODEX-CONTINUATION.md); the Git branch and its
 verified commit history are the handoff source of truth. The complete feature matrix is in
-[Windows v0.3.1 parity notes](docs/WINDOWS-V031-PARITY.md).
+[Windows v0.3.2 parity notes](docs/WINDOWS-V031-PARITY.md).
 
 ## Current appearance
 
 <p align="center">
-  <img src="docs/images/quota-popover-v0.3.1-en-light.png" alt="Codex Usage Sidebar v0.3.1 quota popover with token usage, themed app icon, and GitHub footer link in the light theme" width="48%">
-  <img src="docs/images/quota-popover-v0.3.1-en-dark.png" alt="Codex Usage Sidebar v0.3.1 quota popover with token usage, themed app icon, and GitHub footer link in the dark theme" width="48%">
+  <img src="docs/images/quota-popover-v0.3.2-en-light.png" alt="Codex Usage Sidebar v0.3.2 quota popover with token usage, themed app icon, and GitHub footer link in the light theme" width="48%">
+  <img src="docs/images/quota-popover-v0.3.2-en-dark.png" alt="Codex Usage Sidebar v0.3.2 quota popover with token usage, themed app icon, and GitHub footer link in the dark theme" width="48%">
 </p>
 
 <p align="center"><em>Current light theme · Current dark theme</em></p>
@@ -163,10 +163,31 @@ plugin support. The installer does not pin a Codex version. It searches the stan
 the current `PATH`; a CLI release is compatible when it provides the `plugin marketplace` and
 `plugin add` commands used by the installer.
 
-#### Build the v0.3.2 local installer asset
+#### Install the v0.3.2 DMG
 
-The macOS v0.3.2 release asset is built and verified locally from the checked-out `v0.3.2` branch.
-It does not replace the already-published Windows assets on GitHub.
+Download `codex-usage-sidebar-v0.3.2-macos-arm64.dmg` together with
+`MACOS-V032-SHA256SUMS.txt` and `MACOS-V032-PROVENANCE.json` from the
+[v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2).
+Verify the DMG before opening it:
+
+```bash
+shasum -a 256 codex-usage-sidebar-v0.3.2-macos-arm64.dmg
+```
+
+Compare the result with the matching entry in `MACOS-V032-SHA256SUMS.txt`. Open the verified DMG,
+then open **Codex Usage Sidebar Installer**. This asset is not notarized;
+if macOS blocks it, right-click the installer in Finder and choose Open. Click **Install**, complete the
+guided Codex login, enable Accessibility for **Codex Usage Sidebar** when macOS asks, then click
+**Verify** to confirm that the managed companion is running.
+
+The installer keeps its files outside the Codex application and never copies your normal `~/.codex`
+credentials. See [Installation and operations](docs/INSTALL.md) for repair, update, and uninstall
+behavior.
+
+#### Reproduce the macOS release asset
+
+Maintainers can reproduce the v0.3.2 installer from a checkout of the `v0.3.2` branch. This is a
+verification/development path, not a replacement for the published DMG above:
 
 ```bash
 bash scripts/build-macos-v032-installer.sh
@@ -175,21 +196,6 @@ bash scripts/verify-macos-v032-installer-package.sh \
   ".dist/v0.3.2/macos/Codex Usage Sidebar Installer.app" \
   ".dist/v0.3.2/macos/codex-usage-sidebar-v0.3.2-macos-arm64.dmg"
 ```
-
-The resulting local release files are:
-
-- `.dist/v0.3.2/macos/codex-usage-sidebar-v0.3.2-macos-arm64.dmg`
-- `.dist/v0.3.2/macos/MACOS-V032-SHA256SUMS.txt`
-- `.dist/v0.3.2/macos/MACOS-V032-PROVENANCE.json`
-
-Open the verified DMG, then open **Codex Usage Sidebar Installer**. This local asset is not notarized;
-if macOS blocks it, right-click the installer in Finder and choose Open. Click **Install**, complete the
-guided Codex login, enable Accessibility for **Codex Usage Sidebar** when macOS asks, then click
-**Verify** to confirm that the managed companion is running.
-
-The installer keeps its files outside the Codex application and never copies your normal `~/.codex`
-credentials. See [Installation and operations](docs/INSTALL.md) for repair, update, and uninstall
-behavior.
 
 ### Advanced: manual marketplace installation
 

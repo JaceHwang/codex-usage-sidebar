@@ -1,13 +1,13 @@
 # Troubleshooting
 
-## Windows v0.3.1 setup and runtime
+## Windows v0.3.2 setup and runtime
 
 ### SmartScreen shows Unknown publisher
 
 The Windows x64 setup is intentionally unsigned. Verify the SHA-256 against
-`WINDOWS-V031-SHA256SUMS.txt` first. If it matches, **Unknown publisher** is expected: select
+`WINDOWS-V032-SHA256SUMS.txt` first. If it matches, **Unknown publisher** is expected: select
 **More info**, then **Run anyway**. If it does not match, do not run the setup; download it again
-from the v0.3.1 release. Never disable Defender, SmartScreen, antivirus, or system policy.
+from the v0.3.2 release. Never disable Defender, SmartScreen, antivirus, or system policy.
 
 ### The overlay is hidden after a Codex upgrade
 
@@ -88,7 +88,7 @@ or status reports a plugin version older than 0.2.3, upgrade the plugin first. O
 foreground, confirm Accessibility, run repair, and include sanitized status output, the visible
 version badge, the Codex build number, and a cropped titlebar screenshot in a bug report.
 
-On v0.2.3 and later, fullscreen Codex with the right pane closed must not switch to fallback merely
+On v0.3.2, fullscreen Codex with the right pane closed must not switch to fallback merely
 because conversation elements are clipped against the top window edge. A healthy direct result in
 that state reports `anchor=openLocation`; the indicator still ends eight points before its edge.
 

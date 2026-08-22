@@ -1,193 +1,53 @@
-# Windows Codex 开发接力手册
+# 在 Codex 中继续 v0.3.2 Windows 开发
 
-这份文档是从 macOS 开发环境切换到 Windows Codex 后的唯一接力入口。代码、设计决策和测试
-基线全部通过 Git 同步，不需要复制本机工作区，也不依赖原 Codex 任务的聊天上下文。
+## 权威状态
 
-## 当前权威状态
+- 分支为 `v0.3.2`；跨电脑接力以 Git 提交 SHA 和提交历史为唯一源码依据。
+- `v0.3.2` 已发布 macOS arm64 与 Windows 11 AMD64/x64 安装资产。不得移动 `v0.3.2` 标签、覆盖 Release 资产，也不得修改官方 Codex 应用。
+- 当前缺口是 Windows 11 实机 UIA、DPI、生命周期与安装矩阵；便携式 .NET 源码验证已完成，但不能替代实机证据。
+- Windows 已对齐额度、Token 使用量、账号身份、三语言、主题图标、倒计时强调、Credits、Bank 与 GitHub 页脚；当前 v0.3.2 卡片不渲染 Tibo X 行。
 
-- 开发分支：`v0.3.0`
-- 稳定 macOS 版本：`v0.2.3`，不得改写或重新上传其 Release Assets
-- Windows 支持范围：Windows 11 AMD64（.NET、payload 和产物命名使用 `x64`）；本版本不构建、
-  不测试、不打包 Windows ARM64，ARM64 也不属于 `v0.3.0` 发布门禁
-- Windows 阶段：跨平台核心、Win32/UIA 诊断边界、安装器后端、完整性校验和诊断 CI 已完成
-- 已绑定的实机样本：`OpenAI.Codex` 包的可见宿主进程为 `ChatGPT.exe`，产品身份为 Codex，
-  文件 build `151.0.7922.76`；已在还原窗口、200% DPI、PMv2 物理像素坐标的默认脱敏报告上
-  绑定内容工具栏“打开位置”语义选择器（SHA-256：`65e519a71da6c7dc422253a33f30ecaabe175499a51254f9c6eb00983f721f7c`）
-- 当前实现：Windows 11 AMD64/x64 实机上已显示非激活 WPF 浮层，能够跟随窗口移动和缩放；语义
-  选择器不再要求固定的 Codex 文件 build。受控窗口相对回退仍仅用于实测 build `151.0.7922.76`，
-  其他未知或不完整 UIA、没有安全空位时仍隐藏浮层
-- 发布状态：本地 `device-test` 管理器可安装验证，但仍不可发布；130 项单显示器真实 UI、DPI、生命周期
-  和安装矩阵完成并提交 canonical 证据前禁止发布 setup
-
-## 视觉基线
-
-Windows 直接延用当前获准的 macOS v0.2.3 风格和体验，不重新设计：
-
-- 标题栏按钮显示“剩余百分比 + 下次重置”，默认融入背景，悬浮/固定时出现轻微中性色底；
-- 百分比、浮窗百分比、进度条和倒计时数字使用同一套 100% 绿、49% 橙、10% 红连续色阶；
-- 浮窗保持约 300 逻辑像素宽、12px 圆角、细边框、原生阴影、蓝色小版本徽章和紧凑两列内容；
-- 鼠标悬浮显示，再单击固定，再次单击关闭；不抢 Codex 焦点；
-- 简体中文、繁体中文、英文和自动语言逻辑保持一致；
-- Windows 仅允许使用 Segoe UI、Per-Monitor DPI、原生焦点与高对比度等必要平台适配。
-
-详细参数见
-[Windows v0.3.0-beta.1 设计文档](superpowers/specs/2026-08-11-windows-v0.3.0-beta.1-design.md#approved-visual-decision-brief)。
-
-## 1. 在 Windows 同步代码
-
-推荐用 PowerShell 和 Git 新建干净克隆：
+## 安全同步代码
 
 ```powershell
 git clone https://github.com/JaceHwang/codex-usage-sidebar.git
 Set-Location .\codex-usage-sidebar
-git fetch origin
-git switch --track origin/v0.3.0
-git status --short --branch
-git rev-parse HEAD
-```
-
-如果电脑上已经有这个仓库，先确认没有未提交修改，不要用 reset 或 checkout 丢弃文件：
-
-```powershell
-Set-Location C:\path\to\codex-usage-sidebar
-git status --short
-git fetch origin
-git switch v0.3.0
+git fetch origin --prune
+git switch --track origin/v0.3.2
 git pull --ff-only
 git status --short --branch
 git rev-parse HEAD
 ```
 
-若本地尚未创建该分支，使用：
+已有仓库时先执行 `git status --short`，不要用 `reset --hard` 或丢弃其他开发者的文件；随后执行 `git fetch origin --prune`、`git switch v0.3.2` 和 `git pull --ff-only`。
 
-```powershell
-git switch --track origin/v0.3.0
-```
+## Windows 开发环境
 
-## 2. 准备 Windows 开发环境
+- Windows 11 AMD64/x64 与已登录 Codex 桌面客户端；
+- Git for Windows、.NET 8 SDK、Visual Studio 2022 或包含“.NET 桌面开发”工作负载的 Build Tools；
+- 可选 GitHub CLI，用于查询 Actions 和 Release 资产。
 
-安装以下组件后重新打开 PowerShell：
+不要以管理员身份运行 Codex、PowerShell 或安装器。Windows ARM64 不在支持范围内。
 
-- Windows 11 AMD64（工具链标记为 `x64`）和已登录的 Codex 桌面客户端；
-- Git for Windows；
-- .NET 8 SDK（不是只安装 Runtime）；
-- Visual Studio 2022 Build Tools 或 Visual Studio 2022，包含“.NET 桌面开发”工作负载；
-- GitHub CLI，用于查询 Actions、下载精确 run 的产物、创建和复验 Draft Release，以及在最终
-  门禁通过后发布版本。
+## 在 Codex 中开始
 
-在 Windows 11 AMD64/x64 上从 `winget` 社区源安装官方 GitHub CLI，不使用 Microsoft Store 源：
-
-```powershell
-winget install --id GitHub.cli --exact --source winget `
-  --accept-source-agreements --accept-package-agreements
-```
-
-安装后重新打开 PowerShell，使用 GitHub 官方浏览器授权；不要把 token 写进命令、文档或仓库：
-
-```powershell
-gh auth login --hostname github.com --git-protocol https --web --skip-ssh-key
-gh auth status --hostname github.com
-gh repo view JaceHwang/codex-usage-sidebar --json nameWithOwner,defaultBranchRef
-gh run list --repo JaceHwang/codex-usage-sidebar --limit 1
-```
-
-`gh auth status` 必须显示当前 GitHub 账号已登录，后两条只读命令必须成功。GitHub CLI 只属于
-开发/发布工具链，不是普通插件用户的运行依赖。
-
-当前验证设备的 Git Bash 登录 shell 使用受控的 `~/.profile`，并明确删除自动生成的
-`~/.bash_profile`。该配置会加载现有 `~/.bashrc`，把已安装的 Miniconda 和 GitHub CLI 加入
-`PATH`，并提供由 Miniconda 执行的 `python3` 函数。运行 Bash 发布门禁时必须使用登录 shell，
-确保该配置已加载：
-
-```powershell
-& 'D:\app\Git\bin\bash.exe' -lc `
-  'cd /c/path/to/codex-usage-sidebar && tests/test-v030-release-candidate-workflow.sh'
-```
-
-这是开发设备的用户级 shell 配置，不得复制进插件 payload，也不得在其中保存 GitHub 凭据。
-
-验证环境：
-
-```powershell
-git --version
-dotnet --info
-dotnet --list-sdks
-gh --version
-gh auth status --hostname github.com
-```
-
-日常开发和诊断都使用普通用户权限，不要以管理员身份启动 Codex、PowerShell 或安装器。
-
-## 3. 在 Windows Codex 打开项目
-
-在 Windows Codex 中打开克隆后的仓库根目录，然后把下面这段作为新任务的第一条消息：
+打开仓库根目录后，使用下面的首条任务：
 
 ```text
-继续开发 Codex Usage Sidebar Windows v0.3.0。先完整阅读：
-1. docs/WINDOWS-CODEX-CONTINUATION.zh-CN.md
-2. docs/superpowers/specs/2026-08-11-windows-v0.3.0-beta.1-design.md
-3. docs/superpowers/specs/2026-08-13-v0.3.0-complete-release-chain-design.md
-4. docs/superpowers/plans/2026-08-13-v0.3.0-complete-release-chain.md
-5. docs/WINDOWS-DEVICE-HANDOFF.zh-CN.md
-
-当前视觉 source of truth 是 macOS v0.2.3，Windows 只做必要平台适配。先验证 Git HEAD 和
-运行文档中的基线测试，再在无敏感信息的 Codex 临时任务上采集默认脱敏 UIA 报告。未知 UIA
-结构必须隐藏浮层；未经实机验证不要发布或声称 setup 可用。使用 TDD 实现 WPF 浮层、定位和
-本地化安装器 UI，并保持 macOS v0.2.3 资产不变。
+继续 Codex Usage Sidebar v0.3.2 Windows 实机验证。先阅读 docs/WINDOWS-BETA.md、
+docs/WINDOWS-DEVICE-HANDOFF.zh-CN.md、docs/WINDOWS-V031-PARITY.md 和 docs/ARCHITECTURE.md。
+先确认 v0.3.2 Git HEAD，再运行 .NET 构建/测试；只从无敏感信息的 Codex 临时任务采集脱敏 UIA
+报告。未知或不安全的 UIA 结构必须隐藏浮层，不得猜测坐标，也不得发布或覆盖 Release 资产。修改
+选择器、安装器行为或兼容性声明前，先记录 Windows 实机证据。
 ```
 
-## 4. 运行接力基线
-
-在仓库根目录执行：
+## 基线命令
 
 ```powershell
 $ErrorActionPreference = 'Stop'
 dotnet restore .\plugins\codex-usage-sidebar\windows\CodexUsageSidebar.Windows.sln
-dotnet test .\plugins\codex-usage-sidebar\windows\CodexUsageSidebar.Windows.sln `
-  --configuration Release --nologo
-dotnet build `
-  .\plugins\codex-usage-sidebar\windows\src\CodexUsageSidebar.Windows\CodexUsageSidebar.Windows.csproj `
-  --configuration Release --framework net8.0-windows10.0.19041.0 --no-restore --nologo
+dotnet build .\plugins\codex-usage-sidebar\windows\CodexUsageSidebar.Windows.sln --configuration Release --no-restore --nologo
+dotnet test .\plugins\codex-usage-sidebar\windows\CodexUsageSidebar.Windows.sln --configuration Release --no-build --nologo
 ```
 
-在开始改代码前，基线应保持全部测试通过且无编译警告。若 Git HEAD 与远端分支不同，或测试失败，
-先记录完整输出并排查，不要绕过测试。
-
-## 5. 首次实机诊断
-
-1. 在 Codex 新建无敏感信息的临时任务并保持窗口可见。
-2. 从成功的 **Windows beta diagnostic candidate** Actions 运行下载诊断产物，按
-   [Windows 实机诊断交接手册](WINDOWS-DEVICE-HANDOFF.zh-CN.md)验证摘要和 provenance。
-3. 先采集默认脱敏报告；未经明确需要不要添加 `--include-text`：
-
-```powershell
-.\CodexUsageSidebar.Control.exe probe C:\Temp\codex-usage-sidebar-probe.json
-```
-
-4. 完成左/右/下侧栏、窄窗、最大化、全屏、单显示器、主题、语言和 DPI 矩阵；本版本不声明跨显示器移动、跨显示器 DPI 切换或负坐标行为。
-5. 将脱敏报告转成版本化 UIA/布局夹具，先写失败测试，再绑定生产选择器和显示浮层。
-
-## 6. Windows 实现顺序
-
-1. 真实 UIA 树与窗口/DPI 证据；
-2. 可版本化的语义选择器和布局夹具；
-3. 非激活 WPF 紧凑按钮与浮窗，达到 macOS 视觉/交互基线；
-4. 主题、三语言、DPI、单显示器、侧栏和窗口状态回归；
-5. 本地化 WPF 安装器壳、安装/修复/卸载实测；
-6. 签名、provenance、setup 负向验证和 Windows prerelease。
-
-任何未知 Codex 版本或不完整 UIA 结构都应安全隐藏插件，而不是猜测坐标并与原生控件重叠。
-
-## 7. 每次在两台电脑间同步
-
-Windows 完成一个可验证的小阶段后，在当前功能分支提交并推送：
-
-```powershell
-git status --short
-git add -- <明确的文件列表>
-git commit -m "feat: continue Windows beta integration"
-git push
-```
-
-回到 macOS 时使用 `git fetch origin` 和 `git pull --ff-only` 获取同一分支。不要用聊天记录、压缩包
-或网盘作为源码真相；Git 分支、提交 SHA、自动化测试和 provenance 才是接力依据。
+基线通过后，按 [Windows 实机诊断交接手册](WINDOWS-DEVICE-HANDOFF.zh-CN.md) 执行实机矩阵。每个可验证的小阶段都提交到功能分支并推送；回到 macOS 后用 `git fetch origin` 和 `git pull --ff-only` 继续。

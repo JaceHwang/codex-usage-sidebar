@@ -2,8 +2,8 @@
 
 ## Data read
 
-- Remaining Codex quota, reset time, plan metadata, Credits, and every Bank entry from the local
-  Codex `app-server` JSON-RPC stream.
+- Remaining Codex quota, reset time, plan metadata, Credits, every Bank entry, seven-day Token usage,
+  and account display identity from the local Codex `app-server` JSON-RPC stream.
 - Codex window geometry and named-control accessibility labels and frames needed for placement.
 - Local process and bundle metadata needed to discover the running Codex installation.
 - Local Codex theme preference used to match light and dark appearance.
@@ -32,6 +32,7 @@ does not copy or read the normal `~/.codex/auth.json` file.
 ## Data not collected
 
 - Conversation text or repository contents
+- Tibo X content, X API data, prediction data, or browser scraping
 - Browser cookies or data from other applications
 - Normal Codex-home credentials
 - Keyboard or global mouse events

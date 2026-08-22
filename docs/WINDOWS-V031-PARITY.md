@@ -1,4 +1,4 @@
-# Windows v0.3.1 parity notes
+# Windows v0.3.2 parity notes
 
 The Windows implementation now follows the same visible quota-card contract as the current macOS
 card. It uses the official Codex app-server over stdio and keeps the Codex application package
@@ -11,14 +11,14 @@ read-only.
 - seven daily Token usage buckets plus the current-period total;
 - Simplified Chinese, Traditional Chinese, English, and the same unsupported-locale fallback;
 - account display name/email fallback and optional avatar URL from `account/read`;
-- theme-aware quota icon, synchronized `v0.3.1` badge, compact native typography, and a
+- theme-aware quota icon, synchronized `v0.3.2` badge, compact native typography, and a
   borderless GitHub footer button;
 - hover-to-show and click-to-pin interaction without activating or stealing focus from Codex.
 
-## Intentional difference
+## Current scope
 
-The Tibo X information row is intentionally not rendered on Windows. The GitHub footer entry is
-shared. No browser scraping, OAuth-cookie access, X API request, or prediction logic is used.
+The v0.3.2 card does not render the Tibo X information row on either platform. The GitHub footer
+entry is shared. No browser scraping, OAuth-cookie access, X API request, or prediction logic is used.
 
 ## Compatibility and degradation
 
@@ -38,6 +38,7 @@ dotnet build plugins/codex-usage-sidebar/windows/CodexUsageSidebar.Windows.sln -
 dotnet test plugins/codex-usage-sidebar/windows/tests/CodexUsageSidebar.Core.Tests/CodexUsageSidebar.Core.Tests.csproj --no-restore
 ```
 
-The final installer is intentionally a Windows-device gate. Build, signing/provenance, install,
-repair, upgrade, uninstall, DPI, theme, pane-collision, and Codex lifecycle checks must run on a
-Windows 11 AMD64/x64 machine before publishing `codex-usage-sidebar-v0.3.1-windows-x64-setup.exe`.
+The v0.3.2 installer is published for Windows 11 AMD64/x64. Its portable build and core tests pass,
+but the full real-device matrix remains outstanding: install, repair, upgrade, uninstall, DPI,
+theme, pane-collision, and Codex lifecycle results must be collected on a Windows 11 AMD64/x64
+machine before claiming complete device coverage.
