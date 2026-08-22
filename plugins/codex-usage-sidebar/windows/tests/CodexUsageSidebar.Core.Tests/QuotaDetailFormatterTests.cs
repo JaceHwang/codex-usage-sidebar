@@ -54,9 +54,9 @@ public sealed class QuotaDetailFormatterTests
         var account = new AccountIdentity("Jace", "jace@example.com", null);
 
         var content = QuotaDetailFormatter.Format(
-            FullSnapshot(), Now, DisplayLanguage.SimplifiedChinese, ChinaTime, usage, account, "0.3.1");
+            FullSnapshot(), Now, DisplayLanguage.SimplifiedChinese, ChinaTime, usage, account, "0.3.2");
 
-        Assert.AreEqual("0.3.1", content.Version);
+        Assert.AreEqual("0.3.2", content.Version);
         Assert.AreEqual(account, content.Account);
         Assert.AreEqual("Token 用量", content.TokenUsage?.Title);
         Assert.AreEqual("账户", content.AccountLabel);
@@ -87,7 +87,7 @@ public sealed class QuotaDetailFormatterTests
             TokenUsageAvailability.Unsupported);
 
         var content = QuotaDetailFormatter.Format(
-            FullSnapshot(), Now, DisplayLanguage.English, ChinaTime, usage, null, "0.3.1");
+            FullSnapshot(), Now, DisplayLanguage.English, ChinaTime, usage, null, "0.3.2");
 
         Assert.AreEqual(76, content.RemainingPercent);
         Assert.AreEqual(TokenUsageAvailability.Unsupported, content.TokenUsage?.Availability);

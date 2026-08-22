@@ -75,7 +75,7 @@ public sealed class HostCoordinatorTests
 
         Assert.AreSame(usage, overlay.LastPresentation?.TokenUsage);
         Assert.AreSame(account, overlay.LastPresentation?.Account);
-        Assert.AreEqual("0.3.1", overlay.LastPresentation?.Version);
+        Assert.AreEqual("0.3.2", overlay.LastPresentation?.Version);
     }
 
     [TestMethod]

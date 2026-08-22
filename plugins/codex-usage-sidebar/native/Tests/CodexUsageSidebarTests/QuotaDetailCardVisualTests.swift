@@ -60,7 +60,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                         ),
                         content: content,
                         rowHeights: rowHeights,
-                        version: "0.3.1",
+                        version: "0.3.2",
                         onOpenURL: { _ in }
                     )
                     renderedCard?.appearance = appearance
@@ -178,7 +178,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             ),
             content: content,
             rowHeights: rowHeights,
-            version: "0.3.1",
+            version: "0.3.2",
             onOpenURL: { _ in }
         )
         card.layoutSubtreeIfNeeded()
@@ -228,7 +228,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             ),
             content: content,
             rowHeights: rowHeights,
-            version: "0.3.1",
+            version: "0.3.2",
             onOpenURL: { _ in }
         )
 
@@ -366,7 +366,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                 repeating: QuotaDetailLayout.rowHeight,
                 count: content.rows.count
             ),
-            version: "0.3.1",
+            version: "0.3.2",
             onOpenURL: { _ in }
         )
         card.layoutSubtreeIfNeeded()

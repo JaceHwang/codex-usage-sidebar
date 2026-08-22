@@ -86,13 +86,23 @@ hard-coded version gate.
 
 ## Install with the graphical installer
 
-1. Download [`codex-usage-sidebar-v0.2.3-macos-arm64.dmg`](https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.2.3/codex-usage-sidebar-v0.2.3-macos-arm64.dmg) from the v0.2.3 release **Assets**.
-2. Open the DMG, then open **Codex Usage Sidebar Installer**.
-3. The raw asset is not notarized. If macOS blocks it, right-click the installer in Finder and choose Open.
-4. Click **Install**, complete the isolated Codex login when prompted, and enable Accessibility.
-5. Click **Verify** in the installer after granting Accessibility.
+Build the local v0.3.2 arm64 installer from the checked-out `v0.3.2` branch:
 
-The installer embeds the already-promoted v0.2.3 marketplace payload and places the companion and
+```bash
+bash scripts/build-macos-v032-installer.sh
+bash scripts/package-macos-v032-installer.sh
+bash scripts/verify-macos-v032-installer-package.sh \
+  ".dist/v0.3.2/macos/Codex Usage Sidebar Installer.app" \
+  ".dist/v0.3.2/macos/codex-usage-sidebar-v0.3.2-macos-arm64.dmg"
+```
+
+The verified local asset is `.dist/v0.3.2/macos/codex-usage-sidebar-v0.3.2-macos-arm64.dmg`; its
+adjacent `MACOS-V032-SHA256SUMS.txt` and `MACOS-V032-PROVENANCE.json` record the digest and exact
+source commit. Open the DMG, then open **Codex Usage Sidebar Installer**. The raw local asset is not
+notarized. If macOS blocks it, right-click the installer in Finder and choose Open. Click **Install**,
+complete the isolated Codex login when prompted, enable Accessibility, then click **Verify**.
+
+The installer embeds the already-promoted v0.3.2 marketplace payload and places the companion and
 LaunchAgent in the same locations used by the marketplace hook. It does not modify the Codex app.
 
 ## Advanced: install from the marketplace
@@ -157,7 +167,7 @@ Repair once after changing the switch:
 A healthy adaptive-positioning result is read from the actual managed process and includes:
 
 ```text
-pid=12345 version=0.2.3 runtime=shown placement=content-header anchor=labeledControl
+pid=12345 version=0.3.2 runtime=shown placement=content-header anchor=labeledControl
 language=simplifiedChinese language_source=process
 indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app
@@ -166,7 +176,7 @@ installed and loaded: .../Codex Usage Sidebar.app
 `openLocation`, `labeledControl`, and `rightPaneBoundary` are valid resolved sources. For those
 sources, an indicator frame `x,y,width,height` satisfies `x + width = edge - 8`. A `fallback` with
 a numeric edge is also healthy: it is the deliberate safe right-side position used when no full
-local slot remains. v0.2.3 normally reports `cached:false` because every placement tick re-scans
+local slot remains. v0.3.2 normally reports `cached:false` because every placement tick re-scans
 eligible titlebar geometry; the version must match the badge beside the hover-card title. See
 [Troubleshooting](TROUBLESHOOTING.md).
 

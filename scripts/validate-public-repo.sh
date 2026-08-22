@@ -14,6 +14,8 @@ required=(
   docs/INSTALL.md docs/INSTALL_FOR_AGENTS.md docs/ARCHITECTURE.md docs/TROUBLESHOOTING.md
   docs/PRIVACY.md docs/images/hero.svg docs/images/placement.svg docs/images/architecture.svg
   scripts/finalize-installer-provenance.py scripts/verify-installer-package.sh
+  scripts/build-macos-v032-installer.sh scripts/package-macos-v032-installer.sh
+  scripts/verify-macos-v032-installer-package.sh
   scripts/build-windows-payload-manifest.py scripts/verify-windows-payload.py
   tests/test-v023-publish-freeze.sh
   plugins/codex-usage-sidebar/.codex-plugin/plugin.json
@@ -285,23 +287,29 @@ for label, guard in publisher_guards.items():
 print("JSON, privacy, placeholder, and Markdown link checks passed")
 PY
 
-release_url="https://github.com/JaceHwang/codex-usage-sidebar/releases/download/v0.2.3/codex-usage-sidebar-v0.2.3-macos-arm64.dmg"
-/usr/bin/python3 - "$repo_root" "$release_url" <<'PY'
+/usr/bin/python3 - "$repo_root" <<'PY'
 import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
-release_url = sys.argv[2]
 required_copy = {
-    "README.md": "right-click the installer in Finder and choose Open",
-    "README.zh-CN.md": "在 Finder 中右键点击安装器并选择“打开”",
+    "README.md": (
+        "codex-usage-sidebar-v0.3.2-macos-arm64.dmg",
+        "right-click the installer in Finder and choose Open",
+    ),
+    "README.zh-CN.md": (
+        "codex-usage-sidebar-v0.3.2-macos-arm64.dmg",
+        "在 Finder 中右键点击安装器并选择“打开”",
+    ),
 }
-for relative, gatekeeper_warning in required_copy.items():
+for relative, (asset_name, gatekeeper_warning) in required_copy.items():
     text = (root / relative).read_text(encoding="utf-8")
-    if release_url not in text:
-        raise SystemExit(f"{relative}: missing v0.2.3 installer release URL")
+    if asset_name not in text:
+        raise SystemExit(f"{relative}: missing v0.3.2 local macOS installer asset")
+    if "build-macos-v032-installer.sh" not in text:
+        raise SystemExit(f"{relative}: missing reproducible v0.3.2 macOS build command")
     if gatekeeper_warning not in text:
-        raise SystemExit(f"{relative}: missing Finder Open warning for the unsigned installer")
+        raise SystemExit(f"{relative}: missing Finder Open warning for the local installer")
 PY
 
 /usr/bin/ruby -ryaml -e '
@@ -317,6 +325,9 @@ PY
 [[ -x "$repo_root/scripts/build-installer.sh" ]]
 [[ -x "$repo_root/scripts/package-installer.sh" ]]
 [[ -x "$repo_root/scripts/verify-installer-package.sh" ]]
+[[ -x "$repo_root/scripts/build-macos-v032-installer.sh" ]]
+[[ -x "$repo_root/scripts/package-macos-v032-installer.sh" ]]
+[[ -x "$repo_root/scripts/verify-macos-v032-installer-package.sh" ]]
 [[ -x "$repo_root/scripts/finalize-installer-provenance.py" ]]
 [[ -x "$repo_root/scripts/build-windows-payload-manifest.py" ]]
 [[ -x "$repo_root/scripts/verify-windows-payload.py" ]]

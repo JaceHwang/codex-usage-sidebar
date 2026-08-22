@@ -29,7 +29,7 @@ public sealed record QuotaDetailContent(
 
 public static class QuotaDetailFormatter
 {
-    public const string ProductVersion = "0.3.1";
+    public const string ProductVersion = "0.3.2";
     private static readonly string[] EnglishMonths =
         ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 

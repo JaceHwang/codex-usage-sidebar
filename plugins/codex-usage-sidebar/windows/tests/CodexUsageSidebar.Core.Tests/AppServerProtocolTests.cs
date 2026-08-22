@@ -9,7 +9,7 @@ public sealed class AppServerProtocolTests
     [TestMethod]
     public void BuildsInitializeInitializedAndRateLimitReadMessagesWithIncreasingIds()
     {
-        var protocol = new AppServerProtocol("codex_usage_sidebar_windows", "0.3.1");
+        var protocol = new AppServerProtocol("codex_usage_sidebar_windows", "0.3.2");
 
         using var initialize = JsonDocument.Parse(protocol.CreateInitializeRequest());
         using var initialized = JsonDocument.Parse(protocol.CreateInitializedNotification());
@@ -26,7 +26,7 @@ public sealed class AppServerProtocolTests
     [TestMethod]
     public void BuildsUsageAndAccountRequestsAfterRateLimitRequest()
     {
-        var protocol = new AppServerProtocol("test", "0.3.1");
+        var protocol = new AppServerProtocol("test", "0.3.2");
 
         using var usage = JsonDocument.Parse(protocol.CreateTokenUsageRead().Json);
         using var account = JsonDocument.Parse(protocol.CreateAccountRead().Json);

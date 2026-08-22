@@ -124,7 +124,7 @@ public sealed class AppServerSessionTests
         AccountIdentity? account = null;
         var session = new AppServerSession(
             new StubConnectionFactory(connection),
-            new AppServerProtocol("test", "0.3.1"),
+            new AppServerProtocol("test", "0.3.2"),
             () => DateTimeOffset.UnixEpoch);
 
         await session.RunAsync(

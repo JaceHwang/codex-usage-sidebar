@@ -8,11 +8,11 @@
 | --- | --- |
 | 分支 | `v0.3.2` |
 | 分支来源 | 当前最新 Windows parity 提交 `ba70631` |
-| macOS 功能基线 | v0.3.1 可见功能（原生额度卡、Token、账号、主题图标、GitHub 入口） |
-| Windows 功能基线 | v0.3.1 parity 源码与自动化门禁已完成 |
+| macOS 功能基线 | v0.3.2（原生额度卡、Token、账号、主题图标、GitHub 入口） |
+| Windows 功能基线 | v0.3.2 parity 源码与自动化门禁已完成 |
 | Tibo X 入口 | macOS 保留；Windows 按既定范围不显示 |
-| 发布资产 | 尚未在本分支生成新的 macOS DMG 或 Windows setup |
-| 总体状态 | 进行中：等待 Windows 实机与安装资产门禁 |
+| 发布资产 | GitHub v0.3.2 保留既有 Windows 资产；macOS 正在构建本地 arm64 DMG、摘要和 provenance |
+| 总体状态 | 进行中：完成 macOS 本地安装资产；Windows 实机门禁仍待目标设备执行 |
 
 ## 已纳入的功能
 
@@ -32,6 +32,7 @@
 3. 保留 v0.3.1 的产品版本元数据和历史发布资产，避免在没有新安装包和实机验证时制造虚假的 v0.3.2 发布声明。
 4. 将分支推送到远端，供 Windows 设备继续完成实机验证和安装资产构建。
 5. 在 Windows 11 x64 上完成本地源码基线、非发布 device-test 载荷和默认脱敏 UIA 探针检查；未生成 setup 或 GitHub Release。
+6. 2026-08-23：将 macOS 安装器、伴随程序载荷、README 与本地打包链提升至 v0.3.2；构建过程固定从已提交源码归档生成，产物不改写 GitHub 上已有 v0.3.2 Windows Release 资产。
 
 ## 验证证据
 
