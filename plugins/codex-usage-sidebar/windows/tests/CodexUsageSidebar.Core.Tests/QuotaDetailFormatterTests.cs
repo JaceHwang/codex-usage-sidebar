@@ -67,6 +67,17 @@ public sealed class QuotaDetailFormatterTests
     }
 
     [TestMethod]
+    public void FormatsTheCompactIndicatorWithoutDecorativeSeparatorWhitespace()
+    {
+        var compact = QuotaDetailFormatter.FormatCompact(
+            FullSnapshot(),
+            DisplayLanguage.SimplifiedChinese,
+            ChinaTime);
+
+        Assert.AreEqual("76%·8月2日 08:00", compact);
+    }
+
+    [TestMethod]
     public void KeepsTheCardAvailableWhenTokenUsageIsUnsupported()
     {
         var usage = new TokenUsageSnapshot(

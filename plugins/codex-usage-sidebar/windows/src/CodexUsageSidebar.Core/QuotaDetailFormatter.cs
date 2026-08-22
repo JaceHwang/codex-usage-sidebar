@@ -179,7 +179,7 @@ public static class QuotaDetailFormatter
         var date = language == DisplayLanguage.English
             ? $"{EnglishMonths[local.Month - 1]} {local.Day}, {local:HH:mm}"
             : $"{local.Month}月{local.Day}日 {local:HH:mm}";
-        return $"{snapshot.RemainingPercent}% · {date}";
+        return $"{snapshot.RemainingPercent}%·{date}";
     }
 
     private static string FormatDateWithInterval(

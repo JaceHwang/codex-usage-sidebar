@@ -189,7 +189,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         var compact = QuotaDetailFormatter.FormatCompact(snapshot, language, timeZone);
         var separator = compact.IndexOf('·');
         indicatorText.Inlines.Add(new System.Windows.Documents.Run(
-            separator > 0 ? compact[(separator - 1)..] : string.Empty)
+            separator > 0 ? compact[separator..] : string.Empty)
         {
             Foreground = palette.Primary,
         });
