@@ -182,6 +182,14 @@
 - Windows solution 测试：`54 + 64 + 80 = 198/198` 通过；Release x64 构建 `0` 警告、`0` 错误。
 - 已安装当前载荷：`runtime=running pid=3188 version=0.3.1`，`sourceCommit=e87747123b5902c89cdf24343e47545dce79630a`。
 
+2026-08-22 在按钮文字前增加主题 logo（源提交 `c60515d`）：
+
+- 浅色主题使用 `quota-icon-light.png`，深色主题使用 `quota-icon-dark.png`；logo 放在文字左侧，尺寸为 `16` 个逻辑像素。
+- logo 与文字间隔为 `2` 个逻辑像素；按钮内容宽度扩展为 `124 + 16 + 2 = 142` 个逻辑像素，并继续使用高度三分之一的两侧内边距。
+- 实机 UIA 探针确认按钮内部顺序为 `Image x=1490..1522`、`TextBlock x=1526..1766`，间隔为 `4` 个物理像素（即 `2` 个逻辑像素）。探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\27-theme-logo-prefix.json`。
+- Windows solution 测试：`54 + 64 + 80 = 198/198` 通过；Release x64 构建 `0` 警告、`0` 错误。
+- 已安装当前载荷：`runtime=running pid=21436 version=0.3.1`，`sourceCommit=c60515d4170df8a1049cf6918b598322b722dddb`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
