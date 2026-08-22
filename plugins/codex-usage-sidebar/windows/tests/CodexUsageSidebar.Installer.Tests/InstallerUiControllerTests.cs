@@ -65,10 +65,10 @@ public sealed class InstallerUiControllerTests
             mode,
             InstallerUiState.Ready,
             flavor: InstallerUiFlavor.PublishedRelease,
-            displayVersion: "0.3.0");
+            displayVersion: "0.3.1");
 
         StringAssert.Contains(model.Description, expectedDescription);
-        Assert.AreEqual("0.3.0", model.DisplayVersion);
+        Assert.AreEqual("0.3.1", model.DisplayVersion);
         Assert.IsFalse(model.Description.Contains(forbiddenDeviceTestWarning, StringComparison.OrdinalIgnoreCase));
         Assert.IsFalse(model.Description.Contains("device-test", StringComparison.OrdinalIgnoreCase));
     }

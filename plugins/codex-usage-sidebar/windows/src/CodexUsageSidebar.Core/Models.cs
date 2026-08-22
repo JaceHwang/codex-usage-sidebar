@@ -48,3 +48,36 @@ public sealed class RateLimitDecodingException : Exception
 
     public RateLimitDecodingFailure Failure { get; }
 }
+
+public enum TokenUsageAvailability
+{
+    Available,
+    Unavailable,
+    Unsupported,
+}
+
+public sealed record TokenUsageDay(DateOnly Date, long Tokens);
+
+public sealed record TokenUsageSummary(
+    long? LifetimeTokens,
+    long? PeakDailyTokens,
+    int? LongestRunningTurnSeconds,
+    int? CurrentStreakDays,
+    int? LongestStreakDays);
+
+public sealed record TokenUsageSnapshot(
+    DateTimeOffset ReceivedAt,
+    IReadOnlyList<TokenUsageDay> DailyBuckets,
+    TokenUsageSummary? Summary,
+    TokenUsageAvailability Availability);
+
+public sealed record AccountIdentity(
+    string? DisplayName,
+    string? Email,
+    Uri? AvatarUrl)
+{
+    public string? PreferredName =>
+        !string.IsNullOrWhiteSpace(DisplayName)
+            ? DisplayName!.Trim()
+            : string.IsNullOrWhiteSpace(Email) ? null : Email!.Trim();
+}

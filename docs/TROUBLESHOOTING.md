@@ -1,13 +1,13 @@
 # Troubleshooting
 
-## Windows v0.3.0 setup and runtime
+## Windows v0.3.1 setup and runtime
 
 ### SmartScreen shows Unknown publisher
 
 The Windows x64 setup is intentionally unsigned. Verify the SHA-256 against
-`WINDOWS-V030-SHA256SUMS.txt` first. If it matches, **Unknown publisher** is expected: select
+`WINDOWS-V031-SHA256SUMS.txt` first. If it matches, **Unknown publisher** is expected: select
 **More info**, then **Run anyway**. If it does not match, do not run the setup; download it again
-from the v0.3.0 release. Never disable Defender, SmartScreen, antivirus, or system policy.
+from the v0.3.1 release. Never disable Defender, SmartScreen, antivirus, or system policy.
 
 ### The overlay is hidden after a Codex upgrade
 

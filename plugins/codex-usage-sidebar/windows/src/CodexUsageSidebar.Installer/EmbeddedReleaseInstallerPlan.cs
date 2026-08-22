@@ -18,11 +18,11 @@ public sealed record EmbeddedReleaseInstallerPlan(
     {
         if (!string.Equals(architecture, "x64", StringComparison.Ordinal))
         {
-            throw new PlatformNotSupportedException("Windows v0.3.0 releases support AMD64/x64 only.");
+            throw new PlatformNotSupportedException("Windows v0.3.1 releases support AMD64/x64 only.");
         }
         if (windowsBuild < 22_000)
         {
-            throw new PlatformNotSupportedException("Windows v0.3.0 releases require Windows 11 build 22000 or newer.");
+            throw new PlatformNotSupportedException("Windows v0.3.1 releases require Windows 11 build 22000 or newer.");
         }
 
         var identity = new TrustedPayloadIdentity(

@@ -47,6 +47,38 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public async Task CarriesTokenUsageAndAccountIdentityIntoTheOverlayPresentation()
+    {
+        var window = new HostWindowSnapshot(
+            new IntPtr(42), new RectD(0, 0, 2048, 1100), true, 2, "codex-build-a");
+        var scanner = new StubScanner(new TitlebarSnapshot(
+            1500,
+            Array.Empty<RectD>(),
+            new RectD(400, 80, 1600, 92),
+            new RectD(1500, 98, 180, 56),
+            new RectD(420, 98, 300, 56)));
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(new StubLocator(window), scanner, overlay);
+        var usage = new TokenUsageSnapshot(
+            DateTimeOffset.UnixEpoch,
+            Array.Empty<TokenUsageDay>(),
+            null,
+            TokenUsageAvailability.Unsupported);
+        var account = new AccountIdentity("Jace", "jace@example.com", null);
+
+        await coordinator.ReconcileAsync(
+            Snapshot(),
+            DisplayLanguage.English,
+            CancellationToken.None,
+            usage,
+            account);
+
+        Assert.AreSame(usage, overlay.LastPresentation?.TokenUsage);
+        Assert.AreSame(account, overlay.LastPresentation?.Account);
+        Assert.AreEqual("0.3.1", overlay.LastPresentation?.Version);
+    }
+
+    [TestMethod]
     public async Task KeepsOverlayAttachedWhenForegroundDetectionTemporarilyReturnsFalse()
     {
         var window = Window("codex-build-a") with { IsForeground = false };
@@ -310,14 +342,14 @@ public sealed class HostCoordinatorTests
     public void OverlayVisualMetricsMatchTheMacOsV023Baseline()
     {
         Assert.AreEqual(164, OverlayVisualMetrics.IndicatorWidth);
-        Assert.AreEqual(300, OverlayVisualMetrics.DetailWidth);
-        Assert.AreEqual(14, OverlayVisualMetrics.HeaderTitleFontSize);
-        Assert.AreEqual(8, OverlayVisualMetrics.VersionBadgeFontSize);
-        Assert.AreEqual(14, OverlayVisualMetrics.VersionBadgeHeight);
-        Assert.AreEqual(18, OverlayVisualMetrics.RemainingPercentFontSize);
-        Assert.AreEqual(12, OverlayVisualMetrics.DetailValueFontSize);
-        Assert.AreEqual(14, OverlayVisualMetrics.CountdownDigitFontSize);
-        Assert.AreEqual(10, OverlayVisualMetrics.CountdownUnitFontSize);
+        Assert.AreEqual(360, OverlayVisualMetrics.DetailWidth);
+        Assert.AreEqual(18, OverlayVisualMetrics.HeaderTitleFontSize);
+        Assert.AreEqual(9, OverlayVisualMetrics.VersionBadgeFontSize);
+        Assert.AreEqual(18, OverlayVisualMetrics.VersionBadgeHeight);
+        Assert.AreEqual(28, OverlayVisualMetrics.RemainingPercentFontSize);
+        Assert.AreEqual(13, OverlayVisualMetrics.DetailValueFontSize);
+        Assert.AreEqual(16, OverlayVisualMetrics.CountdownDigitFontSize);
+        Assert.AreEqual(11, OverlayVisualMetrics.CountdownUnitFontSize);
         Assert.AreEqual(4, OverlayVisualMetrics.ProgressTrackHeight);
     }
 

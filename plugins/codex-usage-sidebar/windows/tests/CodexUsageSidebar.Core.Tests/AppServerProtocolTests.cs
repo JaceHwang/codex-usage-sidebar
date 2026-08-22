@@ -9,7 +9,7 @@ public sealed class AppServerProtocolTests
     [TestMethod]
     public void BuildsInitializeInitializedAndRateLimitReadMessagesWithIncreasingIds()
     {
-        var protocol = new AppServerProtocol("codex_usage_sidebar_windows", "0.3.0");
+        var protocol = new AppServerProtocol("codex_usage_sidebar_windows", "0.3.1");
 
         using var initialize = JsonDocument.Parse(protocol.CreateInitializeRequest());
         using var initialized = JsonDocument.Parse(protocol.CreateInitializedNotification());
@@ -21,6 +21,21 @@ public sealed class AppServerProtocolTests
         Assert.AreEqual("initialized", initialized.RootElement.GetProperty("method").GetString());
         Assert.AreEqual(2, read.RootElement.GetProperty("id").GetInt32());
         Assert.AreEqual("account/rateLimits/read", read.RootElement.GetProperty("method").GetString());
+    }
+
+    [TestMethod]
+    public void BuildsUsageAndAccountRequestsAfterRateLimitRequest()
+    {
+        var protocol = new AppServerProtocol("test", "0.3.1");
+
+        using var usage = JsonDocument.Parse(protocol.CreateTokenUsageRead().Json);
+        using var account = JsonDocument.Parse(protocol.CreateAccountRead().Json);
+
+        Assert.AreEqual("account/usage/read", usage.RootElement.GetProperty("method").GetString());
+        Assert.AreEqual("account/read", account.RootElement.GetProperty("method").GetString());
+        Assert.AreNotEqual(
+            usage.RootElement.GetProperty("id").GetInt32(),
+            account.RootElement.GetProperty("id").GetInt32());
     }
 
     [TestMethod]

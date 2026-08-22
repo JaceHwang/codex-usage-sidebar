@@ -60,7 +60,10 @@ public sealed record OverlayPresentation(
     AllowanceSnapshot Snapshot,
     PlacementResult Placement,
     SnapshotFreshness Freshness,
-    PointD ThemeProbePoint);
+    PointD ThemeProbePoint,
+    TokenUsageSnapshot? TokenUsage = null,
+    AccountIdentity? Account = null,
+    string Version = QuotaDetailFormatter.ProductVersion);
 
 public enum HostRuntimeState
 {

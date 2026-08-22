@@ -40,6 +40,51 @@ public sealed class QuotaDetailFormatterTests
         CollectionAssert.Contains(traditional.Rows.ToArray(), new QuotaDetailRow("下次重設", "8月2日 08:00（7d6h）"));
     }
 
+    [TestMethod]
+    public void FormatsTokenUsageAccountAndVersionForTheWindowsCard()
+    {
+        var usage = new TokenUsageSnapshot(
+            Now,
+            [
+                new TokenUsageDay(new DateOnly(2026, 7, 31), 280_000),
+                new TokenUsageDay(new DateOnly(2026, 8, 1), 320_000),
+            ],
+            new TokenUsageSummary(1_240_000, 420_000, null, null, null),
+            TokenUsageAvailability.Available);
+        var account = new AccountIdentity("Jace", "jace@example.com", null);
+
+        var content = QuotaDetailFormatter.Format(
+            FullSnapshot(), Now, DisplayLanguage.SimplifiedChinese, ChinaTime, usage, account, "0.3.1");
+
+        Assert.AreEqual("0.3.1", content.Version);
+        Assert.AreEqual(account, content.Account);
+        Assert.AreEqual("Token 用量", content.TokenUsage?.Title);
+        Assert.AreEqual("账户", content.AccountLabel);
+        Assert.AreEqual(TokenUsageAvailability.Available, content.TokenUsage?.Availability);
+        Assert.AreEqual(7, content.TokenUsage?.Days.Count);
+        Assert.AreEqual(600_000, content.TokenUsage?.CurrentPeriodTotal);
+        Assert.AreEqual("本周期总计 600K tokens", content.TokenUsage?.TotalLabel);
+    }
+
+    [TestMethod]
+    public void KeepsTheCardAvailableWhenTokenUsageIsUnsupported()
+    {
+        var usage = new TokenUsageSnapshot(
+            Now,
+            Array.Empty<TokenUsageDay>(),
+            null,
+            TokenUsageAvailability.Unsupported);
+
+        var content = QuotaDetailFormatter.Format(
+            FullSnapshot(), Now, DisplayLanguage.English, ChinaTime, usage, null, "0.3.1");
+
+        Assert.AreEqual(76, content.RemainingPercent);
+        Assert.AreEqual(TokenUsageAvailability.Unsupported, content.TokenUsage?.Availability);
+        Assert.AreEqual(7, content.TokenUsage?.Days.Count);
+        Assert.AreEqual("Token usage unavailable", content.TokenUsage?.UnavailableLabel);
+        Assert.AreEqual("Account", content.AccountLabel);
+    }
+
     private static AllowanceSnapshot FullSnapshot() => new(
         24,
         76,

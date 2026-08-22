@@ -46,6 +46,28 @@ public sealed class AppServerProtocol
 
     public string CreateRateLimitReadRequest() => CreateRateLimitRead().Json;
 
+    public JsonRpcRequest CreateTokenUsageRead()
+    {
+        var id = nextRequestId++;
+        return new JsonRpcRequest(id, JsonSerializer.Serialize(new
+        {
+            id,
+            method = "account/usage/read",
+            @params = new { },
+        }));
+    }
+
+    public JsonRpcRequest CreateAccountRead()
+    {
+        var id = nextRequestId++;
+        return new JsonRpcRequest(id, JsonSerializer.Serialize(new
+        {
+            id,
+            method = "account/read",
+            @params = new { },
+        }));
+    }
+
     public AllowanceSnapshot? DecodeSnapshot(string line, DateTimeOffset receivedAt)
     {
         try
@@ -67,6 +89,40 @@ public sealed class AppServerProtocol
         {
         }
         catch (RateLimitDecodingException)
+        {
+        }
+        return null;
+    }
+
+    public TokenUsageSnapshot? DecodeTokenUsage(string line, DateTimeOffset receivedAt)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(line);
+            var root = document.RootElement;
+            if (root.TryGetProperty("result", out _)
+                || root.TryGetProperty("error", out _))
+            {
+                return TokenUsageDecoder.DecodeResponse(line, receivedAt);
+            }
+        }
+        catch (JsonException)
+        {
+        }
+        return null;
+    }
+
+    public AccountIdentity? DecodeAccount(string line)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(line);
+            if (document.RootElement.TryGetProperty("result", out _))
+            {
+                return AccountIdentityDecoder.DecodeResponse(line);
+            }
+        }
+        catch (JsonException)
         {
         }
         return null;

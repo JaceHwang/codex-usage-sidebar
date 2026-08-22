@@ -17,7 +17,7 @@ public sealed class FileManagedPayloadOperationsTests
             File.WriteAllText(Path.Combine(paths.IsolatedCodexHome, "auth.txt"), "preserve");
             File.WriteAllText(Path.Combine(paths.StateDirectory, "state.txt"), "preserve");
             var identity = new TrustedPayloadIdentity(
-                "0.3.0",
+                "0.3.1",
                 "0123456789abcdef0123456789abcdef01234567",
                 "https://github.com/openai/codex/releases/download/test/codex.exe",
                 "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");

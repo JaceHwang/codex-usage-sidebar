@@ -33,7 +33,9 @@ public sealed class WindowsHostCoordinator
     public async ValueTask<HostRuntimeState> ReconcileAsync(
         AllowanceSnapshot? snapshot,
         DisplayLanguage language,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        TokenUsageSnapshot? tokenUsage = null,
+        AccountIdentity? account = null)
     {
         var host = await locator.FindAsync(cancellationToken).ConfigureAwait(false);
         if (host is null)
@@ -86,7 +88,7 @@ public sealed class WindowsHostCoordinator
                 if (titlebar is null)
                 {
                     return await ShowKnownBuildFallbackAsync(
-                        host, snapshot, language, freshness, cancellationToken).ConfigureAwait(false);
+                        host, snapshot, language, freshness, tokenUsage, account, cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -99,7 +101,7 @@ public sealed class WindowsHostCoordinator
                 if (titlebar is null)
                 {
                     return await ShowKnownBuildFallbackAsync(
-                        host, snapshot, language, freshness, cancellationToken).ConfigureAwait(false);
+                        host, snapshot, language, freshness, tokenUsage, account, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -126,10 +128,12 @@ public sealed class WindowsHostCoordinator
                 language,
                 snapshot,
                 placement.Value,
-                freshness,
-                new PointD(
-                    titlebar.ToolbarBounds.X + (4 * scale),
-                    titlebar.ToolbarBounds.Y + (4 * scale))),
+                    freshness,
+                    new PointD(
+                        titlebar.ToolbarBounds.X + (4 * scale),
+                    titlebar.ToolbarBounds.Y + (4 * scale)),
+                tokenUsage,
+                account),
             cancellationToken).ConfigureAwait(false);
         return HostRuntimeState.Visible;
     }
@@ -139,6 +143,8 @@ public sealed class WindowsHostCoordinator
         AllowanceSnapshot snapshot,
         DisplayLanguage language,
         SnapshotFreshness freshness,
+        TokenUsageSnapshot? tokenUsage,
+        AccountIdentity? account,
         CancellationToken cancellationToken)
     {
         var scale = host.DpiScale;
@@ -173,7 +179,9 @@ public sealed class WindowsHostCoordinator
                 snapshot,
                 placement,
                 freshness,
-                new PointD(host.Bounds.X + (4 * scale), host.Bounds.Y + (42 * scale))),
+                new PointD(host.Bounds.X + (4 * scale), host.Bounds.Y + (42 * scale)),
+                tokenUsage,
+                account),
             cancellationToken).ConfigureAwait(false);
         return HostRuntimeState.Visible;
     }

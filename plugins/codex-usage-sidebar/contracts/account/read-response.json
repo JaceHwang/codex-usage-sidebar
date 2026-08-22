@@ -1,0 +1,12 @@
+{
+  "id": 4,
+  "result": {
+    "account": {
+      "profile": {
+        "displayName": "Jace",
+        "email": "jace@example.com",
+        "avatarUrl": "https://example.com/avatar.png"
+      }
+    }
+  }
+}

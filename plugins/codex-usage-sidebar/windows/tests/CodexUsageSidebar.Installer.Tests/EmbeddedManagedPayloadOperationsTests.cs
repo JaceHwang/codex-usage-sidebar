@@ -144,7 +144,7 @@ public sealed class EmbeddedManagedPayloadOperationsTests
             {
                 schemaVersion = 1,
                 releaseProfile = "quick-prerelease",
-                version = "0.3.0",
+                version = "0.3.1",
                 sourceCommit = Commit,
                 architecture = "x64",
                 windowsBuild = 26100,
@@ -172,7 +172,7 @@ public sealed class EmbeddedManagedPayloadOperationsTests
             var manifest = JsonSerializer.SerializeToUtf8Bytes(new
             {
                 schemaVersion = 1,
-                version = "0.3.0",
+                version = "0.3.1",
                 architecture = "x64",
                 sourceCommit = Commit,
                 status = "release",
@@ -198,7 +198,7 @@ public sealed class EmbeddedManagedPayloadOperationsTests
                 root,
                 "x64",
                 22_000,
-                "0.3.0",
+                "0.3.1",
                 Commit,
                 manifestSha256,
                 RuntimeSource,

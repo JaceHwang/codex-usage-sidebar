@@ -33,19 +33,15 @@ public sealed class AppServerSession
         this.now = now;
         this.pollInterval = pollInterval ?? TimeSpan.FromSeconds(5);
         this.responseTimeout = responseTimeout ?? TimeSpan.FromSeconds(15);
-        if (this.pollInterval <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(pollInterval));
-        }
-        if (this.responseTimeout <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(responseTimeout));
-        }
+        if (this.pollInterval <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(pollInterval));
+        if (this.responseTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(responseTimeout));
     }
 
     public async Task RunAsync(
         Func<AllowanceSnapshot, ValueTask> snapshotReceived,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<TokenUsageSnapshot, ValueTask>? tokenUsageReceived = null,
+        Func<AccountIdentity, ValueTask>? accountReceived = null)
     {
         await using var connection = await connectionFactory.ConnectAsync(cancellationToken).ConfigureAwait(false);
         var initializeRequest = protocol.CreateInitializeRequest();
@@ -55,28 +51,20 @@ public sealed class AppServerSession
 
         var initialized = false;
         AllowanceSnapshot? latest = null;
-        int? pendingReadId = null;
-        var pendingReadWasSuperseded = false;
+        var pending = new Dictionary<int, PendingRequestKind>();
+        var rateReadSuperseded = false;
         Task? responseDeadline = Task.Delay(responseTimeout, cancellationToken);
         using var readCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var lines = connection.ReadLinesAsync(readCancellation.Token)
-            .GetAsyncEnumerator(readCancellation.Token);
+        var lines = connection.ReadLinesAsync(readCancellation.Token).GetAsyncEnumerator(readCancellation.Token);
         var moveNext = lines.MoveNextAsync().AsTask();
         try
         {
             while (true)
             {
-                if (!initialized || pendingReadId is not null)
+                var rateReadPending = pending.Values.Any(kind => kind == PendingRequestKind.RateLimit);
+                if (!initialized || rateReadPending)
                 {
-                    if (responseDeadline is null)
-                    {
-                        throw new InvalidOperationException("A pending app-server request has no deadline.");
-                    }
-                    if (await Task.WhenAny(moveNext, responseDeadline).ConfigureAwait(false) == responseDeadline)
-                    {
-                        await responseDeadline.ConfigureAwait(false);
-                        throw new TimeoutException("The Codex app-server did not answer before the response deadline.");
-                    }
+                    if (!await WaitForLineOrDeadline(moveNext, responseDeadline, initialized).ConfigureAwait(false)) break;
                 }
                 else
                 {
@@ -84,7 +72,7 @@ public sealed class AppServerSession
                     if (await Task.WhenAny(moveNext, poll).ConfigureAwait(false) == poll)
                     {
                         await poll.ConfigureAwait(false);
-                        pendingReadId = await SendReadAsync(connection, cancellationToken).ConfigureAwait(false);
+                        await SendRateRefreshAsync(connection, pending, cancellationToken).ConfigureAwait(false);
                         responseDeadline = Task.Delay(responseTimeout, cancellationToken);
                         continue;
                     }
@@ -98,7 +86,7 @@ public sealed class AppServerSession
                 {
                     initialized = true;
                     await connection.WriteLineAsync(protocol.CreateInitializedNotification(), cancellationToken).ConfigureAwait(false);
-                    pendingReadId = await SendReadAsync(connection, cancellationToken).ConfigureAwait(false);
+                    await SendInitialReadsAsync(connection, pending, cancellationToken).ConfigureAwait(false);
                     responseDeadline = Task.Delay(responseTimeout, cancellationToken);
                     continue;
                 }
@@ -110,64 +98,117 @@ public sealed class AppServerSession
                     {
                         latest = notification.MergeSupplementary(latest);
                         await snapshotReceived(latest).ConfigureAwait(false);
-                        if (pendingReadId is null)
+                        if (pending.Values.Any(kind => kind == PendingRequestKind.RateLimit))
                         {
-                            pendingReadId = await SendReadAsync(connection, cancellationToken).ConfigureAwait(false);
-                            responseDeadline = Task.Delay(responseTimeout, cancellationToken);
+                            rateReadSuperseded = true;
                         }
                         else
                         {
-                            pendingReadWasSuperseded = true;
+                            await SendRateRefreshAsync(connection, pending, cancellationToken).ConfigureAwait(false);
+                            responseDeadline = Task.Delay(responseTimeout, cancellationToken);
                         }
                     }
                     continue;
                 }
 
                 var responseId = ResponseId(line);
-                if (pendingReadId is null || responseId != pendingReadId)
+                if (responseId is null || !pending.Remove(responseId.Value, out var kind)) continue;
+                switch (kind)
                 {
-                    continue;
+                    case PendingRequestKind.RateLimit:
+                        if (!rateReadSuperseded)
+                        {
+                            var response = protocol.DecodeSnapshot(line, now());
+                            if (response is not null)
+                            {
+                                latest = response.MergeSupplementary(latest);
+                                await snapshotReceived(latest).ConfigureAwait(false);
+                            }
+                        }
+                        if (rateReadSuperseded)
+                        {
+                            rateReadSuperseded = false;
+                            await SendRateRefreshAsync(connection, pending, cancellationToken).ConfigureAwait(false);
+                        }
+                        break;
+                    case PendingRequestKind.TokenUsage:
+                        if (tokenUsageReceived is not null && protocol.DecodeTokenUsage(line, now()) is { } usage)
+                            await tokenUsageReceived(usage).ConfigureAwait(false);
+                        break;
+                    case PendingRequestKind.Account:
+                        if (accountReceived is not null && protocol.DecodeAccount(line) is { } account)
+                            await accountReceived(account).ConfigureAwait(false);
+                        break;
                 }
-                pendingReadId = null;
-                responseDeadline = null;
-                if (!pendingReadWasSuperseded)
-                {
-                    var response = protocol.DecodeSnapshot(line, now());
-                    if (response is not null)
-                    {
-                        latest = response.MergeSupplementary(latest);
-                        await snapshotReceived(latest).ConfigureAwait(false);
-                    }
-                }
-                if (pendingReadWasSuperseded)
-                {
-                    pendingReadWasSuperseded = false;
-                    pendingReadId = await SendReadAsync(connection, cancellationToken).ConfigureAwait(false);
-                    responseDeadline = Task.Delay(responseTimeout, cancellationToken);
-                }
+                responseDeadline = pending.Values.Any(kind => kind == PendingRequestKind.RateLimit)
+                    ? Task.Delay(responseTimeout, cancellationToken)
+                    : null;
             }
         }
         finally
         {
             readCancellation.Cancel();
-            try
-            {
-                await moveNext.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-            }
+            try { await moveNext.ConfigureAwait(false); } catch (OperationCanceledException) { }
             await lines.DisposeAsync().ConfigureAwait(false);
         }
     }
 
-    private async ValueTask<int> SendReadAsync(
+    private async ValueTask SendInitialReadsAsync(
         IJsonLineConnection connection,
+        IDictionary<int, PendingRequestKind> pending,
         CancellationToken cancellationToken)
     {
-        var request = protocol.CreateRateLimitRead();
+        await SendRateReadAsync(connection, pending, cancellationToken).ConfigureAwait(false);
+        await SendRequestAsync(connection, pending, protocol.CreateTokenUsageRead(), PendingRequestKind.TokenUsage, cancellationToken).ConfigureAwait(false);
+        await SendRequestAsync(connection, pending, protocol.CreateAccountRead(), PendingRequestKind.Account, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask<int> SendRateReadAsync(
+        IJsonLineConnection connection,
+        IDictionary<int, PendingRequestKind> pending,
+        CancellationToken cancellationToken) =>
+        await SendRequestAsync(connection, pending, protocol.CreateRateLimitRead(), PendingRequestKind.RateLimit, cancellationToken).ConfigureAwait(false);
+
+    private async ValueTask SendRateRefreshAsync(
+        IJsonLineConnection connection,
+        IDictionary<int, PendingRequestKind> pending,
+        CancellationToken cancellationToken)
+    {
+        await SendRateReadAsync(connection, pending, cancellationToken).ConfigureAwait(false);
+        if (!pending.Values.Any(kind => kind == PendingRequestKind.TokenUsage))
+        {
+            await SendRequestAsync(
+                connection,
+                pending,
+                protocol.CreateTokenUsageRead(),
+                PendingRequestKind.TokenUsage,
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async ValueTask<int> SendRequestAsync(
+        IJsonLineConnection connection,
+        IDictionary<int, PendingRequestKind> pending,
+        JsonRpcRequest request,
+        PendingRequestKind kind,
+        CancellationToken cancellationToken)
+    {
+        pending[request.Id] = kind;
         await connection.WriteLineAsync(request.Json, cancellationToken).ConfigureAwait(false);
         return request.Id;
+    }
+
+    private static async Task<bool> WaitForLineOrDeadline(Task<bool> moveNext, Task? deadline, bool initialized)
+    {
+        if (deadline is null) return await moveNext.ConfigureAwait(false);
+        if (await Task.WhenAny(moveNext, deadline).ConfigureAwait(false) == deadline)
+        {
+            await deadline.ConfigureAwait(false);
+            throw new TimeoutException(initialized
+                ? "The Codex app-server did not answer before the response deadline."
+                : "The Codex app-server did not initialize before the response deadline.");
+        }
+        return await moveNext.ConfigureAwait(false);
     }
 
     private static bool IsSuccessfulResponse(string line, int id)
@@ -182,10 +223,7 @@ public sealed class AppServerSession
                 && value == id
                 && root.TryGetProperty("result", out _);
         }
-        catch (JsonException)
-        {
-            return false;
-        }
+        catch (JsonException) { return false; }
     }
 
     private static bool IsRateLimitNotification(string line)
@@ -197,10 +235,7 @@ public sealed class AppServerSession
                 && method.ValueKind == JsonValueKind.String
                 && method.GetString() == "account/rateLimits/updated";
         }
-        catch (JsonException)
-        {
-            return false;
-        }
+        catch (JsonException) { return false; }
     }
 
     private static int? ResponseId(string line)
@@ -210,13 +245,10 @@ public sealed class AppServerSession
             using var document = JsonDocument.Parse(line);
             return document.RootElement.TryGetProperty("id", out var id)
                 && id.ValueKind == JsonValueKind.Number
-                && id.TryGetInt32(out var value)
-                    ? value
-                    : null;
+                && id.TryGetInt32(out var value) ? value : null;
         }
-        catch (JsonException)
-        {
-            return null;
-        }
+        catch (JsonException) { return null; }
     }
+
+    private enum PendingRequestKind { RateLimit, TokenUsage, Account }
 }
