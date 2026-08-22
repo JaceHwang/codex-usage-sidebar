@@ -21,9 +21,9 @@
 | 平台 | 状态 | 分发方式 |
 | --- | --- | --- |
 | macOS 14+ Apple Silicon | 正式版 v0.2.3 | 已签名伴随程序与 v0.2.3 DMG |
-| Windows 11 AMD64（`x64`） | `v0.3.1` 功能对齐 | 未签名 `x64` 安装程序待实机门禁；Windows ARM64 不在本版本范围内 |
+| Windows 11 AMD64（`x64`） | `v0.3.2` 发布版 | 未签名 `x64` 安装包；Windows ARM64 不在本版本范围内 |
 
-Windows `v0.3.1` 是面向 Windows 11 AMD64/x64 的 macOS 可见功能对齐版本，包含 Token 使用量、账号身份、主题图标、重置倒计时、Credits、Bank 明细和 GitHub 底部入口，但不显示 Tibo X 行。共享额度契约、.NET 核心、Win32 窗口边界、默认脱敏的 UI Automation 探针、用户级安装器后端、载荷摘要校验与 Windows CI 均不会改变稳定的 macOS 载荷。130 个 Windows 人工用例矩阵尚未完成；源码已通过自动化门禁，最终安装包仍需 Windows 实机门禁。现在选择器不再因为 Codex 文件版本变化而直接拒绝；只要标题栏仍提供安全的语义 UI Automation 结构即可工作，结构未知或不安全时仍会隐藏浮层，不会猜测坐标。开发和验证细节见 [Windows Beta 开发说明](docs/WINDOWS-BETA.md)。
+Windows `v0.3.2` 是面向 Windows 11 AMD64/x64 的发布版本，包含 Token 使用量、账号身份、主题图标、重置倒计时、Credits、Bank 明细和 GitHub 底部入口，但不显示 Tibo X 行。共享额度契约、.NET 核心、Win32 窗口边界、默认脱敏的 UI Automation 探针、用户级安装器后端、载荷摘要校验与 Windows CI 均不会改变稳定的 macOS 载荷。v0.3.2 Windows 安装包基于本机打包并附带 quick-prerelease 验证元数据；130 个 Windows 人工用例矩阵尚未完成，因此不宣称完整实机验证。现在选择器不再因为 Codex 文件版本变化而直接拒绝；只要标题栏仍提供安全的语义 UI Automation 结构即可工作，结构未知或不安全时仍会隐藏浮层，不会猜测坐标。开发和验证细节见 [Windows Beta 开发说明](docs/WINDOWS-BETA.md)。
 后续测试电脑的完整操作步骤见 [Windows 实机诊断交接手册](docs/WINDOWS-DEVICE-HANDOFF.zh-CN.md)。
 准备在 Windows Codex 中继续开发时，请从
 [Windows Codex 开发接力手册](docs/WINDOWS-CODEX-CONTINUATION.zh-CN.md)开始；Git 分支和经过
@@ -81,7 +81,7 @@ Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生�
 ## 快速安装
 
 请按平台选择安装路径。Windows 仅支持 Windows 11 AMD64/x64，不支持 Windows ARM64。Windows
-`v0.3.1` 安装程序在 Windows 实机门禁完成后发布，并保留明确的未签名安装防护说明。
+`v0.3.2` 安装程序为未签名本机打包资产，启动前必须先完成 SHA-256 校验。
 
 ### Windows 11 AMD64/x64
 
@@ -91,19 +91,19 @@ Codex 文件最低版本；新版本只要提供已验证的安全标题栏语�
 
 #### 人工安装
 
-1. Windows 门禁完成并发布后，打开 [v0.3.1 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.1)，只下载
-   `codex-usage-sidebar-v0.3.1-windows-x64-setup.exe` 与 `WINDOWS-V031-SHA256SUMS.txt`。
+1. 打开 [v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2)，只下载
+   `codex-usage-sidebar-v0.3.2-windows-x64-setup.exe` 与 `WINDOWS-V032-SHA256SUMS.txt`。
 2. 启动安装程序前，先校验 SHA-256：
 
    ```powershell
-   Get-FileHash .\codex-usage-sidebar-v0.3.1-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+   Get-FileHash .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
    ```
 
-   将结果与 `WINDOWS-V031-SHA256SUMS.txt` 中对应条目比较；大小写不影响判断。
+   将结果与 `WINDOWS-V032-SHA256SUMS.txt` 中对应条目比较；大小写不影响判断。
 3. 摘要匹配后，为当前用户启动安装：
 
    ```powershell
-   Start-Process .\codex-usage-sidebar-v0.3.1-windows-x64-setup.exe
+   Start-Process .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe
    ```
 
 4. 该安装程序有意保持未签名（`NotSigned`），Windows 可能显示“未知发布者”。只有在 SHA-256
@@ -119,8 +119,8 @@ Codex 文件最低版本；新版本只要提供已验证的安全标题栏语�
 可以把下面这段任务交给 Windows 电脑上的 Agent：
 
 ```text
-从 GitHub Release 安装 Codex Usage Sidebar v0.3.1。当前电脑必须是 Windows 11 AMD64/x64。
-只下载 codex-usage-sidebar-v0.3.1-windows-x64-setup.exe 和 WINDOWS-V031-SHA256SUMS.txt，先验证
+从 GitHub Release 安装 Codex Usage Sidebar v0.3.2。当前电脑必须是 Windows 11 AMD64/x64。
+只下载 codex-usage-sidebar-v0.3.2-windows-x64-setup.exe 和 WINDOWS-V032-SHA256SUMS.txt，先验证
 安装程序 SHA-256 与发行页对应条目一致，只有摘要匹配时才运行安装程序，并回报安装路径和运行状态。不要关闭或绕过
 Defender、SmartScreen、杀毒软件或系统策略。如果出现安装器、SmartScreen、卸载或 Windows 安全对话框，
 先停下来让我即时确认，再点击任何按钮。

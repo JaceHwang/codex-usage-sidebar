@@ -31,15 +31,15 @@
 | Platform | Status | Distribution |
 | --- | --- | --- |
 | macOS 14+ Apple Silicon | Stable v0.2.3 | Signed companion plus v0.2.3 DMG |
-| Windows 11 AMD64 (`x64`) | v0.3.1 parity build | Unsigned `x64` setup is prepared; Windows ARM64 is out of scope |
+| Windows 11 AMD64 (`x64`) | v0.3.2 release | Unsigned `x64` setup asset; Windows ARM64 is out of scope |
 
-Windows `v0.3.1` is the Windows 11 AMD64/x64 parity line. It carries the macOS-visible quota card
+Windows `v0.3.2` is the Windows 11 AMD64/x64 release line. It carries the macOS-visible quota card
 model (token usage, account identity, theme-aware icon, reset countdown, Credits, Bank details, and
 the GitHub footer) without the Tibo X row. The shared quota contracts, .NET core, Win32 window
 boundary, sanitized UI Automation probe, per-user installer backend, payload digest verification,
-and Windows CI preserve the stable macOS payload. The 130-case Windows manual matrix is still
-incomplete; the source build has passed automated gates, while the final setup asset still requires
-the real Windows device gate. The selector no longer rejects a Codex build
+and Windows CI preserve the stable macOS payload. The v0.3.2 Windows asset is locally packaged and
+includes quick-prerelease validation metadata; the 130-case Windows manual matrix is still incomplete,
+so this release does not claim complete real-device validation. The selector no longer rejects a Codex build
 solely because its file version changed; it still requires a safe semantic UI Automation structure,
 and hides the overlay instead of guessing coordinates when that structure is unavailable. See [Windows beta development](docs/WINDOWS-BETA.md)
 for development and validation details, and [Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md)
@@ -101,8 +101,8 @@ quota control.
 ## Quick install
 
 Choose the platform-specific installation path below. Windows support is Windows 11 AMD64/x64 only;
-Windows ARM64 is not supported. The v0.3.1 setup uses the same explicit unsigned-install safeguards;
-the final Windows asset is published only after the real-device gate completes.
+Windows ARM64 is not supported. The v0.3.2 setup uses explicit unsigned-install safeguards and must
+be verified by SHA-256 before launch.
 
 ### Windows 11 AMD64/x64
 
@@ -113,19 +113,19 @@ fail-hidden until it can be validated.
 
 #### Manual setup install
 
-1. After the Windows gate is published, open the [v0.3.1 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.1) and download only
-   `codex-usage-sidebar-v0.3.1-windows-x64-setup.exe` plus `WINDOWS-V031-SHA256SUMS.txt`.
+1. Open the [v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2) and download only
+   `codex-usage-sidebar-v0.3.2-windows-x64-setup.exe` plus `WINDOWS-V032-SHA256SUMS.txt`.
 2. Verify the setup SHA-256 before launching it:
 
    ```powershell
-   Get-FileHash .\codex-usage-sidebar-v0.3.1-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+   Get-FileHash .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
    ```
 
-   Compare it case-insensitively with the matching entry in `WINDOWS-V031-SHA256SUMS.txt`.
+   Compare it case-insensitively with the matching entry in `WINDOWS-V032-SHA256SUMS.txt`.
 3. Run the verified setup for the current user:
 
    ```powershell
-   Start-Process .\codex-usage-sidebar-v0.3.1-windows-x64-setup.exe
+   Start-Process .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe
    ```
 
 4. The setup is intentionally unsigned (`NotSigned`), so Windows may show **Unknown publisher**.
@@ -143,8 +143,8 @@ of guessing coordinates. See [Installation and operations](docs/INSTALL.md) for 
 Give your Windows coding agent this task:
 
 ```text
-Install Codex Usage Sidebar v0.3.1 from the GitHub Release on this Windows 11 AMD64/x64 machine.
-Download codex-usage-sidebar-v0.3.1-windows-x64-setup.exe and WINDOWS-V031-SHA256SUMS.txt only,
+Install Codex Usage Sidebar v0.3.2 from the GitHub Release on this Windows 11 AMD64/x64 machine.
+Download codex-usage-sidebar-v0.3.2-windows-x64-setup.exe and WINDOWS-V032-SHA256SUMS.txt only,
 verify the setup SHA-256 against the matching release entry, run the setup only if the digest matches, and report the install
 path and runtime status. Do not disable or bypass Defender, SmartScreen, antivirus, or system policy.
 If an installer, SmartScreen, uninstall, or Windows security dialog appears, stop and ask me for
