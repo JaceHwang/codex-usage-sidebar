@@ -151,6 +151,13 @@
 - 当前 UIA 探针确认右侧第一个按钮左边界为 `x=2856`；右侧回退测试确认插件窗口右边界为 `x=2856`。探针：`%TEMP%\\codex-usage-sidebar-v0.3.2-probes\\22-right-buttons.json`。
 - 已安装当前载荷：`runtime=running pid=1800 version=0.3.1`，`sourceCommit=81bba41c170e848f43d55444d67312a0a9511433`。
 
+2026-08-22 修复多按钮右侧栏未锚定到第一个按钮（源提交 `2c6d46c`）：
+
+- 根因是右侧栏按钮 selector 只收集 `rightToolbar.Bounds.Right` 附近的尾部按钮；当右侧栏存在多个同一行按钮时，左侧第一个按钮被过滤，导致回退位置看起来没有贴住目标按钮。
+- 放宽候选收集范围为右侧 pane 内同一行的全部 composer 方形按钮，`PlacementResolver` 再按 X 坐标取最左按钮作为回退边界；中间页签优先级、固定尺寸和右侧零间隔保持不变。
+- 新增 UIA 回归测试覆盖“右侧栏内部存在一个比尾部按钮更靠左的第一个按钮”；Windows solution 测试：`54 + 64 + 80 = 198/198` 通过；Release x64 构建 `0` 警告、`0` 错误。
+- 已安装当前载荷：`runtime=running pid=18888 version=0.3.1`，`sourceCommit=2c6d46c20597646a0664ae58e56abb08a5be2eb3`；实时探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\23-selector-expanded.json`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
