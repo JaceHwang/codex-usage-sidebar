@@ -106,12 +106,11 @@ public sealed class WindowsHostCoordinator
             }
         }
         var scale = host.DpiScale;
-        var indicatorWidth = overlay.MeasureIndicatorWidth(snapshot, language) * scale;
         var placement = PlacementResolver.ResolveResponsive(
             titlebar.ToolbarBounds,
             titlebar.OpenLocationBounds,
             titlebar.TitleBounds,
-            indicatorWidth,
+            OverlayVisualMetrics.IndicatorWidth * scale,
             IndicatorGap * scale,
             titlebar.Obstacles,
             titlebar.RightToolbarBounds,
@@ -149,8 +148,8 @@ public sealed class WindowsHostCoordinator
         CancellationToken cancellationToken)
     {
         var scale = host.DpiScale;
-        var width = overlay.MeasureIndicatorWidth(snapshot, language) * scale;
-        var height = OverlayVisualMetrics.IndicatorHeight * scale;
+        var width = OverlayVisualMetrics.IndicatorWidth * scale;
+        var height = 28 * scale;
         if (!string.Equals(host.BuildIdentity, FallbackBuildIdentity, StringComparison.Ordinal)
             || !double.IsFinite(scale)
             || scale <= 0

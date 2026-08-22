@@ -47,25 +47,6 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
-    public async Task UsesMeasuredIndicatorWidthForPlacement()
-    {
-        var window = new HostWindowSnapshot(
-            new IntPtr(42), new RectD(0, 0, 2048, 1100), true, 2, "codex-build-a");
-        var scanner = new StubScanner(new TitlebarSnapshot(
-            1500,
-            [],
-            new RectD(400, 80, 1600, 92),
-            new RectD(1500, 98, 180, 56),
-            new RectD(420, 98, 300, 56)));
-        var overlay = new RecordingOverlay { MeasuredIndicatorWidth = 100 };
-        var coordinator = new WindowsHostCoordinator(new StubLocator(window), scanner, overlay);
-
-        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
-
-        Assert.AreEqual(200, overlay.LastPresentation?.Placement.Frame.Width);
-    }
-
-    [TestMethod]
     public async Task CarriesTokenUsageAndAccountIdentityIntoTheOverlayPresentation()
     {
         var window = new HostWindowSnapshot(
@@ -360,9 +341,8 @@ public sealed class HostCoordinatorTests
     [TestMethod]
     public void OverlayVisualMetricsMatchTheMacOsV023Baseline()
     {
-        Assert.AreEqual(28, OverlayVisualMetrics.IndicatorHeight);
-        Assert.AreEqual(60.6666666667, OverlayVisualMetrics.IndicatorWidthForTextAndHeight(42, 28), 0.0001);
-        Assert.AreEqual(9.3333333333, OverlayVisualMetrics.IndicatorHorizontalPaddingForHeight(28), 0.0001);
+        Assert.AreEqual(132, OverlayVisualMetrics.IndicatorWidth);
+        Assert.AreEqual(4, OverlayVisualMetrics.IndicatorHorizontalPadding);
         Assert.AreEqual(360, OverlayVisualMetrics.DetailWidth);
         Assert.AreEqual(18, OverlayVisualMetrics.HeaderTitleFontSize);
         Assert.AreEqual(9, OverlayVisualMetrics.VersionBadgeFontSize);
@@ -576,10 +556,8 @@ public sealed class HostCoordinatorTests
     {
         public List<string> Events { get; } = new();
         public int HideCount { get; private set; }
-        public double MeasuredIndicatorWidth { get; init; } = 132;
         public OverlayPresentation? LastPresentation { get; private set; }
         public ValueTask HideAsync(CancellationToken cancellationToken) { Events.Add("hide"); HideCount++; LastPresentation = null; return ValueTask.CompletedTask; }
-        public double MeasureIndicatorWidth(AllowanceSnapshot snapshot, DisplayLanguage language) => MeasuredIndicatorWidth;
         public ValueTask ShowAsync(OverlayPresentation presentation, CancellationToken cancellationToken) { Events.Add("show"); LastPresentation = presentation; return ValueTask.CompletedTask; }
     }
 }

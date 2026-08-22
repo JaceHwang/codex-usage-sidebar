@@ -56,10 +56,15 @@ public sealed class WpfOverlaySurface : IOverlaySurface
                 indicatorColor.B)),
             CornerRadius = new CornerRadius(10),
             HorizontalAlignment = HorizontalAlignment.Right,
-            Padding = new Thickness(0),
+            Padding = new Thickness(
+                OverlayVisualMetrics.IndicatorHorizontalPadding,
+                0,
+                OverlayVisualMetrics.IndicatorHorizontalPadding,
+                0),
             Child = indicatorText,
         };
         indicator = CreatePassiveWindow(indicatorSurface);
+        indicator.Width = OverlayVisualMetrics.IndicatorWidth;
         detail = CreatePassiveWindow(new Border());
         detail.Width = OverlayVisualMetrics.DetailWidth;
         detail.MaxHeight = 480;
@@ -101,11 +106,7 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             SetOwner(detail, presentation.OwnerHandle);
             var frame = presentation.Placement.Frame;
             UpdateIndicator(presentation.Snapshot, presentation.Language);
-            var indicatorWidth = frame.Width / presentation.DpiScale;
-            var indicatorPadding = OverlayVisualMetrics.IndicatorHorizontalPaddingForHeight(
-                frame.Height / presentation.DpiScale);
-            indicatorSurface.Padding = new Thickness(indicatorPadding, 0, indicatorPadding, 0);
-            indicator.Width = indicatorWidth;
+            indicator.Width = frame.Width / presentation.DpiScale;
             indicator.Height = frame.Height / presentation.DpiScale;
             if (!indicator.IsVisible) new WindowInteropHelper(indicator).EnsureHandle();
             PositionPhysical(indicator, frame);
@@ -113,15 +114,6 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             hoverTimer.Start();
             RefreshInteraction();
         });
-    }
-
-    public double MeasureIndicatorWidth(AllowanceSnapshot snapshot, DisplayLanguage language)
-    {
-        UpdateIndicator(snapshot, language);
-        indicatorText.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        return OverlayVisualMetrics.IndicatorWidthForTextAndHeight(
-            indicatorText.DesiredSize.Width,
-            OverlayVisualMetrics.IndicatorHeight);
     }
 
     public ValueTask HideAsync(CancellationToken cancellationToken)
