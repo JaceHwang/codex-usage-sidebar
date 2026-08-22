@@ -207,6 +207,13 @@
 - Windows solution 测试：`54 + 65 + 80 = 199/199` 通过；Release x64 构建 `0` 警告、`0` 错误。
 - 已安装当前载荷：`runtime=running pid=3184 version=0.3.1`，`sourceCommit=1b9fb4927601b6ac9239702f140cb489aeb42e77`。
 
+2026-08-22 增加详情悬浮窗两条贯穿分隔线（源提交 `ccc9918`）：
+
+- 按参考图在进度条与 Token 用量之间、明细数据与账号页脚之间各增加一条贯穿详情卡片内容区的横线；两条线均无左右内边距，使用主题边框色、`1` 个逻辑像素高度和 `0.6` 透明度。
+- 保留 Token 图表与明细数据之间已有的全宽分隔线，以及套餐、额度周期等数据行之间的短分隔线。
+- 新增全宽分隔线布局回归测试；Windows solution 测试：`54 + 66 + 80 = 200/200` 通过；Release x64 构建 `0` 警告、`0` 错误。
+- 已安装当前载荷：`runtime=running pid=19992 version=0.3.1`，`sourceCommit=ccc9918d41f29aa59526781806c1d8cbc7a7f3f0`，manifest SHA-256 为 `8fc60b413b0b0881b04cceb352a73c03110c7b2ecc02f7dae39c3b2d298978d6`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
