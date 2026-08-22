@@ -107,11 +107,13 @@ public sealed class WindowsHostCoordinator
             }
         }
         var scale = host.DpiScale;
+        var indicatorHeight = titlebar.OpenLocationBounds.Height / scale;
+        var indicatorWidth = OverlayVisualMetrics.IndicatorWidthForHeight(indicatorHeight) * scale;
         var placement = PlacementResolver.ResolveResponsive(
             titlebar.ToolbarBounds,
             titlebar.OpenLocationBounds,
             titlebar.TitleBounds,
-            OverlayVisualMetrics.IndicatorWidth * scale,
+            indicatorWidth,
             MiddleIndicatorGap * scale,
             titlebar.Obstacles,
             titlebar.RightToolbarBounds,

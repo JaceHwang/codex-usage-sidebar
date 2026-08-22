@@ -2,9 +2,10 @@ namespace CodexUsageSidebar.Windows;
 
 public static class OverlayVisualMetrics
 {
-    public const double IndicatorWidth = 132;
+    public const double IndicatorContentWidth = 124;
     public const double IndicatorHeight = 28;
     public const double IndicatorHorizontalPadding = IndicatorHeight / 3;
+    public const double IndicatorWidth = IndicatorContentWidth + (2 * IndicatorHorizontalPadding);
     public const double DetailWidth = 360;
     public const double HeaderTitleFontSize = 18;
     public const double HeaderTitleMaximumWidth = 190;
@@ -17,6 +18,9 @@ public static class OverlayVisualMetrics
     public const double ProgressTrackHeight = 4;
 
     public static double IndicatorHorizontalPaddingForHeight(double height) => height / 3;
+
+    public static double IndicatorWidthForHeight(double height) =>
+        IndicatorContentWidth + (2 * IndicatorHorizontalPaddingForHeight(height));
 }
 
 public static class OverlayWindowPolicy
