@@ -136,6 +136,14 @@
 - Windows solution 测试：`53 + 63 + 80 = 196/196` 通过；Release x64 构建 `0` 警告、`0` 错误。
 - 已安装当前载荷：`runtime=running pid=5492 version=0.3.1`，`sourceCommit=8afb0cf42cd6efc7df16b98b38ec273c80cc71fb`。
 
+2026-08-22 按文字宽度动态计算按钮与内边距（源提交 `1553e8f`）：
+
+- 新增可调变量 `IndicatorHorizontalPaddingRatio = 1 / 3`。
+- 先测量文字宽度 `T`，再计算按钮宽度为 `3T`，左右内边距各为 `T`；该动态宽度同时用于中间页签/右侧页碰撞判断和 WPF 实际渲染。
+- 实机探针确认文字区域为 `240` 个物理像素，按钮整体为 `720` 个物理像素，左右间距各 `240` 个物理像素；因中间页签空间不足，当前按规则回退右侧默认锚点。探针：`%TEMP%\codex-usage-sidebar-v0.3.2-probes\19-dynamic-padding-third-late.json`。
+- Windows solution 测试：`53 + 64 + 80 = 197/197` 通过；Release x64 构建 `0` 警告、`0` 错误。
+- 已安装当前载荷：`runtime=running pid=1840 version=0.3.1`，`sourceCommit=1553e8f4068bba387943c167292bc71cb2c80477`。
+
 ## 未完成门禁与下一步
 
 ### Windows 实机门禁（未完成）
