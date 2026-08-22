@@ -161,6 +161,28 @@ public sealed class CodexTitlebarSelectorTests
     }
 
     [TestMethod]
+    public void ResolvesScannerEmittedRightToolbarButtonsOneDepthBelowTheToolbar()
+    {
+        var fixture = LoadFixture("windows-codex-151.0.7922.76-narrow-200.json");
+        var currentTree = fixture.Nodes.Select(node =>
+            node.ClassName.Contains("hide-scrollbar flex h-full", StringComparison.Ordinal)
+                ? node with { Depth = node.Depth - 1 }
+                : node).ToArray();
+
+        var result = CodexTitlebarSelector.TryResolve(
+            fixture.BuildIdentity,
+            fixture.DpiScale,
+            fixture.HostBounds,
+            currentTree);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(new RectD(1395, 70, 1461, 92), result.RightToolbarBounds);
+        CollectionAssert.AreEqual(
+            new[] { new RectD(2856, 88, 56, 56) },
+            result.RightObstacles.ToArray());
+    }
+
+    [TestMethod]
     public void ResolvesTheMeasuredFlatTitleChildrenForTheValidatedBuild()
     {
         var fixture = LoadFixture("windows-codex-151.0.7922.76-default-flat-200.json");

@@ -241,7 +241,8 @@ public static class CodexTitlebarSelector
             var rightToolbar = rightToolbars[0];
             var alignedButtons = nodes.Where(node =>
                 node.ControlType == ButtonControlType
-                && node.Depth == rightToolbar.Depth
+                && (node.Depth == rightToolbar.Depth
+                    || node.Depth == rightToolbar.Depth + 1)
                 && node.ClassName.Contains("h-token-button-composer", StringComparison.Ordinal)
                 && node.ClassName.Contains("aspect-square", StringComparison.Ordinal)
                 && Contains(rightPane.Bounds, node.Bounds)
