@@ -5,7 +5,7 @@ namespace CodexUsageSidebar.Windows;
 public sealed class WindowsHostCoordinator
 {
     private const string FallbackBuildIdentity = "151.0.7922.76";
-    private const double IndicatorGap = 4;
+    private const double IndicatorGap = 0.5;
     private readonly IHostWindowLocator locator;
     private readonly ITitlebarScanner scanner;
     private readonly IOverlaySurface overlay;
