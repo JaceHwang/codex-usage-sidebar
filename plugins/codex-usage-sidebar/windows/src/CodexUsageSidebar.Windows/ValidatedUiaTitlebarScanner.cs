@@ -9,6 +9,7 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
     private const string CaptionContainerClass = "ChromeNodeCaptionButtonContainer";
     private const int MaximumDirectChildren = 64;
     private const int MaximumCandidateButtons = 1024;
+    private const int MaximumRightPaneAncestorDepth = 8;
     private const string TitleGroupClassMarker = "text-md flex min-w-0 items-center";
     private const string RightToolbarClassMarker = "hide-scrollbar flex h-full min-w-0 flex-1";
     private const string RightToolbarOverflowMarker = "overflow-x-auto overflow-y-hidden";
@@ -337,7 +338,13 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
                     continue;
                 }
                 var container = TryGetParent(surface);
-                var rightPane = container is null ? null : TryGetParent(container);
+                var rightPane = container is null
+                    ? null
+                    : TryFindAncestor(
+                        container,
+                        element => ClassNameContains(element, "relative z-[41] h-full")
+                            && ClassNameContains(element, "min-w-0 shrink-0 overflow-visible"),
+                        MaximumRightPaneAncestorDepth);
                 if (container is null || rightPane is null)
                 {
                     continue;
@@ -375,6 +382,20 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         {
             return null;
         }
+    }
+
+    private static AutomationElement? TryFindAncestor(
+        AutomationElement start,
+        Func<AutomationElement, bool> predicate,
+        int maximumDepth)
+    {
+        var current = start;
+        for (var depth = 0; depth <= maximumDepth && current is not null; depth++)
+        {
+            if (predicate(current)) return current;
+            current = TryGetParent(current);
+        }
+        return null;
     }
 
     private static void AddDirectChildren(
