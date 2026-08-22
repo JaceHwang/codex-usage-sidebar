@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$version = '0.3.0'
+$version = '0.3.1'
 $architecture = 'x64'
 $runtimeIdentifier = 'win-x64'
 $codexRuntimeSource = 'https://github.com/openai/codex/releases/download/rust-v0.147.0/codex-x86_64-pc-windows-msvc.exe'

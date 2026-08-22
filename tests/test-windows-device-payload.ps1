@@ -72,7 +72,7 @@ if ($deviceProcessExitCode -ne 23 -or $processStopwatch.ElapsedMilliseconds -lt 
 
 $plan = & $script -PlanOnly | ConvertFrom-Json
 
-if ($plan.version -ne '0.3.0') { throw 'Unexpected device payload version.' }
+if ($plan.version -ne '0.3.1') { throw 'Unexpected device payload version.' }
 if ($plan.architecture -ne 'x64' -or $plan.runtimeIdentifier -ne 'win-x64') {
     throw 'The device payload must target Windows AMD64/x64 only.'
 }

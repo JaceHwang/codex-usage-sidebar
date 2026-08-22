@@ -19,7 +19,7 @@ missing_payload="$fixture_root/missing-payload"
 mkdir -p "$missing_payload"
 cp "$payload/CodexUsageSidebar.Windows.exe" "$missing_payload/"
 if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
-  --payload-dir "$missing_payload" --version 0.3.0 --architecture x64 \
+  --payload-dir "$missing_payload" --version 0.3.1 --architecture x64 \
   --source-commit "$source_commit" --codex-source "$codex_source" \
   --codex-sha256 "$runtime_sha" >/dev/null 2>&1; then
   printf 'missing required payload unexpectedly succeeded\n' >&2
@@ -27,7 +27,7 @@ if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
 fi
 
 if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
-  --payload-dir "$payload" --version 0.3.1 --architecture x64 \
+  --payload-dir "$payload" --version 0.3.0 --architecture x64 \
   --source-commit "$source_commit" --codex-source "$codex_source" \
   --codex-sha256 "$runtime_sha" >/dev/null 2>&1; then
   printf 'version mismatch unexpectedly succeeded\n' >&2
@@ -35,7 +35,7 @@ if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
 fi
 
 if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
-  --payload-dir "$payload" --version 0.3.0 --architecture x64 \
+  --payload-dir "$payload" --version 0.3.1 --architecture x64 \
   --source-commit invalid --codex-source "$codex_source" \
   --codex-sha256 "$runtime_sha" >/dev/null 2>&1; then
   printf 'invalid source commit unexpectedly succeeded\n' >&2
@@ -43,7 +43,7 @@ if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
 fi
 
 if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
-  --payload-dir "$payload" --version 0.3.0 --architecture x64 \
+  --payload-dir "$payload" --version 0.3.1 --architecture x64 \
   --source-commit "$source_commit" --codex-source https://example.invalid/codex.exe \
   --codex-sha256 "$runtime_sha" >/dev/null 2>&1; then
   printf 'non-OpenAI Codex runtime source unexpectedly succeeded\n' >&2
@@ -51,7 +51,7 @@ if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
 fi
 
 if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
-  --payload-dir "$payload" --version 0.3.0 --architecture x64 \
+  --payload-dir "$payload" --version 0.3.1 --architecture x64 \
   --source-commit "$source_commit" --codex-source "$codex_source" \
   --codex-sha256 "$(printf '0%.0s' {1..64})" >/dev/null 2>&1; then
   printf 'incorrect Codex runtime digest unexpectedly succeeded\n' >&2
@@ -62,7 +62,7 @@ outside="$fixture_root/outside.txt"
 printf 'outside' > "$outside"
 ln -s "$outside" "$payload/linked-outside.txt"
 if python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
-  --payload-dir "$payload" --version 0.3.0 --architecture x64 \
+  --payload-dir "$payload" --version 0.3.1 --architecture x64 \
   --source-commit "$source_commit" --codex-source "$codex_source" \
   --codex-sha256 "$runtime_sha" >/dev/null 2>&1; then
   printf 'linked payload escape unexpectedly succeeded\n' >&2
@@ -71,7 +71,7 @@ fi
 rm "$payload/linked-outside.txt"
 
 python3 "$repo_root/scripts/build-windows-payload-manifest.py" \
-  --payload-dir "$payload" --version 0.3.0 --architecture x64 \
+  --payload-dir "$payload" --version 0.3.1 --architecture x64 \
   --source-commit "$source_commit" --codex-source "$codex_source" \
   --codex-sha256 "$runtime_sha"
 python3 "$repo_root/scripts/verify-windows-payload.py" "$payload"
