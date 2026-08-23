@@ -47,7 +47,7 @@ disposable task titlebar and do not commit the bundle to this repository.
 
 ## Formal release handoff (maintainers only)
 
-No v0.3.3 installer is currently published. Do not describe the partial observation or the automated evidence above as formal device validation. A formal build is allowed only from the exact `v0.3.3` branch with a completely clean worktree, after the canonical `docs/validation/windows-v0.3.3.json` records a complete Windows 11 AMD64/x64 real-device matrix for the tested source commit. The evidence may be committed as the only change on top of that tested source commit; the builder records both the tested source commit and the later evidence-only packaging commit.
+The formal v0.3.3 installer is published at the [v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3). The canonical evidence records the complete Windows 11 AMD64/x64 matrix for tested source commit `dfce4e6a93d7442e267868d8716cf882791f6155`; the evidence-only packaging commit is `8a97e9131c36db0f6f7cf6f815235d2edae9eac3`.
 
 Run the formal build with the canonical evidence file and an output directory outside the repository:
 
@@ -64,7 +64,7 @@ The Base64 P-256 SPKI value is a public key and is acceptable as a build input. 
 
 ## Release-gate decision
 
-- Real-device matrix complete: **No**
-- Formal v0.3.3 setup publishable: **No**
-- Remaining action: complete every row above, bind the sanitized private evidence to the tested
-  source commit, rerun the release-package verification, and have a maintainer record the outcome.
+- Real-device matrix complete: **Yes**
+- Formal v0.3.3 setup publishable: **Yes**
+- Published installer SHA-256: `5b04ef785c4e16715146986f5b293694029dc3ec8cf72a32e84bc16c1636ed08`
+- Published compatibility pack SHA-256: `5610ff247e7d4d9cd1409c460855a3016a76d2a0221351b235f38ba7fe44f9e6`

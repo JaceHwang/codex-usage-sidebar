@@ -2,27 +2,26 @@
 
 ## Windows 11 AMD64/x64
 
-No v0.3.3 installer is currently published. When it is released, the v0.3.3 Windows setup will be
-the single installation entry point. It embeds the schema-v2 selector catalog and signed
+The formal v0.3.3 Windows x64 installer is published in the
+[v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3).
+It is the single installation entry point. It embeds the schema-v2 selector catalog and signed
 compatibility-update configuration; do not edit `selectors.json` by hand. The generic selector and
 signed compatibility updates recover automatically: an unavailable update keeps the packaged or
 previously validated catalog usable. Setup waits briefly for local runtime health and reports whether
-the indicator is visible, using the automatic safe dock, or needs compatibility validation. Formal
-v0.3.3 setup publication remains gated on the complete real-device evidence matrix tied to its
-source commit; this document does not claim that formal device validation has occurred.
+the indicator is visible, using the automatic safe dock, or needs compatibility validation.
 
-Windows `v0.3.2` supports Windows 11 on AMD64/x64 only; Windows ARM64 is not supported. The current-user setup is unsigned (`NotSigned`)
+Windows `v0.3.3` supports Windows 11 on AMD64/x64 only; Windows ARM64 is not supported. The current-user setup is unsigned (`NotSigned`)
 and does not require administrator privileges.
 
 ### Download and verify
 
-Download only `codex-usage-sidebar-v0.3.2-windows-x64-setup.exe` and
-`WINDOWS-V032-SHA256SUMS.txt` from the
-[v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2). Before launching the setup,
+Download only `codex-usage-sidebar-v0.3.3-windows-x64-setup.exe` and
+`WINDOWS-V033-SHA256SUMS.txt` from the
+[v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3). Before launching the setup,
 calculate its SHA-256:
 
 ```powershell
-Get-FileHash .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+Get-FileHash .\codex-usage-sidebar-v0.3.3-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
 ```
 
 Compare the digest case-insensitively with the matching checksum-file entry. A matching digest is
@@ -35,7 +34,7 @@ system policy.
 Run the verified setup normally to install for the current user:
 
 ```powershell
-Start-Process .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe
+Start-Process .\codex-usage-sidebar-v0.3.3-windows-x64-setup.exe
 ```
 
 Because this public setup is unsigned, Windows may show **Unknown publisher**. Only after the

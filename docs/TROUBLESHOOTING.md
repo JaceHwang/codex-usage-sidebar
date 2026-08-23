@@ -2,8 +2,9 @@
 
 ## Windows setup and runtime
 
-No v0.3.3 installer is currently published. For a future released v0.3.3 installation, run
-`CodexUsageSidebar.Control.exe status` (or start a new Codex task) to see local runtime state. The
+The v0.3.3 installer is published in the
+[v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3).
+After installation, run `CodexUsageSidebar.Control.exe status` (or start a new Codex task) to see local runtime state. The
 generic selector and signed compatibility update recover automatically; ordinary users do not edit
 selector files. `placement=Fallback` means the automatic safe dock is intentionally visible while
 titlebar compatibility recovers; it is not a reason to edit selector files. If status says
@@ -13,9 +14,9 @@ share only the generated redacted ZIP. The companion never uploads diagnostics a
 ### SmartScreen shows Unknown publisher
 
 The Windows x64 setup is intentionally unsigned. Verify the SHA-256 against
-`WINDOWS-V032-SHA256SUMS.txt` first. If it matches, **Unknown publisher** is expected: select
+`WINDOWS-V033-SHA256SUMS.txt` first. If it matches, **Unknown publisher** is expected: select
 **More info**, then **Run anyway**. If it does not match, do not run the setup; download it again
-from the v0.3.2 release. Never disable Defender, SmartScreen, antivirus, or system policy.
+from the v0.3.3 release. Never disable Defender, SmartScreen, antivirus, or system policy.
 
 ### The overlay is hidden after a Codex upgrade
 
