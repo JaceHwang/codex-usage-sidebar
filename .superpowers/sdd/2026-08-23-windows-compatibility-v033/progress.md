@@ -22,3 +22,4 @@ Task 3: Ruling: the submitted core-only slice is not task completion because the
 Task 3: fix round 2 (UIA `COMException` containment and production locator composition coverage; focused 7/7, Windows 101/101, solution Core 54/54 + Installer 80/80 + Windows 101/101; commit ca36ffb).
 Task 3: complete (commits c4c75cd..ca36ffb, high-DPI/caption acquisition review clean).
 Task 4: complete (signed P-256 bounded catalog validation, atomic cache, 24-hour/ETag policy, local state-aware control/tray actions, and user-initiated redacted ZIP export; focused 6/6, Core 54/54 + Windows 107/107 + Installer 80/80, `git diff --check` clean; commit pending).
+Task 4: fix round 1 complete (304 refreshes `UpdatedAt` atomically while preserving cache data/ETag; ZIP parser enforces one cumulative uncompressed `MaximumPackBytes` budget; focused 8/8, full suite Core 54/54 + Windows 109/109 + Installer 80/80, `git diff --check` clean; commit pending).

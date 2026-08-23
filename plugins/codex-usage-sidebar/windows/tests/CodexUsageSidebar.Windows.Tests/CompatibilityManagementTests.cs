@@ -63,6 +63,43 @@ public sealed class CompatibilityManagementTests
     }
 
     [TestMethod]
+    public async Task RefreshesAValidCacheTimestampWhenTheServerReturnsNotModified()
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var now = new DateTimeOffset(2026, 8, 23, 0, 0, 0, TimeSpan.Zero);
+        var catalog = Encoding.UTF8.GetBytes(ValidCatalog);
+        var existing = new CompatibilityPackCacheEntry(2, "etag-2", now.AddHours(-24), catalog);
+        var cache = new InMemoryCompatibilityPackCache(existing);
+        var transport = new RecordingPackTransport(Array.Empty<byte>(), statusCode: 304);
+        var updater = new CompatibilityPackUpdater(key.ExportSubjectPublicKeyInfo(), transport, cache, () => now);
+
+        Assert.AreEqual(CompatibilityPackUpdateResult.NotModified, await updater.UpdateAsync(CancellationToken.None));
+        Assert.AreEqual(now, cache.Current!.UpdatedAt);
+        Assert.AreEqual(existing.Sequence, cache.Current.Sequence);
+        Assert.AreEqual(existing.ETag, cache.Current.ETag);
+        CollectionAssert.AreEqual(existing.Catalog, cache.Current.Catalog);
+
+        Assert.AreEqual(CompatibilityPackUpdateResult.NotDue, await updater.UpdateAsync(CancellationToken.None));
+        Assert.AreEqual(1, transport.CallCount);
+    }
+
+    [TestMethod]
+    public async Task RejectsPacksWhoseEntriesExceedTheTotalUncompressedBudget()
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var existing = new CompatibilityPackCacheEntry(8, "old", new DateTimeOffset(2026, 8, 22, 0, 0, 0, TimeSpan.Zero), Encoding.UTF8.GetBytes(ValidCatalog));
+        var cache = new InMemoryCompatibilityPackCache(existing);
+        var updater = new CompatibilityPackUpdater(
+            key.ExportSubjectPublicKeyInfo(),
+            new RecordingPackTransport(CreatePack(key, 9, "etag-9", padCatalogToPackLimit: true)),
+            cache,
+            () => new DateTimeOffset(2026, 8, 23, 0, 0, 0, TimeSpan.Zero));
+
+        Assert.AreEqual(CompatibilityPackUpdateResult.Rejected, await updater.UpdateAsync(CancellationToken.None));
+        Assert.AreSame(existing, cache.Current);
+    }
+
+    [TestMethod]
     public void BuildsStateAwareLocalStatusWithoutLeakingSensitiveFields()
     {
         var outcome = new RuntimeStateOutcome(HostRuntimeState.Visible, new CompatibilityDecision(SemanticCompatibility.Invalid, ProfileCompatibility.FallbackLocked, SafeDockPlacement.Fallback, CompatibilityFailureCode.UiaUnavailable), new DateTimeOffset(2026, 8, 23, 1, 2, 3, TimeSpan.Zero));
@@ -116,9 +153,10 @@ public sealed class CompatibilityManagementTests
 
     private const string ValidCatalog = "{\"schemaVersion\":2,\"profiles\":[{\"buildIdentities\":[],\"markerAliases\":{}}]}";
 
-    private static byte[] CreatePack(ECDsa key, long sequence, string etag, bool tamperCatalog = false)
+    private static byte[] CreatePack(ECDsa key, long sequence, string etag, bool tamperCatalog = false, bool padCatalogToPackLimit = false)
     {
         var catalog = Encoding.UTF8.GetBytes(ValidCatalog);
+        if (padCatalogToPackLimit) catalog = Encoding.UTF8.GetBytes(ValidCatalog + new string(' ', CompatibilityPackUpdater.MaximumPackBytes - catalog.Length));
         var manifest = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { sequence, etag, catalogSha256 = Convert.ToHexString(SHA256.HashData(catalog)).ToLowerInvariant() }));
         var signature = key.SignData(CompatibilityPackUpdater.SignaturePayload(manifest, catalog), HashAlgorithmName.SHA256);
         if (tamperCatalog) catalog[0] = (byte)'[';
@@ -140,12 +178,17 @@ public sealed class CompatibilityManagementTests
 
     private sealed class RecordingPackTransport(byte[] response) : ICompatibilityPackTransport
     {
+        private readonly int statusCode = 200;
         public string? ObservedEtag { get; private set; }
+        public int CallCount { get; private set; }
         public ValueTask<CompatibilityPackResponse> GetAsync(string? etag, CancellationToken cancellationToken)
         {
+            CallCount++;
             ObservedEtag = etag;
-            return ValueTask.FromResult(new CompatibilityPackResponse(200, "new-etag", response));
+            return ValueTask.FromResult(new CompatibilityPackResponse(statusCode, "new-etag", response));
         }
+
+        public RecordingPackTransport(byte[] response, int statusCode) : this(response) => this.statusCode = statusCode;
     }
 
     private sealed class InMemoryCompatibilityPackCache(CompatibilityPackCacheEntry? current = null) : ICompatibilityPackCache

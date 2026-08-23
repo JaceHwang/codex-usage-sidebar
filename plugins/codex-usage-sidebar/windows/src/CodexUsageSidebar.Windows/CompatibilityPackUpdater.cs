@@ -44,7 +44,14 @@ public sealed class CompatibilityPackUpdater(
         }
 
         var response = await transport.GetAsync(existing?.ETag, cancellationToken).ConfigureAwait(false);
-        if (response.StatusCode == 304) return CompatibilityPackUpdateResult.NotModified;
+        if (response.StatusCode == 304)
+        {
+            if (existing is not null)
+            {
+                await cache.ReplaceAsync(existing with { UpdatedAt = observedAt }, cancellationToken).ConfigureAwait(false);
+            }
+            return CompatibilityPackUpdateResult.NotModified;
+        }
         if (response.StatusCode != 200 || response.Content is null || response.Content.Length > MaximumPackBytes)
         {
             return CompatibilityPackUpdateResult.Rejected;
@@ -93,19 +100,22 @@ public sealed class CompatibilityPackUpdater(
             using var stream = new MemoryStream(pack, writable: false);
             using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
             if (archive.Entries.Count != 3) return false;
-            manifest = ReadExact(archive, "manifest.json");
-            catalog = ReadExact(archive, "selectors.json");
-            signature = ReadExact(archive, "signature.sig");
+            long totalUncompressedBytes = 0;
+            manifest = ReadExact(archive, "manifest.json", ref totalUncompressedBytes);
+            catalog = ReadExact(archive, "selectors.json", ref totalUncompressedBytes);
+            signature = ReadExact(archive, "signature.sig", ref totalUncompressedBytes);
             return manifest.Length > 0 && catalog.Length > 0 && catalog.Length <= SelectorProfileCatalog.MaximumCatalogBytes && signature.Length > 0;
         }
         catch (InvalidDataException) { return false; }
         catch (IOException) { return false; }
     }
 
-    private static byte[] ReadExact(ZipArchive archive, string name)
+    private static byte[] ReadExact(ZipArchive archive, string name, ref long totalUncompressedBytes)
     {
         var entry = archive.GetEntry(name) ?? throw new InvalidDataException();
-        if (entry.Length > MaximumPackBytes || entry.CompressedLength > MaximumPackBytes) throw new InvalidDataException();
+        if (entry.Length > MaximumPackBytes || entry.CompressedLength > MaximumPackBytes
+            || totalUncompressedBytes > MaximumPackBytes - entry.Length) throw new InvalidDataException();
+        totalUncompressedBytes += entry.Length;
         using var input = entry.Open();
         using var output = new MemoryStream();
         input.CopyTo(output);

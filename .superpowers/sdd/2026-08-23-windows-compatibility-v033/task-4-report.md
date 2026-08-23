@@ -40,3 +40,30 @@
 ## Scope confirmation
 
 No Task 5 packaging, release version, installer payload, or public-documentation work was changed. Tests use injected pack transport/cache/time boundaries and make no network calls.
+
+## Fix round 1: 304 cache refresh and cumulative ZIP extraction budget
+
+### Changed paths
+
+- `plugins/codex-usage-sidebar/windows/src/CodexUsageSidebar.Windows/CompatibilityPackUpdater.cs`
+  - On HTTP 304 with an existing valid cache, atomically replaces the cache entry with only `UpdatedAt` refreshed, preserving sequence, ETag, and catalog bytes.
+  - Tracks one cumulative uncompressed ZIP extraction budget across `manifest.json`, `selectors.json`, and `signature.sig`, rejecting packs above `MaximumPackBytes` before extraction.
+- `plugins/codex-usage-sidebar/windows/tests/CodexUsageSidebar.Windows.Tests/CompatibilityManagementTests.cs`
+  - Adds regression coverage for the 304 refresh followed by `NotDue` on the next call.
+  - Adds rejection coverage for a ZIP whose individually bounded entries exceed the total uncompressed budget.
+
+### TDD evidence
+
+1. Red — the focused compatibility-management suite failed 2 tests as expected: the 304 case retained the old timestamp, and the cumulative-overflow pack was accepted as `Updated`.
+2. Green — the same focused suite passed 8/8 after the updater changes.
+
+### Scope boundary
+
+Task 5 runtime endpoint/package integration, version changes, documentation, and transport API redesign were not attempted.
+
+### Final verification for fix round 1
+
+- Full Windows solution: `dotnet test plugins\\codex-usage-sidebar\\windows\\CodexUsageSidebar.Windows.sln --no-restore -m:1 --logger "console;verbosity=minimal"`
+  - Passed: Core 54/54, Windows 109/109, Installer 80/80.
+- Hygiene: `git diff --check`
+  - Passed.
