@@ -47,6 +47,19 @@ def payload_files(root: Path) -> dict[str, str]:
     return files
 
 
+def validate_selector_catalog(path: Path) -> None:
+    try:
+        catalog = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SystemExit("Windows v0.3.3 selectors.json is not valid JSON") from error
+    if (not isinstance(catalog, dict)
+            or catalog.get("schemaVersion") != 2
+            or set(catalog) != {"schemaVersion", "profiles"}
+            or not isinstance(catalog.get("profiles"), list)
+            or not catalog["profiles"]):
+        raise SystemExit("Windows v0.3.3 selectors.json must be a non-empty schema-v2 catalog")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--payload-dir", required=True, type=Path)
@@ -79,6 +92,7 @@ def main() -> None:
             temporary_path = Path(temporary.name)
         os.replace(temporary_path, embedded_evidence)
     files = payload_files(root)
+    validate_selector_catalog(root / "selectors.json")
     if files["codex.exe"] != arguments.codex_sha256:
         raise SystemExit("Codex runtime digest does not match the supplied provenance")
     compatibility = json.loads((root / "compatibility-update.json").read_text(encoding="utf-8"))

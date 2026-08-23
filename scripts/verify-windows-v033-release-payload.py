@@ -29,6 +29,19 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def validate_selector_catalog(path: Path) -> None:
+    try:
+        catalog = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SystemExit("Windows v0.3.3 selectors.json is not valid JSON") from error
+    if (not isinstance(catalog, dict)
+            or catalog.get("schemaVersion") != 2
+            or set(catalog) != {"schemaVersion", "profiles"}
+            or not isinstance(catalog.get("profiles"), list)
+            or not catalog["profiles"]):
+        raise SystemExit("Windows v0.3.3 selectors.json must be a non-empty schema-v2 catalog")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("payload_dir", type=Path)
@@ -61,6 +74,7 @@ def main() -> None:
         try: target.relative_to(root)
         except ValueError as error: raise SystemExit("Windows v0.3.3 payload file escapes its root") from error
         if sha256(target) != expected: raise SystemExit(f"Windows v0.3.3 payload digest mismatch: {relative}")
+    validate_selector_catalog(root / "selectors.json")
     runtime = manifest.get("codexRuntime", {})
     if runtime.get("sha256") != files["codex.exe"] or not str(runtime.get("source", "")).startswith(OFFICIAL_CODEX_RELEASE_PREFIX):
         raise SystemExit("Codex runtime release provenance is invalid")

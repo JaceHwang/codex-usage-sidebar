@@ -146,6 +146,25 @@ public sealed class CompatibilityCatalogRuntimeTests
         Assert.IsFalse(updater.Started);
     }
 
+    [TestMethod]
+    public async Task InvalidPackagedCatalogFallsBackToBuiltInSafeCatalogAndStartsUpdater()
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var updater = new RecordingUpdater();
+
+        var runtime = await CompatibilityCatalogRuntime.CreateAsync(
+            Encoding.UTF8.GetBytes("{\"schemaVersion\":1,\"status\":\"device-test\",\"builds\":[]}"),
+            CompatibilityUpdateConfiguration.Create(
+                Convert.ToBase64String(key.ExportSubjectPublicKeyInfo()),
+                "https://updates.example.test/selectors.zip"),
+            new InMemoryCompatibilityPackCache(null),
+            updater,
+            CancellationToken.None);
+
+        Assert.AreSame(SelectorProfileCatalog.Default, runtime.Catalog);
+        Assert.IsTrue(updater.Started);
+    }
+
     private static string ValidCatalog(string identity) => $$"""{"schemaVersion":2,"profiles":[{"buildIdentities":["{{identity}}"],"markerAliases":{},"maxWrapperDepth":2,"depthTolerance":2}]}""";
 
     private sealed class RecordingUpdater : ICompatibilityCatalogUpdater

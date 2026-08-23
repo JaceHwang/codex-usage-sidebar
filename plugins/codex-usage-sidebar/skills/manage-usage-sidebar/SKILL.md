@@ -19,6 +19,19 @@ application bundle so official upgrades cannot overwrite it.
 - Uninstall only when explicitly requested:
   `bash "$PLUGIN_ROOT/scripts/sidebar-control.sh" uninstall --plugin-root "$PLUGIN_ROOT" --plugin-data "$PLUGIN_DATA"`
 
+On Windows, use the PowerShell control script instead:
+
+```powershell
+$control = Join-Path $env:PLUGIN_ROOT 'scripts\sidebar-control-windows.ps1'
+powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $control ensure -PluginRoot $env:PLUGIN_ROOT -PluginData $env:PLUGIN_DATA
+powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $control status -PluginRoot $env:PLUGIN_ROOT -PluginData $env:PLUGIN_DATA
+```
+
+The Windows status `runtime=stopped reason=not-running` means the installed companion is not
+currently running; it is not a device-validation gate. Run `ensure` once, or restart Codex so the
+SessionStart hook starts it automatically. A missing titlebar, unsupported UIA structure, or stale
+Codex process is reported by the running companion's diagnostic state instead of blocking install.
+
 After install or repair, tell the user that macOS may require one-time Accessibility
 permission for Codex Usage Sidebar. Never claim that permission was granted unless
 the operating system reports it.

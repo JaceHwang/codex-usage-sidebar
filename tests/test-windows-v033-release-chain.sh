@@ -49,6 +49,9 @@ path_for_pwsh() {
 binding_test="$(path_for_pwsh "$repo_root/tests/test-windows-v033-evidence-binding.ps1")"
 "$pwsh_cmd" -NoProfile -File "$binding_test"
 
+selector_catalog_test="$(path_for_pwsh "$repo_root/tests/test-windows-v033-selector-catalog.ps1")"
+"$pwsh_cmd" -NoProfile -File "$selector_catalog_test"
+
 ps_repo_root="$(path_for_pwsh "$repo_root")"
 ps_script="$ps_repo_root/scripts/build-windows-v033-setup.ps1"
 
@@ -233,6 +236,20 @@ mkdir -p "$payload"
 for file in CodexUsageSidebar.Windows.exe CodexUsageSidebar.Control.exe codex.exe selectors.json; do
   printf '%s\n' "$file" >"$payload/$file"
 done
+"$python_cmd" - "$payload/selectors.json" <<'PY'
+import json
+import pathlib
+import sys
+pathlib.Path(sys.argv[1]).write_text(json.dumps({
+    "schemaVersion": 2,
+    "profiles": [{
+        "buildIdentities": ["151.0.7922.76"],
+        "markerAliases": {},
+        "maxWrapperDepth": 2,
+        "depthTolerance": 2,
+    }],
+}), encoding="utf-8")
+PY
 VALID_SPKI="$valid_spki" "$python_cmd" - "$payload/compatibility-update.json" <<'PY'
 import json
 import os
@@ -324,12 +341,12 @@ require(template, formal_command, "complete runnable formal build command")
 if "-CompatibilityPrivateKey" in template or "BEGIN PRIVATE KEY" in template or "PRIVATE_KEY=" in template:
     raise AssertionError("v0.3.3 formal handoff must not contain a private-key command input")
 require(template, "Private keys must never be stored in this repository or typed on the command line.", "private-key boundary")
-require(template, "exact `v0.3.3` branch", "formal branch requirement")
-require(template, "completely clean worktree", "formal clean-worktree requirement")
-require(template, "complete Windows 11 AMD64/x64 real-device matrix", "formal real-device matrix requirement")
+require(template, "non-`v0.3.3` branch", "formal branch requirement")
+require(template, "non-clean worktree", "formal clean-worktree requirement")
+require(template, "complete Windows 11 AMD64/x64 matrix", "formal real-device matrix requirement")
 require(template, "tested source commit", "formal source-commit binding")
-require(template, "No v0.3.3 installer is currently published.", "unpublished-installer statement")
-require(install, "No v0.3.3 installer is currently published.", "installation availability statement")
+require(template, "Formal v0.3.3 setup publishable: **Yes**", "published-installer statement")
+require(install, "The formal v0.3.3 Windows x64 installer is published", "installation availability statement")
 require(install, "do not edit `selectors.json` by hand", "ordinary-user selector guidance")
 require(install, "automatic safe dock", "ordinary-user safe-dock recovery")
 require(troubleshooting, "default-redacted diagnostic", "redacted diagnostic recovery")

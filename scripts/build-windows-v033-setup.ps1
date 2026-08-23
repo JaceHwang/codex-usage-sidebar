@@ -130,7 +130,7 @@ try {
     if (-not (Copy-WindowsDeviceRuntimeFromCache -Candidates $runtimeCandidates -Destination $runtimePath -ExpectedSha256 $codexRuntimeSha256)) { Invoke-WebRequest -Uri $codexRuntimeSource -OutFile $runtimePath -UseBasicParsing }
     if ((Get-FileHash -LiteralPath $runtimePath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $codexRuntimeSha256) { throw 'The official Codex x64 runtime digest is invalid.' }
     $fixtures = @('windows-codex-151.0.7922.76-default-200.json', 'windows-codex-151.0.7922.76-default-flat-200.json', 'windows-codex-151.0.7922.76-narrow-200.json') | ForEach-Object { Join-Path $repoRoot ('plugins\codex-usage-sidebar\contracts\uia\' + $_) }
-    $selectors = New-WindowsDeviceSelectorsDocument -FixturePaths $fixtures | ConvertTo-Json -Depth 5
+    $selectors = New-WindowsV033SelectorsDocument -FixturePaths $fixtures | ConvertTo-Json -Depth 5
     [IO.File]::WriteAllText((Join-Path $payload 'selectors.json'), $selectors + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
     $compatibilityConfiguration = [ordered]@{ schemaVersion = 1; publicKey = $CompatibilityPublicKey; updateUri = $CompatibilityUpdateUri }
     [IO.File]::WriteAllText((Join-Path $payload 'compatibility-update.json'), ($compatibilityConfiguration | ConvertTo-Json -Depth 3) + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))

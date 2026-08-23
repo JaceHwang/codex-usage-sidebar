@@ -11,6 +11,16 @@ titlebar compatibility recovers; it is not a reason to edit selector files. If s
 validation is needed, use the opt-in default-redacted diagnostic export from the control command and
 share only the generated redacted ZIP. The companion never uploads diagnostics automatically.
 
+### Startup exits with `InvalidSelectorCatalogException`
+
+If the Windows log says `selectors.json is not a valid schema-v2 selector catalog` and the installed
+file reports `schemaVersion: 1` or `status: device-test`, the payload is an obsolete or malformed
+package. This is a packaging defect, not a Codex titlebar compatibility failure. Do not edit the
+selector file by hand: the selector is loaded before the HTTPS compatibility updater can run. Use
+the corrected Windows release installer to replace `%LOCALAPPDATA%\CodexUsageSidebar\Current`, then
+start a new Codex task. The release verifier now rejects schema-v1 selectors before an installer can
+be published, and newer runtimes fall back to the built-in safe catalog instead of exiting.
+
 ### SmartScreen shows Unknown publisher
 
 The Windows x64 setup is intentionally unsigned. Verify the SHA-256 against

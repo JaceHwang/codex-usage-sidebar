@@ -40,12 +40,9 @@ public sealed record CompatibilityCatalogRuntime(SelectorProfileCatalog Catalog)
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(cache);
         ArgumentNullException.ThrowIfNull(updater);
-        if (!SelectorProfileCatalog.TryParse(Encoding.UTF8.GetString(packagedCatalog), out var packaged))
-        {
-            throw new InvalidSelectorCatalogException();
-        }
-
-        var selected = packaged;
+        var hasPackagedCatalog = SelectorProfileCatalog.TryParse(
+            Encoding.UTF8.GetString(packagedCatalog), out var packaged);
+        var selected = hasPackagedCatalog ? packaged : SelectorProfileCatalog.Default;
         if (configuration.IsValid)
         {
             try

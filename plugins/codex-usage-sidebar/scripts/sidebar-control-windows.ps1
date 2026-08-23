@@ -87,7 +87,7 @@ switch ($Command) {
             Write-Output 'runtime=unavailable reason=payload-not-installed version=0.3.3'
             exit 0
         }
-        Write-Output 'runtime=stopped reason=device-validation-required version=0.3.3'
+        Write-Output 'runtime=stopped reason=not-running version=0.3.3'
         exit 0
     }
     'diagnostic' {

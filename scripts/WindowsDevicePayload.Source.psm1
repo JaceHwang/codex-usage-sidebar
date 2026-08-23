@@ -261,4 +261,31 @@ function New-WindowsDeviceSelectorsDocument {
     }
 }
 
-Export-ModuleMember -Function Assert-WindowsDeviceSourceState, Assert-WindowsV033EvidenceSourceState, Assert-WindowsDevicePlatform, Wait-WindowsDeviceCondition, Copy-WindowsDeviceRuntimeFromCache, New-WindowsV033HostControlPublishProperties, Enter-WindowsDeviceInstallLock, New-WindowsDeviceSelectorsDocument
+function New-WindowsV033SelectorsDocument {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateCount(3, 3)]
+        [string[]] $FixturePaths
+    )
+
+    # Reuse the fixture provenance and layout checks, but never reuse the legacy
+    # v0.3.2 device-test document shape. The v0.3.3 runtime only accepts schema-v2
+    # profiles; emitting the old schema here makes a formally built installer exit
+    # before it can show the overlay.
+    $legacy = New-WindowsDeviceSelectorsDocument -FixturePaths $FixturePaths
+    $buildIdentities = @($legacy.builds | Select-Object -ExpandProperty buildIdentity -Unique)
+    return [pscustomobject][ordered]@{
+        schemaVersion = 2
+        profiles = @(
+            [pscustomobject][ordered]@{
+                buildIdentities = $buildIdentities
+                markerAliases = [ordered]@{}
+                maxWrapperDepth = 2
+                depthTolerance = 2
+            }
+        )
+    }
+}
+
+Export-ModuleMember -Function Assert-WindowsDeviceSourceState, Assert-WindowsV033EvidenceSourceState, Assert-WindowsDevicePlatform, Wait-WindowsDeviceCondition, Copy-WindowsDeviceRuntimeFromCache, New-WindowsV033HostControlPublishProperties, Enter-WindowsDeviceInstallLock, New-WindowsDeviceSelectorsDocument, New-WindowsV033SelectorsDocument
