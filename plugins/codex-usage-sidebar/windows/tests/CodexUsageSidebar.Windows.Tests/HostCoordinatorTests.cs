@@ -200,6 +200,22 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public async Task InvalidFallbackGeometryReportsInvalidGeometryInsteadOfUiaUnavailable()
+    {
+        var window = new HostWindowSnapshot(
+            new IntPtr(42), new RectD(0, 0, 100, 200), true, 1, "151.0.7922.76");
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(window),
+            new RejectingScanner(),
+            new RecordingOverlay());
+
+        var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(HostRuntimeState.DeviceValidationRequired, result);
+        Assert.AreEqual(CompatibilityFailureCode.InvalidGeometry, coordinator.LastCompatibilityDecision?.FailureCode);
+    }
+
+    [TestMethod]
     public async Task UnknownBuildStillHidesWhenUiaIsUnavailable()
     {
         var overlay = new RecordingOverlay();

@@ -95,4 +95,69 @@ public sealed class CompatibilityContractsTests
             }
         }
     }
+
+    [TestMethod]
+    public async Task RuntimeStateStoreReplacesAnExistingDestinationWithTheLatestCompleteOutcome()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"codex-usage-sidebar-{Guid.NewGuid():N}");
+        var path = Path.Combine(directory, "runtime-state.json");
+        try
+        {
+            var store = new RuntimeStateStore(path);
+            await store.WriteAsync(Outcome(HostRuntimeState.Hidden), CancellationToken.None);
+            await store.WriteAsync(Outcome(HostRuntimeState.Visible), CancellationToken.None);
+
+            using var document = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+            Assert.AreEqual("Visible", document.RootElement.GetProperty("RuntimeState").GetString());
+            Assert.AreEqual(0, Directory.GetFiles(directory, ".runtime-state.json.*.tmp").Length);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
+    public async Task RuntimeStateStorePropagatesCancellationAndCleansTemporaryFiles()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"codex-usage-sidebar-{Guid.NewGuid():N}");
+        var path = Path.Combine(directory, "runtime-state.json");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            try
+            {
+                await new RuntimeStateStore(path).WriteAsync(Outcome(HostRuntimeState.Visible), cancellation.Token);
+                Assert.Fail("A canceled write must propagate cancellation.");
+            }
+            catch (OperationCanceledException)
+            {
+            }
+
+            Assert.IsFalse(File.Exists(path));
+            Assert.AreEqual(0, Directory.GetFiles(directory, ".runtime-state.json.*.tmp").Length);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    private static RuntimeStateOutcome Outcome(HostRuntimeState state) => new(
+        state,
+        new CompatibilityDecision(
+            SemanticCompatibility.Valid,
+            ProfileCompatibility.Validated,
+            SafeDockPlacement.Titlebar,
+            CompatibilityFailureCode.None),
+        DateTimeOffset.UnixEpoch);
 }

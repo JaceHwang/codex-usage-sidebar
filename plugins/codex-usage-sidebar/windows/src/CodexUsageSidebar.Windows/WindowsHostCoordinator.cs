@@ -194,8 +194,20 @@ public sealed class WindowsHostCoordinator
         var scale = host.DpiScale;
         var width = OverlayVisualMetrics.IndicatorWidth * scale;
         var height = 28 * scale;
-        if (!string.Equals(host.BuildIdentity, FallbackBuildIdentity, StringComparison.Ordinal)
-            || !double.IsFinite(scale)
+        if (!string.Equals(host.BuildIdentity, FallbackBuildIdentity, StringComparison.Ordinal))
+        {
+            await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
+            return await CompleteAsync(
+                HostRuntimeState.DeviceValidationRequired,
+                new CompatibilityDecision(
+                    SemanticCompatibility.Invalid,
+                    ProfileCompatibility.Invalid,
+                    SafeDockPlacement.None,
+                    CompatibilityFailureCode.UiaUnavailable),
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        if (!double.IsFinite(scale)
             || scale <= 0
             || !double.IsFinite(host.Bounds.X)
             || !double.IsFinite(host.Bounds.Y)
@@ -211,7 +223,7 @@ public sealed class WindowsHostCoordinator
                     SemanticCompatibility.Invalid,
                     ProfileCompatibility.Invalid,
                     SafeDockPlacement.None,
-                    CompatibilityFailureCode.UiaUnavailable),
+                    CompatibilityFailureCode.InvalidGeometry),
                 cancellationToken).ConfigureAwait(false);
         }
 
