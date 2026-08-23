@@ -41,6 +41,14 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         isCatalogValid = SelectorProfileCatalog.TryLoadRuntime(out selectorCatalog);
     }
 
+    internal ValidatedUiaTitlebarScanner(SelectorProfileCatalog selectorCatalog)
+    {
+        this.selectorCatalog = selectorCatalog ?? throw new ArgumentNullException(nameof(selectorCatalog));
+        isCatalogValid = true;
+    }
+
+    internal SelectorProfileCatalog Catalog => selectorCatalog;
+
     public TitlebarSnapshot? TryGetCurrent(HostWindowSnapshot host) => cache.TryGet(host);
     public TitlebarSnapshot? TryGetRetained(HostWindowSnapshot host) => cache.TryGetRetained(host);
 

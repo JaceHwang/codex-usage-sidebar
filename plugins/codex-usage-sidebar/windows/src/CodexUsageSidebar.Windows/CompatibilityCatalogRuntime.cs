@@ -48,8 +48,15 @@ public sealed record CompatibilityCatalogRuntime(SelectorProfileCatalog Catalog)
         var selected = packaged;
         if (configuration.IsValid)
         {
-            var cached = await cache.LoadAsync(cancellationToken).ConfigureAwait(false);
-            if (cached is not null && IsSignedCatalog(cached, configuration.PublicKey, out var verified)) selected = verified;
+            try
+            {
+                var cached = await cache.LoadAsync(cancellationToken).ConfigureAwait(false);
+                if (cached is not null && IsSignedCatalog(cached, configuration.PublicKey, out var verified)) selected = verified;
+            }
+            catch (IOException) { }
+            catch (JsonException) { }
+            catch (UnauthorizedAccessException) { }
+            catch (NullReferenceException) { }
             updater.Start();
         }
         return new CompatibilityCatalogRuntime(selected);
@@ -64,7 +71,7 @@ public sealed record CompatibilityCatalogRuntime(SelectorProfileCatalog Catalog)
     private static bool IsSignedCatalog(CompatibilityPackCacheEntry cache, byte[] publicKey, out SelectorProfileCatalog catalog)
     {
         catalog = SelectorProfileCatalog.Default;
-        if (cache.Manifest is null || cache.Signature is null || cache.Sequence < 1
+        if (cache.Catalog is null || cache.Manifest is null || cache.Signature is null || cache.Sequence < 1
             || !SelectorProfileCatalog.TryParse(Encoding.UTF8.GetString(cache.Catalog), out catalog)) return false;
         try
         {
@@ -80,5 +87,45 @@ public sealed record CompatibilityCatalogRuntime(SelectorProfileCatalog Catalog)
         catch (CryptographicException) { return false; }
         catch (JsonException) { return false; }
         catch (FormatException) { return false; }
+    }
+}
+
+#if WINDOWS
+public sealed record WindowsCompatibilityRuntime(ValidatedUiaTitlebarScanner Scanner)
+{
+    public static async ValueTask<WindowsCompatibilityRuntime> CreateAsync(
+        byte[] packagedCatalog,
+        CompatibilityUpdateConfiguration configuration,
+        ICompatibilityPackCache cache,
+        ICompatibilityCatalogUpdater updater,
+        CancellationToken cancellationToken)
+    {
+        var catalog = await CompatibilityCatalogRuntime.CreateAsync(
+            packagedCatalog, configuration, cache, updater, cancellationToken).ConfigureAwait(false);
+        return new WindowsCompatibilityRuntime(new ValidatedUiaTitlebarScanner(catalog.Catalog));
+    }
+}
+#endif
+
+public sealed class BackgroundCompatibilityCatalogUpdater(CompatibilityPackUpdater updater) : ICompatibilityCatalogUpdater
+{
+    public void Start() => _ = Task.Run(async () =>
+    {
+        try { await updater.UpdateAsync(CancellationToken.None).ConfigureAwait(false); }
+        catch (Exception) { }
+    });
+}
+
+public sealed class HttpCompatibilityPackTransport(Uri updateUri) : ICompatibilityPackTransport
+{
+    private static readonly HttpClient Client = new();
+
+    public async ValueTask<CompatibilityPackResponse> GetAsync(string? etag, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, updateUri);
+        if (!string.IsNullOrWhiteSpace(etag)) request.Headers.TryAddWithoutValidation("If-None-Match", etag);
+        using var response = await Client.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        return new CompatibilityPackResponse((int)response.StatusCode, response.Headers.ETag?.ToString(),
+            await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false));
     }
 }

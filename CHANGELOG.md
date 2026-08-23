@@ -26,6 +26,13 @@ All notable changes to this project are documented here. The project follows
 - Remove the outer quota-card stroke while retaining the native shadow and internal separators.
 - Keep the footer GitHub control compact, rounded, and visually quiet until hovered.
 
+### Fixed
+
+- Use the validated signed Windows compatibility cache during runtime composition, preserve the
+  packaged selector catalog on cache failures, and report v0.3.3 control status labels.
+- Wait no longer than ten seconds after Windows setup install/repair for local runtime health and
+  show localized healthy, safe-dock, or validation-required outcomes.
+
 ## [0.3.1] - 2026-08-21
 
 ### Added

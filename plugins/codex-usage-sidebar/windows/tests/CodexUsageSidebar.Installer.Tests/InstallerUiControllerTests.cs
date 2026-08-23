@@ -112,6 +112,25 @@ public sealed class InstallerUiControllerTests
         Assert.IsFalse(controller.Model.CanExecute);
     }
 
+    [DataTestMethod]
+    [DataRow(InstallerRuntimeHealth.Healthy, "Installation complete.")]
+    [DataRow(InstallerRuntimeHealth.SafeDockVisible, "safe dock is visible")]
+    [DataRow(InstallerRuntimeHealth.ValidationNeeded, "Compatibility validation is needed")]
+    public async Task InstallFlowWaitsAtMostTenSecondsForEmittedRuntimeHealthAndRendersIt(
+        InstallerRuntimeHealth health,
+        string expectedStatus)
+    {
+        var source = new RecordingRuntimeHealthSource(health);
+        var controller = new InstallerUiController(
+            "en-US", InstallerUiMode.Install, new RecordingActions(),
+            InstallerUiFlavor.PublishedRelease, "0.3.3", source);
+
+        await controller.ExecuteAsync(CancellationToken.None);
+
+        Assert.AreEqual(TimeSpan.FromSeconds(10), source.Timeout);
+        StringAssert.Contains(controller.Model.Status, expectedStatus);
+    }
+
     [TestMethod]
     public async Task ReportsFailureWithoutRetryingOrChangingTheSelectedMode()
     {
@@ -137,6 +156,17 @@ public sealed class InstallerUiControllerTests
             CallCount++;
             LastMode = mode;
             return error is null ? Task.CompletedTask : Task.FromException(error);
+        }
+    }
+
+    private sealed class RecordingRuntimeHealthSource(InstallerRuntimeHealth health) : IInstallerRuntimeHealthSource
+    {
+        public TimeSpan Timeout { get; private set; }
+
+        public Task<InstallerRuntimeHealth> WaitAsync(TimeSpan timeout, CancellationToken cancellationToken)
+        {
+            Timeout = timeout;
+            return Task.FromResult(health);
         }
     }
 }

@@ -190,12 +190,18 @@ public interface IInstallerUiActions
     Task ExecuteAsync(InstallerUiMode mode, CancellationToken cancellationToken);
 }
 
+public interface IInstallerRuntimeHealthSource
+{
+    Task<InstallerRuntimeHealth> WaitAsync(TimeSpan timeout, CancellationToken cancellationToken);
+}
+
 public sealed class InstallerUiController
 {
     private readonly string? locale;
     private readonly InstallerUiFlavor flavor;
     private readonly string displayVersion;
     private readonly IInstallerUiActions actions;
+    private readonly IInstallerRuntimeHealthSource? runtimeHealthSource;
     private int isExecuting;
 
     public InstallerUiController(
@@ -203,12 +209,14 @@ public sealed class InstallerUiController
         InstallerUiMode mode,
         IInstallerUiActions actions,
         InstallerUiFlavor flavor = InstallerUiFlavor.DeviceTest,
-        string displayVersion = "0.3.2")
+        string displayVersion = "0.3.2",
+        IInstallerRuntimeHealthSource? runtimeHealthSource = null)
     {
         this.locale = locale;
         this.flavor = flavor;
         this.displayVersion = displayVersion;
         this.actions = actions;
+        this.runtimeHealthSource = runtimeHealthSource;
         Model = InstallerUiModel.Create(
             locale, mode, InstallerUiState.Ready, flavor: flavor, displayVersion: displayVersion);
     }
@@ -226,7 +234,10 @@ public sealed class InstallerUiController
         {
             Update(InstallerUiState.Working);
             await actions.ExecuteAsync(Model.Mode, cancellationToken).ConfigureAwait(false);
-            Update(InstallerUiState.Succeeded);
+            InstallerRuntimeHealth? health = runtimeHealthSource is not null && Model.Mode is InstallerUiMode.Install or InstallerUiMode.Repair
+                ? await runtimeHealthSource.WaitAsync(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false)
+                : null;
+            Update(InstallerUiState.Succeeded, health: health);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -243,9 +254,9 @@ public sealed class InstallerUiController
         }
     }
 
-    private void Update(InstallerUiState state, string? error = null)
+    private void Update(InstallerUiState state, string? error = null, InstallerRuntimeHealth? health = null)
     {
-        Model = InstallerUiModel.Create(locale, Model.Mode, state, error, health: null, flavor: flavor, displayVersion: displayVersion);
+        Model = InstallerUiModel.Create(locale, Model.Mode, state, error, health, flavor, displayVersion);
         Changed?.Invoke(this, Model);
     }
 }

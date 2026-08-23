@@ -1,5 +1,6 @@
 #if WINDOWS
 using System.Globalization;
+using System.Reflection;
 using System.Security.Principal;
 using System.Windows;
 using System.Windows.Threading;
@@ -26,6 +27,23 @@ public static class WindowsHostApplication
         Directory.CreateDirectory(paths.IsolatedCodexHome);
         var stateDirectory = Path.Combine(localAppData, "CodexUsageSidebar");
         var runtimeStateStore = new RuntimeStateStore(Path.Combine(stateDirectory, "runtime-state.json"));
+        var metadata = Assembly.GetExecutingAssembly().GetCustomAttributes<AssemblyMetadataAttribute>()
+            .ToDictionary(attribute => attribute.Key, attribute => attribute.Value, StringComparer.Ordinal);
+        var compatibilityConfiguration = CompatibilityUpdateConfiguration.Create(
+            metadata.GetValueOrDefault("CompatibilityPublicKey") ?? string.Empty,
+            metadata.GetValueOrDefault("CompatibilityUpdateUri") ?? string.Empty);
+        var compatibilityCache = new CompatibilityPackFileCache(Path.Combine(stateDirectory, "Compatibility"));
+        var compatibilityUpdater = new BackgroundCompatibilityCatalogUpdater(new CompatibilityPackUpdater(
+            compatibilityConfiguration.PublicKey,
+            new HttpCompatibilityPackTransport(compatibilityConfiguration.UpdateUri),
+            compatibilityCache,
+            () => DateTimeOffset.UtcNow));
+        var compatibilityRuntime = WindowsCompatibilityRuntime.CreateAsync(
+            File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "selectors.json")),
+            compatibilityConfiguration,
+            compatibilityCache,
+            compatibilityUpdater,
+            CancellationToken.None).AsTask().GetAwaiter().GetResult();
         var safeDockPreferencesStore = new SafeDockPreferencesStore(Path.Combine(stateDirectory, "safe-dock-preferences.json"));
         SafeDockPreferences safeDockPreferences;
         try
@@ -42,7 +60,8 @@ public static class WindowsHostApplication
             paths,
             runtimeStateStore,
             safeDockPreferencesStore,
-            safeDockPreferences);
+            safeDockPreferences,
+            compatibilityRuntime.Scanner);
         application.Exit += (_, _) => runtime.Dispose();
         runtime.Start();
         return application.Run();
@@ -72,7 +91,8 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         WindowsRuntimePaths paths,
         IRuntimeStateStore? runtimeStateStore = null,
         ISafeDockPreferencesStore? safeDockPreferencesStore = null,
-        SafeDockPreferences? safeDockPreferences = null)
+        SafeDockPreferences? safeDockPreferences = null,
+        ITitlebarScanner? titlebarScanner = null)
     {
         this.safeDockPreferencesStore = safeDockPreferencesStore;
         var language = LanguageResolver.Resolve(CultureInfo.CurrentUICulture.Name);
@@ -81,7 +101,7 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         overlay = new WpfOverlaySurface(language, TimeZoneInfo.Local);
         coordinator = new WindowsHostCoordinator(
             new Win32CodexWindowLocator(),
-            new ValidatedUiaTitlebarScanner(),
+            titlebarScanner ?? new ValidatedUiaTitlebarScanner(),
             overlay,
             runtimeStateStore: runtimeStateStore,
             safeDockPreferences: safeDockPreferences,

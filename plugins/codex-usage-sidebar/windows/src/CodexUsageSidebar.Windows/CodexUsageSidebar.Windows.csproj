@@ -15,5 +15,7 @@
     <Resource Include="../../../assets/quota-icon-light.png" Link="Assets/quota-icon-light.png" />
     <Resource Include="../../../assets/quota-icon-dark.png" Link="Assets/quota-icon-dark.png" />
     <Using Include="System.IO" />
+    <AssemblyMetadata Include="CompatibilityPublicKey" Value="$(CompatibilityPublicKey)" Condition="'$(CompatibilityPublicKey)' != ''" />
+    <AssemblyMetadata Include="CompatibilityUpdateUri" Value="$(CompatibilityUpdateUri)" Condition="'$(CompatibilityUpdateUri)' != ''" />
   </ItemGroup>
 </Project>

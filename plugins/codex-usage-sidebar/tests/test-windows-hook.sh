@@ -20,6 +20,11 @@ assert "${PLUGIN_DATA}" in command
 PY
 
 [[ -f "$control" ]]
+grep -q 'version=0.3.3' "$control"
+if grep -q 'version=0.3.2' "$control"; then
+  printf 'v0.3.3 control script must not emit v0.3.2 status labels\n' >&2
+  exit 1
+fi
 if grep -Eiq 'Invoke-Expression|cmd(\.exe)?[[:space:]]+/c' "$control"; then
   printf 'Windows control script contains a shell-evaluation escape hatch\n' >&2
   exit 1
