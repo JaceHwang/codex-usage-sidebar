@@ -9,6 +9,9 @@ public static class OverlayVisualMetrics
     public const double IndicatorHeight = 28;
     public const double IndicatorHorizontalPadding = IndicatorHeight / 3;
     public const double IndicatorWidth = IndicatorContentWidth + (2 * IndicatorHorizontalPadding);
+    public const double CompactIndicatorTextWidth = 32;
+    public const double CompactIndicatorContentWidth = IndicatorLogoSize + IndicatorLogoTextGap + CompactIndicatorTextWidth;
+    public const double CompactIndicatorWidth = CompactIndicatorContentWidth + (2 * IndicatorHorizontalPadding);
     public const double DetailWidth = 360;
     public const double HeaderTitleFontSize = 18;
     public const double HeaderTitleMaximumWidth = 190;
