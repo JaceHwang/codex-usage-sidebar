@@ -213,6 +213,8 @@ public sealed class WindowsHostCoordinator
             || !double.IsFinite(host.Bounds.Y)
             || !double.IsFinite(host.Bounds.Width)
             || !double.IsFinite(host.Bounds.Height)
+            || !double.IsFinite(host.Bounds.Right)
+            || !double.IsFinite(host.Bounds.Bottom)
             || host.Bounds.Width < width + (32 * scale)
             || host.Bounds.Height < 300 * scale)
         {

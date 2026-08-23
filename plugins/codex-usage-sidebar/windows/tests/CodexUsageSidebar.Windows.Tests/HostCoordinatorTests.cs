@@ -216,6 +216,25 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public async Task OverflowingFiniteFallbackBoundsReportInvalidGeometryWithoutShowingOverlay()
+    {
+        var window = new HostWindowSnapshot(
+            new IntPtr(42), new RectD(double.MaxValue, 0, double.MaxValue, 900), true, 1, "151.0.7922.76");
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(window),
+            new RejectingScanner(),
+            overlay);
+
+        var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(HostRuntimeState.DeviceValidationRequired, result);
+        Assert.AreEqual(CompatibilityFailureCode.InvalidGeometry, coordinator.LastCompatibilityDecision?.FailureCode);
+        Assert.AreEqual(1, overlay.HideCount);
+        Assert.IsNull(overlay.LastPresentation);
+    }
+
+    [TestMethod]
     public async Task UnknownBuildStillHidesWhenUiaIsUnavailable()
     {
         var overlay = new RecordingOverlay();
