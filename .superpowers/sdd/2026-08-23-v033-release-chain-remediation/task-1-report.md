@@ -46,3 +46,21 @@ The full release-chain contract intentionally remains RED at the absent later bu
 
 - The full Task 1 contract is expected to remain failing until the later release-chain tasks replace the permanent Task 6 gate with source/evidence validation.
 - The first direct Bash invocation could not resolve `pwsh` from WSL; evidence was captured using the available Windows PowerShell runtime through a temporary, untracked test-harness shim, which was removed afterward.
+
+## Round 1 review-fix evidence
+
+The contract test was tightened without expanding Task 1 scope:
+
+- Bash now resolves `python`/`python3` from `PATH` and resolves `pwsh`/`pwsh.exe`, converting WSL or Git Bash paths when invoking Windows PowerShell. It no longer relies on `/usr/bin/python3`.
+- The build invocation now supplies the formal descriptor path `docs/validation/windows-v0.3.3.json`, proving the release script boundary is exercised rather than only checking the Python profile metadata.
+- Missing canonical evidence and malformed evidence cases require the exact `v0.3.3 validation evidence is missing or invalid: <path>` boundary, reject the permanent Task 6 placeholder, and assert zero files in the requested output directory.
+
+Fresh verification:
+
+`bash tests/test-windows-v033-release-chain.sh`
+
+Result: `exit_code=1` at the intended RED boundary. The available `pwsh.exe` ran the current builder, which emitted only the existing permanent Task 6 message; the strengthened test rejected that output because the exact missing/invalid evidence boundary was absent. The artifact assertion runs immediately after the failed build attempt and found zero files in its output directory.
+
+`rg '/usr/bin/python3' tests/test-windows-v033-release-chain.sh`
+
+Result: no matches.
