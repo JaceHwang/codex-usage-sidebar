@@ -309,10 +309,17 @@ def require(document: str, value: str, description: str) -> None:
     if value not in document:
         raise AssertionError(f"missing v0.3.3 documentation contract: {description}")
 
-require(template, "-ValidationEvidence docs/validation/windows-v0.3.3.json", "canonical formal evidence path")
-require(template, "-OutputDirectory <outside-repository-output>", "outside-repository formal output")
-require(template, "-CompatibilityPublicKey <base64-p256-spki>", "P-256 SPKI public-key input")
-require(template, "-CompatibilityUpdateUri <https-compatibility-pack-uri>", "HTTPS compatibility update input")
+formal_command = """```powershell
+# Public inputs only — never paste a private key into this command.
+pwsh scripts/build-windows-v033-setup.ps1 `
+  -ValidationEvidence docs/validation/windows-v0.3.3.json `
+  -OutputDirectory <outside-repository-output> `
+  -CompatibilityPublicKey <base64-p256-spki> `
+  -CompatibilityUpdateUri <https-compatibility-pack-uri>
+```"""
+require(template, formal_command, "complete runnable formal build command")
+if "-CompatibilityPrivateKey" in template or "BEGIN PRIVATE KEY" in template or "PRIVATE_KEY=" in template:
+    raise AssertionError("v0.3.3 formal handoff must not contain a private-key command input")
 require(template, "Private keys must never be stored in this repository or typed on the command line.", "private-key boundary")
 require(template, "exact `v0.3.3` branch", "formal branch requirement")
 require(template, "completely clean worktree", "formal clean-worktree requirement")

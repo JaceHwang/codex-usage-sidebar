@@ -52,6 +52,7 @@ No v0.3.3 installer is currently published. Do not describe the partial observat
 Run the formal build with the canonical evidence file and an output directory outside the repository:
 
 ```powershell
+# Public inputs only — never paste a private key into this command.
 pwsh scripts/build-windows-v033-setup.ps1 `
   -ValidationEvidence docs/validation/windows-v0.3.3.json `
   -OutputDirectory <outside-repository-output> `
