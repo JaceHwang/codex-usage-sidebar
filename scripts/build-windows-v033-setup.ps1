@@ -113,7 +113,12 @@ $installerOutput = Join-Path $operationRoot 'installer'
 New-Item -ItemType Directory -Force -Path $payload, $installerOutput | Out-Null
 try {
     $framework = 'net8.0-windows10.0.19041.0'
-    $properties = @('--configuration', 'Release', '--framework', $framework, '--runtime', $runtimeIdentifier, '--self-contained', 'true', '-p:PublishTrimmed=false', '-p:DebugType=None', '-p:DebugSymbols=false', "-p:SourceRevisionId=$sourceCommit", '--nologo')
+    $properties = New-WindowsV033HostControlPublishProperties `
+        -Framework $framework `
+        -RuntimeIdentifier $runtimeIdentifier `
+        -SourceCommit $sourceCommit `
+        -CompatibilityPublicKey $CompatibilityPublicKey `
+        -CompatibilityUpdateUri $CompatibilityUpdateUri
     $controlProject = Join-Path $repoRoot 'plugins\codex-usage-sidebar\windows\src\CodexUsageSidebar.Control\CodexUsageSidebar.Control.csproj'
     & dotnet publish $controlProject @properties '-p:PublishSingleFile=false' --output $payload
     if ($LASTEXITCODE -ne 0) { throw 'The Windows v0.3.3 Host/Control publish failed.' }

@@ -128,6 +128,31 @@ function Copy-WindowsDeviceRuntimeFromCache {
     return $false
 }
 
+function New-WindowsV033HostControlPublishProperties {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Framework,
+        [Parameter(Mandatory = $true)]
+        [string] $RuntimeIdentifier,
+        [Parameter(Mandatory = $true)]
+        [ValidatePattern('^[0-9a-f]{40}$')]
+        [string] $SourceCommit,
+        [Parameter(Mandatory = $true)]
+        [string] $CompatibilityPublicKey,
+        [Parameter(Mandatory = $true)]
+        [string] $CompatibilityUpdateUri
+    )
+
+    return @(
+        '--configuration', 'Release', '--framework', $Framework, '--runtime', $RuntimeIdentifier,
+        '--self-contained', 'true', '-p:PublishTrimmed=false', '-p:DebugType=None',
+        '-p:DebugSymbols=false', "-p:SourceRevisionId=$SourceCommit",
+        "-p:CompatibilityPublicKey=$CompatibilityPublicKey",
+        "-p:CompatibilityUpdateUri=$CompatibilityUpdateUri", '--nologo'
+    )
+}
+
 function Enter-WindowsDeviceInstallLock {
     [CmdletBinding()]
     param(
@@ -197,4 +222,4 @@ function New-WindowsDeviceSelectorsDocument {
     }
 }
 
-Export-ModuleMember -Function Assert-WindowsDeviceSourceState, Assert-WindowsDevicePlatform, Wait-WindowsDeviceCondition, Copy-WindowsDeviceRuntimeFromCache, Enter-WindowsDeviceInstallLock, New-WindowsDeviceSelectorsDocument
+Export-ModuleMember -Function Assert-WindowsDeviceSourceState, Assert-WindowsDevicePlatform, Wait-WindowsDeviceCondition, Copy-WindowsDeviceRuntimeFromCache, New-WindowsV033HostControlPublishProperties, Enter-WindowsDeviceInstallLock, New-WindowsDeviceSelectorsDocument
