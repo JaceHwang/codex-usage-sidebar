@@ -75,7 +75,6 @@ $porcelain = (& git -C $repoRoot status --porcelain=v1 --untracked-files=all | O
 if ($LASTEXITCODE -ne 0 -or $porcelain.Length -ne 0) {
     throw 'Windows v0.3.3 setup requires a completely clean worktree, including untracked files.'
 }
-$packagingCommit = Assert-WindowsDeviceSourceState -RepositoryRoot $repoRoot -BuildInputRoots @('.')
 $evidencePath = (Resolve-Path -LiteralPath $ValidationEvidence).Path
 $evidenceFull = [IO.Path]::GetFullPath($evidencePath)
 if (-not $evidenceFull.StartsWith($repoPrefix, [StringComparison]::OrdinalIgnoreCase)) {
@@ -89,9 +88,10 @@ if ($evidenceRelative -ne $canonicalEvidence) {
 if ($LASTEXITCODE -ne 0) { throw 'Windows v0.3.3 validation evidence must be tracked by Git at HEAD.' }
 $evidenceDocument = Get-Content -Raw -LiteralPath $evidenceFull | ConvertFrom-Json
 $sourceCommit = [string] $evidenceDocument.sourceCommit
-if ($sourceCommit -ne $packagingCommit) {
-    throw 'Windows v0.3.3 packaging commit must exactly match the real-device validation source commit.'
-}
+$packagingCommit = Assert-WindowsV033EvidenceSourceState `
+    -RepositoryRoot $repoRoot `
+    -EvidenceRelativePath $evidenceRelative `
+    -SourceCommit $sourceCommit
 & python (Join-Path $PSScriptRoot 'verify-windows-v033-validation.py') $evidenceFull --source-commit $sourceCommit
 if ($LASTEXITCODE -ne 0) { throw 'The Windows v0.3.3 formal evidence gate failed.' }
 

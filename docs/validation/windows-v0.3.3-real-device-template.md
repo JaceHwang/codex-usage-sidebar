@@ -47,7 +47,7 @@ disposable task titlebar and do not commit the bundle to this repository.
 
 ## Formal release handoff (maintainers only)
 
-No v0.3.3 installer is currently published. Do not describe the partial observation or the automated evidence above as formal device validation. A formal build is allowed only from the exact `v0.3.3` branch with a completely clean worktree, after the canonical `docs/validation/windows-v0.3.3.json` records a complete Windows 11 AMD64/x64 real-device matrix for the same source commit that will be packaged.
+No v0.3.3 installer is currently published. Do not describe the partial observation or the automated evidence above as formal device validation. A formal build is allowed only from the exact `v0.3.3` branch with a completely clean worktree, after the canonical `docs/validation/windows-v0.3.3.json` records a complete Windows 11 AMD64/x64 real-device matrix for the tested source commit. The evidence may be committed as the only change on top of that tested source commit; the builder records both the tested source commit and the later evidence-only packaging commit.
 
 Run the formal build with the canonical evidence file and an output directory outside the repository:
 
@@ -60,7 +60,7 @@ pwsh scripts/build-windows-v033-setup.ps1 `
   -CompatibilityUpdateUri <https-compatibility-pack-uri>
 ```
 
-The Base64 P-256 SPKI value is a public key and is acceptable as a build input. Private keys must never be stored in this repository or typed on the command line. No private key or other secret may be added, pasted, or typed into version-controlled files. The HTTPS URI identifies the compatibility pack; the build rejects incomplete evidence, a mismatched source commit, a non-clean worktree, a non-`v0.3.3` branch, invalid key material, an insecure URI, or output inside the repository.
+The Base64 P-256 SPKI value is a public key and is acceptable as a build input. Private keys must never be stored in this repository or typed on the command line. No private key or other secret may be added, pasted, or typed into version-controlled files. The HTTPS URI identifies the compatibility pack; the build rejects incomplete evidence, a source commit that is not an ancestor of the packaging commit, any post-validation code change, a non-clean worktree, a non-`v0.3.3` branch, invalid key material, an insecure URI, or output inside the repository.
 
 ## Release-gate decision
 

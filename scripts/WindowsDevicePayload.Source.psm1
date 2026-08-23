@@ -52,6 +52,45 @@ function Assert-WindowsDeviceSourceState {
     return $sourceCommit
 }
 
+function Assert-WindowsV033EvidenceSourceState {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $RepositoryRoot,
+        [Parameter(Mandatory = $true)]
+        [string] $EvidenceRelativePath,
+        [Parameter(Mandatory = $true)]
+        [ValidatePattern('^[0-9a-f]{40}$')]
+        [string] $SourceCommit
+    )
+
+    $packagingCommit = Assert-WindowsDeviceSourceState -RepositoryRoot $RepositoryRoot -BuildInputRoots @('.')
+    $normalizedEvidencePath = $EvidenceRelativePath.Replace('\', '/')
+    if ([IO.Path]::IsPathRooted($EvidenceRelativePath) -or
+        $normalizedEvidencePath.Split('/') -contains '..' -or
+        $normalizedEvidencePath -ne $EvidenceRelativePath.Replace('\', '/')) {
+        throw [ArgumentException]::new('The v0.3.3 evidence path must be a normalized repository-relative path.', 'EvidenceRelativePath')
+    }
+
+    & git -C $RepositoryRoot merge-base --is-ancestor $SourceCommit $packagingCommit | Out-Null
+    if ($LASTEXITCODE -ne 0 -or $SourceCommit -eq $packagingCommit) {
+        throw [IO.InvalidDataException]::new(
+            'The v0.3.3 evidence source commit must be an earlier ancestor of the packaging commit.')
+    }
+
+    $changedPaths = @(
+        & git -C $RepositoryRoot diff --name-only ($SourceCommit + '..' + $packagingCommit) |
+            ForEach-Object { $_.Replace('\', '/') } |
+            Where-Object { $_.Length -gt 0 }
+    )
+    if ($LASTEXITCODE -ne 0 -or $changedPaths.Count -ne 1 -or $changedPaths[0] -cne $normalizedEvidencePath) {
+        throw [IO.InvalidDataException]::new(
+            'The v0.3.3 packaging commit may add only the canonical real-device evidence file after the tested source commit.')
+    }
+
+    return $packagingCommit
+}
+
 function Assert-WindowsDevicePlatform {
     [CmdletBinding()]
     param(
@@ -222,4 +261,4 @@ function New-WindowsDeviceSelectorsDocument {
     }
 }
 
-Export-ModuleMember -Function Assert-WindowsDeviceSourceState, Assert-WindowsDevicePlatform, Wait-WindowsDeviceCondition, Copy-WindowsDeviceRuntimeFromCache, New-WindowsV033HostControlPublishProperties, Enter-WindowsDeviceInstallLock, New-WindowsDeviceSelectorsDocument
+Export-ModuleMember -Function Assert-WindowsDeviceSourceState, Assert-WindowsV033EvidenceSourceState, Assert-WindowsDevicePlatform, Wait-WindowsDeviceCondition, Copy-WindowsDeviceRuntimeFromCache, New-WindowsV033HostControlPublishProperties, Enter-WindowsDeviceInstallLock, New-WindowsDeviceSelectorsDocument
