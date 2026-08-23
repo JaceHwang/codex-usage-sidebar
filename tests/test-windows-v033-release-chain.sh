@@ -112,8 +112,6 @@ run_evidence_boundary_case() {
   fi
 }
 
-run_evidence_boundary_case missing "$evidence_path"
-
 invalid_evidence="$fixture_root/invalid-evidence.json"
 "$python_cmd" - "$invalid_evidence" <<'PY'
 import pathlib
@@ -121,6 +119,114 @@ import sys
 
 pathlib.Path(sys.argv[1]).write_text('{"version":"0.3.3","cases":[]}', encoding="utf-8")
 PY
+
+validation_commit="0123456789abcdef0123456789abcdef01234567"
+incomplete_validation="$fixture_root/v033-incomplete-validation.json"
+complete_validation="$fixture_root/v033-complete-validation.json"
+"$python_cmd" - "$incomplete_validation" "$complete_validation" "$validation_commit" <<'PY'
+import json
+import pathlib
+import sys
+from itertools import product
+
+incomplete_path = pathlib.Path(sys.argv[1])
+complete_path = pathlib.Path(sys.argv[2])
+source_commit = sys.argv[3]
+
+document = {
+    "schemaVersion": 1,
+    "version": "0.3.3",
+    "sourceCommit": source_commit,
+    "architecture": "x64",
+    "windowsBuild": 22631,
+    "codexFileBuild": "151.0.7922.76",
+    "completedAt": "2026-08-23T00:00:00Z",
+    "cases": {
+        "visual": [
+            {
+                "layout": layout,
+                "theme": theme,
+                "language": language,
+                "scale": scale,
+                "result": "pass",
+            }
+            for layout, scale, theme, language in product(
+                ("wide", "narrow", "right-pane"),
+                (100, 125, 150, 200),
+                ("light", "dark", "system"),
+                ("en", "zh-CN"),
+            )
+        ],
+        "geometry": [
+            {"name": name, "result": "pass"}
+            for name in ("restored", "maximized", "fullscreen")
+        ],
+        "interaction": [
+            {"name": name, "result": "pass"}
+            for name in (
+                "safe-dock-drag-snap",
+                "safe-dock-lock-reset",
+                "three-success-recovery",
+            )
+        ],
+        "lifecycle": [
+            {"name": name, "result": "pass"}
+            for name in (
+                "codex-restart-update",
+                "sleep-resume",
+                "app-server-recovery",
+                "install-repair",
+                "upgrade-retains-preferences",
+                "uninstall",
+                "package-provenance",
+            )
+        ],
+    },
+}
+complete_path.write_text(json.dumps(document), encoding="utf-8")
+document["cases"]["visual"].pop()
+incomplete_path.write_text(json.dumps(document), encoding="utf-8")
+PY
+
+assert_validation_rejected() {
+  local label="$1"
+  local evidence="$2"
+  if "$python_cmd" "$repo_root/scripts/verify-windows-v033-validation.py" \
+    "$evidence" --source-commit "$validation_commit"; then
+    printf 'v0.3.3 validator unexpectedly accepted %s evidence\n' "$label" >&2
+    exit 1
+  fi
+}
+
+assert_validation_rejected incomplete "$incomplete_validation"
+"$python_cmd" "$repo_root/scripts/verify-windows-v033-validation.py" \
+  "$complete_validation" --source-commit "$validation_commit"
+
+"$python_cmd" - "$complete_validation" "$fixture_root/v033-duplicate-validation.json" \
+  "$fixture_root/v033-invalid-build-validation.json" "$fixture_root/v033-invalid-version-validation.json" \
+  "$fixture_root/v033-non-pass-validation.json" <<'PY'
+import json
+import pathlib
+import sys
+
+complete = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+for output, mutate in (
+    (sys.argv[2], lambda value: value["cases"]["visual"].append(value["cases"]["visual"][0].copy())),
+    (sys.argv[3], lambda value: value.__setitem__("windowsBuild", 19045)),
+    (sys.argv[4], lambda value: value.__setitem__("version", "0.3.2")),
+    (sys.argv[5], lambda value: value["cases"]["lifecycle"][0].__setitem__("result", "fail")),
+):
+    value = json.loads(json.dumps(complete))
+    mutate(value)
+    pathlib.Path(output).write_text(json.dumps(value), encoding="utf-8")
+PY
+
+assert_validation_rejected duplicate "$fixture_root/v033-duplicate-validation.json"
+assert_validation_rejected invalid-build "$fixture_root/v033-invalid-build-validation.json"
+assert_validation_rejected invalid-version "$fixture_root/v033-invalid-version-validation.json"
+assert_validation_rejected non-pass "$fixture_root/v033-non-pass-validation.json"
+
+run_evidence_boundary_case missing "$evidence_path"
 run_evidence_boundary_case invalid "$invalid_evidence"
 
 printf 'PASS: Windows v0.3.3 release-chain contract is present\n'
