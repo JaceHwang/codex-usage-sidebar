@@ -31,22 +31,22 @@
 | Platform | Status | Distribution |
 | --- | --- | --- |
 | macOS 14+ Apple Silicon | v0.3.2 release | Signed companion plus a published v0.3.2 arm64 DMG |
-| Windows 11 AMD64 (`x64`) | v0.3.2 release | Unsigned `x64` setup asset; Windows ARM64 is out of scope |
+| Windows 11 AMD64 (`x64`) | [v0.3.3 release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) | Unsigned `x64` setup with signed compatibility updates; Windows ARM64 is out of scope |
 
-Windows `v0.3.2` is the Windows 11 AMD64/x64 release line. It carries the macOS-visible quota card
+Windows `v0.3.3` is the current Windows 11 AMD64/x64 release line. It carries the macOS-visible quota card
 model (token usage, account identity, theme-aware icon, reset countdown, Credits, Bank details, and
-the GitHub footer). The current v0.3.2 card does not render a Tibo X row on either platform. The shared quota contracts, .NET core, Win32 window
+the GitHub footer). The current card does not render a Tibo X row on either platform. The shared quota contracts, .NET core, Win32 window
 boundary, sanitized UI Automation probe, per-user installer backend, payload digest verification,
-and Windows CI preserve the stable macOS payload. The v0.3.2 Windows asset is locally packaged and
-includes quick-prerelease validation metadata; the 130-case Windows manual matrix is still incomplete,
-so this release does not claim complete real-device validation. The selector no longer rejects a Codex build
+and Windows CI preserve the stable macOS payload. The v0.3.3 Windows asset is formally published with
+complete 85-case Windows 11 x64 real-device validation, provenance, and a signed compatibility-update
+pack. The selector no longer rejects a Codex build
 solely because its file version changed; it still requires a safe semantic UI Automation structure,
 and hides the overlay instead of guessing coordinates when that structure is unavailable. See [Windows beta development](docs/WINDOWS-BETA.md)
 for development and validation details, and [Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md)
 for the device procedure. To move the active work into Codex on a Windows computer, follow the
 [Windows Codex continuation guide](docs/WINDOWS-CODEX-CONTINUATION.md); the Git branch and its
 verified commit history are the handoff source of truth. The complete feature matrix is in
-[Windows v0.3.2 parity notes](docs/WINDOWS-V031-PARITY.md).
+[Windows v0.3.3 release notes](docs/releases/v0.3.3.md) and [Windows architecture notes](docs/ARCHITECTURE.md).
 
 ## Current appearance
 
@@ -101,7 +101,7 @@ quota control.
 ## Quick install
 
 Choose the platform-specific installation path below. Windows support is Windows 11 AMD64/x64 only;
-Windows ARM64 is not supported. The v0.3.2 setup uses explicit unsigned-install safeguards and must
+Windows ARM64 is not supported. The v0.3.3 setup uses explicit unsigned-install safeguards and must
 be verified by SHA-256 before launch.
 
 ### Windows 11 AMD64/x64
@@ -113,19 +113,19 @@ fail-hidden until it can be validated.
 
 #### Manual setup install
 
-1. Open the [v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2) and download only
-   `codex-usage-sidebar-v0.3.2-windows-x64-setup.exe` plus `WINDOWS-V032-SHA256SUMS.txt`.
+1. Open the [v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) and download only
+   `codex-usage-sidebar-v0.3.3-windows-x64-setup.exe` plus `WINDOWS-V033-SHA256SUMS.txt`.
 2. Verify the setup SHA-256 before launching it:
 
    ```powershell
-   Get-FileHash .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+   Get-FileHash .\codex-usage-sidebar-v0.3.3-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
    ```
 
-   Compare it case-insensitively with the matching entry in `WINDOWS-V032-SHA256SUMS.txt`.
+   Compare it case-insensitively with the matching entry in `WINDOWS-V033-SHA256SUMS.txt`.
 3. Run the verified setup for the current user:
 
    ```powershell
-   Start-Process .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe
+   Start-Process .\codex-usage-sidebar-v0.3.3-windows-x64-setup.exe
    ```
 
 4. The setup is intentionally unsigned (`NotSigned`), so Windows may show **Unknown publisher**.
@@ -143,8 +143,8 @@ of guessing coordinates. See [Installation and operations](docs/INSTALL.md) for 
 Give your Windows coding agent this task:
 
 ```text
-Install Codex Usage Sidebar v0.3.2 from the GitHub Release on this Windows 11 AMD64/x64 machine.
-Download codex-usage-sidebar-v0.3.2-windows-x64-setup.exe and WINDOWS-V032-SHA256SUMS.txt only,
+Install Codex Usage Sidebar v0.3.3 from the GitHub Release on this Windows 11 AMD64/x64 machine.
+Download codex-usage-sidebar-v0.3.3-windows-x64-setup.exe and WINDOWS-V033-SHA256SUMS.txt only,
 verify the setup SHA-256 against the matching release entry, run the setup only if the digest matches, and report the install
 path and runtime status. Do not disable or bypass Defender, SmartScreen, antivirus, or system policy.
 If an installer, SmartScreen, uninstall, or Windows security dialog appears, stop and ask me for
@@ -257,7 +257,7 @@ companion never modifies Codex internals.
 
 ## Language matching
 
-Version 0.3.2 follows the language Codex is actually displaying. An explicit Codex language choice
+The current release follows the language Codex is actually displaying. An explicit Codex language choice
 is authoritative; when Codex is set to **Auto**, the running renderer's resolved locale is used.
 Codex preferences and the macOS preferred language remain safe startup fallbacks.
 
@@ -314,7 +314,7 @@ Read the complete [privacy model](docs/PRIVACY.md), [architecture](docs/ARCHITEC
 A healthy precise-positioning result includes the state from the actual LaunchAgent process:
 
 ```text
-pid=12345 version=0.3.2 runtime=shown placement=content-header anchor=labeledControl
+pid=12345 version=0.3.3 runtime=shown placement=content-header anchor=labeledControl
 language=simplifiedChinese language_source=process
 indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app
@@ -359,6 +359,7 @@ CI. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 - [Privacy](docs/PRIVACY.md)
 - [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
+- [v0.3.3 release notes](docs/releases/v0.3.3.md)
 
 ## License
 

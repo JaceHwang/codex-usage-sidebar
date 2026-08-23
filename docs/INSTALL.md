@@ -67,10 +67,10 @@ the deterministic prompt and evidence checklist.
 
 ### Validation boundary
 
-The `v0.3.2` Windows source has passed the portable automated gates; the published setup is available, but the
-130-case Windows manual matrix is incomplete. Do not claim full real-device setup lifecycle
-validation unless you have run that validation on the target machine. Unknown or unsupported UI
-Automation structures hide the overlay; no coordinates are guessed.
+The published `v0.3.3` Windows setup is bound to complete 85-case Windows 11 x64 real-device
+evidence. Local install, repair, and uninstall results still describe only the operations actually
+performed on the target machine. Unknown or unsupported UI Automation structures hide the overlay;
+no coordinates are guessed.
 
 ## Requirements
 

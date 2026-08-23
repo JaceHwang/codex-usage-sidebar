@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.3 - 2026-08-23
+
+- Published the formal Windows 11 AMD64/x64 setup, checksum, provenance, and signed compatibility-pack assets.
+- Added a P-256-verified HTTPS compatibility update path so selector changes can ship without manual user adaptation.
+- Completed and recorded the 85-case Windows 11 x64 real-device validation matrix.
+- Kept unknown or unsafe titlebar UI Automation structures fail-hidden while accepting compatible Codex builds without a fixed file-version allow list.
+- Added post-release Windows installation, diagnostics, provenance, and compatibility documentation in English and Simplified Chinese.
+
 ## v0.3.2
 
 - Published macOS 14+ Apple Silicon DMG and Windows 11 AMD64/x64 setup assets with SHA-256 and provenance files.

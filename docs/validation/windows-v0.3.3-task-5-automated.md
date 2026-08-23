@@ -2,6 +2,9 @@
 
 Date: 2026-08-23
 
+> Historical pre-release checkpoint. The later Task 6 real-device gate was completed; the
+> published result is recorded in [`windows-v0.3.3.json`](windows-v0.3.3.json).
+
 ## Scope
 
 This record covers only Task 5 setup/package/runtime-integration documentation work. It contains no

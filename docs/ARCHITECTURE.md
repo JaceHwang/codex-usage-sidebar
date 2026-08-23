@@ -12,10 +12,11 @@
 4. **SidebarCore** contains pure rate-limit decoding, formatting, color, layout, transport, and
    anchor-resolution logic covered by Swift tests.
 
-The v0.3.2 line ships a parallel Windows implementation without renaming or replacing the macOS
+The v0.3.3 line ships a parallel Windows implementation without renaming or replacing the macOS
 tree. Sanitized `contracts/` fixtures are decoded by both Swift and .NET tests. The Windows
-solution separates a portable core, host boundary, control probe, and installer backend. Real UIA
-selectors are not accepted until captured and verified on a Windows Codex device.
+solution separates a portable core, host boundary, control probe, and installer backend. The
+published x64 installer includes the validated selector catalog and a signed HTTPS compatibility
+update path; unknown UIA structures remain fail-hidden.
 
 ```text
 plugins/codex-usage-sidebar/

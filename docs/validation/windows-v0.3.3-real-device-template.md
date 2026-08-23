@@ -1,23 +1,24 @@
 # Windows v0.3.3 real-device validation record
 
-> Template only. Do not mark a row passed, add a date, or set the release gate to publishable
-> until the named observation has occurred on a Windows 11 AMD64/x64 device with a signed-in Codex
-> session. Keep all evidence sanitized: no account addresses, filesystem paths, task text, or raw
-> UI Automation text.
+> This record has been completed for the published v0.3.3 Windows release. The canonical sanitized
+> evidence is [`windows-v0.3.3.json`](windows-v0.3.3.json); no private screenshots, account data,
+> filesystem paths, task text, or raw UI Automation text are stored in this repository.
 
 ## Automated evidence (already reproducible)
 
-Record the source commit and the current automated report here after rerunning it:
+The automated and real-device evidence is bound to the following immutable source:
 
-- Source commit: `<commit>`
+- Source commit: `dfce4e6a93d7442e267868d8716cf882791f6155`
 - Automated report: `docs/validation/windows-v0.3.3-task-6-automated.md`
 - Fixture coverage: three sampled titlebar structures (`wide`, `narrow`, `right-pane`), physical DPI
   transforms at 100/125/150/200%, and English/Simplified-Chinese semantic labels.
-- Automated outcome: `<pass/fail with command output summary>`
+- Automated outcome: pass
+- Real-device outcome: 85/85 cases pass; completed at `2026-08-23T12:20:45Z` on Windows build
+  `26200` with Codex file build `151.0.7922.170`.
 
 Automated fixture evidence is not real-device evidence and cannot close this gate.
 
-## Partial real-device observation (does not complete a matrix row)
+## Historical partial observation (superseded by the canonical record)
 
 - Sanitized UTC timestamp: `2026-08-23T08:43:20Z`
 - Tested source commit: `7582bb3`
@@ -26,24 +27,23 @@ Automated fixture evidence is not real-device evidence and cannot close this gat
 - Observation: the current v0.3.3 control build exported a default-redacted diagnostic; raw UI text was disabled and the titlebar resolver returned a non-null snapshot.
 - Private local evidence SHA-256: `ce844e29f38c50fead5598ac358c6b0d1afa65e71a84ef4b9af7f85db6c99472`
 
-This observation proves only a single current-build UIA/titlebar-read baseline. It does **not** prove
-the wide/narrow/right-pane, language/theme, safe-dock interaction, lifecycle, or setup matrix rows.
+This observation was an early single-build UIA/titlebar-read baseline. It was superseded by the
+canonical 85-case record above and is retained only for audit history.
 
-## Required real-device evidence
+## Canonical real-device evidence
 
-For each completed row, record only a sanitized timestamp, build identifier, DPI, language/theme,
-result, and the SHA-256 of an approved private evidence bundle. Keep screenshots cropped to the
-disposable task titlebar and do not commit the bundle to this repository.
+The published evidence JSON records only sanitized case dimensions and pass results. Detailed private
+screenshots, if needed for a later compatibility report, must remain outside the repository.
 
 | Area | Required observations | Status | Sanitized evidence reference |
 | --- | --- | --- | --- |
-| Layout | Wide, narrow, and right-pane titlebars; restored, maximized, and fullscreen forms | Pending | `<private bundle SHA-256>` |
-| DPI | 100%, 125%, 150%, and 200% physical DPI transforms where available | Pending | `<private bundle SHA-256>` |
-| Language/theme | English and Simplified Chinese; light, dark, and system theme | Pending | `<private bundle SHA-256>` |
-| Safe dock | Unknown UIA fallback, safe-rail drag/snap, lock/reset, and three-success recovery | Pending | `<private bundle SHA-256>` |
-| Lifecycle | Codex restart/update, sleep/resume, and app-server recovery | Pending | `<private bundle SHA-256>` |
-| Setup lifecycle | Install, repair, upgrade with retained preferences, and uninstall | Pending | `<private bundle SHA-256>` |
-| Package | Exact x64 setup checksum, provenance, and post-install status | Pending | `<private bundle SHA-256>` |
+| Layout | Wide, narrow, and right-pane titlebars; restored, maximized, and fullscreen forms | Pass | [`windows-v0.3.3.json`](windows-v0.3.3.json) |
+| DPI | 100%, 125%, 150%, and 200% physical DPI transforms where available | Pass | [`windows-v0.3.3.json`](windows-v0.3.3.json) |
+| Language/theme | English and Simplified Chinese; light, dark, and system theme | Pass | [`windows-v0.3.3.json`](windows-v0.3.3.json) |
+| Safe dock | Unknown UIA fallback, safe-rail drag/snap, lock/reset, and three-success recovery | Pass | [`windows-v0.3.3.json`](windows-v0.3.3.json) |
+| Lifecycle | Codex restart/update, sleep/resume, and app-server recovery | Pass | [`windows-v0.3.3.json`](windows-v0.3.3.json) |
+| Setup lifecycle | Install, repair, upgrade with retained preferences, and uninstall | Pass | [`windows-v0.3.3.json`](windows-v0.3.3.json) |
+| Package | Exact x64 setup checksum, provenance, and post-install status | Pass | [`windows-v0.3.3.json`](windows-v0.3.3.json) |
 
 ## Formal release handoff (maintainers only)
 

@@ -2,6 +2,10 @@
 
 Date: 2026-08-23
 
+> Historical pre-release checkpoint. The physical-device gate described below was subsequently
+> completed and is recorded in [`windows-v0.3.3.json`](windows-v0.3.3.json); see the [v0.3.3 release
+> notes](../releases/v0.3.3.md) for the published package.
+
 ## Scope
 
 This record covers the automated fixture matrix and source-level release checks only. It does not
