@@ -69,3 +69,41 @@
   - Passed: 14/14 tests.
 - Full: `dotnet test plugins\codex-usage-sidebar\windows\CodexUsageSidebar.Windows.sln --no-restore`
   - Passed: Core 54/54, Installer 80/80, Windows 94/94 tests.
+
+## Fix round 1: physical geometry and verified caption bounds
+
+### Changed paths
+
+- `WindowsCoordinateSpace.cs`
+  - Keeps `GetWindowRect` coordinates unchanged because PerMonitorV2 window rectangles are already physical screen pixels.
+  - Adds the testable verified-caption policy: only one finite, host-contained, top-band candidate marked verified is retained; no candidate produces no caption assertion.
+- `Win32CodexWindowLocator.cs`
+  - Captures monitor work area with `MonitorFromWindow`/`GetMonitorInfo` in the same physical coordinate space.
+  - Queries the exact `ChromeNodeCaptionButtonContainer` UIA pane and marks it verified only when it contains exactly the four expected caption button IDs/classes. The resulting physical caption bounds are preserved in `HostWindowSnapshot`; unavailable or ambiguous UIA data remains `null`.
+- `WpfOverlaySurface.cs`
+  - Retains the coordinator-provided physical work area for safe dock layout and uses monitor probing only as a fallback. Caption geometry continues to flow unchanged through the safe-dock request.
+- `Win32CodexWindowLocatorTests.cs` and `HostCoordinatorTests.cs`
+  - Add physical PerMonitorV2 conversion, verified/unverified caption, and 125% DPI safe-dock production-path coverage.
+
+### TDD evidence
+
+1. Red — `dotnet test plugins\codex-usage-sidebar\windows\tests\CodexUsageSidebar.Windows.Tests\CodexUsageSidebar.Windows.Tests.csproj --no-restore --filter "FullyQualifiedName~Win32CodexWindowLocatorTests|FullyQualifiedName~SafeDockUsesPhysicalHostCaptionAndWorkAreaAtOneHundredTwentyFivePercent"`
+   - Failed at compile time as expected because `HostWindowGeometry` did not yet exist. The changed raw-rectangle expectation also captured the pre-fix double-scale defect.
+2. Green — same focused command after adding physical geometry validation and production locator work-area/caption acquisition.
+   - Passed: 3/3 tests.
+3. Caption-verification red — `dotnet test plugins\codex-usage-sidebar\windows\tests\CodexUsageSidebar.Windows.Tests\CodexUsageSidebar.Windows.Tests.csproj --no-restore --filter FullyQualifiedName~DoesNotPreserveAnUnverifiedCaptionContainer`
+   - Failed at compile time as expected because a caption candidate did not carry verification state.
+4. Caption-verification green — focused physical/caption/coordinator command after requiring all four verified caption buttons in production.
+   - Passed: 4/4 tests.
+5. Windows build — `dotnet build plugins\codex-usage-sidebar\windows\src\CodexUsageSidebar.Windows\CodexUsageSidebar.Windows.csproj --no-restore -f net8.0-windows10.0.19041.0`
+   - Passed: 0 warnings, 0 errors.
+6. Windows regression — `dotnet test plugins\codex-usage-sidebar\windows\tests\CodexUsageSidebar.Windows.Tests\CodexUsageSidebar.Windows.Tests.csproj --no-restore`
+   - Passed: 97/97 tests.
+7. Full solution — `dotnet test plugins\codex-usage-sidebar\windows\CodexUsageSidebar.Windows.sln --no-restore`
+   - Completed successfully; Core 54/54 and Windows 97/97 reported. Direct installer verification also passed: 80/80 tests.
+8. Hygiene — `git diff --check`
+   - Passed with no whitespace errors; Git emitted only repository line-ending normalization notices.
+
+### Commit
+
+`f173701` — `Fix safe dock physical geometry`.
