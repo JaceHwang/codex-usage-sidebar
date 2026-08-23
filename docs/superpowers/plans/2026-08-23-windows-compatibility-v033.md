@@ -92,7 +92,7 @@
 **Files:**
 - Create/modify: UIA contract fixtures, validation records, release documentation.
 
-- [x] Add three sampled-build wide/narrow/right-pane fixtures with 100/125/150/200% DPI transforms, literal titlebar geometry assertions, and injected Chinese/English semantic cases.
+- [x] Add three sampled-build wide/narrow/right-pane fixtures with separate literal 100/125/150/200% expected geometry, raw English/Chinese UIA names through the scanner/classifier/resolver path, and coordinator-driven unresolved SafeDock presentation assertions.
 - [x] Run every automatic suite and inspect safe-dock, semantic, profile, update, and diagnostic coverage.
 - [ ] Execute the current-build Windows 11 x64 manual matrix: layout, DPI, theme, install/repair/update/uninstall, safe-dock drag, and auto recovery.
 - [ ] Run full release-package verification and record only sanitized real-device evidence.

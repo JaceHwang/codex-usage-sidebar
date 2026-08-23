@@ -16,24 +16,27 @@ was present, the unrecognised-case assertion correctly failed because changing o
 `rounded-e-none` marker still left a valid square composer anchor. The fixture now removes the
 composer marker, and the focused run passes 2/2.
 
-The follow-up geometry contract test was written before the matrix supplied expected geometry.
-That focused run failed with `NullReferenceException` at the new geometry assertion because
-`expected.geometry` was absent. The matrix now provides literal sampled 200% titlebar, anchor,
-title, obstacle, and right-toolbar geometry for every structure. The test scales those independent
-expectations at 100%, 125%, 150%, and 200%, injects each English/Simplified-Chinese label through
-`UiaSemanticRoleClassifier` onto the semantic selector node, and passes the resulting node list to
-`CodexTitlebarSelector`. The focused matrix run passes 2/2.
+The final review tests were written against a missing internal raw-observation seam and the focused
+run failed to compile because `UiaScanningObservation` did not exist. The scanner now accepts an
+internal observation provider used only by tests; it normalizes each raw observation and invokes
+`UiaSemanticRoleClassifier` itself before `CodexTitlebarSelector` resolves it. The fixture supplies
+literal expected toolbar, anchor, title, obstacle, and right-toolbar geometry independently for
+100%, 125%, 150%, and 200% DPI. The test does not scale expected geometry.
+
+For each structure, raw English and Simplified-Chinese UIA names enter `ScanAsync` through that
+provider and must yield both the recorded selector snapshot and a collision-free titlebar placement.
+The unrecognized fixture similarly enters `ScanAsync`, fails resolution, and is reconciled three
+times through `WindowsHostCoordinator`; it asserts the published compatibility failure, fallback
+decision, `IOverlaySurface` SafeDock mode, frame, and host/work-area/caption geometry. The focused
+matrix run passes 2/2.
 
 ## Automated fixture matrix
 
 `windows-v033-titlebar-matrix.json` contains three privacy-safe sampled structures: wide, narrow,
-and right-pane. Every structure exercises physical coordinate transforms at 100%, 125%, 150%, and
-200% DPI and contains English/Simplified-Chinese labels injected into the actual semantic selector
-node path. The matrix asserts literal expected toolbar, Open Location, title, obstacle, and
-right-toolbar geometry plus valid semantic/profile/titlebar outcomes for every recognised case. It
-also removes the composer marker for each structure, proves resolution is rejected, and proves the
-compatibility state machine plus safe-dock resolver yields a fallback frame when live data and host
-geometry exist.
+and right-pane. Every structure records a separate literal expected geometry object at 100%, 125%,
+150%, and 200% DPI. Raw English/Simplified-Chinese names pass through the scanner’s production
+normalization/classification/resolution path. Removing the composer marker drives the unresolved
+scanner result through the coordinator and owned SafeDock presentation with fixture host geometry.
 
 ## Automatic verification
 

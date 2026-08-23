@@ -4,6 +4,14 @@ using CodexUsageSidebar.Core;
 
 namespace CodexUsageSidebar.Windows;
 
+internal sealed record UiaScanningObservation(
+    int Depth,
+    string ControlType,
+    string AutomationId,
+    string ClassName,
+    RectD Bounds,
+    string Name);
+
 public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
 {
     private const string CaptionContainerClass = "ChromeNodeCaptionButtonContainer";
@@ -33,6 +41,7 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
     private readonly ValidatedTitlebarCache cache = new();
     private readonly object scanGate = new();
     private readonly SelectorProfileCatalog selectorCatalog;
+    private readonly Func<HostWindowSnapshot, CancellationToken, ValueTask<IReadOnlyList<UiaScanningObservation>>>? observationProvider;
     private readonly bool isCatalogValid;
     private InFlightScan? inFlight;
 
@@ -44,6 +53,15 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
     internal ValidatedUiaTitlebarScanner(SelectorProfileCatalog selectorCatalog)
     {
         this.selectorCatalog = selectorCatalog ?? throw new ArgumentNullException(nameof(selectorCatalog));
+        isCatalogValid = true;
+    }
+
+    internal ValidatedUiaTitlebarScanner(
+        SelectorProfileCatalog selectorCatalog,
+        Func<HostWindowSnapshot, CancellationToken, ValueTask<IReadOnlyList<UiaScanningObservation>>> observationProvider)
+    {
+        this.selectorCatalog = selectorCatalog ?? throw new ArgumentNullException(nameof(selectorCatalog));
+        this.observationProvider = observationProvider ?? throw new ArgumentNullException(nameof(observationProvider));
         isCatalogValid = true;
     }
 
@@ -118,13 +136,9 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         {
             throw new InvalidSelectorCatalogException();
         }
-        var root = AutomationElement.FromHandle(host.Handle);
-        if (root is null)
-        {
-            throw new WindowsDeviceValidationRequiredException(host.BuildIdentity);
-        }
-
-        var nodes = QueryValidatedStructure(root, host.Bounds, host.DpiScale, cancellationToken);
+        var nodes = observationProvider is null
+            ? QueryValidatedStructureFromDesktop(host, cancellationToken)
+            : NormalizeObservations(observationProvider(host, cancellationToken).AsTask().GetAwaiter().GetResult());
         var snapshot = CodexTitlebarSelector.TryResolve(
             host.BuildIdentity,
             host.DpiScale,
@@ -440,6 +454,34 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         {
             AddNode(child, depth, nodes);
         }
+    }
+
+    private static IReadOnlyList<UiaStructureNode> QueryValidatedStructureFromDesktop(
+        HostWindowSnapshot host,
+        CancellationToken cancellationToken)
+    {
+        var root = AutomationElement.FromHandle(host.Handle);
+        if (root is null)
+        {
+            throw new WindowsDeviceValidationRequiredException(host.BuildIdentity);
+        }
+        return QueryValidatedStructure(root, host.Bounds, host.DpiScale, cancellationToken);
+    }
+
+    private static IReadOnlyList<UiaStructureNode> NormalizeObservations(IReadOnlyList<UiaScanningObservation> observed)
+    {
+        ArgumentNullException.ThrowIfNull(observed);
+        return TopTitlebarObservationCollector.Normalize(observed
+            .Where(observation => UiaTraversalBudget.HasFiniteBounds(observation.Bounds))
+            .Select(observation => new UiaStructureNode(
+                observation.Depth,
+                observation.ControlType,
+                observation.AutomationId,
+                observation.ClassName,
+                observation.Bounds,
+                observation.Name.Length,
+                UiaSemanticRoleClassifier.Classify(observation.Name)))
+            .ToArray());
     }
 
     private static void AddBoundedSubtree(
