@@ -137,6 +137,37 @@ public sealed class SafeDockCompatibilityTests
     }
 
     [TestMethod]
+    public void CompactFallbackIndicatorContainsOnlyThePercentageText()
+    {
+        Assert.AreEqual("76%", SafeDockIndicatorText.Format(76, SafeDockSize.Compact));
+    }
+
+    [TestMethod]
+    public async Task DragReleaseSnapsToASafeRailAndPersistsTheResult()
+    {
+        var request = new SafeDockPlacementRequest(
+            new RectD(100, 100, 600, 500),
+            new RectD(0, 0, 1920, 1080),
+            new RectD(100, 100, 600, 40),
+            DpiScale: 1,
+            SafeDockPreferences.Default);
+        var snapped = SafeDockDragSnapPolicy.Snap(request, new RectD(108, 196, 75, 28));
+        var directory = Path.Combine(Path.GetTempPath(), $"safe-dock-snap-{Guid.NewGuid():N}");
+        try
+        {
+            var store = new SafeDockPreferencesStore(Path.Combine(directory, "preferences.json"));
+            await store.SaveAsync(snapped, CancellationToken.None);
+
+            Assert.AreEqual(SafeDockAnchor.Left, snapped.Anchor);
+            Assert.AreEqual(snapped, await store.LoadAsync(CancellationToken.None));
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [TestMethod]
     public void SafeSemanticAndProfileDecisionRemainsInTitlebarMode()
     {
         var transition = new CompatibilityStateMachine(SafeDockPreferences.Default).Transition(

@@ -11,6 +11,9 @@ public sealed class WindowsHostCoordinator
     private readonly IOverlaySurface overlay;
     private readonly Func<DateTimeOffset> now;
     private readonly IRuntimeStateStore? runtimeStateStore;
+    private readonly ISafeDockPreferencesStore? safeDockPreferencesStore;
+    private readonly CompatibilityStateMachine compatibilityStateMachine;
+    private SafeDockPreferences safeDockPreferences;
     private string? lastBuildIdentity;
     private DisplayLanguage? lastLanguage;
 
@@ -19,13 +22,22 @@ public sealed class WindowsHostCoordinator
         ITitlebarScanner scanner,
         IOverlaySurface overlay,
         Func<DateTimeOffset>? now = null,
-        IRuntimeStateStore? runtimeStateStore = null)
+        IRuntimeStateStore? runtimeStateStore = null,
+        SafeDockPreferences? safeDockPreferences = null,
+        ISafeDockPreferencesStore? safeDockPreferencesStore = null)
     {
         this.locator = locator;
         this.scanner = scanner;
         this.overlay = overlay;
         this.now = now ?? (() => DateTimeOffset.Now);
         this.runtimeStateStore = runtimeStateStore;
+        this.safeDockPreferences = safeDockPreferences ?? SafeDockPreferences.Default;
+        this.safeDockPreferencesStore = safeDockPreferencesStore;
+        compatibilityStateMachine = new CompatibilityStateMachine(this.safeDockPreferences);
+        if (overlay is ISafeDockOverlaySurface safeDockOverlay)
+        {
+            safeDockOverlay.SafeDockPreferencesChanged += ApplySafeDockPreferencesAsync;
+        }
     }
 
     public CompatibilityDecision? LastCompatibilityDecision { get; private set; }
@@ -42,6 +54,7 @@ public sealed class WindowsHostCoordinator
         TokenUsageSnapshot? tokenUsage = null,
         AccountIdentity? account = null)
     {
+        var observedAt = now();
         var host = await locator.FindAsync(cancellationToken).ConfigureAwait(false);
         if (host is null)
         {
@@ -70,12 +83,17 @@ public sealed class WindowsHostCoordinator
         }
         lastLanguage = language;
 
-        // Foreground detection can transiently return no window while Codex is
-        // still visible (for example across shell/tool transitions). The WPF
-        // surface is owned by the validated Codex HWND, so Windows keeps it in
-        // the owner's z-order without a brittle foreground visibility gate.
         if (snapshot is null)
         {
+            compatibilityStateMachine.Transition(
+                new CompatibilityDecision(
+                    SemanticCompatibility.Unknown,
+                    ProfileCompatibility.Unknown,
+                    SafeDockPlacement.None,
+                    CompatibilityFailureCode.MissingQuotaSnapshot),
+                hasLiveQuota: false,
+                hasValidCodexHost: true,
+                observedAt);
             await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
             return await CompleteAsync(
                 HostRuntimeState.Hidden,
@@ -87,7 +105,7 @@ public sealed class WindowsHostCoordinator
                 cancellationToken).ConfigureAwait(false);
         }
 
-        var freshness = RefreshPolicy.Freshness(snapshot.ReceivedAt, now());
+        var freshness = RefreshPolicy.Freshness(snapshot.ReceivedAt, observedAt);
         if (freshness == SnapshotFreshness.Hidden)
         {
             await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
@@ -110,16 +128,18 @@ public sealed class WindowsHostCoordinator
             }
             catch (InvalidSelectorCatalogException)
             {
-                return await FailUnresolvedTitlebarAsync(
-                    CompatibilityFailureCode.InvalidCatalog, cancellationToken).ConfigureAwait(false);
+                return await HandleUnresolvedTitlebarAsync(
+                    host, snapshot, language, freshness, tokenUsage, account,
+                    CompatibilityFailureCode.InvalidCatalog, observedAt, cancellationToken).ConfigureAwait(false);
             }
             catch (WindowsDeviceValidationRequiredException)
             {
                 titlebar = scanner.TryGetRetained(host);
                 if (titlebar is null)
                 {
-                    return await FailUnresolvedTitlebarAsync(
-                        CompatibilityFailureCode.UiaUnavailable, cancellationToken).ConfigureAwait(false);
+                    return await HandleUnresolvedTitlebarAsync(
+                        host, snapshot, language, freshness, tokenUsage, account,
+                        CompatibilityFailureCode.UiaUnavailable, observedAt, cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -131,11 +151,13 @@ public sealed class WindowsHostCoordinator
                 titlebar = scanner.TryGetRetained(host);
                 if (titlebar is null)
                 {
-                    return await FailUnresolvedTitlebarAsync(
-                        CompatibilityFailureCode.UiaUnavailable, cancellationToken).ConfigureAwait(false);
+                    return await HandleUnresolvedTitlebarAsync(
+                        host, snapshot, language, freshness, tokenUsage, account,
+                        CompatibilityFailureCode.UiaUnavailable, observedAt, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
+
         var scale = host.DpiScale;
         var indicatorHeight = titlebar.OpenLocationBounds.Height / scale;
         var indicatorWidth = OverlayVisualMetrics.IndicatorWidthForHeight(indicatorHeight) * scale;
@@ -151,15 +173,24 @@ public sealed class WindowsHostCoordinator
             RightIndicatorGap * scale);
         if (placement is null)
         {
-            await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
-            return await CompleteAsync(
-                HostRuntimeState.Hidden,
-                new CompatibilityDecision(
-                    SemanticCompatibility.Valid,
-                    ProfileCompatibility.Validated,
-                    SafeDockPlacement.None,
-                    CompatibilityFailureCode.NoCollisionFreeSlot),
-                cancellationToken).ConfigureAwait(false);
+            return await HandleUnresolvedTitlebarAsync(
+                host, snapshot, language, freshness, tokenUsage, account,
+                CompatibilityFailureCode.NoCollisionFreeSlot, observedAt, cancellationToken,
+                SemanticCompatibility.Valid, ProfileCompatibility.Validated,
+                HostRuntimeState.Hidden).ConfigureAwait(false);
+        }
+
+        var titlebarDecision = new CompatibilityDecision(
+            SemanticCompatibility.Valid,
+            ProfileCompatibility.Validated,
+            SafeDockPlacement.Titlebar,
+            CompatibilityFailureCode.None);
+        var transition = compatibilityStateMachine.Transition(
+            titlebarDecision, hasLiveQuota: true, hasValidCodexHost: true, observedAt);
+        if (transition.ShouldShowSafeDock)
+        {
+            return await ShowSafeDockAsync(
+                host, snapshot, language, freshness, tokenUsage, account, titlebarDecision, cancellationToken).ConfigureAwait(false);
         }
 
         await overlay.ShowAsync(
@@ -169,36 +200,103 @@ public sealed class WindowsHostCoordinator
                 language,
                 snapshot,
                 placement.Value,
-                    freshness,
-                    new PointD(
-                        titlebar.ToolbarBounds.X + (4 * scale),
+                freshness,
+                new PointD(
+                    titlebar.ToolbarBounds.X + (4 * scale),
                     titlebar.ToolbarBounds.Y + (4 * scale)),
                 tokenUsage,
                 account),
             cancellationToken).ConfigureAwait(false);
+        return await CompleteAsync(HostRuntimeState.Visible, titlebarDecision, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask<HostRuntimeState> HandleUnresolvedTitlebarAsync(
+        HostWindowSnapshot host,
+        AllowanceSnapshot snapshot,
+        DisplayLanguage language,
+        SnapshotFreshness freshness,
+        TokenUsageSnapshot? tokenUsage,
+        AccountIdentity? account,
+        CompatibilityFailureCode failureCode,
+        DateTimeOffset observedAt,
+        CancellationToken cancellationToken,
+        SemanticCompatibility semantic = SemanticCompatibility.Invalid,
+        ProfileCompatibility profile = ProfileCompatibility.Invalid,
+        HostRuntimeState unresolvedState = HostRuntimeState.DeviceValidationRequired)
+    {
+        var decision = new CompatibilityDecision(semantic, profile, SafeDockPlacement.None, failureCode);
+        var transition = compatibilityStateMachine.Transition(
+            decision, hasLiveQuota: true, hasValidCodexHost: true, observedAt);
+        if (transition.ShouldShowSafeDock)
+        {
+            return await ShowSafeDockAsync(
+                host, snapshot, language, freshness, tokenUsage, account, decision, cancellationToken).ConfigureAwait(false);
+        }
+
+        await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
+        return await CompleteAsync(unresolvedState, decision, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask<HostRuntimeState> ShowSafeDockAsync(
+        HostWindowSnapshot host,
+        AllowanceSnapshot snapshot,
+        DisplayLanguage language,
+        SnapshotFreshness freshness,
+        TokenUsageSnapshot? tokenUsage,
+        AccountIdentity? account,
+        CompatibilityDecision sourceDecision,
+        CancellationToken cancellationToken)
+    {
+        var request = new SafeDockPlacementRequest(
+            host.Bounds,
+            host.WorkArea ?? host.Bounds,
+            host.CaptionBounds ?? default,
+            host.DpiScale,
+            safeDockPreferences);
+        var resolved = SafeDockPlacementResolver.Resolve(request);
+        if (resolved.Frame is null)
+        {
+            await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
+            return await CompleteAsync(
+                HostRuntimeState.Hidden,
+                sourceDecision with { Placement = SafeDockPlacement.None, FailureCode = CompatibilityFailureCode.InvalidGeometry },
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        await overlay.ShowAsync(
+            new OverlayPresentation(
+                host.Handle,
+                host.DpiScale,
+                language,
+                snapshot,
+                new PlacementResult(PlacementSurface.Content, resolved.Frame.Value),
+                freshness,
+                new PointD(host.Bounds.X + (4 * host.DpiScale), host.Bounds.Y + (72 * host.DpiScale)),
+                tokenUsage,
+                account,
+                Mode: PlacementMode.SafeDock,
+                SafeDockSize: resolved.Size,
+                SafeDockRequest: request),
+            cancellationToken).ConfigureAwait(false);
+        var profile = safeDockPreferences.FallbackLocked
+            ? ProfileCompatibility.FallbackLocked
+            : sourceDecision.Profile;
         return await CompleteAsync(
             HostRuntimeState.Visible,
-            new CompatibilityDecision(
-                SemanticCompatibility.Valid,
-                ProfileCompatibility.Validated,
-                SafeDockPlacement.Titlebar,
-                CompatibilityFailureCode.None),
+            sourceDecision with { Profile = profile, Placement = SafeDockPlacement.Fallback },
             cancellationToken).ConfigureAwait(false);
     }
 
-    private async ValueTask<HostRuntimeState> FailUnresolvedTitlebarAsync(
-        CompatibilityFailureCode failureCode,
+    private async ValueTask ApplySafeDockPreferencesAsync(
+        SafeDockPreferences preferences,
         CancellationToken cancellationToken)
     {
-        await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
-        return await CompleteAsync(
-            HostRuntimeState.DeviceValidationRequired,
-            new CompatibilityDecision(
-                SemanticCompatibility.Invalid,
-                ProfileCompatibility.Invalid,
-                SafeDockPlacement.None,
-                failureCode),
-            cancellationToken).ConfigureAwait(false);
+        safeDockPreferences = preferences;
+        compatibilityStateMachine.UpdatePreferences(preferences);
+        if (safeDockPreferencesStore is not null)
+        {
+            await safeDockPreferencesStore.SaveAsync(preferences, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private async ValueTask<HostRuntimeState> CompleteAsync(

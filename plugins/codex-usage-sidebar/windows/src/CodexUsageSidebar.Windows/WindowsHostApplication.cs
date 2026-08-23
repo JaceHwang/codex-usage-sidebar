@@ -24,9 +24,25 @@ public static class WindowsHostApplication
             return 70;
         }
         Directory.CreateDirectory(paths.IsolatedCodexHome);
+        var stateDirectory = Path.Combine(localAppData, "CodexUsageSidebar");
+        var runtimeStateStore = new RuntimeStateStore(Path.Combine(stateDirectory, "runtime-state.json"));
+        var safeDockPreferencesStore = new SafeDockPreferencesStore(Path.Combine(stateDirectory, "safe-dock-preferences.json"));
+        SafeDockPreferences safeDockPreferences;
+        try
+        {
+            safeDockPreferences = safeDockPreferencesStore.LoadAsync(CancellationToken.None).AsTask().GetAwaiter().GetResult();
+        }
+        catch (Exception)
+        {
+            safeDockPreferences = SafeDockPreferences.Default;
+        }
 
         var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        var runtime = new WindowsOverlayRuntime(paths);
+        var runtime = new WindowsOverlayRuntime(
+            paths,
+            runtimeStateStore,
+            safeDockPreferencesStore,
+            safeDockPreferences);
         application.Exit += (_, _) => runtime.Dispose();
         runtime.Start();
         return application.Run();
@@ -49,7 +65,11 @@ internal sealed class WindowsOverlayRuntime : IDisposable
     private int reconcileInProgress;
     private Task? sessionTask;
 
-    internal WindowsOverlayRuntime(WindowsRuntimePaths paths)
+    internal WindowsOverlayRuntime(
+        WindowsRuntimePaths paths,
+        IRuntimeStateStore? runtimeStateStore = null,
+        ISafeDockPreferencesStore? safeDockPreferencesStore = null,
+        SafeDockPreferences? safeDockPreferences = null)
     {
         var language = LanguageResolver.Resolve(CultureInfo.CurrentUICulture.Name);
         languageProvider = WindowsCodexLanguageProvider.CreateDefault();
@@ -58,7 +78,10 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         coordinator = new WindowsHostCoordinator(
             new Win32CodexWindowLocator(),
             new ValidatedUiaTitlebarScanner(),
-            overlay);
+            overlay,
+            runtimeStateStore: runtimeStateStore,
+            safeDockPreferences: safeDockPreferences,
+            safeDockPreferencesStore: safeDockPreferencesStore);
         launchPlan = AppServerLaunchPlan.Create(
             paths.CodexExecutable,
             paths.IsolatedCodexHome);

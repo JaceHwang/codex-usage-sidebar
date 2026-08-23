@@ -157,6 +157,66 @@ public static class SafeDockPlacementResolver
         && bounds.Height > 0;
 }
 
+public static class SafeDockIndicatorText
+{
+    public static string Format(int remainingPercent, SafeDockSize size) =>
+        size == SafeDockSize.Compact ? $"{remainingPercent}%" : string.Empty;
+}
+
+public static class SafeDockDragSnapPolicy
+{
+    public static SafeDockPreferences Snap(SafeDockPlacementRequest request, RectD releasedFrame)
+    {
+        var scale = request.DpiScale;
+        if (!double.IsFinite(scale) || scale <= 0 || request.Preferences is null)
+        {
+            return request.Preferences ?? SafeDockPreferences.Default;
+        }
+
+        var inset = 8 * scale;
+        var captionBottom = IsUsable(request.CaptionBounds)
+            ? request.CaptionBounds.Bottom + inset
+            : double.NegativeInfinity;
+        var top = Math.Max(
+            Math.Max(request.WorkArea.Y + inset, request.HostBounds.Y + (72 * scale)),
+            captionBottom);
+        var left = Math.Max(request.WorkArea.X, request.HostBounds.X) + inset;
+        var right = Math.Min(request.WorkArea.Right, request.HostBounds.Right) - inset;
+        var topDistance = Math.Abs(releasedFrame.Y - top);
+        var leftDistance = Math.Abs(releasedFrame.X - left);
+        var rightDistance = Math.Abs(releasedFrame.Right - right);
+        if (topDistance <= leftDistance && topDistance <= rightDistance)
+        {
+            return request.Preferences with
+            {
+                Anchor = SafeDockAnchor.Top,
+                Offset = new PointD((releasedFrame.X - left) / scale, 0),
+            };
+        }
+        if (leftDistance <= rightDistance)
+        {
+            return request.Preferences with
+            {
+                Anchor = SafeDockAnchor.Left,
+                Offset = new PointD(0, (releasedFrame.Y - top) / scale),
+            };
+        }
+        return request.Preferences with
+        {
+            Anchor = SafeDockAnchor.Right,
+            Offset = new PointD(0, (releasedFrame.Y - top) / scale),
+        };
+    }
+
+    private static bool IsUsable(RectD bounds) =>
+        double.IsFinite(bounds.X)
+        && double.IsFinite(bounds.Y)
+        && double.IsFinite(bounds.Width)
+        && double.IsFinite(bounds.Height)
+        && bounds.Width > 0
+        && bounds.Height > 0;
+}
+
 public interface ISafeDockPreferencesStore
 {
     ValueTask<SafeDockPreferences> LoadAsync(CancellationToken cancellationToken);

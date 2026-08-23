@@ -8,7 +8,7 @@ public sealed class CompatibilityStateMachine
 {
     private const int RequiredObservations = 3;
     private static readonly TimeSpan MinimumObservationWindow = TimeSpan.FromSeconds(1);
-    private readonly SafeDockPreferences preferences;
+    private SafeDockPreferences preferences;
     private int unresolvedCount;
     private DateTimeOffset? firstUnresolvedAt;
     private int safeCount;
@@ -17,6 +17,9 @@ public sealed class CompatibilityStateMachine
 
     public CompatibilityStateMachine(SafeDockPreferences preferences) =>
         this.preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
+
+    public void UpdatePreferences(SafeDockPreferences value) =>
+        preferences = value ?? throw new ArgumentNullException(nameof(value));
 
     public CompatibilityTransition Transition(
         CompatibilityDecision decision,

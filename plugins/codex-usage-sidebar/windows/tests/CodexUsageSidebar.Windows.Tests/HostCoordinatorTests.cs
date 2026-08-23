@@ -72,6 +72,90 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public async Task ShowsSafeDockAfterThreeUnresolvedLiveQuotaReconciliations()
+    {
+        var now = DateTimeOffset.Now;
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(Window("codex-build-a")),
+            new RejectingScanner(),
+            overlay,
+            () => now);
+
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+        now = now.AddMilliseconds(500);
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+        now = now.AddMilliseconds(500);
+        var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(HostRuntimeState.Visible, result);
+        Assert.AreEqual(PlacementMode.SafeDock, overlay.LastPresentation?.Mode);
+        Assert.AreEqual(SafeDockPlacement.Fallback, coordinator.LastCompatibilityDecision?.Placement);
+    }
+
+    [TestMethod]
+    public async Task RecoversFromSafeDockOnlyAfterThreeValidatedTitlebarReconciliations()
+    {
+        var now = DateTimeOffset.Now;
+        var scanner = new SwitchableScanner { Reject = true };
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(Window("codex-build-a")), scanner, overlay, () => now);
+
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+        now = now.AddMilliseconds(500);
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+        now = now.AddMilliseconds(500);
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        scanner.Reject = false;
+        now = now.AddSeconds(1);
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+        now = now.AddMilliseconds(500);
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+        now = now.AddMilliseconds(500);
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(PlacementMode.Titlebar, overlay.LastPresentation?.Mode);
+        Assert.AreEqual(SafeDockPlacement.Titlebar, coordinator.LastCompatibilityDecision?.Placement);
+    }
+
+    [TestMethod]
+    public async Task UserFallbackLockKeepsAValidatedTitlebarInSafeDock()
+    {
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(Window("codex-build-a")),
+            new StubScanner(),
+            overlay,
+            safeDockPreferences: SafeDockPreferences.Default with { FallbackLocked = true });
+
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(PlacementMode.SafeDock, overlay.LastPresentation?.Mode);
+        Assert.AreEqual(SafeDockPlacement.Fallback, coordinator.LastCompatibilityDecision?.Placement);
+    }
+
+    [TestMethod]
+    public async Task DragUpdatedPreferencesArePersistedAndAppliedToTheNextReconciliation()
+    {
+        var overlay = new PreferenceOverlay();
+        var store = new RecordingSafeDockPreferencesStore();
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(Window("codex-build-a")),
+            new StubScanner(),
+            overlay,
+            safeDockPreferencesStore: store);
+        var locked = SafeDockPreferences.Default with { FallbackLocked = true, Anchor = SafeDockAnchor.Left };
+
+        await overlay.PublishPreferencesAsync(locked, CancellationToken.None);
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(locked, store.LastSaved);
+        Assert.AreEqual(PlacementMode.SafeDock, overlay.LastPresentation?.Mode);
+    }
+
+    [TestMethod]
     public async Task CarriesTokenUsageAndAccountIdentityIntoTheOverlayPresentation()
     {
         var window = new HostWindowSnapshot(
@@ -683,6 +767,25 @@ public sealed class HostCoordinatorTests
         public void Invalidate() { }
     }
 
+    private sealed class SwitchableScanner : ITitlebarScanner
+    {
+        public bool Reject { get; set; }
+
+        public TitlebarSnapshot? TryGetCurrent(HostWindowSnapshot host) => null;
+
+        public ValueTask<TitlebarSnapshot> ScanAsync(HostWindowSnapshot host, CancellationToken cancellationToken) =>
+            Reject
+                ? ValueTask.FromException<TitlebarSnapshot>(new WindowsDeviceValidationRequiredException(host.BuildIdentity))
+                : ValueTask.FromResult(new TitlebarSnapshot(
+                    host.Bounds.Right - 100,
+                    Array.Empty<RectD>(),
+                    new RectD(host.Bounds.X, host.Bounds.Y + 60, host.Bounds.Width, 46 * host.DpiScale),
+                    new RectD(host.Bounds.Right - 100, host.Bounds.Y + 69, 80, 28 * host.DpiScale),
+                    new RectD(host.Bounds.X + 8, host.Bounds.Y + 69, 200, 28 * host.DpiScale)));
+
+        public void Invalidate() { }
+    }
+
     private sealed class RecordingOverlay : IOverlaySurface
     {
         public List<string> Events { get; } = new();
@@ -690,6 +793,47 @@ public sealed class HostCoordinatorTests
         public OverlayPresentation? LastPresentation { get; private set; }
         public ValueTask HideAsync(CancellationToken cancellationToken) { Events.Add("hide"); HideCount++; LastPresentation = null; return ValueTask.CompletedTask; }
         public ValueTask ShowAsync(OverlayPresentation presentation, CancellationToken cancellationToken) { Events.Add("show"); LastPresentation = presentation; return ValueTask.CompletedTask; }
+    }
+
+    private sealed class PreferenceOverlay : ISafeDockOverlaySurface
+    {
+        public event Func<SafeDockPreferences, CancellationToken, ValueTask>? SafeDockPreferencesChanged;
+        public OverlayPresentation? LastPresentation { get; private set; }
+
+        public ValueTask HideAsync(CancellationToken cancellationToken)
+        {
+            LastPresentation = null;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask ShowAsync(OverlayPresentation presentation, CancellationToken cancellationToken)
+        {
+            LastPresentation = presentation;
+            return ValueTask.CompletedTask;
+        }
+
+        public async ValueTask PublishPreferencesAsync(SafeDockPreferences preferences, CancellationToken cancellationToken)
+        {
+            if (SafeDockPreferencesChanged is null) return;
+            foreach (Func<SafeDockPreferences, CancellationToken, ValueTask> handler in SafeDockPreferencesChanged.GetInvocationList())
+            {
+                await handler(preferences, cancellationToken);
+            }
+        }
+    }
+
+    private sealed class RecordingSafeDockPreferencesStore : ISafeDockPreferencesStore
+    {
+        public SafeDockPreferences? LastSaved { get; private set; }
+
+        public ValueTask<SafeDockPreferences> LoadAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromResult(SafeDockPreferences.Default);
+
+        public ValueTask SaveAsync(SafeDockPreferences preferences, CancellationToken cancellationToken)
+        {
+            LastSaved = preferences;
+            return ValueTask.CompletedTask;
+        }
     }
 
     private sealed class RecordingRuntimeStateStore : IRuntimeStateStore

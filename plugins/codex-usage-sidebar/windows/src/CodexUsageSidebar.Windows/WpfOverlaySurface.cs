@@ -13,7 +13,7 @@ using CodexUsageSidebar.Core;
 
 namespace CodexUsageSidebar.Windows;
 
-public sealed class WpfOverlaySurface : IOverlaySurface
+public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
 {
     private const int ExtendedWindowStyle = -20;
     private const int NoActivateStyle = 0x08000000;
@@ -33,6 +33,10 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     private WpfOverlayPalette palette = WpfOverlayPalette.Light;
     private Uri? accountAvatarURL;
     private ImageSource? accountAvatarSource;
+    private System.Windows.Point? dragStartPointer;
+    private RectD? dragStartFrame;
+
+    public event Func<SafeDockPreferences, CancellationToken, ValueTask>? SafeDockPreferencesChanged;
 
     public WpfOverlaySurface(DisplayLanguage language, TimeZoneInfo timeZone)
     {
@@ -98,9 +102,34 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         detail = CreatePassiveWindow(new Border());
         detail.Width = OverlayVisualMetrics.DetailWidth;
         detail.MaxHeight = 480;
-        indicator.MouseLeftButtonUp += (_, eventArgs) =>
+        indicator.MouseLeftButtonDown += (_, eventArgs) =>
+        {
+            if (eventArgs.ChangedButton != MouseButton.Left || !CanDragSafeDock()) return;
+            dragStartPointer = eventArgs.GetPosition(indicator);
+            dragStartFrame = latestPresentation!.Placement.Frame;
+            indicator.CaptureMouse();
+            eventArgs.Handled = true;
+        };
+        indicator.MouseLeftButtonUp += async (_, eventArgs) =>
         {
             if (eventArgs.ChangedButton != MouseButton.Left) return;
+            if (dragStartPointer is not null && dragStartFrame is not null)
+            {
+                var start = dragStartPointer.Value;
+                var current = eventArgs.GetPosition(indicator);
+                var dpiScale = latestPresentation?.DpiScale ?? 1;
+                var releasedFrame = dragStartFrame.Value with
+                {
+                    X = dragStartFrame.Value.X + ((current.X - start.X) * dpiScale),
+                    Y = dragStartFrame.Value.Y + ((current.Y - start.Y) * dpiScale),
+                };
+                dragStartPointer = null;
+                dragStartFrame = null;
+                indicator.ReleaseMouseCapture();
+                await SnapSafeDockAsync(releasedFrame);
+                eventArgs.Handled = true;
+                return;
+            }
             interaction = interaction.TogglePinned(IsPointerInsideOverlay());
             RefreshInteraction();
         };
@@ -118,6 +147,25 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         cancellationToken.ThrowIfCancellationRequested();
         return OnUiAsync(() =>
         {
+            var frame = presentation.Placement.Frame;
+            if (presentation.Mode == PlacementMode.SafeDock
+                && presentation.SafeDockRequest is { } request)
+            {
+                request = request with { WorkArea = WorkAreaFor(presentation.OwnerHandle) ?? request.WorkArea };
+                var resolved = SafeDockPlacementResolver.Resolve(request);
+                if (resolved.Frame is null)
+                {
+                    indicator.Hide();
+                    return;
+                }
+                frame = resolved.Frame.Value;
+                presentation = presentation with
+                {
+                    Placement = presentation.Placement with { Frame = frame },
+                    SafeDockSize = resolved.Size,
+                    SafeDockRequest = request,
+                };
+            }
             latestPresentation = presentation;
             palette = ResolvePalette(presentation.ThemeProbePoint);
             indicatorText.Foreground = palette.Primary;
@@ -135,8 +183,10 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             UpdateAccountAvatar(presentation.Account?.AvatarUrl);
             SetOwner(indicator, presentation.OwnerHandle);
             SetOwner(detail, presentation.OwnerHandle);
-            var frame = presentation.Placement.Frame;
-            UpdateIndicator(presentation.Snapshot, presentation.Language);
+            UpdateIndicator(
+                presentation.Snapshot,
+                presentation.Language,
+                presentation.Mode == PlacementMode.SafeDock && presentation.SafeDockSize == SafeDockSize.Compact);
             indicator.Width = frame.Width / presentation.DpiScale;
             indicator.Height = frame.Height / presentation.DpiScale;
             var horizontalPadding = OverlayVisualMetrics.IndicatorHorizontalPaddingForHeight(indicator.Height);
@@ -214,16 +264,20 @@ public sealed class WpfOverlaySurface : IOverlaySurface
                 bounds.Bottom - bounds.Top));
     }
 
-    private void UpdateIndicator(AllowanceSnapshot snapshot, DisplayLanguage language)
+    private void UpdateIndicator(AllowanceSnapshot snapshot, DisplayLanguage language, bool compactMode)
     {
         indicatorText.Inlines.Clear();
         var accent = WpfQuotaColors.ForRemainingPercent(snapshot.RemainingPercent);
-        indicatorText.Inlines.Add(new System.Windows.Documents.Run($"{snapshot.RemainingPercent}%")
+        indicatorText.Inlines.Add(new System.Windows.Documents.Run(
+            compactMode
+                ? SafeDockIndicatorText.Format(snapshot.RemainingPercent, SafeDockSize.Compact)
+                : $"{snapshot.RemainingPercent}%")
         {
             FontSize = 14,
             FontWeight = FontWeights.Bold,
             Foreground = new SolidColorBrush(accent),
         });
+        if (compactMode) return;
         var compact = QuotaDetailFormatter.FormatCompact(snapshot, language, timeZone);
         var separator = compact.IndexOf('·');
         indicatorText.Inlines.Add(new System.Windows.Documents.Run(
@@ -231,6 +285,49 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         {
             Foreground = palette.Primary,
         });
+    }
+
+    private bool CanDragSafeDock() =>
+        latestPresentation is { Mode: PlacementMode.SafeDock, SafeDockRequest: not null };
+
+    private async Task SnapSafeDockAsync(RectD releasedFrame)
+    {
+        if (latestPresentation is not { Mode: PlacementMode.SafeDock, SafeDockRequest: { } request } presentation)
+        {
+            return;
+        }
+
+        var preferences = SafeDockDragSnapPolicy.Snap(request, releasedFrame);
+        await NotifySafeDockPreferencesChangedAsync(preferences, CancellationToken.None);
+        request = request with { Preferences = preferences, WorkArea = WorkAreaFor(presentation.OwnerHandle) ?? request.WorkArea };
+        var resolved = SafeDockPlacementResolver.Resolve(request);
+        if (resolved.Frame is null) return;
+
+        var frame = resolved.Frame.Value;
+        latestPresentation = presentation with
+        {
+            Placement = presentation.Placement with { Frame = frame },
+            SafeDockSize = resolved.Size,
+            SafeDockRequest = request,
+        };
+        UpdateIndicator(
+            presentation.Snapshot,
+            presentation.Language,
+            resolved.Size == SafeDockSize.Compact);
+        indicator.Width = frame.Width / presentation.DpiScale;
+        indicator.Height = frame.Height / presentation.DpiScale;
+        PositionPhysical(indicator, frame);
+    }
+
+    private async ValueTask NotifySafeDockPreferencesChangedAsync(
+        SafeDockPreferences preferences,
+        CancellationToken cancellationToken)
+    {
+        if (SafeDockPreferencesChanged is null) return;
+        foreach (Func<SafeDockPreferences, CancellationToken, ValueTask> handler in SafeDockPreferencesChanged.GetInvocationList())
+        {
+            await handler(preferences, cancellationToken);
+        }
     }
 
     private void ShowDetail(OverlayPresentation presentation, QuotaDetailContent content)
