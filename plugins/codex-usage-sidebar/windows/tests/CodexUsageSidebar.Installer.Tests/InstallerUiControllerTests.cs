@@ -73,6 +73,26 @@ public sealed class InstallerUiControllerTests
         Assert.IsFalse(model.Description.Contains("device-test", StringComparison.OrdinalIgnoreCase));
     }
 
+    [DataTestMethod]
+    [DataRow("en-US", InstallerRuntimeHealth.InstallRequired, "Installation is required")]
+    [DataRow("zh-Hans-CN", InstallerRuntimeHealth.SafeDockVisible, "安全停靠栏")]
+    [DataRow("zh-Hant-TW", InstallerRuntimeHealth.ValidationNeeded, "驗證")]
+    public void LocalizesPostInstallRuntimeHealth(
+        string locale,
+        InstallerRuntimeHealth health,
+        string expectedStatus)
+    {
+        var model = InstallerUiModel.Create(
+            locale,
+            InstallerUiMode.Install,
+            InstallerUiState.Succeeded,
+            health: health,
+            flavor: InstallerUiFlavor.PublishedRelease,
+            displayVersion: "0.3.3");
+
+        StringAssert.Contains(model.Status, expectedStatus);
+    }
+
     [TestMethod]
     public async Task RunsTheSelectedOperationOnceAndReportsSuccess()
     {

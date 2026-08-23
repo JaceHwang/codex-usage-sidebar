@@ -8,7 +8,13 @@ namespace CodexUsageSidebar.Windows;
 public enum CompatibilityPackUpdateResult { Updated, NotDue, NotModified, Rejected }
 
 public sealed record CompatibilityPackResponse(int StatusCode, string? ETag, byte[] Content);
-public sealed record CompatibilityPackCacheEntry(long Sequence, string? ETag, DateTimeOffset UpdatedAt, byte[] Catalog);
+public sealed record CompatibilityPackCacheEntry(
+    long Sequence,
+    string? ETag,
+    DateTimeOffset UpdatedAt,
+    byte[] Catalog,
+    byte[]? Manifest = null,
+    byte[]? Signature = null);
 
 public interface ICompatibilityPackTransport
 {
@@ -64,7 +70,7 @@ public sealed class CompatibilityPackUpdater(
             return CompatibilityPackUpdateResult.Rejected;
         }
 
-        await cache.ReplaceAsync(new CompatibilityPackCacheEntry(sequence, manifestEtag ?? response.ETag, observedAt, catalog), cancellationToken)
+        await cache.ReplaceAsync(new CompatibilityPackCacheEntry(sequence, manifestEtag ?? response.ETag, observedAt, catalog, manifest, signature), cancellationToken)
             .ConfigureAwait(false);
         return CompatibilityPackUpdateResult.Updated;
     }
@@ -160,7 +166,7 @@ public sealed class CompatibilityPackFileCache(string directory) : ICompatibilit
         var entry = await JsonSerializer.DeserializeAsync<CompatibilityPackDiskEntry>(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
         return entry is null || entry.Catalog.Length > SelectorProfileCatalog.MaximumCatalogBytes
             || !SelectorProfileCatalog.TryParse(Encoding.UTF8.GetString(entry.Catalog), out _)
-            ? null : new CompatibilityPackCacheEntry(entry.Sequence, entry.ETag, entry.UpdatedAt, entry.Catalog);
+            ? null : new CompatibilityPackCacheEntry(entry.Sequence, entry.ETag, entry.UpdatedAt, entry.Catalog, entry.Manifest, entry.Signature);
     }
 
     public async ValueTask ReplaceAsync(CompatibilityPackCacheEntry entry, CancellationToken cancellationToken)
@@ -170,7 +176,7 @@ public sealed class CompatibilityPackFileCache(string directory) : ICompatibilit
         var temporary = destination + ".tmp-" + Guid.NewGuid().ToString("N");
         try
         {
-            await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(new CompatibilityPackDiskEntry(entry.Sequence, entry.ETag, entry.UpdatedAt, entry.Catalog)), cancellationToken).ConfigureAwait(false);
+            await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(new CompatibilityPackDiskEntry(entry.Sequence, entry.ETag, entry.UpdatedAt, entry.Catalog, entry.Manifest, entry.Signature)), cancellationToken).ConfigureAwait(false);
             File.Move(temporary, destination, overwrite: true);
         }
         finally
@@ -179,5 +185,5 @@ public sealed class CompatibilityPackFileCache(string directory) : ICompatibilit
         }
     }
 
-    private sealed record CompatibilityPackDiskEntry(long Sequence, string? ETag, DateTimeOffset UpdatedAt, byte[] Catalog);
+    private sealed record CompatibilityPackDiskEntry(long Sequence, string? ETag, DateTimeOffset UpdatedAt, byte[] Catalog, byte[]? Manifest, byte[]? Signature);
 }

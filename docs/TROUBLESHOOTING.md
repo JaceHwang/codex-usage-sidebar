@@ -2,6 +2,12 @@
 
 ## Windows v0.3.2 setup and runtime
 
+For v0.3.3, run the installed `CodexUsageSidebar.Control.exe status` (or start a new Codex task)
+to see local runtime state. `placement=Fallback` means the owned safe dock is intentionally visible
+while titlebar compatibility recovers; it is not a reason to edit selector files. If status says
+validation is needed, use the opt-in diagnostic export from the control command and share only the
+generated redacted ZIP. The companion never uploads diagnostics automatically.
+
 ### SmartScreen shows Unknown publisher
 
 The Windows x64 setup is intentionally unsigned. Verify the SHA-256 against

@@ -38,7 +38,8 @@ switch ($Command) {
         }
         if (-not (Test-Path -LiteralPath $runtime -PathType Leaf) -or
             -not (Test-Path -LiteralPath $selectors -PathType Leaf)) {
-            exit 0
+            Write-Output 'runtime=unavailable reason=install-required version=0.3.3'
+            exit 20
         }
         if (Get-ManagedProcess) {
             exit 0
