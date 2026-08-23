@@ -5,11 +5,11 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fixture_root="$(mktemp -d)"
 trap 'rm -rf "$fixture_root"' EXIT
 
-mode="${1:---evidence-only}"
+mode="${1:---full-chain}"
 case "$mode" in
-  --evidence-only|--full-chain-expected-red) ;;
+  --evidence-only|--full-chain) ;;
   *)
-    printf 'usage: %s [--evidence-only|--full-chain-expected-red]\n' "$0" >&2
+    printf 'usage: %s [--evidence-only|--full-chain]\n' "$0" >&2
     exit 2
     ;;
 esac
@@ -205,6 +205,85 @@ assert_validation_rejected offset-completed-at "$fixture_root/v033-offset-comple
 assert_validation_rejected fractional-completed-at "$fixture_root/v033-fractional-completed-at-validation.json"
 assert_validation_rejected invalid-date-completed-at "$fixture_root/v033-invalid-date-completed-at-validation.json"
 
+assert_setup_input_rejected() {
+  local label="$1"
+  local key="$2"
+  local uri="$3"
+  local output_file="$fixture_root/v033-$label-setup.txt"
+  if "$pwsh_cmd" -NoProfile -File "$ps_script" -ValidationEvidence "$(path_for_pwsh "$complete_validation")" \
+      -OutputDirectory "$(path_for_pwsh "$fixture_root/$label-out")" \
+      -CompatibilityPublicKey "$key" -CompatibilityUpdateUri "$uri" >"$output_file" 2>&1; then
+    printf 'v0.3.3 setup unexpectedly accepted %s compatibility input\n' "$label" >&2
+    exit 1
+  fi
+  grep -Fq 'requires a valid P-256 SPKI public key and HTTPS compatibility update URI.' "$output_file" || {
+    printf 'v0.3.3 setup did not reject %s compatibility input at the input gate\n' "$label" >&2
+    cat "$output_file" >&2
+    exit 1
+  }
+}
+assert_setup_input_rejected invalid-key 'not-a-p256-spki' https://example.invalid/pack.zip
+assert_setup_input_rejected invalid-uri "$valid_spki" http://example.invalid/pack.zip
+
+payload="$fixture_root/v033-payload"
+mkdir -p "$payload"
+for file in CodexUsageSidebar.Windows.exe CodexUsageSidebar.Control.exe codex.exe selectors.json; do
+  printf '%s\n' "$file" >"$payload/$file"
+done
+VALID_SPKI="$valid_spki" "$python_cmd" - "$payload/compatibility-update.json" <<'PY'
+import json
+import os
+import pathlib
+import sys
+
+pathlib.Path(sys.argv[1]).write_text(json.dumps({
+    "schemaVersion": 1,
+    "publicKey": os.environ["VALID_SPKI"],
+    "updateUri": "https://example.invalid/pack.zip",
+}), encoding="utf-8")
+PY
+runtime_sha="$($python_cmd - "$payload/codex.exe" <<'PY'
+import hashlib
+import pathlib
+import sys
+print(hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest())
+PY
+)"
+"$python_cmd" "$repo_root/scripts/build-windows-v033-release-manifest.py" \
+  --payload-dir "$payload" --version 0.3.3 --architecture x64 --source-commit "$validation_commit" \
+  --codex-source https://github.com/openai/codex/releases/download/test/codex.exe \
+  --codex-sha256 "$runtime_sha" --validation-evidence "$complete_validation"
+"$python_cmd" "$repo_root/scripts/verify-windows-v033-release-payload.py" "$payload"
+"$python_cmd" - "$payload/compatibility-update.json" <<'PY'
+import json
+import pathlib
+import sys
+path = pathlib.Path(sys.argv[1])
+document = json.loads(path.read_text(encoding="utf-8"))
+document["publicKey"] = "not-a-p256-spki"
+path.write_text(json.dumps(document), encoding="utf-8")
+PY
+if "$python_cmd" "$repo_root/scripts/build-windows-v033-release-manifest.py" \
+  --payload-dir "$payload" --version 0.3.3 --architecture x64 --source-commit "$validation_commit" \
+  --codex-source https://github.com/openai/codex/releases/download/test/codex.exe \
+  --codex-sha256 "$runtime_sha" --validation-evidence "$complete_validation"; then
+  printf 'v0.3.3 manifest builder accepted a non-P-256 compatibility key\n' >&2
+  exit 1
+fi
+"$python_cmd" - "$payload/windows-payload.json" <<'PY'
+import json
+import pathlib
+import sys
+path = pathlib.Path(sys.argv[1])
+document = json.loads(path.read_text(encoding="utf-8"))
+document["version"] = "0.3.2"
+path.write_text(json.dumps(document), encoding="utf-8")
+PY
+if "$python_cmd" "$repo_root/scripts/verify-windows-v033-release-payload.py" "$payload"; then
+  printf 'v0.3.3 payload verifier accepted a non-v0.3.3 payload\n' >&2
+  exit 1
+fi
+
 "$python_cmd" - "$repo_root/docs/validation/windows-v0.3.3.schema.json" <<'PY'
 import json
 import pathlib
@@ -217,7 +296,7 @@ assert schema["properties"]["completedAt"] == {
 }
 PY
 
-if [[ "$mode" == "--full-chain-expected-red" ]]; then
+if [[ "$mode" == "--full-chain" ]]; then
   output_dir="$fixture_root/full-chain-out"
   output_file="$fixture_root/full-chain-output.txt"
   ps_complete_validation="$(path_for_pwsh "$complete_validation")"
@@ -226,16 +305,21 @@ if [[ "$mode" == "--full-chain-expected-red" ]]; then
     -ValidationEvidence "$ps_complete_validation" -OutputDirectory "$ps_output_dir" \
     -CompatibilityPublicKey "$valid_spki" -CompatibilityUpdateUri https://example.invalid/pack.zip \
     >"$output_file" 2>&1; then
-    printf 'v0.3.3 full-chain harness unexpectedly passed before Task 3\n' >&2
+    printf 'v0.3.3 full-chain harness unexpectedly completed without a release branch\n' >&2
     exit 1
   fi
   assert_no_artifacts "$output_dir"
-  grep -Fq 'Windows v0.3.3 formal setup remains gated until Task 6 records real-device validation evidence.' "$output_file" || {
-    printf 'v0.3.3 full-chain harness did not reach the preserved Task 3 red boundary\n' >&2
+  if grep -Fq 'remains gated' "$output_file"; then
+    printf 'v0.3.3 full-chain harness reached an unconditional placeholder gate\n' >&2
+    cat "$output_file" >&2
+    exit 1
+  fi
+  grep -Fq "Windows v0.3.3 setup must be built from the exact 'v0.3.3' branch." "$output_file" || {
+    printf 'v0.3.3 full-chain harness did not reach the branch/source validation boundary\n' >&2
     cat "$output_file" >&2
     exit 1
   }
-  printf 'PASS: Windows v0.3.3 full-chain expected-red boundary is present\n'
+  printf 'PASS: Windows v0.3.3 full-chain reaches the branch/source validation boundary\n'
   exit 0
 fi
 
