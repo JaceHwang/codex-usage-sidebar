@@ -62,3 +62,10 @@
 `96a7df2` — `Add safe dock compatibility core`.
 
 `574c591` — `Complete automatic Windows safe dock`.
+
+## Final verification
+
+- Focused: `dotnet test plugins\codex-usage-sidebar\windows\tests\CodexUsageSidebar.Windows.Tests\CodexUsageSidebar.Windows.Tests.csproj --no-restore --filter "FullyQualifiedName~SafeDockCompatibilityTests|FullyQualifiedName~ShowsSafeDockAfterThreeUnresolvedLiveQuotaReconciliations|FullyQualifiedName~RecoversFromSafeDockOnlyAfterThreeValidatedTitlebarReconciliations|FullyQualifiedName~UserFallbackLockKeepsAValidatedTitlebarInSafeDock|FullyQualifiedName~DragUpdatedPreferencesArePersistedAndAppliedToTheNextReconciliation"`
+  - Passed: 14/14 tests.
+- Full: `dotnet test plugins\codex-usage-sidebar\windows\CodexUsageSidebar.Windows.sln --no-restore`
+  - Passed: Core 54/54, Installer 80/80, Windows 94/94 tests.
