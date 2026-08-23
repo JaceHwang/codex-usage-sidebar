@@ -30,7 +30,14 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         ControlType.Button);
     private readonly ValidatedTitlebarCache cache = new();
     private readonly object scanGate = new();
+    private readonly SelectorProfileCatalog selectorCatalog;
+    private readonly bool isCatalogValid;
     private InFlightScan? inFlight;
+
+    public ValidatedUiaTitlebarScanner()
+    {
+        isCatalogValid = SelectorProfileCatalog.TryLoadRuntime(out selectorCatalog);
+    }
 
     public TitlebarSnapshot? TryGetCurrent(HostWindowSnapshot host) => cache.TryGet(host);
     public TitlebarSnapshot? TryGetRetained(HostWindowSnapshot host) => cache.TryGetRetained(host);
@@ -93,10 +100,14 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
 
     public void Invalidate() => cache.Invalidate();
 
-    private static TitlebarSnapshot Scan(
+    private TitlebarSnapshot Scan(
         HostWindowSnapshot host,
         CancellationToken cancellationToken)
     {
+        if (!isCatalogValid)
+        {
+            throw new InvalidSelectorCatalogException();
+        }
         var root = AutomationElement.FromHandle(host.Handle);
         if (root is null)
         {
@@ -108,7 +119,8 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
             host.BuildIdentity,
             host.DpiScale,
             host.Bounds,
-            nodes);
+            nodes,
+            selectorCatalog);
         return snapshot ?? throw new WindowsDeviceValidationRequiredException(host.BuildIdentity);
     }
 

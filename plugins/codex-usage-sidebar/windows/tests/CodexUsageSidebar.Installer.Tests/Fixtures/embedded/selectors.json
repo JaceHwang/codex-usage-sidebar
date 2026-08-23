@@ -1,1 +1,9 @@
-{}
+{
+  "schemaVersion": 2,
+  "profiles": [
+    {
+      "maxWrapperDepth": 2,
+      "depthTolerance": 2
+    }
+  ]
+}

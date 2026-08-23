@@ -180,7 +180,7 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
-    public async Task KnownBuildUsesAWindowRelativeFallbackWhenUiaIsUnavailable()
+    public async Task KnownBuildWithoutAResolvedTitlebarFailsClosedInsteadOfUsingCoordinates()
     {
         var window = new HostWindowSnapshot(
             new IntPtr(42), new RectD(-13, -13, 3026, 1930), true, 2, "151.0.7922.76");
@@ -192,15 +192,15 @@ public sealed class HostCoordinatorTests
 
         var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
 
-        Assert.AreEqual(HostRuntimeState.Visible, result);
-        Assert.AreEqual(PlacementSurface.Content, overlay.LastPresentation?.Placement.Surface);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 1333.3333333333333) < 0.0001);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation.Placement.Frame.Width - 333.3333333333333) < 0.0001);
-        Assert.AreEqual(window.Handle, overlay.LastPresentation?.OwnerHandle);
+        Assert.AreEqual(HostRuntimeState.DeviceValidationRequired, result);
+        Assert.AreEqual(CompatibilityFailureCode.UiaUnavailable, coordinator.LastCompatibilityDecision?.FailureCode);
+        Assert.AreEqual(SafeDockPlacement.None, coordinator.LastCompatibilityDecision?.Placement);
+        Assert.AreEqual(1, overlay.HideCount);
+        Assert.IsNull(overlay.LastPresentation);
     }
 
     [TestMethod]
-    public async Task InvalidFallbackGeometryReportsInvalidGeometryInsteadOfUiaUnavailable()
+    public async Task UnresolvedTitlebarDoesNotInspectFallbackGeometry()
     {
         var window = new HostWindowSnapshot(
             new IntPtr(42), new RectD(0, 0, 100, 200), true, 1, "151.0.7922.76");
@@ -212,11 +212,11 @@ public sealed class HostCoordinatorTests
         var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
 
         Assert.AreEqual(HostRuntimeState.DeviceValidationRequired, result);
-        Assert.AreEqual(CompatibilityFailureCode.InvalidGeometry, coordinator.LastCompatibilityDecision?.FailureCode);
+        Assert.AreEqual(CompatibilityFailureCode.UiaUnavailable, coordinator.LastCompatibilityDecision?.FailureCode);
     }
 
     [TestMethod]
-    public async Task OverflowingFiniteFallbackBoundsReportInvalidGeometryWithoutShowingOverlay()
+    public async Task UnresolvedTitlebarWithOverflowingBoundsFailsClosedWithoutShowingOverlay()
     {
         var window = new HostWindowSnapshot(
             new IntPtr(42), new RectD(double.MaxValue, 0, double.MaxValue, 900), true, 1, "151.0.7922.76");
@@ -229,7 +229,7 @@ public sealed class HostCoordinatorTests
         var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
 
         Assert.AreEqual(HostRuntimeState.DeviceValidationRequired, result);
-        Assert.AreEqual(CompatibilityFailureCode.InvalidGeometry, coordinator.LastCompatibilityDecision?.FailureCode);
+        Assert.AreEqual(CompatibilityFailureCode.UiaUnavailable, coordinator.LastCompatibilityDecision?.FailureCode);
         Assert.AreEqual(1, overlay.HideCount);
         Assert.IsNull(overlay.LastPresentation);
     }
