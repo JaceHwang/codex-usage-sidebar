@@ -180,6 +180,22 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public async Task InvalidCatalogFailureIsPublishedAsInvalidCatalog()
+    {
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(Window("build-a")),
+            new InvalidCatalogScanner(),
+            overlay);
+
+        var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(HostRuntimeState.DeviceValidationRequired, result);
+        Assert.AreEqual(CompatibilityFailureCode.InvalidCatalog, coordinator.LastCompatibilityDecision?.FailureCode);
+        Assert.AreEqual(1, overlay.HideCount);
+    }
+
+    [TestMethod]
     public async Task KnownBuildWithoutAResolvedTitlebarFailsClosedInsteadOfUsingCoordinates()
     {
         var window = new HostWindowSnapshot(
@@ -642,6 +658,13 @@ public sealed class HostCoordinatorTests
     {
         public ValueTask<TitlebarSnapshot> ScanAsync(HostWindowSnapshot host, CancellationToken cancellationToken) =>
             ValueTask.FromException<TitlebarSnapshot>(new WindowsDeviceValidationRequiredException(host.BuildIdentity));
+        public void Invalidate() { }
+    }
+
+    private sealed class InvalidCatalogScanner : ITitlebarScanner
+    {
+        public ValueTask<TitlebarSnapshot> ScanAsync(HostWindowSnapshot host, CancellationToken cancellationToken) =>
+            ValueTask.FromException<TitlebarSnapshot>(new InvalidSelectorCatalogException());
         public void Invalidate() { }
     }
 

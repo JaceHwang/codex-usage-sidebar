@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text;
 using CodexUsageSidebar.Core;
 
 namespace CodexUsageSidebar.Windows;
@@ -7,6 +8,11 @@ public sealed class SelectorProfileCatalog
 {
     private const int SchemaVersion = 2;
     private const int HardMaximumWrapperDepth = 4;
+    public const int MaximumCatalogBytes = 512 * 1024;
+    public const int MaximumProfileCount = 32;
+    public const int MaximumBuildIdentityCount = 16;
+    public const int MaximumAliasesPerMarker = 16;
+    public const int MaximumMarkerLength = 128;
     private static readonly HashSet<string> AllowedAliasMarkers = new(StringComparer.Ordinal)
     {
         "captionContainer", "captionButton", "toolbar", "toolbarPosition", "contentGroup",
@@ -31,6 +37,7 @@ public sealed class SelectorProfileCatalog
     public static bool TryParse(string json, out SelectorProfileCatalog catalog)
     {
         catalog = Default;
+        if (json is null || Encoding.UTF8.GetByteCount(json) > MaximumCatalogBytes) return false;
         try
         {
             using var document = JsonDocument.Parse(json);
@@ -42,7 +49,8 @@ public sealed class SelectorProfileCatalog
                 || version.GetInt32() != SchemaVersion
                 || !root.TryGetProperty("profiles", out var profileElements)
                 || profileElements.ValueKind != JsonValueKind.Array
-                || profileElements.GetArrayLength() == 0)
+                || profileElements.GetArrayLength() == 0
+                || profileElements.GetArrayLength() > MaximumProfileCount)
             {
                 return false;
             }
@@ -76,6 +84,11 @@ public sealed class SelectorProfileCatalog
         }
         try
         {
+            if (new FileInfo(path).Length > MaximumCatalogBytes)
+            {
+                catalog = Default;
+                return false;
+            }
             return TryParse(File.ReadAllText(path), out catalog);
         }
         catch (IOException)
@@ -103,6 +116,7 @@ public sealed class SelectorProfileCatalog
         if (element.TryGetProperty("buildIdentities", out var identityElements))
         {
             if (identityElements.ValueKind != JsonValueKind.Array) return false;
+            if (identityElements.GetArrayLength() > MaximumBuildIdentityCount) return false;
             identities = identityElements.EnumerateArray()
                 .Select(value => value.ValueKind == JsonValueKind.String ? value.GetString() : null)
                 .ToArray()!;
@@ -116,7 +130,9 @@ public sealed class SelectorProfileCatalog
             foreach (var property in aliasElements.EnumerateObject())
             {
                 if (!AllowedAliasMarkers.Contains(property.Name)
-                    || property.Value.ValueKind != JsonValueKind.Array)
+                    || property.Name.Length > MaximumMarkerLength
+                    || property.Value.ValueKind != JsonValueKind.Array
+                    || property.Value.GetArrayLength() > MaximumAliasesPerMarker)
                 {
                     return false;
                 }
@@ -148,7 +164,7 @@ public sealed class SelectorProfileCatalog
         element.EnumerateObject().All(property => names.Contains(property.Name, StringComparer.Ordinal));
 
     private static bool IsSafeClassToken(string? value) => !string.IsNullOrWhiteSpace(value)
-        && value.Length <= 128
+        && value.Length <= MaximumMarkerLength
         && value.All(character => char.IsLetterOrDigit(character)
             || character is '-' or '_' or '[' or ']' or ':' or '/');
 }
@@ -171,7 +187,7 @@ internal sealed record SelectorProfile(
     }
 }
 
-internal sealed class InvalidSelectorCatalogException : Exception
+public sealed class InvalidSelectorCatalogException : Exception
 {
     internal InvalidSelectorCatalogException() : base("selectors.json is not a valid schema-v2 selector catalog.") { }
 }

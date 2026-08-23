@@ -52,6 +52,23 @@ public sealed class SelectorProfileCatalogTests
         Assert.IsNotNull(result);
     }
 
+    [TestMethod]
+    public void RejectsCatalogsThatExceedRuntimeInputAndCollectionBounds()
+    {
+        var oversized = new string(' ', (512 * 1024) + 1) + "{\"schemaVersion\":2,\"profiles\":[{}]}";
+        var tooManyProfiles = "{\"schemaVersion\":2,\"profiles\":[" + string.Join(',', Enumerable.Repeat("{}", 33)) + "]}";
+        var tooManyBuilds = "{\"schemaVersion\":2,\"profiles\":[{\"buildIdentities\":[" + string.Join(',', Enumerable.Repeat("\"b\"", 17)) + "]}]}";
+        var tooManyAliases = "{\"schemaVersion\":2,\"profiles\":[{\"markerAliases\":{\"composer\":["
+            + string.Join(',', Enumerable.Range(0, 17).Select(index => "\"x" + index + "\"")) + "]}}]}";
+        var longAlias = "{\"schemaVersion\":2,\"profiles\":[{\"markerAliases\":{\"composer\":[\"" + new string('x', 129) + "\"]}}]}";
+
+        Assert.IsFalse(SelectorProfileCatalog.TryParse(oversized, out _));
+        Assert.IsFalse(SelectorProfileCatalog.TryParse(tooManyProfiles, out _));
+        Assert.IsFalse(SelectorProfileCatalog.TryParse(tooManyBuilds, out _));
+        Assert.IsFalse(SelectorProfileCatalog.TryParse(tooManyAliases, out _));
+        Assert.IsFalse(SelectorProfileCatalog.TryParse(longAlias, out _));
+    }
+
     private static string ReorderTokens(string className) => string.Join(
         ' ',
         className.Split(' ', StringSplitOptions.RemoveEmptyEntries).Reverse());

@@ -10,6 +10,8 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
     private const int MaximumDirectChildren = 64;
     private const int MaximumCandidateButtons = 1024;
     private const int MaximumRightPaneAncestorDepth = 8;
+    private const int MaximumTopTitlebarAncestorDepth = 6;
+    private const int MaximumTopTitlebarDescendantDepth = 6;
     private const string TitleGroupClassMarker = "text-md flex min-w-0 items-center";
     private const string RightToolbarClassMarker = "hide-scrollbar flex h-full min-w-0 flex-1";
     private const string RightToolbarOverflowMarker = "overflow-x-auto overflow-y-hidden";
@@ -143,21 +145,28 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         foreach (var openLocation in openLocationButtons)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var contentGroup = TryGetParent(openLocation);
-            var toolbar = contentGroup is null ? null : TryGetParent(contentGroup);
-            if (contentGroup is null || toolbar is null)
+            var toolbar = TryFindAncestor(
+                openLocation,
+                element => ClassNameContains(element, "fixed z-30 flex h-toolbar")
+                    && ClassNameContains(element, "top-toolbar-sm"),
+                MaximumTopTitlebarAncestorDepth);
+            if (toolbar is null)
             {
                 continue;
             }
-            AddNode(toolbar, 14, nodes);
-            AddNode(contentGroup, 15, nodes);
-            AddDirectChildren(contentGroup, 16, nodes, cancellationToken);
-            AddTitleChildren(contentGroup, nodes, cancellationToken);
+            var observation = new List<UiaStructureNode>();
+            AddBoundedSubtree(
+                toolbar,
+                14,
+                MaximumTopTitlebarDescendantDepth,
+                observation,
+                cancellationToken);
+            nodes.AddRange(TopTitlebarObservationCollector.Normalize(observation));
         }
 
         AddRightPaneStructures(root, openLocationButtons, dpiScale, nodes, cancellationToken);
 
-        return nodes;
+        return TopTitlebarObservationCollector.Normalize(nodes);
     }
 
     private static IReadOnlyList<AutomationElement> DiscoverOpenLocationSeeds(
@@ -376,7 +385,10 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
     {
         try
         {
-            return (element.Current.ClassName ?? string.Empty).Contains(marker, StringComparison.Ordinal);
+            var tokens = (element.Current.ClassName ?? string.Empty)
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .ToHashSet(StringComparer.Ordinal);
+            return marker.Split(' ', StringSplitOptions.RemoveEmptyEntries).All(tokens.Contains);
         }
         catch (ElementNotAvailableException)
         {
@@ -419,6 +431,26 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         foreach (var child in DirectChildren(parent, cancellationToken))
         {
             AddNode(child, depth, nodes);
+        }
+    }
+
+    private static void AddBoundedSubtree(
+        AutomationElement parent,
+        int depth,
+        int remainingDepth,
+        List<UiaStructureNode> nodes,
+        CancellationToken cancellationToken)
+    {
+        if (remainingDepth < 0 || nodes.Count >= TopTitlebarObservationCollector.MaximumObservedNodes)
+        {
+            return;
+        }
+        AddNode(parent, depth, nodes);
+        if (remainingDepth == 0) return;
+        foreach (var child in DirectChildren(parent, cancellationToken))
+        {
+            if (nodes.Count >= TopTitlebarObservationCollector.MaximumObservedNodes) return;
+            AddBoundedSubtree(child, depth + 1, remainingDepth - 1, nodes, cancellationToken);
         }
     }
 

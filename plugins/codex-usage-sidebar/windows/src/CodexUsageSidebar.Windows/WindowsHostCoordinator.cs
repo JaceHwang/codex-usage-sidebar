@@ -108,6 +108,11 @@ public sealed class WindowsHostCoordinator
             {
                 titlebar = await scanner.ScanAsync(host, cancellationToken).ConfigureAwait(false);
             }
+            catch (InvalidSelectorCatalogException)
+            {
+                return await FailUnresolvedTitlebarAsync(
+                    CompatibilityFailureCode.InvalidCatalog, cancellationToken).ConfigureAwait(false);
+            }
             catch (WindowsDeviceValidationRequiredException)
             {
                 titlebar = scanner.TryGetRetained(host);
