@@ -82,8 +82,8 @@ def validate_document(document: dict[str, object], source_commit: str) -> None:
     if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){3}", str(document.get("codexFileBuild", ""))):
         raise SystemExit("Windows v0.3.3 validation evidence Codex file build is invalid")
     completed_at = document.get("completedAt")
-    if not isinstance(completed_at, str) or not completed_at.endswith("Z"):
-        raise SystemExit("completed Windows v0.3.3 validation evidence requires a UTC timestamp")
+    if not isinstance(completed_at, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", completed_at):
+        raise SystemExit("completed Windows v0.3.3 validation evidence requires an exact UTC date-time")
     try:
         datetime.fromisoformat(completed_at[:-1] + "+00:00")
     except ValueError as error:

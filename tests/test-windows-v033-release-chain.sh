@@ -5,6 +5,15 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fixture_root="$(mktemp -d)"
 trap 'rm -rf "$fixture_root"' EXIT
 
+mode="${1:---evidence-only}"
+case "$mode" in
+  --evidence-only|--full-chain-expected-red) ;;
+  *)
+    printf 'usage: %s [--evidence-only|--full-chain-expected-red]\n' "$0" >&2
+    exit 2
+    ;;
+esac
+
 if command -v python >/dev/null 2>&1; then
   python_cmd="python"
 elif command -v python3 >/dev/null 2>&1; then
@@ -75,8 +84,6 @@ else:
 PY
 
 valid_spki='MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEGhz+XZxUarxEbLW+RiAf4QtCMvX5rIUA+6yTie9NyM+8erFgK6sbNKalTzTwCu4MLpVI6fqW2CAQ5Y8t/oi7ig=='
-evidence_path="$repo_root/docs/validation/windows-v0.3.3.json"
-
 assert_no_artifacts() {
   local output_dir="$1"
   if [[ -e "$output_dir" ]] && find "$output_dir" -type f -print -quit | grep -q .; then
@@ -84,41 +91,6 @@ assert_no_artifacts() {
     exit 1
   fi
 }
-
-run_evidence_boundary_case() {
-  local label="$1"
-  local evidence_input="$2"
-  local output_dir="$fixture_root/$label-out"
-  local output_file="$fixture_root/$label-output.txt"
-  local ps_evidence_input="$(path_for_pwsh "$evidence_input")"
-  local ps_output_dir="$(path_for_pwsh "$output_dir")"
-
-  if "$pwsh_cmd" -NoProfile -File "$ps_script" \
-    -ValidationEvidence "$ps_evidence_input" -OutputDirectory "$ps_output_dir" \
-    -CompatibilityPublicKey "$valid_spki" -CompatibilityUpdateUri https://example.invalid/pack.zip \
-    >"$output_file" 2>&1; then
-    printf 'v0.3.3 build unexpectedly succeeded at the %s evidence boundary\n' "$label" >&2
-    exit 1
-  fi
-  assert_no_artifacts "$output_dir"
-  grep -Fq "v0.3.3 validation evidence is missing or invalid: $ps_evidence_input" "$output_file" || {
-    printf 'v0.3.3 build did not report the exact missing/invalid evidence boundary for %s\n' "$label" >&2
-    cat "$output_file" >&2
-    exit 1
-  }
-  if grep -Fq 'permanent Task 6 placeholder' "$output_file" || grep -Fq 'remains gated until Task 6' "$output_file"; then
-    printf 'v0.3.3 build still fails at the permanent Task 6 placeholder\n' >&2
-    exit 1
-  fi
-}
-
-invalid_evidence="$fixture_root/invalid-evidence.json"
-"$python_cmd" - "$invalid_evidence" <<'PY'
-import pathlib
-import sys
-
-pathlib.Path(sys.argv[1]).write_text('{"version":"0.3.3","cases":[]}', encoding="utf-8")
-PY
 
 validation_commit="0123456789abcdef0123456789abcdef01234567"
 incomplete_validation="$fixture_root/v033-incomplete-validation.json"
@@ -204,7 +176,8 @@ assert_validation_rejected incomplete "$incomplete_validation"
 
 "$python_cmd" - "$complete_validation" "$fixture_root/v033-duplicate-validation.json" \
   "$fixture_root/v033-invalid-build-validation.json" "$fixture_root/v033-invalid-version-validation.json" \
-  "$fixture_root/v033-non-pass-validation.json" <<'PY'
+  "$fixture_root/v033-non-pass-validation.json" "$fixture_root/v033-offset-completed-at-validation.json" \
+  "$fixture_root/v033-fractional-completed-at-validation.json" "$fixture_root/v033-invalid-date-completed-at-validation.json" <<'PY'
 import json
 import pathlib
 import sys
@@ -215,6 +188,9 @@ for output, mutate in (
     (sys.argv[3], lambda value: value.__setitem__("windowsBuild", 19045)),
     (sys.argv[4], lambda value: value.__setitem__("version", "0.3.2")),
     (sys.argv[5], lambda value: value["cases"]["lifecycle"][0].__setitem__("result", "fail")),
+    (sys.argv[6], lambda value: value.__setitem__("completedAt", "2026-08-23T00:00:00+00:00")),
+    (sys.argv[7], lambda value: value.__setitem__("completedAt", "2026-08-23T00:00:00.001Z")),
+    (sys.argv[8], lambda value: value.__setitem__("completedAt", "2026-02-30T00:00:00Z")),
 ):
     value = json.loads(json.dumps(complete))
     mutate(value)
@@ -225,8 +201,42 @@ assert_validation_rejected duplicate "$fixture_root/v033-duplicate-validation.js
 assert_validation_rejected invalid-build "$fixture_root/v033-invalid-build-validation.json"
 assert_validation_rejected invalid-version "$fixture_root/v033-invalid-version-validation.json"
 assert_validation_rejected non-pass "$fixture_root/v033-non-pass-validation.json"
+assert_validation_rejected offset-completed-at "$fixture_root/v033-offset-completed-at-validation.json"
+assert_validation_rejected fractional-completed-at "$fixture_root/v033-fractional-completed-at-validation.json"
+assert_validation_rejected invalid-date-completed-at "$fixture_root/v033-invalid-date-completed-at-validation.json"
 
-run_evidence_boundary_case missing "$evidence_path"
-run_evidence_boundary_case invalid "$invalid_evidence"
+"$python_cmd" - "$repo_root/docs/validation/windows-v0.3.3.schema.json" <<'PY'
+import json
+import pathlib
+import sys
 
-printf 'PASS: Windows v0.3.3 release-chain contract is present\n'
+schema = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert schema["properties"]["completedAt"] == {
+    "type": "string",
+    "pattern": r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$",
+}
+PY
+
+if [[ "$mode" == "--full-chain-expected-red" ]]; then
+  output_dir="$fixture_root/full-chain-out"
+  output_file="$fixture_root/full-chain-output.txt"
+  ps_complete_validation="$(path_for_pwsh "$complete_validation")"
+  ps_output_dir="$(path_for_pwsh "$output_dir")"
+  if "$pwsh_cmd" -NoProfile -File "$ps_script" \
+    -ValidationEvidence "$ps_complete_validation" -OutputDirectory "$ps_output_dir" \
+    -CompatibilityPublicKey "$valid_spki" -CompatibilityUpdateUri https://example.invalid/pack.zip \
+    >"$output_file" 2>&1; then
+    printf 'v0.3.3 full-chain harness unexpectedly passed before Task 3\n' >&2
+    exit 1
+  fi
+  assert_no_artifacts "$output_dir"
+  grep -Fq 'Windows v0.3.3 formal setup remains gated until Task 6 records real-device validation evidence.' "$output_file" || {
+    printf 'v0.3.3 full-chain harness did not reach the preserved Task 3 red boundary\n' >&2
+    cat "$output_file" >&2
+    exit 1
+  }
+  printf 'PASS: Windows v0.3.3 full-chain expected-red boundary is present\n'
+  exit 0
+fi
+
+printf 'PASS: Windows v0.3.3 evidence-only validation contract is present\n'

@@ -30,3 +30,16 @@ The full release-chain command then reaches the unchanged Task 3 boundary and ex
 - exact geometry, interaction, and lifecycle named cases;
 - each case is unique and has `result: "pass"`;
 - closed JSON shapes prevent free-text or device-identifying evidence fields.
+
+## Follow-up fix: exact completion time and isolated harness modes
+
+The schema and validator now require `completedAt` to be an exact UTC second timestamp in the
+form `YYYY-MM-DDTHH:MM:SSZ`. The evidence-only harness rejects offset timestamps, fractional
+seconds, and impossible calendar dates in addition to the pre-existing incomplete, duplicate,
+Windows-build, version, and non-pass variants.
+
+`bash tests/test-windows-v033-release-chain.sh --evidence-only` passes the complete 85-case
+fixture and all required negatives. `bash tests/test-windows-v033-release-chain.sh
+--full-chain-expected-red` also exits zero only after it observes the unchanged Task 3 placeholder
+failure and confirms that it emitted no artifacts. Task 3 remains intentionally unmodified, and
+the v0.3.2 files remain untouched.
