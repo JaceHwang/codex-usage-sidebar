@@ -57,6 +57,32 @@ public sealed class CompatibilityCatalogRuntimeTests
     }
 
     [DataTestMethod]
+    [DataRow("[]")]
+    [DataRow("null")]
+    [DataRow("\"manifest\"")]
+    public async Task ProductionCompositionRejectsNonObjectManifestRootsAndRetainsPackagedCatalogSafely(string manifestJson)
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var configuration = CompatibilityUpdateConfiguration.Create(
+            Convert.ToBase64String(key.ExportSubjectPublicKeyInfo()),
+            "https://updates.example.test/selectors.zip");
+        var packagedCatalog = Encoding.UTF8.GetBytes(ValidCatalog("packaged-profile"));
+        var cachedCatalog = Encoding.UTF8.GetBytes(ValidCatalog("cached-profile"));
+        var updater = new RecordingUpdater();
+
+        var composition = await WindowsCompatibilityRuntime.CreateAsync(
+            packagedCatalog,
+            configuration,
+            new InMemoryCompatibilityPackCache(new CompatibilityPackCacheEntry(
+                2, "etag", DateTimeOffset.UtcNow, cachedCatalog, Encoding.UTF8.GetBytes(manifestJson), [1, 2, 3])),
+            updater,
+            CancellationToken.None);
+
+        Assert.AreEqual("packaged-profile", composition.Scanner.Catalog.ProfilesFor("packaged-profile").Single().BuildIdentities.Single());
+        Assert.IsTrue(updater.Started);
+    }
+
+    [DataTestMethod]
     [DataRow(CacheFailureKind.IOException)]
     [DataRow(CacheFailureKind.JsonException)]
     [DataRow(CacheFailureKind.NullData)]

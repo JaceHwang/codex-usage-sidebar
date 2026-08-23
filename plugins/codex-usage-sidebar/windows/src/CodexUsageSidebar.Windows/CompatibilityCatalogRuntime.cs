@@ -76,7 +76,8 @@ public sealed record CompatibilityCatalogRuntime(SelectorProfileCatalog Catalog)
         try
         {
             using var document = JsonDocument.Parse(cache.Manifest);
-            if (!document.RootElement.TryGetProperty("sequence", out var sequence)
+            if (document.RootElement.ValueKind != JsonValueKind.Object
+                || !document.RootElement.TryGetProperty("sequence", out var sequence)
                 || sequence.ValueKind != JsonValueKind.Number
                 || !sequence.TryGetInt64(out var sequenceValue)
                 || sequenceValue != cache.Sequence
