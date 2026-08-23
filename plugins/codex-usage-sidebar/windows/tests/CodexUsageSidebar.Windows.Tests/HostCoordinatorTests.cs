@@ -47,6 +47,31 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public async Task PublishesAndPersistsATitlebarCompatibilityDecisionAfterSafeReconciliation()
+    {
+        var store = new RecordingRuntimeStateStore();
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(Window("codex-build-a")),
+            new StubScanner(),
+            new RecordingOverlay(),
+            runtimeStateStore: store);
+
+        var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(HostRuntimeState.Visible, result);
+        Assert.AreEqual(
+            new CompatibilityDecision(
+                SemanticCompatibility.Valid,
+                ProfileCompatibility.Validated,
+                SafeDockPlacement.Titlebar,
+                CompatibilityFailureCode.None),
+            coordinator.LastCompatibilityDecision);
+        Assert.IsNotNull(store.LastOutcome);
+        Assert.AreEqual(HostRuntimeState.Visible, store.LastOutcome.RuntimeState);
+        Assert.AreEqual(coordinator.LastCompatibilityDecision, store.LastOutcome.Decision);
+    }
+
+    [TestMethod]
     public async Task CarriesTokenUsageAndAccountIdentityIntoTheOverlayPresentation()
     {
         var window = new HostWindowSnapshot(
@@ -607,5 +632,16 @@ public sealed class HostCoordinatorTests
         public OverlayPresentation? LastPresentation { get; private set; }
         public ValueTask HideAsync(CancellationToken cancellationToken) { Events.Add("hide"); HideCount++; LastPresentation = null; return ValueTask.CompletedTask; }
         public ValueTask ShowAsync(OverlayPresentation presentation, CancellationToken cancellationToken) { Events.Add("show"); LastPresentation = presentation; return ValueTask.CompletedTask; }
+    }
+
+    private sealed class RecordingRuntimeStateStore : IRuntimeStateStore
+    {
+        public RuntimeStateOutcome? LastOutcome { get; private set; }
+
+        public ValueTask WriteAsync(RuntimeStateOutcome outcome, CancellationToken cancellationToken)
+        {
+            LastOutcome = outcome;
+            return ValueTask.CompletedTask;
+        }
     }
 }
