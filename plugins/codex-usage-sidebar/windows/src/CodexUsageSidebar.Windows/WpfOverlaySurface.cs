@@ -151,7 +151,9 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
             if (presentation.Mode == PlacementMode.SafeDock
                 && presentation.SafeDockRequest is { } request)
             {
-                request = request with { WorkArea = WorkAreaFor(presentation.OwnerHandle) ?? request.WorkArea };
+                request = request with { WorkArea = UsableWorkArea(request.WorkArea)
+                    ? request.WorkArea
+                    : WorkAreaFor(presentation.OwnerHandle) ?? request.WorkArea };
                 var resolved = SafeDockPlacementResolver.Resolve(request);
                 if (resolved.Frame is null)
                 {
@@ -299,7 +301,13 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
 
         var preferences = SafeDockDragSnapPolicy.Snap(request, releasedFrame);
         await NotifySafeDockPreferencesChangedAsync(preferences, CancellationToken.None);
-        request = request with { Preferences = preferences, WorkArea = WorkAreaFor(presentation.OwnerHandle) ?? request.WorkArea };
+        request = request with
+        {
+            Preferences = preferences,
+            WorkArea = UsableWorkArea(request.WorkArea)
+                ? request.WorkArea
+                : WorkAreaFor(presentation.OwnerHandle) ?? request.WorkArea,
+        };
         var resolved = SafeDockPlacementResolver.Resolve(request);
         if (resolved.Frame is null) return;
 
@@ -910,6 +918,14 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
             info.Work.Right - info.Work.Left,
             info.Work.Bottom - info.Work.Top);
     }
+
+    private static bool UsableWorkArea(RectD workArea) =>
+        double.IsFinite(workArea.X)
+        && double.IsFinite(workArea.Y)
+        && double.IsFinite(workArea.Width)
+        && double.IsFinite(workArea.Height)
+        && workArea.Width > 0
+        && workArea.Height > 0;
 
     private static WpfOverlayPalette ResolvePalette(PointD probePoint)
     {

@@ -94,6 +94,35 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
+    public async Task SafeDockUsesPhysicalHostCaptionAndWorkAreaAtOneHundredTwentyFivePercent()
+    {
+        var now = DateTimeOffset.Now;
+        var host = new HostWindowSnapshot(
+            new IntPtr(42),
+            new RectD(-1600, 100, 1000, 700),
+            true,
+            1.25,
+            "codex-build-a",
+            WorkArea: new RectD(-1920, 0, 1920, 1040),
+            CaptionBounds: new RectD(-1600, 100, 1000, 50));
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(host), new RejectingScanner(), overlay, () => now);
+
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+        now = now.AddMilliseconds(500);
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+        now = now.AddMilliseconds(500);
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        var frame = overlay.LastPresentation!.Placement.Frame;
+        Assert.IsTrue(frame.X >= host.Bounds.X && frame.Right <= host.Bounds.Right);
+        Assert.IsTrue(frame.X >= host.WorkArea!.Value.X && frame.Right <= host.WorkArea.Value.Right);
+        Assert.IsTrue(frame.Y >= host.CaptionBounds!.Value.Bottom + 10);
+        Assert.IsTrue(frame.Bottom <= host.WorkArea.Value.Bottom);
+    }
+
+    [TestMethod]
     public async Task RecoversFromSafeDockOnlyAfterThreeValidatedTitlebarReconciliations()
     {
         var now = DateTimeOffset.Now;
