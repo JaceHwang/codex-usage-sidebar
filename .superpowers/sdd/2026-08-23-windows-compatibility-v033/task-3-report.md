@@ -107,3 +107,29 @@
 ### Commit
 
 `f173701` — `Fix safe dock physical geometry`.
+
+## Fix round 2: resilient caption acquisition and locator composition coverage
+
+### Changed paths
+
+- `Win32CodexWindowLocator.cs`
+  - Moves native window enumeration, monitor work-area probing, and UIA caption candidate enumeration behind one internal acquisition seam while preserving the default production calls and Codex process filtering.
+  - Keeps snapshot assembly in `FindAsync`, so raw physical bounds, DPI, monitor work area, and verified caption data are composed by the production locator.
+  - Treats unavailable caption candidates, ambiguous candidates, `ElementNotAvailableException`, `InvalidOperationException`, and UIA-provider `COMException` as no caption; the eligible host snapshot continues to be returned.
+- `Win32CodexWindowLocatorTests.cs`
+  - Exercises `FindAsync` with injected physical rectangle/work-area/caption acquisition.
+  - Covers one verified caption and ambiguous, unavailable, and provider-`COMException` outcomes, all of which retain the host snapshot and yield null caption where unsafe.
+- `CodexUsageSidebar.Windows.Tests.csproj`
+  - Targets the Windows TFM so the tests execute the production locator, which is intentionally compiled only under `WINDOWS`.
+
+### TDD and verification evidence
+
+1. Red — `dotnet test plugins\codex-usage-sidebar\windows\tests\CodexUsageSidebar.Windows.Tests\CodexUsageSidebar.Windows.Tests.csproj --no-restore --filter "FullyQualifiedName~Win32CodexWindowLocatorTests"`
+   - Failed as expected because the internal locator acquisition seam and candidate types did not exist (`CS0246`).
+2. Test-target correction — the pre-existing test project targeted plain `net8.0`, selecting the non-Windows library where the `#if WINDOWS` locator is excluded. The test project now targets `net8.0-windows10.0.19041.0`; `dotnet restore` updated its assets for that required target.
+3. Green — same focused command after the minimal acquisition seam and `COMException` containment.
+   - Passed: 7/7 tests.
+4. Windows regression — `dotnet test plugins\codex-usage-sidebar\windows\tests\CodexUsageSidebar.Windows.Tests\CodexUsageSidebar.Windows.Tests.csproj --no-restore`
+   - Passed: 101/101 tests.
+5. Full solution — `dotnet test plugins\codex-usage-sidebar\windows\CodexUsageSidebar.Windows.sln --no-restore --no-build --logger "console;verbosity=minimal"`
+   - Passed: Core 54/54, Installer 80/80, Windows 101/101 tests.

@@ -1,0 +1,22 @@
+# SDD ledger — plan: docs/superpowers/plans/2026-08-23-windows-compatibility-v033.md
+
+Preflight scan:
+
+| Tasks/interfaces | Finding | Ruling |
+| --- | --- | --- |
+| 1 → 2 | Task 1 creates decision/state contracts consumed by Task 2. | Execute Task 1 first. |
+| 1 → 3 | Task 3 consumes explicit failure codes and persisted preferences from Task 1. | Execute Task 1 first. |
+| 2 → 3 | Task 3 consumes adaptive resolver failure/success outcomes. | Execute Task 2 before Task 3. |
+| 3 → 4 | Tray/control actions consume safe-dock preferences and runtime status. | Execute Task 3 before Task 4. |
+| 4 → 5 | Setup health UI consumes runtime state and catalog. | Execute Task 4 before Task 5. |
+| 5 → 6 | Real-device validation requires packaged runtime. | Execute Task 5 before Task 6. |
+
+Ruling: The approved plan includes one public release but has sequential code dependencies; tasks will be implemented and reviewed serially. The cost is less parallel throughput, offset by avoiding incompatible cross-task interfaces.
+
+Task 1: fix round 1/5 (2 addressed, 1 new overflow finding; commits 6fc4cc8..068d837)
+Task 1: fix round 2/5 (overflow finding addressed; commits 068d837..c30e49b)
+Task 1: complete (commits 0b12e88..c30e49b, review clean)
+Task 2: fix round 1/5 (runtime observation, catalog bounds, and InvalidCatalog propagation addressed; commits a4738d9..c4c75cd)
+Task 2: complete (commits c30e49b..c4c75cd, review clean)
+Task 3: Ruling: the submitted core-only slice is not task completion because the approved plan requires coordinator integration, safe-dock rendering, drag snapping, and preference wiring. Continue Task 3 in the same worktree; cost is one additional integration pass before review.
+Task 3: fix round 2 (UIA `COMException` containment and production locator composition coverage; focused 7/7, Windows 101/101, solution Core 54/54 + Installer 80/80 + Windows 101/101; commit pending).
