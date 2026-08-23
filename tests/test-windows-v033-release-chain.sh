@@ -296,6 +296,37 @@ assert schema["properties"]["completedAt"] == {
 }
 PY
 
+"$python_cmd" - "$repo_root" <<'PY'
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+template = (root / "docs/validation/windows-v0.3.3-real-device-template.md").read_text(encoding="utf-8")
+install = (root / "docs/INSTALL.md").read_text(encoding="utf-8")
+troubleshooting = (root / "docs/TROUBLESHOOTING.md").read_text(encoding="utf-8")
+
+def require(document: str, value: str, description: str) -> None:
+    if value not in document:
+        raise AssertionError(f"missing v0.3.3 documentation contract: {description}")
+
+require(template, "-ValidationEvidence docs/validation/windows-v0.3.3.json", "canonical formal evidence path")
+require(template, "-OutputDirectory <outside-repository-output>", "outside-repository formal output")
+require(template, "-CompatibilityPublicKey <base64-p256-spki>", "P-256 SPKI public-key input")
+require(template, "-CompatibilityUpdateUri <https-compatibility-pack-uri>", "HTTPS compatibility update input")
+require(template, "Private keys must never be stored in this repository or typed on the command line.", "private-key boundary")
+require(template, "exact `v0.3.3` branch", "formal branch requirement")
+require(template, "completely clean worktree", "formal clean-worktree requirement")
+require(template, "complete Windows 11 AMD64/x64 real-device matrix", "formal real-device matrix requirement")
+require(template, "same source commit", "formal source-commit binding")
+require(template, "No v0.3.3 installer is currently published.", "unpublished-installer statement")
+require(install, "No v0.3.3 installer is currently published.", "installation availability statement")
+require(install, "do not edit `selectors.json` by hand", "ordinary-user selector guidance")
+require(install, "automatic safe dock", "ordinary-user safe-dock recovery")
+require(troubleshooting, "default-redacted diagnostic", "redacted diagnostic recovery")
+require(troubleshooting, "not a reason to edit selector files", "ordinary-user selector recovery")
+require(troubleshooting, "automatic safe dock", "automatic safe-dock recovery")
+PY
+
 if [[ "$mode" == "--full-chain" ]]; then
   output_dir="$fixture_root/full-chain-out"
   output_file="$fixture_root/full-chain-output.txt"

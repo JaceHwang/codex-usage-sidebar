@@ -45,6 +45,22 @@ disposable task titlebar and do not commit the bundle to this repository.
 | Setup lifecycle | Install, repair, upgrade with retained preferences, and uninstall | Pending | `<private bundle SHA-256>` |
 | Package | Exact x64 setup checksum, provenance, and post-install status | Pending | `<private bundle SHA-256>` |
 
+## Formal release handoff (maintainers only)
+
+No v0.3.3 installer is currently published. Do not describe the partial observation or the automated evidence above as formal device validation. A formal build is allowed only from the exact `v0.3.3` branch with a completely clean worktree, after the canonical `docs/validation/windows-v0.3.3.json` records a complete Windows 11 AMD64/x64 real-device matrix for the same source commit that will be packaged.
+
+Run the formal build with the canonical evidence file and an output directory outside the repository:
+
+```powershell
+pwsh scripts/build-windows-v033-setup.ps1 `
+  -ValidationEvidence docs/validation/windows-v0.3.3.json `
+  -OutputDirectory <outside-repository-output> `
+  -CompatibilityPublicKey <base64-p256-spki> `
+  -CompatibilityUpdateUri <https-compatibility-pack-uri>
+```
+
+The Base64 P-256 SPKI value is a public key and is acceptable as a build input. Private keys must never be stored in this repository or typed on the command line. No private key or other secret may be added, pasted, or typed into version-controlled files. The HTTPS URI identifies the compatibility pack; the build rejects incomplete evidence, a mismatched source commit, a non-clean worktree, a non-`v0.3.3` branch, invalid key material, an insecure URI, or output inside the repository.
+
 ## Release-gate decision
 
 - Real-device matrix complete: **No**

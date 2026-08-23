@@ -2,12 +2,14 @@
 
 ## Windows 11 AMD64/x64
 
-The v0.3.3 Windows setup is the single installation entry point when it is released. It embeds the
-schema-v2 selector catalog and its signed-update configuration; do not edit `selectors.json` by
-hand. Setup waits briefly for local runtime health and reports whether the indicator is visible,
-using the automatic safe dock, or needs compatibility validation. Online updates are optional: a
-network failure keeps the packaged or previously validated catalog usable. Formal v0.3.3 setup
-publication remains gated on the separate Task 6 real-device evidence.
+No v0.3.3 installer is currently published. When it is released, the v0.3.3 Windows setup will be
+the single installation entry point. It embeds the schema-v2 selector catalog and signed
+compatibility-update configuration; do not edit `selectors.json` by hand. The generic selector and
+signed compatibility updates recover automatically: an unavailable update keeps the packaged or
+previously validated catalog usable. Setup waits briefly for local runtime health and reports whether
+the indicator is visible, using the automatic safe dock, or needs compatibility validation. Formal
+v0.3.3 setup publication remains gated on the complete real-device evidence matrix tied to its
+source commit; this document does not claim that formal device validation has occurred.
 
 Windows `v0.3.2` supports Windows 11 on AMD64/x64 only; Windows ARM64 is not supported. The current-user setup is unsigned (`NotSigned`)
 and does not require administrator privileges.
