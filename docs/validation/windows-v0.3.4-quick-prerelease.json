@@ -1,0 +1,20 @@
+{
+  "architecture": "x64",
+  "codexFileBuild": "151.0.7922.170",
+  "completedAt": "2026-08-23T14:02:08Z",
+  "releaseProfile": "quick-prerelease",
+  "schemaVersion": 1,
+  "smoke": {
+    "embeddedPayload": "pass",
+    "manager": "pass",
+    "redactedProbe": {
+      "includesText": false,
+      "rawNodeNameCount": 0,
+      "result": "pass"
+    },
+    "runtime": "pass"
+  },
+  "sourceCommit": "ec28ae97768bdb908cba5688b3d969371b4a0899",
+  "version": "0.3.4",
+  "windowsBuild": 26200
+}
