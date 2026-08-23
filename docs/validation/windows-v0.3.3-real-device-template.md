@@ -17,6 +17,18 @@ Record the source commit and the current automated report here after rerunning i
 
 Automated fixture evidence is not real-device evidence and cannot close this gate.
 
+## Partial real-device observation (does not complete a matrix row)
+
+- Sanitized UTC timestamp: `2026-08-23T08:43:20Z`
+- Tested source commit: `7582bb3`
+- Codex build identity: `151.0.7922.170`
+- Physical DPI scale: `200%`
+- Observation: the current v0.3.3 control build exported a default-redacted diagnostic; raw UI text was disabled and the titlebar resolver returned a non-null snapshot.
+- Private local evidence SHA-256: `ce844e29f38c50fead5598ac358c6b0d1afa65e71a84ef4b9af7f85db6c99472`
+
+This observation proves only a single current-build UIA/titlebar-read baseline. It does **not** prove
+the wide/narrow/right-pane, language/theme, safe-dock interaction, lifecycle, or setup matrix rows.
+
 ## Required real-device evidence
 
 For each completed row, record only a sanitized timestamp, build identifier, DPI, language/theme,
