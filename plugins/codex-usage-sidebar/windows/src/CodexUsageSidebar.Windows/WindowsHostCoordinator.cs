@@ -42,6 +42,9 @@ public sealed class WindowsHostCoordinator
 
     public CompatibilityDecision? LastCompatibilityDecision { get; private set; }
 
+    public ValueTask UpdateSafeDockPreferencesAsync(SafeDockPreferences preferences, CancellationToken cancellationToken) =>
+        ApplySafeDockPreferencesAsync(preferences, cancellationToken);
+
     public ValueTask<HostRuntimeState> ReconcileAsync(
         AllowanceSnapshot? snapshot,
         CancellationToken cancellationToken) =>

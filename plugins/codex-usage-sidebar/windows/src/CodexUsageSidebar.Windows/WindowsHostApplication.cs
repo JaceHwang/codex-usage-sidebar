@@ -58,12 +58,15 @@ internal sealed class WindowsOverlayRuntime : IDisposable
     private readonly DispatcherTimer reconcileTimer;
     private readonly WindowsCodexLanguageProvider languageProvider;
     private readonly RuntimeLanguageState languageState;
+    private readonly WindowsTrayController tray;
+    private readonly ISafeDockPreferencesStore? safeDockPreferencesStore;
     private AllowanceSnapshot? latestSnapshot;
     private TokenUsageSnapshot? latestTokenUsage;
     private AccountIdentity? latestAccount;
     private DateTimeOffset nextLanguageRefresh = DateTimeOffset.MinValue;
     private int reconcileInProgress;
     private Task? sessionTask;
+    private RuntimeStateOutcome? lastOutcome;
 
     internal WindowsOverlayRuntime(
         WindowsRuntimePaths paths,
@@ -71,6 +74,7 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         ISafeDockPreferencesStore? safeDockPreferencesStore = null,
         SafeDockPreferences? safeDockPreferences = null)
     {
+        this.safeDockPreferencesStore = safeDockPreferencesStore;
         var language = LanguageResolver.Resolve(CultureInfo.CurrentUICulture.Name);
         languageProvider = WindowsCodexLanguageProvider.CreateDefault();
         languageState = new RuntimeLanguageState(language);
@@ -90,6 +94,11 @@ internal sealed class WindowsOverlayRuntime : IDisposable
             DispatcherPriority.Background,
             async (_, _) => await ReconcileAsync(),
             Dispatcher.CurrentDispatcher);
+        tray = new WindowsTrayController(
+            () => lastOutcome,
+            locked => _ = UpdateFallbackLockAsync(locked),
+            ExportDiagnosticsAsync,
+            () => Application.Current?.Shutdown());
     }
 
     internal void Start()
@@ -101,6 +110,7 @@ internal sealed class WindowsOverlayRuntime : IDisposable
     public void Dispose()
     {
         reconcileTimer.Stop();
+        tray.Dispose();
         cancellation.Cancel();
         cancellation.Dispose();
     }
@@ -113,12 +123,20 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         }
         try
         {
-            await coordinator.ReconcileAsync(
+            var state = await coordinator.ReconcileAsync(
                 Volatile.Read(ref latestSnapshot),
                 CurrentLanguage(),
                 cancellation.Token,
                 Volatile.Read(ref latestTokenUsage),
                 Volatile.Read(ref latestAccount));
+            lastOutcome = new RuntimeStateOutcome(
+                state,
+                coordinator.LastCompatibilityDecision ?? new CompatibilityDecision(
+                    SemanticCompatibility.Unknown,
+                    ProfileCompatibility.Unknown,
+                    SafeDockPlacement.None,
+                    CompatibilityFailureCode.UiaUnavailable),
+                DateTimeOffset.UtcNow);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
@@ -139,6 +157,22 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         {
             Volatile.Write(ref reconcileInProgress, 0);
         }
+    }
+
+    private async Task UpdateFallbackLockAsync(bool locked)
+    {
+        var current = safeDockPreferencesStore is null
+            ? SafeDockPreferences.Default
+            : await safeDockPreferencesStore.LoadAsync(cancellation.Token).ConfigureAwait(false);
+        var preferences = current with { FallbackLocked = locked };
+        await coordinator.UpdateSafeDockPreferencesAsync(preferences, cancellation.Token).ConfigureAwait(false);
+    }
+
+    private async Task ExportDiagnosticsAsync(string destination)
+    {
+        var report = await new WindowsDiagnosticProbe(new Win32CodexWindowLocator())
+            .CaptureAsync(includeText: false, cancellation.Token).ConfigureAwait(false);
+        await WindowsDiagnosticExporter.ExportAsync(destination, report, lastOutcome, cancellation.Token).ConfigureAwait(false);
     }
 
     private DisplayLanguage CurrentLanguage()

@@ -4,6 +4,8 @@
     <TargetFrameworks>net8.0;net8.0-windows10.0.19041.0</TargetFrameworks>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <UseWPF Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</UseWPF>
+    <UseWindowsForms Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
     <OutputType Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">WinExe</OutputType>
     <StartupObject Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">CodexUsageSidebar.Windows.WindowsHostApplication</StartupObject>
     <ApplicationManifest Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">app.manifest</ApplicationManifest>
