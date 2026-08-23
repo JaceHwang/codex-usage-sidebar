@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "privacy": "Synthetic semantic labels only; no account addresses, paths, or task text.",
+  "structures": [
+    {
+      "id": "sampled-wide-titlebar",
+      "sourceFixture": "windows-codex-151.0.7922.76-default-200.json",
+      "buildIdentity": "151.0.7922.76",
+      "form": "wide",
+      "semanticLabels": { "en": "Open location", "zh-CN": "打开位置" },
+      "dpiScales": [1.0, 1.25, 1.5, 2.0],
+      "unrecognizedMarker": "h-token-button-composer",
+      "expected": { "semantic": "Valid", "profile": "Validated", "safeDock": "Titlebar" }
+    },
+    {
+      "id": "sampled-narrow-titlebar",
+      "sourceFixture": "windows-codex-151.0.7922.76-default-flat-200.json",
+      "buildIdentity": "151.0.7922.76",
+      "form": "narrow",
+      "semanticLabels": { "en": "Open location", "zh-CN": "打开位置" },
+      "dpiScales": [1.0, 1.25, 1.5, 2.0],
+      "unrecognizedMarker": "h-token-button-composer",
+      "expected": { "semantic": "Valid", "profile": "Validated", "safeDock": "Titlebar" }
+    },
+    {
+      "id": "sampled-right-pane-titlebar",
+      "sourceFixture": "windows-codex-151.0.7922.76-narrow-200.json",
+      "buildIdentity": "151.0.7922.76",
+      "form": "right-pane",
+      "semanticLabels": { "en": "Open location", "zh-CN": "打开位置" },
+      "dpiScales": [1.0, 1.25, 1.5, 2.0],
+      "unrecognizedMarker": "h-token-button-composer",
+      "expected": { "semantic": "Valid", "profile": "Validated", "safeDock": "Titlebar" }
+    }
+  ]
+}
