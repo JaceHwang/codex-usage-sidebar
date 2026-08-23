@@ -1,4 +1,4 @@
-# Task 3 report: core safe-dock state and geometry slice
+# Task 3 report: automatic safe dock, recovery, and persisted preferences
 
 ## Delivered scope
 
@@ -13,6 +13,12 @@
   - Adds compact logo-plus-percentage visual width metrics for the placement core.
 - `SafeDockCompatibilityTests.cs`
   - Covers entry, recovery, lock behavior, caption-safe negative-origin/multi-DPI placement, compact narrow-host fallback, preferences persistence, DPI-stable anchor/offset conversion, and titlebar mode.
+- `WindowsHostCoordinator.cs` and `HostContracts.cs`
+  - Introduce `PlacementMode` and route only threshold-gated unresolved decisions to a `SafeDock` overlay presentation.
+  - Keep existing collision-free titlebar frames in `Titlebar` mode. Retained fallback remains visible during transient failures and returns to titlebar only after the state machine’s success gate.
+  - Receive persisted preference updates from a safe-dock overlay and apply them before the next reconciliation.
+- `WpfOverlaySurface.cs` and `WindowsHostApplication.cs`
+  - Load preferences and runtime state from the per-user local data directory, pass them into the coordinator, render compact fallback with percentage-only text, and constrain release drag to a top/left/right rail preference.
 
 ## TDD evidence
 
@@ -29,14 +35,30 @@
 6. Hygiene — `git diff --check`
    - Passed with no whitespace errors. Git emitted only its repository line-ending normalization notice.
 
-## Deferred exact scope
+7. Red — `dotnet test plugins\codex-usage-sidebar\windows\tests\CodexUsageSidebar.Windows.Tests\CodexUsageSidebar.Windows.Tests.csproj --no-restore --filter "FullyQualifiedName~ShowsSafeDockAfterThreeUnresolvedLiveQuotaReconciliations|FullyQualifiedName~RecoversFromSafeDockOnlyAfterThreeValidatedTitlebarReconciliations|FullyQualifiedName~UserFallbackLockKeepsAValidatedTitlebarInSafeDock|FullyQualifiedName~CompactFallbackIndicatorContainsOnlyThePercentageText|FullyQualifiedName~DragReleaseSnapsToASafeRailAndPersistsTheResult"`
+   - Failed as expected at compile time because `PlacementMode`, the presentation mode property, compact text policy, drag-snap policy, and coordinator preference constructor were absent.
+8. Green — same focused command after adding the coordinator mode/gate integration and pure compact/snap policies.
+   - Passed: 5/5 tests.
+9. Persistence red — `dotnet test plugins\codex-usage-sidebar\windows\tests\CodexUsageSidebar.Windows.Tests\CodexUsageSidebar.Windows.Tests.csproj --no-restore --filter FullyQualifiedName~DragUpdatedPreferencesArePersistedAndAppliedToTheNextReconciliation`
+   - Failed as expected: the recording store received `null` because the overlay preference event was deliberately not yet subscribed by the coordinator.
+10. Persistence green — focused coordinator/safe-dock suite after subscribing the event and updating the state machine.
+    - Passed: 6/6 tests.
+11. Regression diagnostic — full Windows test project initially failed only `HidesOverlayWhenNoCollisionFreeTitlebarSlotExists`: no-slot reconciliation returned `DeviceValidationRequired` rather than its established `Hidden` state.
+    - Root cause: the new shared unresolved handler discarded the former no-slot state distinction. The handler now accepts the caller’s unresolved state while still showing safe dock after the threshold.
+12. Regression green — `dotnet test plugins\codex-usage-sidebar\windows\tests\CodexUsageSidebar.Windows.Tests\CodexUsageSidebar.Windows.Tests.csproj --no-restore`
+    - Passed: 94/94 tests.
+13. WPF build — `dotnet build plugins\codex-usage-sidebar\windows\src\CodexUsageSidebar.Windows\CodexUsageSidebar.Windows.csproj --no-restore -f net8.0-windows10.0.19041.0`
+    - Passed: 0 warnings, 0 errors.
+14. Full solution — `dotnet test plugins\codex-usage-sidebar\windows\CodexUsageSidebar.Windows.sln --no-restore`
+    - Passed: Core 54/54, Installer 80/80, Windows 94/94 tests.
 
-Per the user-directed core-slice boundary, this commit does **not** modify `WindowsHostCoordinator` or `WpfOverlaySurface`.
+## Completion notes
 
-- The coordinator still needs to consume `CompatibilityStateMachine`, select the safe-dock frame only after the entry gate, retain an existing fallback presentation across transient scanner failures, and use the recovery gate before restoring its unchanged titlebar placement.
-- The WPF surface still needs to render the compact text-only percentage layout and send pointer drag/release events through a dedicated preference-update/persistence channel that snaps only to the top, left, and right rails without activation.
-- Runtime wiring still needs to load/save `SafeDockPreferencesStore` at the existing per-user runtime path and supply the monitor work area to the coordinator’s safe-dock request.
+- WPF’s passive-window policy is unchanged; safe-dock drag uses pointer capture and snaps only on release, without activating the overlay or persisting a free position.
+- The WPF surface refreshes safe-dock geometry from the owner monitor’s work area before drawing, so runtime placement remains work-area clamped even though core tests use injected rectangles.
 
 ## Commit
 
 `96a7df2` — `Add safe dock compatibility core`.
+
+`574c591` — `Complete automatic Windows safe dock`.
