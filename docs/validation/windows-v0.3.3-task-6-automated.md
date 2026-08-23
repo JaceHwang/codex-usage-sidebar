@@ -16,14 +16,24 @@ was present, the unrecognised-case assertion correctly failed because changing o
 `rounded-e-none` marker still left a valid square composer anchor. The fixture now removes the
 composer marker, and the focused run passes 2/2.
 
+The follow-up geometry contract test was written before the matrix supplied expected geometry.
+That focused run failed with `NullReferenceException` at the new geometry assertion because
+`expected.geometry` was absent. The matrix now provides literal sampled 200% titlebar, anchor,
+title, obstacle, and right-toolbar geometry for every structure. The test scales those independent
+expectations at 100%, 125%, 150%, and 200%, injects each English/Simplified-Chinese label through
+`UiaSemanticRoleClassifier` onto the semantic selector node, and passes the resulting node list to
+`CodexTitlebarSelector`. The focused matrix run passes 2/2.
+
 ## Automated fixture matrix
 
 `windows-v033-titlebar-matrix.json` contains three privacy-safe sampled structures: wide, narrow,
 and right-pane. Every structure exercises physical coordinate transforms at 100%, 125%, 150%, and
-200% DPI and contains English/Simplified-Chinese semantic labels. The matrix asserts a valid
-semantic/profile/titlebar outcome for recognised structures. It also removes the composer marker
-for each structure, proves resolution is rejected, and proves the compatibility state machine plus
-safe-dock resolver yields a fallback frame when live data and host geometry exist.
+200% DPI and contains English/Simplified-Chinese labels injected into the actual semantic selector
+node path. The matrix asserts literal expected toolbar, Open Location, title, obstacle, and
+right-toolbar geometry plus valid semantic/profile/titlebar outcomes for every recognised case. It
+also removes the composer marker for each structure, proves resolution is rejected, and proves the
+compatibility state machine plus safe-dock resolver yields a fallback frame when live data and host
+geometry exist.
 
 ## Automatic verification
 
@@ -41,7 +51,7 @@ safe-dock resolver yields a fallback frame when live data and host geometry exis
 ## Deliberate release gate
 
 `verify-windows-v033-setup.ps1 -CandidateDirectory .` exits nonzero with the expected message that
-Task 6 real-device validation evidence is required. This is the required outcome in this
+Task 6 must record real-device validation evidence. This is the required outcome in this
 environment, not a completed package verification. The remaining physical-device matrix is
 specified in [the real-device validation template](windows-v0.3.3-real-device-template.md); until
 every row is observed and recorded by a maintainer, formal v0.3.3 setup publication is blocked.

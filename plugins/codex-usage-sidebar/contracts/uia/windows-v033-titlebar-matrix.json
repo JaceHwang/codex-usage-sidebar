@@ -10,7 +10,21 @@
       "semanticLabels": { "en": "Open location", "zh-CN": "打开位置" },
       "dpiScales": [1.0, 1.25, 1.5, 2.0],
       "unrecognizedMarker": "h-token-button-composer",
-      "expected": { "semantic": "Valid", "profile": "Validated", "safeDock": "Titlebar" }
+      "expected": {
+        "semantic": "Valid", "profile": "Validated", "safeDock": "Titlebar",
+        "geometry": {
+          "toolbarBounds": { "x": 478, "y": 70, "width": 2522, "height": 92 },
+          "openLocationBounds": { "x": 2620, "y": 88, "width": 182, "height": 56 },
+          "titleBounds": { "x": 494, "y": 88, "width": 542, "height": 56 },
+          "rightToolbarBounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+          "obstacles": [
+            { "x": 2620, "y": 88, "width": 182, "height": 56 },
+            { "x": 2802, "y": 88, "width": 46, "height": 56 },
+            { "x": 2860, "y": 88, "width": 56, "height": 56 }
+          ],
+          "rightObstacles": []
+        }
+      }
     },
     {
       "id": "sampled-narrow-titlebar",
@@ -20,7 +34,23 @@
       "semanticLabels": { "en": "Open location", "zh-CN": "打开位置" },
       "dpiScales": [1.0, 1.25, 1.5, 2.0],
       "unrecognizedMarker": "h-token-button-composer",
-      "expected": { "semantic": "Valid", "profile": "Validated", "safeDock": "Titlebar" }
+      "expected": {
+        "semantic": "Valid", "profile": "Validated", "safeDock": "Titlebar",
+        "geometry": {
+          "toolbarBounds": { "x": 478, "y": 70, "width": 2522, "height": 92 },
+          "openLocationBounds": { "x": 2021, "y": 88, "width": 183, "height": 56 },
+          "titleBounds": { "x": 494, "y": 88, "width": 542, "height": 56 },
+          "rightToolbarBounds": { "x": 2347, "y": 70, "width": 509, "height": 92 },
+          "obstacles": [
+            { "x": 2021, "y": 88, "width": 183, "height": 56 },
+            { "x": 2203, "y": 88, "width": 47, "height": 56 },
+            { "x": 2261, "y": 88, "width": 57, "height": 56 }
+          ],
+          "rightObstacles": [
+            { "x": 2856, "y": 88, "width": 56, "height": 56 }
+          ]
+        }
+      }
     },
     {
       "id": "sampled-right-pane-titlebar",
@@ -30,7 +60,23 @@
       "semanticLabels": { "en": "Open location", "zh-CN": "打开位置" },
       "dpiScales": [1.0, 1.25, 1.5, 2.0],
       "unrecognizedMarker": "h-token-button-composer",
-      "expected": { "semantic": "Valid", "profile": "Validated", "safeDock": "Titlebar" }
+      "expected": {
+        "semantic": "Valid", "profile": "Validated", "safeDock": "Titlebar",
+        "geometry": {
+          "toolbarBounds": { "x": 478, "y": 70, "width": 2522, "height": 92 },
+          "openLocationBounds": { "x": 1069, "y": 88, "width": 183, "height": 56 },
+          "titleBounds": { "x": 494, "y": 88, "width": 533, "height": 56 },
+          "rightToolbarBounds": { "x": 1395, "y": 70, "width": 1461, "height": 92 },
+          "obstacles": [
+            { "x": 1069, "y": 88, "width": 183, "height": 56 },
+            { "x": 1251, "y": 88, "width": 47, "height": 56 },
+            { "x": 1309, "y": 88, "width": 57, "height": 56 }
+          ],
+          "rightObstacles": [
+            { "x": 2856, "y": 88, "width": 56, "height": 56 }
+          ]
+        }
+      }
     }
   ]
 }

@@ -22,19 +22,38 @@ public sealed class V033TitlebarFixtureMatrixTests
             CollectionAssert.AreEquivalent(new[] { 1d, 1.25d, 1.5d, 2d }, structure.DpiScales.ToArray());
 
             var source = LoadSourceFixture(structure.SourceFixture);
-            foreach (var dpiScale in structure.DpiScales)
+            foreach (var semanticLabel in structure.SemanticLabels)
             {
-                var transform = dpiScale / source.DpiScale;
-                var result = CodexTitlebarSelector.TryResolve(
-                    structure.BuildIdentity,
-                    dpiScale,
-                    Scale(source.HostBounds, transform),
-                    source.Nodes.Select(node => node with { Bounds = Scale(node.Bounds, transform) }).ToArray());
+                var classifiedRole = UiaSemanticRoleClassifier.Classify(semanticLabel.Value);
+                Assert.AreEqual(UiaSemanticRoles.OpenLocation, classifiedRole, structure.Id);
+                var semanticNodes = InjectOpenLocationSemanticRole(source.Nodes, classifiedRole);
 
-                Assert.IsNotNull(result, $"{structure.Id} at {dpiScale:P0} must resolve semantically.");
-                Assert.AreEqual(SemanticCompatibility.Valid, structure.Expected.Semantic);
-                Assert.AreEqual(ProfileCompatibility.Validated, structure.Expected.Profile);
-                Assert.AreEqual(SafeDockPlacement.Titlebar, structure.Expected.SafeDock);
+                foreach (var dpiScale in structure.DpiScales)
+                {
+                    var transform = dpiScale / source.DpiScale;
+                    var result = CodexTitlebarSelector.TryResolve(
+                        structure.BuildIdentity,
+                        dpiScale,
+                        Scale(source.HostBounds, transform),
+                        semanticNodes.Select(node => node with { Bounds = Scale(node.Bounds, transform) }).ToArray());
+
+                    Assert.IsNotNull(result, $"{structure.Id} {semanticLabel.Key} at {dpiScale:P0} must resolve semantically.");
+                    Assert.AreEqual(Scale(structure.Expected.Geometry.ToolbarBounds, transform), result.ToolbarBounds, structure.Id);
+                    Assert.AreEqual(Scale(structure.Expected.Geometry.OpenLocationBounds, transform), result.OpenLocationBounds, structure.Id);
+                    Assert.AreEqual(Scale(structure.Expected.Geometry.TitleBounds, transform), result.TitleBounds, structure.Id);
+                    Assert.AreEqual(Scale(structure.Expected.Geometry.RightToolbarBounds, transform), result.RightToolbarBounds, structure.Id);
+                    CollectionAssert.AreEqual(
+                        structure.Expected.Geometry.Obstacles.Select(bounds => Scale(bounds, transform)).ToArray(),
+                        result.Obstacles.ToArray(),
+                        structure.Id);
+                    CollectionAssert.AreEqual(
+                        structure.Expected.Geometry.RightObstacles.Select(bounds => Scale(bounds, transform)).ToArray(),
+                        result.RightObstacles.ToArray(),
+                        structure.Id);
+                    Assert.AreEqual(SemanticCompatibility.Valid, structure.Expected.Semantic);
+                    Assert.AreEqual(ProfileCompatibility.Validated, structure.Expected.Profile);
+                    Assert.AreEqual(SafeDockPlacement.Titlebar, structure.Expected.SafeDock);
+                }
             }
         }
     }
@@ -103,6 +122,12 @@ public sealed class V033TitlebarFixtureMatrixTests
         bounds.Width * scale,
         bounds.Height * scale);
 
+    private static IReadOnlyList<UiaStructureNode> InjectOpenLocationSemanticRole(
+        IReadOnlyList<UiaStructureNode> nodes,
+        string semanticRole) => nodes.Select(node => node.SemanticRole == UiaSemanticRoles.OpenLocation
+            ? node with { SemanticRole = semanticRole }
+            : node).ToArray();
+
     private sealed record MatrixFixture(IReadOnlyList<MatrixStructure> Structures);
     private sealed record MatrixStructure(
         string Id,
@@ -116,6 +141,14 @@ public sealed class V033TitlebarFixtureMatrixTests
     private sealed record ExpectedOutcome(
         SemanticCompatibility Semantic,
         ProfileCompatibility Profile,
-        SafeDockPlacement SafeDock);
+        SafeDockPlacement SafeDock,
+        ExpectedGeometry Geometry);
+    private sealed record ExpectedGeometry(
+        RectD ToolbarBounds,
+        RectD OpenLocationBounds,
+        RectD TitleBounds,
+        RectD RightToolbarBounds,
+        IReadOnlyList<RectD> Obstacles,
+        IReadOnlyList<RectD> RightObstacles);
     private sealed record SourceFixture(double DpiScale, RectD HostBounds, IReadOnlyList<UiaStructureNode> Nodes);
 }
