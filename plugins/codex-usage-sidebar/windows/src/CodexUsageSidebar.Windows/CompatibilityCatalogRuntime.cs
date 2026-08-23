@@ -76,8 +76,12 @@ public sealed record CompatibilityCatalogRuntime(SelectorProfileCatalog Catalog)
         try
         {
             using var document = JsonDocument.Parse(cache.Manifest);
-            if (!document.RootElement.TryGetProperty("sequence", out var sequence) || sequence.GetInt64() != cache.Sequence
+            if (!document.RootElement.TryGetProperty("sequence", out var sequence)
+                || sequence.ValueKind != JsonValueKind.Number
+                || !sequence.TryGetInt64(out var sequenceValue)
+                || sequenceValue != cache.Sequence
                 || !document.RootElement.TryGetProperty("catalogSha256", out var digest)
+                || digest.ValueKind != JsonValueKind.String
                 || !CryptographicOperations.FixedTimeEquals(Convert.FromHexString(digest.GetString() ?? string.Empty), SHA256.HashData(cache.Catalog))) return false;
             using var verifier = ECDsa.Create();
             verifier.ImportSubjectPublicKeyInfo(publicKey, out var consumed);

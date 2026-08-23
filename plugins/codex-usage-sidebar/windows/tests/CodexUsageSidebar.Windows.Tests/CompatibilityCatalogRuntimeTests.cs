@@ -32,6 +32,30 @@ public sealed class CompatibilityCatalogRuntimeTests
         Assert.IsTrue(updater.Started);
     }
 
+    [TestMethod]
+    public async Task ProductionCompositionRejectsWrongTypeManifestAndRetainsPackagedCatalogSafely()
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var configuration = CompatibilityUpdateConfiguration.Create(
+            Convert.ToBase64String(key.ExportSubjectPublicKeyInfo()),
+            "https://updates.example.test/selectors.zip");
+        var packagedCatalog = Encoding.UTF8.GetBytes(ValidCatalog("packaged-profile"));
+        var cachedCatalog = Encoding.UTF8.GetBytes(ValidCatalog("cached-profile"));
+        var malformedManifest = Encoding.UTF8.GetBytes($$"""{"sequence":"2","catalogSha256":"{{Convert.ToHexString(SHA256.HashData(cachedCatalog)).ToLowerInvariant()}}"}""");
+        var updater = new RecordingUpdater();
+
+        var composition = await WindowsCompatibilityRuntime.CreateAsync(
+            packagedCatalog,
+            configuration,
+            new InMemoryCompatibilityPackCache(new CompatibilityPackCacheEntry(
+                2, "etag", DateTimeOffset.UtcNow, cachedCatalog, malformedManifest, [1, 2, 3])),
+            updater,
+            CancellationToken.None);
+
+        Assert.AreEqual("packaged-profile", composition.Scanner.Catalog.ProfilesFor("packaged-profile").Single().BuildIdentities.Single());
+        Assert.IsTrue(updater.Started);
+    }
+
     [DataTestMethod]
     [DataRow(CacheFailureKind.IOException)]
     [DataRow(CacheFailureKind.JsonException)]
