@@ -262,7 +262,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         )
 
         let resetValue = try XCTUnwrap(
-            content.rows.first { $0.label == "Next reset" }?.value
+            content.rows.first { $0.label == "Next reset (5 hours)" }?.value
         )
         let bankValue = try XCTUnwrap(
             content.rows.first { $0.label == "Bank 1 expires" }?.value
@@ -281,7 +281,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             (resetValue as NSString).range(of: "1d").nonEmpty
         )
         let bankDigitsRange = try XCTUnwrap(
-            (bankValue as NSString).range(of: "2d6h").nonEmpty
+            (bankValue as NSString).range(of: "2d 6h").nonEmpty
         )
 
         let resetFont = try XCTUnwrap(
@@ -313,11 +313,68 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             ) as? NSColor
         )
 
+        let weeklyResetValue = try XCTUnwrap(
+            content.rows.first { $0.label == "Next reset (7 days)" }?.value
+        )
+        let weeklyResetField = try XCTUnwrap(
+            descendants(of: card)
+                .compactMap { $0 as? NSTextField }
+                .first { $0.stringValue == weeklyResetValue }
+        )
+        let weeklyDigitsRange = try XCTUnwrap(
+            (weeklyResetValue as NSString).range(of: "7d").nonEmpty
+        )
+        let weeklyColor = try XCTUnwrap(
+            weeklyResetField.attributedStringValue.attribute(
+                .foregroundColor,
+                at: weeklyDigitsRange.location,
+                effectiveRange: nil
+            ) as? NSColor
+        )
+
         XCTAssertGreaterThan(resetFont.pointSize, bankFont.pointSize)
         XCTAssertNotEqual(
             resetColor.usingColorSpace(.deviceRGB),
             bankColor.usingColorSpace(.deviceRGB)
         )
+        XCTAssertEqual(
+            resetColor.usingColorSpace(.deviceRGB),
+            QuotaColorScale.components(remainingPercent: 32)
+                .appKitColor
+                .usingColorSpace(.deviceRGB)
+        )
+        XCTAssertEqual(
+            weeklyColor.usingColorSpace(.deviceRGB),
+            QuotaColorScale.components(remainingPercent: 80)
+                .appKitColor
+                .usingColorSpace(.deviceRGB)
+        )
+    }
+
+    func testDualQuotaHeaderPlacesEachLabelAndPercentOnOneLine() throws {
+        let content = QuotaDetailFormatter().content(
+            snapshot: longBankSnapshot,
+            now: now,
+            language: .english,
+            timeZone: timeZone
+        )
+        let card = QuotaDetailCardView(
+            frame: CGRect(x: 0, y: 0, width: QuotaDetailLayout.width, height: 420),
+            content: content,
+            rowHeights: Array(repeating: QuotaDetailLayout.rowHeight, count: content.rows.count),
+            version: "0.3.3",
+            onOpenURL: { _ in }
+        )
+        let fields = descendants(of: card).compactMap { $0 as? NSTextField }
+        let primaryLabel = try XCTUnwrap(fields.first { $0.stringValue == "5 hours" })
+        let primaryPercent = try XCTUnwrap(fields.first { $0.stringValue == "32%" })
+        let weeklyLabel = try XCTUnwrap(fields.first { $0.stringValue == "7 days" })
+        let weeklyPercent = try XCTUnwrap(fields.first { $0.stringValue == "80%" })
+
+        XCTAssertEqual(primaryLabel.frame.midY, primaryPercent.frame.midY)
+        XCTAssertEqual(weeklyLabel.frame.midY, weeklyPercent.frame.midY)
+        XCTAssertEqual(primaryPercent.alignment, .right)
+        XCTAssertEqual(weeklyPercent.alignment, .right)
     }
 
     func testNarrowPanelMeasuresWrappedRowsUsingClampedCardWidth() {

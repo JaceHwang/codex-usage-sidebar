@@ -174,7 +174,11 @@ final class QuotaDetailLayoutTests: XCTestCase {
             secondaryQuotaVisible: true
         )
 
-        XCTAssertEqual(header.secondaryRemaining.height, 26)
+        XCTAssertEqual(header.secondaryRemaining.height, 28)
+        XCTAssertEqual(header.primaryLabel.midY, header.remaining.midY)
+        XCTAssertEqual(header.secondaryLabel.midY, header.secondaryRemaining.midY)
+        XCTAssertGreaterThan(header.remaining.minX, header.primaryLabel.minX)
+        XCTAssertGreaterThan(header.secondaryRemaining.minX, header.secondaryLabel.minX)
         XCTAssertLessThan(header.secondaryProgress.minY, header.progress.minY)
         XCTAssertLessThan(header.secondaryProgress.maxY, header.progress.minY)
         XCTAssertLessThan(header.secondaryProgress.maxY, header.title.minY)
@@ -189,7 +193,7 @@ final class QuotaDetailLayoutTests: XCTestCase {
 
         XCTAssertEqual(frames.title.width, 220)
         XCTAssertEqual(frames.versionBadge.maxX, 342)
-        XCTAssertEqual(frames.remaining.minX, 18)
+        XCTAssertEqual(frames.remaining.minX, 180)
     }
 
     func testLocalizedHeadersNeverOverlapBadgeOrPercentage() {

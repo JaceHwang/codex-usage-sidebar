@@ -180,18 +180,56 @@ final class OverlayPanel: NSObject {
         _ summary: ResetIndicatorSummary,
         alignment: NSTextAlignment
     ) -> NSAttributedString {
-        let label = summary.secondary.map {
-            "\(summary.primary)\n\($0)"
-        } ?? summary.primary
+        OverlayIndicatorTypography.string(
+            summary: summary,
+            alignment: alignment
+        )
+    }
+}
+
+@MainActor
+enum OverlayIndicatorTypography {
+    private static let labelColumnWidth: CGFloat = 46
+    private static let percentColumnWidth: CGFloat = 78
+
+    static func string(
+        summary: ResetIndicatorSummary,
+        alignment: NSTextAlignment
+    ) -> NSAttributedString {
+        let lines = [
+            formattedLine(
+                summary.primary,
+                remainingPercent: summary.primaryRemainingPercent
+            ),
+            summary.secondary.flatMap { secondary in
+                guard let percent = summary.secondaryRemainingPercent else {
+                    return nil
+                }
+                return formattedLine(secondary, remainingPercent: percent)
+            }
+        ].compactMap { $0 }
+        let label = lines.joined(separator: "\n")
         let result = NSMutableAttributedString(string: label)
         let fullRange = NSRange(location: 0, length: result.length)
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = alignment
         paragraph.lineBreakMode = .byClipping
         paragraph.lineSpacing = 0
+        paragraph.tabStops = [
+            NSTextTab(
+                textAlignment: .left,
+                location: labelColumnWidth,
+                options: [:]
+            ),
+            NSTextTab(
+                textAlignment: .left,
+                location: percentColumnWidth,
+                options: [:]
+            )
+        ]
         result.addAttributes(
             [
-                .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
+                .font: NSFont.systemFont(ofSize: 11, weight: .medium),
                 .foregroundColor: NSColor.labelColor,
                 .paragraphStyle: paragraph
             ],
@@ -218,7 +256,26 @@ final class OverlayPanel: NSObject {
         return result
     }
 
-    private func applyPercentStyle(
+    private static func formattedLine(
+        _ line: String,
+        remainingPercent: Int
+    ) -> String {
+        let percent = "\(remainingPercent)%"
+        guard let percentRange = line.range(of: percent) else {
+            return line
+        }
+        let window = line[..<percentRange.lowerBound]
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let date = line[percentRange.upperBound...]
+            .trimmingCharacters(
+                in: CharacterSet.whitespacesAndNewlines.union(
+                    CharacterSet(charactersIn: "·")
+                )
+            )
+        return "\(window)\t\(percent)\t\(date)"
+    }
+
+    private static func applyPercentStyle(
         to result: NSMutableAttributedString,
         label: String,
         remainingPercent: Int,
@@ -240,7 +297,7 @@ final class OverlayPanel: NSObject {
             let nsRange = NSRange(range, in: label)
             result.addAttributes(
                 [
-                    .font: NSFont.systemFont(ofSize: 14, weight: .bold),
+                    .font: NSFont.systemFont(ofSize: 12, weight: .bold),
                     .foregroundColor: QuotaColorScale.components(
                         remainingPercent: remainingPercent
                     ).appKitColor
@@ -255,6 +312,10 @@ final class OverlayPanel: NSObject {
         }
     }
 
+}
+
+@MainActor
+extension OverlayPanel {
     private func startHoverTimerIfNeeded() {
         guard hoverTimer == nil else {
             return

@@ -44,7 +44,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
             content.rows.contains(
                 .init(
                     label: "Bank 1到期时间",
-                    value: "8月1日 04:19（6d2h）"
+                    value: "6天2小时（2026/08/01 04:19）"
                 )
             )
         )
@@ -52,7 +52,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
             content.rows.contains(
                 .init(
                     label: "Bank 2到期时间",
-                    value: "8月13日 02:00（18d0h）"
+                    value: "18天0小时（2026/08/13 02:00）"
                 )
             )
         )
@@ -61,7 +61,8 @@ final class QuotaDetailFormatterTests: XCTestCase {
                 .init(
                     label: "下次重置",
                     value: "7天6小时（2026/08/02 08:00）",
-                    valueStyle: .resetCountdown
+                    valueStyle: .resetCountdown,
+                    accentRemainingPercent: 76
                 )
             )
         )
@@ -83,7 +84,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
         XCTAssertEqual(
             content.rows.map(\.label),
             [
-                "套餐", "额度周期", "下次重置",
+                "套餐", "额度周期", "下次重置（5小时）",
                 "额度周期（7天）", "下次重置（7天）",
                 "Credits", "Bank 可用重置", "数据更新"
             ]
@@ -91,9 +92,18 @@ final class QuotaDetailFormatterTests: XCTestCase {
         XCTAssertTrue(content.rows.contains(.init(label: "额度周期（7天）", value: "7 天")))
         XCTAssertTrue(content.rows.contains(
             .init(
+                label: "下次重置（5小时）",
+                value: "31天13小时（2026/08/26 14:55）",
+                valueStyle: .resetCountdown,
+                accentRemainingPercent: 85
+            )
+        ))
+        XCTAssertTrue(content.rows.contains(
+            .init(
                 label: "下次重置（7天）",
                 value: "37天6小时（2026/09/01 08:00）",
-                valueStyle: .resetCountdown
+                valueStyle: .resetCountdown,
+                accentRemainingPercent: 98
             )
         ))
     }
@@ -183,15 +193,15 @@ final class QuotaDetailFormatterTests: XCTestCase {
             [
                 .init(
                     label: "Bank 1到期时间",
-                    value: "7月26日 01:19（1m前） · 已过期"
+                    value: "<1m（2026/07/26 01:19） · 已过期"
                 ),
                 .init(
                     label: "Bank 2到期时间",
-                    value: "8月1日 04:19（6d2h）"
+                    value: "6天2小时（2026/08/01 04:19）"
                 ),
                 .init(
                     label: "Bank 3到期时间",
-                    value: "8月13日 02:00（18d0h） · 已使用"
+                    value: "18天0小时（2026/08/13 02:00） · 已使用"
                 ),
                 .init(label: "Bank 4到期时间", value: "未提供到期时间")
             ]
@@ -259,7 +269,8 @@ final class QuotaDetailFormatterTests: XCTestCase {
                 .init(
                     label: "Next reset",
                     value: "7d 6h (2026/08/02 08:00)",
-                    valueStyle: .resetCountdown
+                    valueStyle: .resetCountdown,
+                    accentRemainingPercent: 76
                 )
             )
         )
@@ -270,7 +281,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
         )
         XCTAssertTrue(
             content.rows.contains(
-                .init(label: "Bank 1 expires", value: "Aug 1, 04:19 (6d2h)")
+                .init(label: "Bank 1 expires", value: "6d 2h (2026/08/01 04:19)")
             )
         )
         XCTAssertTrue(
@@ -299,13 +310,14 @@ final class QuotaDetailFormatterTests: XCTestCase {
                 .init(
                     label: "下次重設",
                     value: "7天6小時（2026/08/02 08:00）",
-                    valueStyle: .resetCountdown
+                    valueStyle: .resetCountdown,
+                    accentRemainingPercent: 76
                 )
             )
         )
         XCTAssertTrue(
             content.rows.contains(
-                .init(label: "Bank 1到期時間", value: "8月1日 04:19（6d2h）")
+                .init(label: "Bank 1到期時間", value: "6天2小時（2026/08/01 04:19）")
             )
         )
     }

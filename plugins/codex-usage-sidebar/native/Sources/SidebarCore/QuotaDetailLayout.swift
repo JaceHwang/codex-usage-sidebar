@@ -60,7 +60,7 @@ public enum QuotaDetailLayout {
     /// Compact dimensions tuned to the native Codex popover scale.
     public static let width: CGFloat = 360
     public static let headerHeight: CGFloat = 120
-    public static let dualQuotaHeaderHeight: CGFloat = 170
+    public static let dualQuotaHeaderHeight: CGFloat = 160
     public static let rowHeight: CGFloat = 32
     public static let verticalPadding: CGFloat = 16
     public static let maximumHeight: CGFloat = 580
@@ -109,46 +109,50 @@ public enum QuotaDetailLayout {
             width: badgeWidth,
             height: 22
         )
+        let quotaWidth = max(0, bounds.width - contentHorizontalInset * 2)
+        let quotaLabelWidth = floor(quotaWidth * 0.5)
+        let quotaValueX = bounds.minX + contentHorizontalInset + quotaLabelWidth
+        let quotaValueWidth = max(0, quotaWidth - quotaLabelWidth)
         let primaryLabel = CGRect(
             x: bounds.minX + contentHorizontalInset,
-            y: bounds.maxY - 78,
-            width: max(0, bounds.width - contentHorizontalInset * 2),
+            y: bounds.maxY - 82,
+            width: quotaLabelWidth,
             height: 20
         )
         let remaining = CGRect(
-            x: bounds.minX + contentHorizontalInset,
-            y: bounds.maxY - 104,
-            width: max(0, bounds.width - contentHorizontalInset * 2),
-            height: 34
+            x: quotaValueX,
+            y: bounds.maxY - 86,
+            width: quotaValueWidth,
+            height: 28
         )
         let progress = CGRect(
             x: bounds.minX + contentHorizontalInset,
-            y: bounds.maxY - 111,
-            width: max(0, bounds.width - contentHorizontalInset * 2),
+            y: bounds.maxY - 99,
+            width: quotaWidth,
             height: 6
         )
         let secondaryLabel = secondaryQuotaVisible
             ? CGRect(
                 x: bounds.minX + contentHorizontalInset,
-                y: bounds.maxY - 137,
-                width: max(0, bounds.width - contentHorizontalInset * 2),
+                y: bounds.maxY - 119,
+                width: quotaLabelWidth,
                 height: 20
             )
             : .zero
         let secondaryRemaining = secondaryQuotaVisible
             ? CGRect(
-                x: bounds.minX + contentHorizontalInset,
-                y: bounds.maxY - 159,
-                width: max(0, bounds.width - contentHorizontalInset * 2),
-                height: 26
+                x: quotaValueX,
+                y: bounds.maxY - 123,
+                width: quotaValueWidth,
+                height: 28
             )
             : .zero
         let secondaryProgress = secondaryQuotaVisible
             ? CGRect(
                 x: bounds.minX + contentHorizontalInset,
-                y: bounds.maxY - 166,
-                width: max(0, bounds.width - contentHorizontalInset * 2),
-                height: 5
+                y: bounds.maxY - 136,
+                width: quotaWidth,
+                height: 6
             )
             : .zero
         return QuotaDetailHeaderFrames(

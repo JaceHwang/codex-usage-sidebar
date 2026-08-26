@@ -169,7 +169,7 @@ final class QuotaDetailCardView: NSView {
             color: QuotaColorScale.components(
                 remainingPercent: content.remainingPercent
             ).appKitColor,
-            alignment: .left
+            alignment: .right
         )
         let headerFrames = QuotaDetailLayout.headerFrames(
             in: bounds,
@@ -192,7 +192,7 @@ final class QuotaDetailCardView: NSView {
             let primaryWindowLabel = label(
                 primaryWindow.label,
                 font: .systemFont(ofSize: 14, weight: .medium),
-                color: .secondaryLabelColor,
+                color: .labelColor,
                 alignment: .left
             )
             primaryWindowLabel.frame = headerFrames.primaryLabel
@@ -214,7 +214,7 @@ final class QuotaDetailCardView: NSView {
             let secondaryWindowLabel = label(
                 secondaryWindow.label,
                 font: .systemFont(ofSize: 14, weight: .medium),
-                color: .secondaryLabelColor,
+                color: .labelColor,
                 alignment: .left
             )
             secondaryWindowLabel.frame = headerFrames.secondaryLabel
@@ -226,7 +226,7 @@ final class QuotaDetailCardView: NSView {
                 color: QuotaColorScale.components(
                     remainingPercent: secondaryWindow.remainingPercent
                 ).appKitColor,
-                alignment: .left
+                alignment: .right
             )
             secondaryRemaining.frame = headerFrames.secondaryRemaining
             addSubview(secondaryRemaining)
@@ -334,7 +334,7 @@ final class QuotaDetailCardView: NSView {
             )
             value.attributedStringValue = QuotaDetailValueTypography.string(
                 for: row,
-                remainingPercent: content.remainingPercent
+                remainingPercent: row.accentRemainingPercent ?? content.remainingPercent
             )
             if isStacked {
                 let valueHeight = rowHeight - 18

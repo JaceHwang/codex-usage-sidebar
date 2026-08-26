@@ -9,15 +9,18 @@ public struct QuotaDetailRow: Equatable, Sendable {
     public let label: String
     public let value: String
     public let valueStyle: QuotaDetailRowValueStyle
+    public let accentRemainingPercent: Int?
 
     public init(
         label: String,
         value: String,
-        valueStyle: QuotaDetailRowValueStyle = .standard
+        valueStyle: QuotaDetailRowValueStyle = .standard,
+        accentRemainingPercent: Int? = nil
     ) {
         self.label = label
         self.value = value
         self.valueStyle = valueStyle
+        self.accentRemainingPercent = accentRemainingPercent
     }
 }
 
@@ -122,7 +125,6 @@ public struct QuotaDetailFormatter: Sendable {
     private static let tiboProfileURL = URL(
         string: "https://x.com/thsottiaux"
     )!
-    private let relativeIntervalFormatter = RelativeIntervalFormatter()
     private let resetCountdownFormatter = QuotaResetCountdownFormatter()
 
     public init() {}
@@ -152,14 +154,15 @@ public struct QuotaDetailFormatter: Sendable {
         }
         rows.append(
             .init(
-                label: copy.nextReset,
+                label: primaryResetLabel(snapshot: snapshot, copy: copy),
                 value: displayReset(
                     snapshot.resetsAt,
                     now: now,
                     copy: copy,
                     timeZone: timeZone
                 ),
-                valueStyle: .resetCountdown
+                valueStyle: .resetCountdown,
+                accentRemainingPercent: snapshot.remainingPercent
             )
         )
         if let secondary = snapshot.secondary {
@@ -178,7 +181,8 @@ public struct QuotaDetailFormatter: Sendable {
                         copy: copy,
                         timeZone: timeZone
                     ),
-                    valueStyle: .resetCountdown
+                    valueStyle: .resetCountdown,
+                    accentRemainingPercent: secondary.remainingPercent
                 )
             )
         }
@@ -286,6 +290,16 @@ public struct QuotaDetailFormatter: Sendable {
         value.prefix(1).uppercased() + value.dropFirst()
     }
 
+    private func primaryResetLabel(
+        snapshot: AllowanceSnapshot,
+        copy: QuotaLocalization
+    ) -> String {
+        guard let minutes = snapshot.windowDurationMins, minutes <= 300 else {
+            return copy.nextReset
+        }
+        return copy.primaryNextReset
+    }
+
     private func displayCredits(
         _ credits: CreditBalance?,
         copy: QuotaLocalization
@@ -300,35 +314,6 @@ public struct QuotaDetailFormatter: Sendable {
             return credits.balance ?? copy.available
         }
         return copy.none
-    }
-
-    private func displayDate(
-        _ date: Date,
-        copy: QuotaLocalization,
-        timeZone: TimeZone
-    ) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = copy.locale
-        formatter.timeZone = timeZone
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.dateFormat = copy.detailDateFormat
-        return formatter.string(from: date)
-    }
-
-    private func displayDateWithInterval(
-        _ date: Date,
-        now: Date,
-        copy: QuotaLocalization,
-        timeZone: TimeZone
-    ) -> String {
-        let absolute = displayDate(date, copy: copy, timeZone: timeZone)
-        let relative = relativeIntervalFormatter.string(
-            from: now,
-            to: date,
-            language: copy.language
-        )
-        return "\(absolute)\(copy.openingParenthesis)\(relative)" +
-            copy.closingParenthesis
     }
 
     private func displayReset(
@@ -430,7 +415,7 @@ public struct QuotaDetailFormatter: Sendable {
                 return copy.noExpiry
             }
         }
-        let expiryDescription = displayDateWithInterval(
+        let expiryDescription = displayReset(
             expiry,
             now: now,
             copy: copy,

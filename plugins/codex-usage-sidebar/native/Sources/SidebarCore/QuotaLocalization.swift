@@ -82,6 +82,14 @@ public struct QuotaLocalization: Sendable {
         }
     }
 
+    public var primaryNextReset: String {
+        switch language {
+        case .simplifiedChinese: "下次重置（5小时）"
+        case .traditionalChinese: "下次重設（5小時）"
+        case .english: "Next reset (5 hours)"
+        }
+    }
+
     public var bankAvailable: String {
         switch language {
         case .simplifiedChinese: "Bank 可用重置"
