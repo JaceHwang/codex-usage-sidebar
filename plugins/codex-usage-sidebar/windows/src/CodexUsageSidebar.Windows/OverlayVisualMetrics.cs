@@ -2,11 +2,12 @@ namespace CodexUsageSidebar.Windows;
 
 public static class OverlayVisualMetrics
 {
-    public const double IndicatorTextWidth = 124;
+    public const double IndicatorTextWidth = 168;
     public const double IndicatorLogoSize = 20;
     public const double IndicatorLogoTextGap = 4;
     public const double IndicatorContentWidth = IndicatorTextWidth + IndicatorLogoSize + IndicatorLogoTextGap;
     public const double IndicatorHeight = 28;
+    public const double IndicatorTextFontSize = 11;
     public const double IndicatorHorizontalPadding = IndicatorHeight / 3;
     public const double IndicatorWidth = IndicatorContentWidth + (2 * IndicatorHorizontalPadding);
     public const double DetailWidth = 360;

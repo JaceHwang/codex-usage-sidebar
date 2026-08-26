@@ -70,8 +70,9 @@ final class OverlayPanel: NSObject {
         textField.isEditable = false
         textField.isSelectable = false
         textField.lineBreakMode = .byClipping
-        textField.maximumNumberOfLines = 1
-        textField.alignment = .right
+        textField.maximumNumberOfLines = 2
+        textField.usesSingleLineMode = false
+        textField.alignment = .left
 
         guard let contentView = panel.contentView else {
             return
@@ -92,7 +93,7 @@ final class OverlayPanel: NSObject {
 
     func show(
         snapshot: AllowanceSnapshot,
-        label: String,
+        summary: ResetIndicatorSummary,
         indicatorFrame: CGRect,
         theme: CodexInterfaceTheme,
         detail: QuotaDetailContent,
@@ -105,10 +106,9 @@ final class OverlayPanel: NSObject {
         indicatorIconView.updateAppearance(appearance)
         textField.appearance = appearance
         appearance.performAsCurrentDrawingAppearance {
-            textField.attributedStringValue = attributedLabel(
-                label,
-                remainingPercent: snapshot.remainingPercent,
-                alignment: .center
+            textField.attributedStringValue = attributedSummary(
+                summary,
+                alignment: .left
             )
         }
         latestDetail = detail
@@ -143,13 +143,16 @@ final class OverlayPanel: NSObject {
         startHoverTimerIfNeeded()
     }
 
-    func preferredIndicatorWidth(label: String, remainingPercent: Int) -> CGFloat {
-        let measuredLabel = attributedLabel(
-            label,
-            remainingPercent: remainingPercent,
-            alignment: .left
-        ).size().width
-        return OverlayLayout.indicatorWidth(for: measuredLabel)
+    func preferredIndicatorWidth(summary: ResetIndicatorSummary) -> CGFloat {
+        let attributed = attributedSummary(summary, alignment: .left)
+        let measuredWidth = attributed.boundingRect(
+            with: CGSize(
+                width: CGFloat.greatestFiniteMagnitude,
+                height: CGFloat.greatestFiniteMagnitude
+            ),
+            options: [.usesLineFragmentOrigin, .usesFontLeading]
+        ).width
+        return OverlayLayout.indicatorWidth(for: measuredWidth)
     }
 
     func hide() {
@@ -173,16 +176,19 @@ final class OverlayPanel: NSObject {
         panel.orderFrontRegardless()
     }
 
-    private func attributedLabel(
-        _ label: String,
-        remainingPercent: Int,
+    private func attributedSummary(
+        _ summary: ResetIndicatorSummary,
         alignment: NSTextAlignment
     ) -> NSAttributedString {
+        let label = summary.secondary.map {
+            "\(summary.primary)\n\($0)"
+        } ?? summary.primary
         let result = NSMutableAttributedString(string: label)
         let fullRange = NSRange(location: 0, length: result.length)
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = alignment
         paragraph.lineBreakMode = .byClipping
+        paragraph.lineSpacing = 0
         result.addAttributes(
             [
                 .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
@@ -192,8 +198,46 @@ final class OverlayPanel: NSObject {
             range: fullRange
         )
 
-        if let percentRange = label.range(of: "\(remainingPercent)%") {
-            let range = NSRange(percentRange, in: label)
+        applyPercentStyle(
+            to: result,
+            label: label,
+            remainingPercent: summary.primaryRemainingPercent,
+            searchStart: label.startIndex
+        )
+        if summary.secondary != nil,
+           let secondaryPercent = summary.secondaryRemainingPercent,
+           let newline = label.firstIndex(of: "\n")
+        {
+            applyPercentStyle(
+                to: result,
+                label: label,
+                remainingPercent: secondaryPercent,
+                searchStart: label.index(after: newline)
+            )
+        }
+        return result
+    }
+
+    private func applyPercentStyle(
+        to result: NSMutableAttributedString,
+        label: String,
+        remainingPercent: Int,
+        searchStart: String.Index
+    ) {
+        let target = "\(remainingPercent)%"
+        var searchRange = NSRange(
+            searchStart..<label.endIndex,
+            in: label
+        )
+        while searchRange.location != NSNotFound,
+              searchRange.location < result.length,
+              let range = label.range(
+                  of: target,
+                  options: [],
+                  range: Range(searchRange, in: label)
+              )
+        {
+            let nsRange = NSRange(range, in: label)
             result.addAttributes(
                 [
                     .font: NSFont.systemFont(ofSize: 14, weight: .bold),
@@ -201,10 +245,14 @@ final class OverlayPanel: NSObject {
                         remainingPercent: remainingPercent
                     ).appKitColor
                 ],
-                range: range
+                range: nsRange
+            )
+            let nextLocation = nsRange.location + nsRange.length
+            searchRange = NSRange(
+                location: nextLocation,
+                length: max(0, result.length - nextLocation)
             )
         }
-        return result
     }
 
     private func startHoverTimerIfNeeded() {

@@ -74,6 +74,16 @@ public struct QuotaTokenUsagePresentation: Equatable, Sendable {
     }
 }
 
+public struct QuotaWindowPresentation: Equatable, Sendable {
+    public let label: String
+    public let remainingPercent: Int
+
+    public init(label: String, remainingPercent: Int) {
+        self.label = label
+        self.remainingPercent = remainingPercent
+    }
+}
+
 public struct QuotaDetailContent: Equatable, Sendable {
     public let title: String
     public let remainingPercent: Int
@@ -82,6 +92,7 @@ public struct QuotaDetailContent: Equatable, Sendable {
     public let footerAvatarURL: URL?
     public let informationEntry: QuotaInformationEntry
     public let tokenUsage: QuotaTokenUsagePresentation?
+    public let quotaWindows: [QuotaWindowPresentation]
     public let rows: [QuotaDetailRow]
 
     public init(
@@ -92,6 +103,7 @@ public struct QuotaDetailContent: Equatable, Sendable {
         footerAvatarURL: URL? = nil,
         informationEntry: QuotaInformationEntry,
         tokenUsage: QuotaTokenUsagePresentation? = nil,
+        quotaWindows: [QuotaWindowPresentation] = [],
         rows: [QuotaDetailRow]
     ) {
         self.title = title
@@ -101,6 +113,7 @@ public struct QuotaDetailContent: Equatable, Sendable {
         self.footerAvatarURL = footerAvatarURL
         self.informationEntry = informationEntry
         self.tokenUsage = tokenUsage
+        self.quotaWindows = quotaWindows
         self.rows = rows
     }
 }
@@ -149,6 +162,26 @@ public struct QuotaDetailFormatter: Sendable {
                 valueStyle: .resetCountdown
             )
         )
+        if let secondary = snapshot.secondary {
+            rows.append(
+                .init(
+                    label: copy.secondaryQuotaWindow,
+                    value: copy.period(minutes: secondary.windowDurationMins ?? 10_080)
+                )
+            )
+            rows.append(
+                .init(
+                    label: copy.secondaryNextReset,
+                    value: displayReset(
+                        secondary.resetsAt,
+                        now: now,
+                        copy: copy,
+                        timeZone: timeZone
+                    ),
+                    valueStyle: .resetCountdown
+                )
+            )
+        }
         rows.append(
             .init(
                 label: "Credits",
@@ -211,6 +244,10 @@ public struct QuotaDetailFormatter: Sendable {
             )
         )
 
+        let primaryWindowLabel = snapshot.windowDurationMins.map {
+            copy.period(minutes: $0)
+        } ?? copy.primaryQuotaWindow
+
         return QuotaDetailContent(
             title: copy.title,
             remainingPercent: snapshot.remainingPercent,
@@ -229,6 +266,18 @@ public struct QuotaDetailFormatter: Sendable {
                 copy: copy,
                 timeZone: timeZone
             ),
+            quotaWindows: [
+                QuotaWindowPresentation(
+                    label: primaryWindowLabel,
+                    remainingPercent: snapshot.remainingPercent
+                ),
+                snapshot.secondary.map {
+                    QuotaWindowPresentation(
+                        label: copy.secondaryQuotaWindowValue,
+                        remainingPercent: $0.remainingPercent
+                    )
+                }
+            ].compactMap { $0 },
             rows: rows
         )
     }

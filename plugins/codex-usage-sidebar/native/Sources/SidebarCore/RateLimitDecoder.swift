@@ -79,6 +79,7 @@ public enum RateLimitDecoder {
         let planType = bucket["planType"] as? String
         let credits = decodeCredits(bucket["credits"])
         let bank = decodeBank(container["rateLimitResetCredits"])
+        let secondary = decodeWindow(dictionary(bucket["secondary"]))
 
         return AllowanceSnapshot(
             usedPercent: usedPercent,
@@ -88,7 +89,30 @@ public enum RateLimitDecoder {
             windowDurationMins: windowDurationMins,
             planType: planType,
             credits: credits,
-            bank: bank
+            bank: bank,
+            secondary: secondary
+        )
+    }
+
+    private static func decodeWindow(
+        _ window: [String: Any]?
+    ) -> QuotaWindowSnapshot? {
+        guard
+            let window,
+            let usedPercent = double(window["usedPercent"]),
+            let resetTimestamp = double(window["resetsAt"]),
+            usedPercent.isFinite,
+            resetTimestamp.isFinite,
+            resetTimestamp > 0
+        else {
+            return nil
+        }
+        let clampedRemaining = min(100.0, max(0.0, 100.0 - usedPercent))
+        return QuotaWindowSnapshot(
+            usedPercent: usedPercent,
+            remainingPercent: Int(clampedRemaining.rounded()),
+            resetsAt: Date(timeIntervalSince1970: resetTimestamp),
+            windowDurationMins: integer(window["windowDurationMins"])
         )
     }
 

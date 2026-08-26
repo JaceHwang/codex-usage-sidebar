@@ -10,7 +10,7 @@ public sealed class EmbeddedReleaseInstallerMetadataTests
         var parsed = EmbeddedReleaseInstallerMetadata.TryCreate(metadata);
 
         Assert.IsNotNull(parsed);
-        Assert.AreEqual("0.3.2", parsed.Version);
+        Assert.AreEqual("0.3.3", parsed.Version);
         Assert.AreEqual("0123456789abcdef0123456789abcdef01234567", parsed.SourceCommit);
         Assert.AreEqual("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", parsed.PayloadManifestSha256);
 
@@ -24,7 +24,7 @@ public sealed class EmbeddedReleaseInstallerMetadataTests
 
     private static Dictionary<string, string?> CompleteMetadata() => new(StringComparer.Ordinal)
     {
-        [EmbeddedReleaseInstallerMetadata.VersionKey] = "0.3.2",
+        [EmbeddedReleaseInstallerMetadata.VersionKey] = "0.3.3",
         [EmbeddedReleaseInstallerMetadata.SourceCommitKey] = "0123456789abcdef0123456789abcdef01234567",
         [EmbeddedReleaseInstallerMetadata.PayloadManifestSha256Key] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         [EmbeddedReleaseInstallerMetadata.CodexRuntimeSourceKey] = "https://github.com/openai/codex/releases/download/test/codex.exe",

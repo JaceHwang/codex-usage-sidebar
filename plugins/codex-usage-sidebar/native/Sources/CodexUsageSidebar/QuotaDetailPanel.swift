@@ -106,7 +106,8 @@ struct QuotaDetailPanelResolvedLayout {
             indicatorFrame: indicatorFrame,
             rowContentHeight: 0,
             visibleFrame: visibleFrame,
-            tokenUsageVisible: content.tokenUsage != nil
+            tokenUsageVisible: content.tokenUsage != nil,
+            secondaryQuotaVisible: content.quotaWindows.count > 1
         )
         let rowHeights = QuotaDetailRowMetrics.heights(
             for: content.rows,
@@ -117,7 +118,8 @@ struct QuotaDetailPanelResolvedLayout {
             indicatorFrame: indicatorFrame,
             rowContentHeight: rowHeights.reduce(0, +),
             visibleFrame: visibleFrame,
-            tokenUsageVisible: content.tokenUsage != nil
+            tokenUsageVisible: content.tokenUsage != nil,
+            secondaryQuotaVisible: content.quotaWindows.count > 1
         )
         return QuotaDetailPanelResolvedLayout(
             frame: frame,
@@ -159,6 +161,7 @@ final class QuotaDetailCardView: NSView {
             ) as? String ?? "dev"
         )
         let versionBadge = VersionBadgeView(text: "v\(displayedVersion)")
+        let secondaryQuotaVisible = content.quotaWindows.count > 1
 
         let remaining = label(
             "\(content.remainingPercent)%",
@@ -174,7 +177,8 @@ final class QuotaDetailCardView: NSView {
                 intrinsicWidth: title.intrinsicContentSize.width,
                 fittingWidth: title.fittingSize.width
             ),
-            versionBadgeWidth: versionBadge.intrinsicContentSize.width
+            versionBadgeWidth: versionBadge.intrinsicContentSize.width,
+            secondaryQuotaVisible: secondaryQuotaVisible
         )
         let themeIcon = QuotaThemeIconView(frame: CGRect(
             x: QuotaDetailLayout.contentHorizontalInset,
@@ -184,6 +188,16 @@ final class QuotaDetailCardView: NSView {
         ))
         title.frame = headerFrames.title
         versionBadge.frame = headerFrames.versionBadge
+        if let primaryWindow = content.quotaWindows.first {
+            let primaryWindowLabel = label(
+                primaryWindow.label,
+                font: .systemFont(ofSize: 14, weight: .medium),
+                color: .secondaryLabelColor,
+                alignment: .left
+            )
+            primaryWindowLabel.frame = headerFrames.primaryLabel
+            addSubview(primaryWindowLabel)
+        }
         remaining.frame = headerFrames.remaining
         addSubview(themeIcon)
         addSubview(title)
@@ -196,9 +210,38 @@ final class QuotaDetailCardView: NSView {
         )
         addSubview(progress)
 
+        if let secondaryWindow = content.quotaWindows.dropFirst().first {
+            let secondaryWindowLabel = label(
+                secondaryWindow.label,
+                font: .systemFont(ofSize: 14, weight: .medium),
+                color: .secondaryLabelColor,
+                alignment: .left
+            )
+            secondaryWindowLabel.frame = headerFrames.secondaryLabel
+            addSubview(secondaryWindowLabel)
+
+            let secondaryRemaining = label(
+                "\(secondaryWindow.remainingPercent)%",
+                font: .systemFont(ofSize: 24, weight: .semibold),
+                color: QuotaColorScale.components(
+                    remainingPercent: secondaryWindow.remainingPercent
+                ).appKitColor,
+                alignment: .left
+            )
+            secondaryRemaining.frame = headerFrames.secondaryRemaining
+            addSubview(secondaryRemaining)
+
+            let secondaryProgress = QuotaProgressView(
+                frame: headerFrames.secondaryProgress,
+                value: secondaryWindow.remainingPercent
+            )
+            addSubview(secondaryProgress)
+        }
+
         let informationFrames = QuotaDetailLayout.informationFrames(
             in: bounds,
-            tokenUsageVisible: content.tokenUsage != nil
+            tokenUsageVisible: content.tokenUsage != nil,
+            secondaryQuotaVisible: secondaryQuotaVisible
         )
         let topDivider = NSBox(
             frame: informationFrames.topDivider
@@ -253,7 +296,8 @@ final class QuotaDetailCardView: NSView {
             let isStacked = rowHeight > QuotaDetailLayout.rowHeight
             let icon = QuotaDetailIconView(
                 kind: QuotaDetailIconKind.kind(
-                    forRowAt: index,
+                    forRowLabel: row.label,
+                    index: index,
                     count: content.rows.count
                 )
             )

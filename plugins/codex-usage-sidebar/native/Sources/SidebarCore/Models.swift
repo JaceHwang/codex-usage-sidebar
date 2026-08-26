@@ -44,15 +44,37 @@ public struct BankResetSummary: Equatable, Sendable {
     }
 }
 
-public struct AllowanceSnapshot: Equatable, Sendable {
+public struct QuotaWindowSnapshot: Equatable, Sendable {
     public let usedPercent: Double
     public let remainingPercent: Int
     public let resetsAt: Date
-    public let receivedAt: Date
     public let windowDurationMins: Int?
+
+    public init(
+        usedPercent: Double,
+        remainingPercent: Int,
+        resetsAt: Date,
+        windowDurationMins: Int?
+    ) {
+        self.usedPercent = usedPercent
+        self.remainingPercent = remainingPercent
+        self.resetsAt = resetsAt
+        self.windowDurationMins = windowDurationMins
+    }
+}
+
+public struct AllowanceSnapshot: Equatable, Sendable {
+    public let primary: QuotaWindowSnapshot
+    public let secondary: QuotaWindowSnapshot?
+    public let receivedAt: Date
     public let planType: String?
     public let credits: CreditBalance?
     public let bank: BankResetSummary?
+
+    public var usedPercent: Double { primary.usedPercent }
+    public var remainingPercent: Int { primary.remainingPercent }
+    public var resetsAt: Date { primary.resetsAt }
+    public var windowDurationMins: Int? { primary.windowDurationMins }
 
     public init(
         usedPercent: Double,
@@ -62,13 +84,33 @@ public struct AllowanceSnapshot: Equatable, Sendable {
         windowDurationMins: Int? = nil,
         planType: String? = nil,
         credits: CreditBalance? = nil,
+        bank: BankResetSummary? = nil,
+        secondary: QuotaWindowSnapshot? = nil
+    ) {
+        primary = QuotaWindowSnapshot(
+            usedPercent: usedPercent,
+            remainingPercent: remainingPercent,
+            resetsAt: resetsAt,
+            windowDurationMins: windowDurationMins
+        )
+        self.secondary = secondary
+        self.receivedAt = receivedAt
+        self.planType = planType
+        self.credits = credits
+        self.bank = bank
+    }
+
+    public init(
+        primary: QuotaWindowSnapshot,
+        secondary: QuotaWindowSnapshot?,
+        receivedAt: Date,
+        planType: String? = nil,
+        credits: CreditBalance? = nil,
         bank: BankResetSummary? = nil
     ) {
-        self.usedPercent = usedPercent
-        self.remainingPercent = remainingPercent
-        self.resetsAt = resetsAt
+        self.primary = primary
+        self.secondary = secondary
         self.receivedAt = receivedAt
-        self.windowDurationMins = windowDurationMins
         self.planType = planType
         self.credits = credits
         self.bank = bank
@@ -86,7 +128,8 @@ public struct AllowanceSnapshot: Equatable, Sendable {
             windowDurationMins: windowDurationMins ?? previous.windowDurationMins,
             planType: planType ?? previous.planType,
             credits: credits ?? previous.credits,
-            bank: bank ?? previous.bank
+            bank: bank ?? previous.bank,
+            secondary: secondary ?? previous.secondary
         )
     }
 }

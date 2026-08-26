@@ -165,6 +165,21 @@ final class QuotaDetailLayoutTests: XCTestCase {
         )
     }
 
+    func testDualQuotaHeaderStacksPrimaryAndSecondaryProgressBars() {
+        let bounds = CGRect(x: 0, y: 0, width: 360, height: 320)
+        let header = QuotaDetailLayout.headerFrames(
+            in: bounds,
+            titleWidth: 180,
+            versionBadgeWidth: 48,
+            secondaryQuotaVisible: true
+        )
+
+        XCTAssertEqual(header.secondaryRemaining.height, 26)
+        XCTAssertLessThan(header.secondaryProgress.minY, header.progress.minY)
+        XCTAssertLessThan(header.secondaryProgress.maxY, header.progress.minY)
+        XCTAssertLessThan(header.secondaryProgress.maxY, header.title.minY)
+    }
+
     func testHeaderTruncatesLongTitleBeforeVersionAndRemaining() {
         let frames = QuotaDetailLayout.headerFrames(
             in: CGRect(x: 0, y: 0, width: 360, height: 300),

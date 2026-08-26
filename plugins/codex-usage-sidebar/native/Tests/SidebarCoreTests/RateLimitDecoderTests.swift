@@ -30,6 +30,39 @@ final class RateLimitDecoderTests: XCTestCase {
         XCTAssertEqual(snapshot.receivedAt, receivedAt)
     }
 
+    func testDecodesFiveHourPrimaryAndWeeklySecondaryBuckets() throws {
+        let data = Data(
+            """
+            {
+              "rateLimits": {
+                "limitId": "codex",
+                "primary": {
+                  "usedPercent": 15,
+                  "windowDurationMins": 300,
+                  "resetsAt": 1787727330
+                },
+                "secondary": {
+                  "usedPercent": 2,
+                  "windowDurationMins": 10080,
+                  "resetsAt": 1788276999
+                }
+              }
+            }
+            """.utf8
+        )
+
+        let snapshot = try RateLimitDecoder.decodeResponse(data, receivedAt: receivedAt)
+
+        XCTAssertEqual(snapshot.windowDurationMins, 300)
+        XCTAssertEqual(snapshot.remainingPercent, 85)
+        XCTAssertEqual(snapshot.secondary?.windowDurationMins, 10080)
+        XCTAssertEqual(snapshot.secondary?.remainingPercent, 98)
+        XCTAssertEqual(
+            snapshot.secondary?.resetsAt,
+            Date(timeIntervalSince1970: 1_788_276_999)
+        )
+    }
+
     func testPrefersCodexMultiBucket() throws {
         let data = Data(
             """

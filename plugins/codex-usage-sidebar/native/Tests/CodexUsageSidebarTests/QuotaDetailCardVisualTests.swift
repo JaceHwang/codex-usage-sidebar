@@ -45,7 +45,8 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             )
             let cardHeight = QuotaDetailLayout.contentHeight(
                 rowContentHeight: rowHeights.reduce(0, +),
-                tokenUsageVisible: true
+                tokenUsageVisible: true,
+                secondaryQuotaVisible: content.quotaWindows.count > 1
             )
 
             for (appearanceName, appearance) in appearances {
@@ -60,7 +61,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                         ),
                         content: content,
                         rowHeights: rowHeights,
-                        version: "0.3.2",
+                        version: "0.3.3",
                         onOpenURL: { _ in }
                     )
                     renderedCard?.appearance = appearance
@@ -178,7 +179,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             ),
             content: content,
             rowHeights: rowHeights,
-            version: "0.3.2",
+            version: "0.3.3",
             onOpenURL: { _ in }
         )
         card.layoutSubtreeIfNeeded()
@@ -228,7 +229,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             ),
             content: content,
             rowHeights: rowHeights,
-            version: "0.3.2",
+            version: "0.3.3",
             onOpenURL: { _ in }
         )
 
@@ -366,7 +367,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                 repeating: QuotaDetailLayout.rowHeight,
                 count: content.rows.count
             ),
-            version: "0.3.2",
+            version: "0.3.3",
             onOpenURL: { _ in }
         )
         card.layoutSubtreeIfNeeded()
@@ -423,7 +424,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             remainingPercent: 32,
             resetsAt: now.addingTimeInterval(86_400),
             receivedAt: now.addingTimeInterval(-20),
-            windowDurationMins: 10_080,
+            windowDurationMins: 300,
             planType: "plus",
             credits: CreditBalance(
                 hasCredits: true,
@@ -445,6 +446,12 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                         description: nil
                     )
                 }
+            ),
+            secondary: QuotaWindowSnapshot(
+                usedPercent: 20,
+                remainingPercent: 80,
+                resetsAt: now.addingTimeInterval(7 * 86_400),
+                windowDurationMins: 10_080
             )
         )
     }

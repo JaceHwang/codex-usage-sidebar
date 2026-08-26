@@ -75,7 +75,7 @@ public sealed class HostCoordinatorTests
 
         Assert.AreSame(usage, overlay.LastPresentation?.TokenUsage);
         Assert.AreSame(account, overlay.LastPresentation?.Account);
-        Assert.AreEqual("0.3.2", overlay.LastPresentation?.Version);
+        Assert.AreEqual("0.3.3", overlay.LastPresentation?.Version);
     }
 
     [TestMethod]
@@ -343,14 +343,14 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
-    public void OverlayVisualMetricsMatchTheMacOsV023Baseline()
+    public void OverlayVisualMetricsMatchTheDualQuotaTitlebarBaseline()
     {
-        Assert.AreEqual(148, OverlayVisualMetrics.IndicatorContentWidth, 0.000001);
-        Assert.AreEqual(124, OverlayVisualMetrics.IndicatorTextWidth, 0.000001);
+        Assert.AreEqual(192, OverlayVisualMetrics.IndicatorContentWidth, 0.000001);
+        Assert.AreEqual(168, OverlayVisualMetrics.IndicatorTextWidth, 0.000001);
         Assert.AreEqual(20, OverlayVisualMetrics.IndicatorLogoSize, 0.000001);
         Assert.AreEqual(4, OverlayVisualMetrics.IndicatorLogoTextGap, 0.000001);
-        Assert.AreEqual(148 + (2 * (28d / 3d)), OverlayVisualMetrics.IndicatorWidth, 0.000001);
-        Assert.AreEqual(148 + (2 * (56d / 3d)), OverlayVisualMetrics.IndicatorWidthForHeight(56), 0.000001);
+        Assert.AreEqual(192 + (2 * (28d / 3d)), OverlayVisualMetrics.IndicatorWidth, 0.000001);
+        Assert.AreEqual(192 + (2 * (56d / 3d)), OverlayVisualMetrics.IndicatorWidthForHeight(56), 0.000001);
         Assert.AreEqual(28d / 3d, OverlayVisualMetrics.IndicatorHorizontalPadding, 0.000001);
         Assert.AreEqual(360, OverlayVisualMetrics.DetailWidth);
         Assert.AreEqual(18, OverlayVisualMetrics.HeaderTitleFontSize);

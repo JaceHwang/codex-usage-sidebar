@@ -15,7 +15,7 @@ public sealed class EmbeddedReleaseInstallerPlanTests
             @"C:\Users\fixture\AppData\Local",
             "x64",
             22_000,
-            "0.3.2",
+            "0.3.3",
             Commit,
             ManifestSha256,
             RuntimeSource,
@@ -23,7 +23,7 @@ public sealed class EmbeddedReleaseInstallerPlanTests
 
         Assert.AreEqual(@"C:\Users\fixture\AppData\Local\CodexUsageSidebar\SetupStaging", plan.PrivateStageParent);
         Assert.AreEqual(@"C:\Users\fixture\AppData\Local\CodexUsageSidebar\Current\CodexUsageSidebar.Windows.exe", plan.ManagedHostExecutable);
-        Assert.AreEqual("0.3.2", plan.TrustedIdentity.Version);
+        Assert.AreEqual("0.3.3", plan.TrustedIdentity.Version);
         Assert.AreEqual(Commit, plan.TrustedIdentity.SourceCommit);
         Assert.AreEqual(ManifestSha256, plan.TrustedIdentity.PayloadManifestSha256);
         Assert.AreEqual(PayloadManifestPolicy.PublishedRelease, plan.TrustedIdentity.Policy);
@@ -35,9 +35,9 @@ public sealed class EmbeddedReleaseInstallerPlanTests
         Assert.ThrowsException<PlatformNotSupportedException>(() => Create("arm64", 22_000));
         Assert.ThrowsException<PlatformNotSupportedException>(() => Create("x64", 21_999));
         Assert.ThrowsException<ArgumentException>(() => EmbeddedReleaseInstallerPlan.Create(
-            @"C:\Users\fixture\AppData\Local", "x64", 22_000, "0.3.2", "bad", ManifestSha256, RuntimeSource, RuntimeSha256));
+            @"C:\Users\fixture\AppData\Local", "x64", 22_000, "0.3.3", "bad", ManifestSha256, RuntimeSource, RuntimeSha256));
         Assert.ThrowsException<ArgumentException>(() => EmbeddedReleaseInstallerPlan.Create(
-            @"C:\Users\fixture\AppData\Local", "x64", 22_000, "0.3.2", Commit, "bad", RuntimeSource, RuntimeSha256));
+            @"C:\Users\fixture\AppData\Local", "x64", 22_000, "0.3.3", Commit, "bad", RuntimeSource, RuntimeSha256));
     }
 
     private static EmbeddedReleaseInstallerPlan Create(string architecture, int windowsBuild) =>
@@ -45,7 +45,7 @@ public sealed class EmbeddedReleaseInstallerPlanTests
             @"C:\Users\fixture\AppData\Local",
             architecture,
             windowsBuild,
-            "0.3.2",
+            "0.3.3",
             Commit,
             ManifestSha256,
             RuntimeSource,

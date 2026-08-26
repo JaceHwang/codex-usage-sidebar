@@ -12,13 +12,18 @@ Download all three only from the [v0.3.2 GitHub Release](https://github.com/Jace
 
 ## Implemented parity
 
+The v0.3.3 source candidate extends the shared contract with an optional `secondary` window. The
+titlebar indicator and WPF card now render the primary 5-hour window first and the 7-day window
+second, including independent percentages, gradient bars, reset timestamps, and localized table
+rows. This source change is local-only until a Windows runner builds and validates the setup.
+
 The Windows WPF overlay uses the same official local `codex app-server --stdio` contracts as macOS:
 
 - live remaining percentage, reset countdown, plan, period, Credits, and all Bank entries;
 - seven-day Token usage and current-cycle total from `account/usage/read`;
 - account name/email fallback and optional avatar URL from `account/read`;
 - Simplified Chinese, Traditional Chinese, English, and English fallback for other locales;
-- theme-aware plugin icon, synchronized `v0.3.2` version badge, shared countdown emphasis, hover/pin behavior, and GitHub footer link;
+- theme-aware plugin icon, synchronized `v0.3.3` version badge in the source candidate, shared countdown emphasis, hover/pin behavior, and GitHub footer link;
 - safe degradation when optional Token or account responses are unsupported, malformed, or delayed.
 
 The current v0.3.2 card does not render a Tibo X row. It never reads browser cookies, scrapes X, or sends telemetry.

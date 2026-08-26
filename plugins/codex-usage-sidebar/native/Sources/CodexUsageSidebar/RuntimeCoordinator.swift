@@ -199,16 +199,14 @@ final class RuntimeCoordinator: NSObject {
             return
         }
         let maximumLabelWidth = OverlayLayout.maximumIndicatorWidth - 44
-        let label = formatter.label(
+        let summary = formatter.indicatorSummary(
             snapshot: snapshot,
-            now: Date(),
             language: languageState.language,
             timeZone: .autoupdatingCurrent,
             maxWidth: maximumLabelWidth
         )
         let resolvedIndicatorWidth = overlay.preferredIndicatorWidth(
-            label: label,
-            remainingPercent: snapshot.remainingPercent
+            summary: summary
         )
         currentIndicatorWidth = resolvedIndicatorWidth
         let anchor = contentHeader.resolve(
@@ -233,7 +231,7 @@ final class RuntimeCoordinator: NSObject {
         }
         overlay.show(
             snapshot: snapshot,
-            label: label,
+            summary: summary,
             indicatorFrame: resolvedIndicatorFrame,
             theme: currentTheme,
             detail: detail,
@@ -499,9 +497,13 @@ final class RuntimeCoordinator: NSObject {
 
     private func received(_ newSnapshot: AllowanceSnapshot) {
         snapshotState.receive(newSnapshot)
-        nextResetRefresh = policy.nextResetRefresh(
-            resetsAt: newSnapshot.resetsAt
-        )
+        let resetDates = [
+            newSnapshot.resetsAt,
+            newSnapshot.secondary?.resetsAt
+        ].compactMap { $0 }
+        nextResetRefresh = resetDates.min().flatMap {
+            policy.nextResetRefresh(resetsAt: $0)
+        }
         refreshNow(reason: .notification)
         reconcileOverlay()
     }

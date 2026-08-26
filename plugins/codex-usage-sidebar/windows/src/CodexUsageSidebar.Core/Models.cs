@@ -11,6 +11,12 @@ public sealed record BankResetCredit(
 
 public sealed record BankResetSummary(int AvailableCount, IReadOnlyList<BankResetCredit>? Credits);
 
+public sealed record QuotaWindowSnapshot(
+    double UsedPercent,
+    int RemainingPercent,
+    DateTimeOffset ResetsAt,
+    int? WindowDurationMinutes = null);
+
 public sealed record AllowanceSnapshot(
     double UsedPercent,
     int RemainingPercent,
@@ -19,7 +25,8 @@ public sealed record AllowanceSnapshot(
     int? WindowDurationMinutes = null,
     string? PlanType = null,
     CreditBalance? Credits = null,
-    BankResetSummary? Bank = null)
+    BankResetSummary? Bank = null,
+    QuotaWindowSnapshot? Secondary = null)
 {
     public AllowanceSnapshot MergeSupplementary(AllowanceSnapshot? previous) => previous is null
         ? this
@@ -29,6 +36,7 @@ public sealed record AllowanceSnapshot(
             PlanType = PlanType ?? previous.PlanType,
             Credits = Credits ?? previous.Credits,
             Bank = Bank ?? previous.Bank,
+            Secondary = Secondary ?? previous.Secondary,
         };
 }
 

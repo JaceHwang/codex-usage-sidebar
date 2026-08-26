@@ -119,7 +119,7 @@ public static class InstallerApplication
                 : InstallerUiFlavor.DeviceTest,
             metadata.GetValueOrDefault("InstallerDisplayVersion")
                 ?? metadata.GetValueOrDefault(EmbeddedReleaseInstallerMetadata.VersionKey)
-                ?? "0.3.2");
+                ?? "0.3.3");
         var application = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
         return application.Run(new InstallerWindow(controller));
     }

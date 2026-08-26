@@ -2,6 +2,14 @@ namespace CodexUsageSidebar.Core;
 
 public sealed record QuotaDetailRow(string Label, string Value);
 
+public sealed record QuotaWindowPresentation(string Label, int RemainingPercent);
+
+public sealed record QuotaIndicatorSummary(
+    string Primary,
+    string? Secondary,
+    int PrimaryRemainingPercent,
+    int? SecondaryRemainingPercent);
+
 public sealed record QuotaTokenUsageDay(
     DateOnly Date,
     string DateLabel,
@@ -25,11 +33,12 @@ public sealed record QuotaDetailContent(
     QuotaTokenUsageContent? TokenUsage = null,
     AccountIdentity? Account = null,
     string Version = QuotaDetailFormatter.ProductVersion,
-    string AccountLabel = "Account");
+    string AccountLabel = "Account",
+    IReadOnlyList<QuotaWindowPresentation>? QuotaWindows = null);
 
 public static class QuotaDetailFormatter
 {
-    public const string ProductVersion = "0.3.2";
+    public const string ProductVersion = "0.3.3";
     private static readonly string[] EnglishMonths =
         ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -57,7 +66,30 @@ public static class QuotaDetailFormatter
         rows.Add(new QuotaDetailRow(
             copy.NextReset,
             FormatDateWithInterval(snapshot.ResetsAt, now, language, timeZone)));
+        if (snapshot.Secondary is { } secondary)
+        {
+            rows.Add(new QuotaDetailRow(
+                copy.SecondaryQuotaWindow,
+                FormatPeriod(secondary.WindowDurationMinutes ?? 10_080, language)));
+            rows.Add(new QuotaDetailRow(
+                copy.SecondaryNextReset,
+                FormatDateWithInterval(secondary.ResetsAt, now, language, timeZone)));
+        }
         rows.Add(new QuotaDetailRow("Credits", FormatCredits(snapshot.Credits, copy)));
+
+        var primaryWindowLabel = snapshot.WindowDurationMinutes is { } primaryMinutes
+            ? FormatPeriod(primaryMinutes, language)
+            : copy.PrimaryQuotaWindow;
+        var quotaWindows = new List<QuotaWindowPresentation>
+        {
+            new(primaryWindowLabel, snapshot.RemainingPercent),
+        };
+        if (snapshot.Secondary is { } secondaryWindow)
+        {
+            quotaWindows.Add(new QuotaWindowPresentation(
+                copy.SecondaryQuotaWindowValue,
+                secondaryWindow.RemainingPercent));
+        }
 
         if (snapshot.Bank is { } bank)
         {
@@ -93,7 +125,38 @@ public static class QuotaDetailFormatter
             FormatTokenUsage(snapshot, tokenUsage, now, language, timeZone, copy),
             account,
             string.IsNullOrWhiteSpace(version) ? ProductVersion : version,
-            copy.Account);
+            copy.Account,
+            quotaWindows);
+    }
+
+    public static QuotaIndicatorSummary FormatIndicatorSummary(
+        AllowanceSnapshot snapshot,
+        DisplayLanguage language,
+        TimeZoneInfo timeZone)
+    {
+        var copy = QuotaCopy.For(language);
+        var primaryWindowLabel = snapshot.WindowDurationMinutes is { } primaryMinutes
+            ? FormatPeriod(primaryMinutes, language)
+            : copy.PrimaryQuotaWindow;
+        var primary = FormatIndicatorLine(
+            primaryWindowLabel,
+            snapshot.RemainingPercent,
+            snapshot.ResetsAt,
+            language,
+            timeZone);
+        var secondary = snapshot.Secondary is { } window
+            ? FormatIndicatorLine(
+                copy.SecondaryQuotaWindowValue,
+                window.RemainingPercent,
+                window.ResetsAt,
+                language,
+                timeZone)
+            : null;
+        return new QuotaIndicatorSummary(
+            primary,
+            secondary,
+            snapshot.RemainingPercent,
+            snapshot.Secondary?.RemainingPercent);
     }
 
     private static QuotaTokenUsageContent? FormatTokenUsage(
@@ -180,6 +243,20 @@ public static class QuotaDetailFormatter
             ? $"{EnglishMonths[local.Month - 1]} {local.Day}, {local:HH:mm}"
             : $"{local.Month}月{local.Day}日 {local:HH:mm}";
         return $"{snapshot.RemainingPercent}% · {date}";
+    }
+
+    private static string FormatIndicatorLine(
+        string windowLabel,
+        int remainingPercent,
+        DateTimeOffset reset,
+        DisplayLanguage language,
+        TimeZoneInfo timeZone)
+    {
+        var local = TimeZoneInfo.ConvertTime(reset, timeZone);
+        var date = language == DisplayLanguage.English
+            ? $"{EnglishMonths[local.Month - 1]} {local.Day}, {local:HH:mm}"
+            : $"{local.Month}月{local.Day}日 {local:HH:mm}";
+        return $"{windowLabel} {remainingPercent}% · {date}";
     }
 
     private static string FormatDateWithInterval(
@@ -323,7 +400,11 @@ public static class QuotaDetailFormatter
         string Title,
         string Plan,
         string QuotaWindow,
+        string PrimaryQuotaWindow,
+        string SecondaryQuotaWindow,
+        string SecondaryQuotaWindowValue,
         string NextReset,
+        string SecondaryNextReset,
         string BankAvailable,
         Func<int, string> BankExpiry,
         string BankDetails,
@@ -344,19 +425,19 @@ public static class QuotaDetailFormatter
         public static QuotaCopy For(DisplayLanguage language) => language switch
         {
             DisplayLanguage.SimplifiedChinese => new(
-                "Codex 剩余额度", "套餐", "额度周期", "下次重置", "Bank 可用重置",
+                "Codex 剩余额度", "套餐", "额度周期", "5 小时", "额度周期（7天）", "7 天", "下次重置", "下次重置（7天）", "Bank 可用重置",
                 index => $"Bank {index}到期时间", "Bank 明细", "数据更新", "暂无数据",
                 "无限", "可用", "无", "未提供到期时间", "已使用", "已过期", "刚刚",
                 "账户", "Token 用量",
                 "Token 使用量暂不可用", "数据可能延迟"),
             DisplayLanguage.TraditionalChinese => new(
-                "Codex 剩餘額度", "方案", "額度週期", "下次重設", "Bank 可用重設",
+                "Codex 剩餘額度", "方案", "額度週期", "5 小時", "額度週期（7天）", "7 天", "下次重設", "下次重設（7天）", "Bank 可用重設",
                 index => $"Bank {index}到期時間", "Bank 詳情", "資料更新", "暫無資料",
                 "無限", "可用", "無", "未提供到期時間", "已使用", "已過期", "剛剛",
                 "帳戶", "Token 用量",
                 "Token 使用量暫不可用", "資料可能延遲"),
             _ => new(
-                "Codex quota", "Plan", "Quota window", "Next reset", "Bank resets available",
+                "Codex quota", "Plan", "Quota window", "5 hours", "Quota window (7 days)", "7 days", "Next reset", "Next reset (7 days)", "Bank resets available",
                 index => $"Bank {index} expires", "Bank details", "Updated", "No data",
                 "Unlimited", "Available", "None", "No expiry provided", "Used", "Expired", "Just now",
                 "Account", "Token usage",

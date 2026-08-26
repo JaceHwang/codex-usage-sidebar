@@ -54,9 +54,9 @@ public sealed class QuotaDetailFormatterTests
         var account = new AccountIdentity("Jace", "jace@example.com", null);
 
         var content = QuotaDetailFormatter.Format(
-            FullSnapshot(), Now, DisplayLanguage.SimplifiedChinese, ChinaTime, usage, account, "0.3.2");
+            FullSnapshot(), Now, DisplayLanguage.SimplifiedChinese, ChinaTime, usage, account, "0.3.3");
 
-        Assert.AreEqual("0.3.2", content.Version);
+        Assert.AreEqual("0.3.3", content.Version);
         Assert.AreEqual(account, content.Account);
         Assert.AreEqual("Token 用量", content.TokenUsage?.Title);
         Assert.AreEqual("账户", content.AccountLabel);
@@ -78,6 +78,30 @@ public sealed class QuotaDetailFormatterTests
     }
 
     [TestMethod]
+    public void FormatsPrimaryAndWeeklyQuotaWindowsAndIndicatorSummary()
+    {
+        var content = QuotaDetailFormatter.Format(
+            DualSnapshot(), Now, DisplayLanguage.SimplifiedChinese, ChinaTime);
+
+        Assert.AreEqual(2, content.QuotaWindows?.Count);
+        Assert.AreEqual("5 小时", content.QuotaWindows?[0].Label);
+        Assert.AreEqual(85, content.QuotaWindows?[0].RemainingPercent);
+        Assert.AreEqual("7 天", content.QuotaWindows?[1].Label);
+        Assert.AreEqual(98, content.QuotaWindows?[1].RemainingPercent);
+        CollectionAssert.Contains(
+            content.Rows.ToArray(),
+            new QuotaDetailRow("额度周期（7天）", "7 天"));
+        CollectionAssert.Contains(
+            content.Rows.ToArray(),
+            new QuotaDetailRow("下次重置（7天）", "9月1日 08:00（37d6h）"));
+
+        var summary = QuotaDetailFormatter.FormatIndicatorSummary(
+            DualSnapshot(), DisplayLanguage.SimplifiedChinese, ChinaTime);
+        Assert.AreEqual("5 小时 85% · 8月26日 14:55", summary.Primary);
+        Assert.AreEqual("7 天 98% · 9月1日 08:00", summary.Secondary);
+    }
+
+    [TestMethod]
     public void KeepsTheCardAvailableWhenTokenUsageIsUnsupported()
     {
         var usage = new TokenUsageSnapshot(
@@ -87,7 +111,7 @@ public sealed class QuotaDetailFormatterTests
             TokenUsageAvailability.Unsupported);
 
         var content = QuotaDetailFormatter.Format(
-            FullSnapshot(), Now, DisplayLanguage.English, ChinaTime, usage, null, "0.3.2");
+            FullSnapshot(), Now, DisplayLanguage.English, ChinaTime, usage, null, "0.3.3");
 
         Assert.AreEqual(76, content.RemainingPercent);
         Assert.AreEqual(TokenUsageAvailability.Unsupported, content.TokenUsage?.Availability);
@@ -109,4 +133,19 @@ public sealed class QuotaDetailFormatterTests
             new BankResetCredit("available", null, DateTimeOffset.FromUnixTimeSeconds(1_785_529_171), "Full reset", null),
             new BankResetCredit("available", null, DateTimeOffset.FromUnixTimeSeconds(1_786_557_641), "Full reset", null),
         ]));
+
+    private static AllowanceSnapshot DualSnapshot() => new(
+        15,
+        85,
+        DateTimeOffset.FromUnixTimeSeconds(1_787_727_330),
+        Now.AddSeconds(-20),
+        300,
+        "plus",
+        null,
+        null,
+        new QuotaWindowSnapshot(
+            2,
+            98,
+            DateTimeOffset.FromUnixTimeSeconds(1_788_220_800),
+            10_080));
 }

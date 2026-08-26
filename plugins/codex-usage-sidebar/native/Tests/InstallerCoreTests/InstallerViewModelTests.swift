@@ -12,7 +12,7 @@ final class InstallerViewModelTests: XCTestCase {
             .success(),
             .success(),
             .success(output: "Logged in"),
-            .success(output: "pid=42 version=0.3.2 runtime=hidden:not-foreground"),
+            .success(output: "pid=42 version=0.3.3 runtime=hidden:not-foreground"),
             .success(output: "Logged in"),
             .success(output: "host=found app_server=found accessibility=granted"),
         ])
@@ -95,7 +95,7 @@ final class InstallerViewModelTests: XCTestCase {
     @MainActor
     func testVerifyDoesNotCompleteOAuthOrAccessibilityWithoutEvidence() async {
         let harness = CommandHarness(results: [
-            .success(output: "pid=42 version=0.3.2 runtime=shown"),
+            .success(output: "pid=42 version=0.3.3 runtime=shown"),
             .failure(error: "Not logged in"),
             .success(output: "host=found app_server=found accessibility=required"),
         ])
@@ -287,7 +287,7 @@ final class InstallerViewModelTests: XCTestCase {
             case ["plugin", "marketplace", "list", "--json"]:
                 return .success(output: marketplaceJSON)
             case ["status"]:
-                return .success(output: "pid=42 version=0.3.2 runtime=shown")
+                return .success(output: "pid=42 version=0.3.3 runtime=shown")
             case ["login", "status"]:
                 return .success(output: "Logged in")
             case ["--diagnostic-once"]:

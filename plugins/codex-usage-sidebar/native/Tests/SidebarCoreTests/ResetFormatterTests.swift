@@ -86,4 +86,30 @@ final class ResetFormatterTests: XCTestCase {
             "76% · Aug 2, 08:00"
         )
     }
+
+    func testFormatsTwoLineIndicatorSummaryForPrimaryAndWeeklyWindows() {
+        let summary = formatter.indicatorSummary(
+            snapshot: AllowanceSnapshot(
+                usedPercent: 15,
+                remainingPercent: 85,
+                resetsAt: Date(timeIntervalSince1970: 1_787_727_330),
+                receivedAt: now,
+                windowDurationMins: 300,
+                secondary: QuotaWindowSnapshot(
+                    usedPercent: 2,
+                    remainingPercent: 98,
+                    resetsAt: Date(timeIntervalSince1970: 1_788_220_800),
+                    windowDurationMins: 10_080
+                )
+            ),
+            language: .simplifiedChinese,
+            timeZone: timeZone,
+            maxWidth: 200
+        )
+
+        XCTAssertEqual(summary.primary, "5 小时 85% · 8月26日 14:55")
+        XCTAssertEqual(summary.secondary, "7 天 98% · 9月1日 08:00")
+        XCTAssertEqual(summary.primaryRemainingPercent, 85)
+        XCTAssertEqual(summary.secondaryRemainingPercent, 98)
+    }
 }

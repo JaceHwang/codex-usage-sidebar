@@ -18,7 +18,7 @@ public sealed class DevicePayloadInstallPlanTests
         Assert.AreEqual(
             @"C:\Users\fixture\AppData\Local\CodexUsageSidebar\Current",
             plan.DestinationPayload);
-        Assert.AreEqual("0.3.2", plan.TrustedIdentity.Version);
+        Assert.AreEqual("0.3.3", plan.TrustedIdentity.Version);
         Assert.AreEqual(
             "https://github.com/openai/codex/releases/download/rust-v0.147.0/codex-x86_64-pc-windows-msvc.exe",
             plan.TrustedIdentity.CodexRuntimeSource);

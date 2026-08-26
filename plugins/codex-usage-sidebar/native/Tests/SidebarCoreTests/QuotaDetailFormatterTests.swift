@@ -70,6 +70,34 @@ final class QuotaDetailFormatterTests: XCTestCase {
         XCTAssertTrue(content.rows.contains(.init(label: "Credits", value: "12.50")))
     }
 
+    func testFormatsPrimaryAndSecondaryQuotaWindowsAndRows() {
+        let content = formatter.content(
+            snapshot: dualWindowSnapshot,
+            now: now,
+            language: .simplifiedChinese,
+            timeZone: timeZone
+        )
+
+        XCTAssertEqual(content.quotaWindows.map(\.label), ["5 小时", "7 天"])
+        XCTAssertEqual(content.quotaWindows.map(\.remainingPercent), [85, 98])
+        XCTAssertEqual(
+            content.rows.map(\.label),
+            [
+                "套餐", "额度周期", "下次重置",
+                "额度周期（7天）", "下次重置（7天）",
+                "Credits", "Bank 可用重置", "数据更新"
+            ]
+        )
+        XCTAssertTrue(content.rows.contains(.init(label: "额度周期（7天）", value: "7 天")))
+        XCTAssertTrue(content.rows.contains(
+            .init(
+                label: "下次重置（7天）",
+                value: "37天6小时（2026/09/01 08:00）",
+                valueStyle: .resetCountdown
+            )
+        ))
+    }
+
     func testFormatsUnavailableAndZeroBankDistinctly() {
         let unavailable = formatter.content(
             snapshot: snapshot(bank: nil),
@@ -528,6 +556,29 @@ final class QuotaDetailFormatterTests: XCTestCase {
                         description: nil
                     )
                 ]
+            )
+        )
+    }
+
+    private var dualWindowSnapshot: AllowanceSnapshot {
+        AllowanceSnapshot(
+            usedPercent: 15,
+            remainingPercent: 85,
+            resetsAt: Date(timeIntervalSince1970: 1_787_727_330),
+            receivedAt: now.addingTimeInterval(-20),
+            windowDurationMins: 300,
+            planType: "plus",
+            credits: CreditBalance(
+                hasCredits: false,
+                unlimited: false,
+                balance: "0"
+            ),
+            bank: nil,
+            secondary: QuotaWindowSnapshot(
+                usedPercent: 2,
+                remainingPercent: 98,
+                resetsAt: Date(timeIntervalSince1970: 1_788_220_800),
+                windowDurationMins: 10_080
             )
         )
     }

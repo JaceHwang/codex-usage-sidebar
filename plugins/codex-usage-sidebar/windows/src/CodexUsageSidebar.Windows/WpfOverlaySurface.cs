@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -40,11 +41,12 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         indicatorText = new TextBlock
         {
             FontFamily = new FontFamily("Segoe UI"),
-            FontSize = 13,
+            FontSize = OverlayVisualMetrics.IndicatorTextFontSize,
             FontWeight = FontWeights.SemiBold,
             TextAlignment = TextAlignment.Left,
             VerticalAlignment = VerticalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.NoWrap,
             Foreground = palette.Primary,
         };
         indicatorLogo = new Image
@@ -217,20 +219,45 @@ public sealed class WpfOverlaySurface : IOverlaySurface
     private void UpdateIndicator(AllowanceSnapshot snapshot, DisplayLanguage language)
     {
         indicatorText.Inlines.Clear();
-        var accent = WpfQuotaColors.ForRemainingPercent(snapshot.RemainingPercent);
-        indicatorText.Inlines.Add(new System.Windows.Documents.Run($"{snapshot.RemainingPercent}%")
+        var summary = QuotaDetailFormatter.FormatIndicatorSummary(
+            snapshot,
+            language,
+            timeZone);
+        AddIndicatorLine(summary.Primary, summary.PrimaryRemainingPercent);
+        if (summary.Secondary is not null
+            && summary.SecondaryRemainingPercent is { } secondaryPercent)
         {
-            FontSize = 14,
+            indicatorText.Inlines.Add(new LineBreak());
+            AddIndicatorLine(summary.Secondary, secondaryPercent);
+        }
+    }
+
+    private void AddIndicatorLine(string line, int remainingPercent)
+    {
+        var target = $"{remainingPercent}%";
+        var start = line.IndexOf(target, StringComparison.Ordinal);
+        if (start < 0)
+        {
+            indicatorText.Inlines.Add(new System.Windows.Documents.Run(line));
+            return;
+        }
+
+        if (start > 0)
+        {
+            indicatorText.Inlines.Add(new System.Windows.Documents.Run(line[..start]));
+        }
+        indicatorText.Inlines.Add(new System.Windows.Documents.Run(target)
+        {
+            FontSize = 12,
             FontWeight = FontWeights.Bold,
-            Foreground = new SolidColorBrush(accent),
+            Foreground = new SolidColorBrush(
+                WpfQuotaColors.ForRemainingPercent(remainingPercent)),
         });
-        var compact = QuotaDetailFormatter.FormatCompact(snapshot, language, timeZone);
-        var separator = compact.IndexOf('·');
-        indicatorText.Inlines.Add(new System.Windows.Documents.Run(
-            separator > 0 ? compact[(separator - 1)..] : string.Empty)
+        if (start + target.Length < line.Length)
         {
-            Foreground = palette.Primary,
-        });
+            indicatorText.Inlines.Add(new System.Windows.Documents.Run(
+                line[(start + target.Length)..]));
+        }
     }
 
     private void ShowDetail(OverlayPresentation presentation, QuotaDetailContent content)
@@ -274,7 +301,6 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var icon = BuildThemeIcon(palette);
         Grid.SetColumn(icon, 0);
         header.Children.Add(icon);
@@ -314,25 +340,8 @@ public sealed class WpfOverlaySurface : IOverlaySurface
         };
         Grid.SetColumn(badge, 2);
         header.Children.Add(badge);
-        var remaining = new TextBlock
-        {
-            Text = $"{content.RemainingPercent}%",
-            FontFamily = new FontFamily("Segoe UI"),
-            FontSize = OverlayVisualMetrics.RemainingPercentFontSize,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(accent),
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        Grid.SetColumn(remaining, 4);
-        header.Children.Add(remaining);
         body.Children.Add(header);
-        body.Children.Add(new WpfQuotaProgressBar
-        {
-            Height = OverlayVisualMetrics.ProgressTrackHeight,
-            Margin = new Thickness(16, 0, 16, 13),
-            RemainingPercent = content.RemainingPercent,
-            TrackBrush = palette.Track,
-        });
+        body.Children.Add(BuildQuotaWindows(content, palette));
         body.Children.Add(BuildFullWidthSeparator(palette));
 
         if (content.TokenUsage is { } tokenUsage)
@@ -356,18 +365,32 @@ public sealed class WpfOverlaySurface : IOverlaySurface
 
             var row = content.Rows[index];
             var grid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(126) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(102) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.Children.Add(new TextBlock
+            var rowIcon = new TextBlock
+            {
+                Text = RowIconGlyph(row.Label),
+                FontFamily = new FontFamily("Segoe UI Symbol"),
+                FontSize = 17,
+                Foreground = palette.Secondary,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Left,
+            };
+            Grid.SetColumn(rowIcon, 0);
+            grid.Children.Add(rowIcon);
+            var rowLabel = new TextBlock
             {
                 Text = row.Label,
                 FontFamily = new FontFamily("Segoe UI"),
                 FontSize = 13,
                 Foreground = palette.Secondary,
                 TextWrapping = TextWrapping.Wrap,
-            });
+            };
+            Grid.SetColumn(rowLabel, 1);
+            grid.Children.Add(rowLabel);
             var value = BuildDetailValue(row.Value, accent, palette);
-            Grid.SetColumn(value, 1);
+            Grid.SetColumn(value, 2);
             grid.Children.Add(value);
             rows.Children.Add(grid);
         }
@@ -389,6 +412,69 @@ public sealed class WpfOverlaySurface : IOverlaySurface
             CornerRadius = new CornerRadius(12),
             Child = body,
         };
+    }
+
+    private static string RowIconGlyph(string label)
+    {
+        var normalized = label.ToLowerInvariant();
+        if (normalized.Contains("额度周期")
+            || normalized.Contains("額度週期")
+            || normalized.Contains("quota window")) return "▦";
+        if (normalized.Contains("重置")
+            || normalized.Contains("重設")
+            || normalized.Contains("reset")) return "◷";
+        if (normalized == "credits") return "◎";
+        if (normalized.Contains("bank")) return "♜";
+        if (normalized.Contains("更新") || normalized == "updated") return "↻";
+        return "▣";
+    }
+
+    private static UIElement BuildQuotaWindows(
+        QuotaDetailContent content,
+        WpfOverlayPalette palette)
+    {
+        var windows = content.QuotaWindows is { Count: > 0 } existing
+            ? existing
+            : (IReadOnlyList<QuotaWindowPresentation>)[
+                new QuotaWindowPresentation("5 hours", content.RemainingPercent)
+            ];
+        var stack = new StackPanel
+        {
+            Margin = new Thickness(16, 0, 16, 10),
+        };
+        for (var index = 0; index < windows.Count; index++)
+        {
+            var window = windows[index];
+            stack.Children.Add(new TextBlock
+            {
+                Text = window.Label,
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = index == 0 ? 14 : 13,
+                FontWeight = FontWeights.Medium,
+                Foreground = palette.Secondary,
+                Margin = new Thickness(0, index == 0 ? 0 : 5, 0, 0),
+            });
+            stack.Children.Add(new TextBlock
+            {
+                Text = $"{window.RemainingPercent}%",
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = index == 0
+                    ? OverlayVisualMetrics.RemainingPercentFontSize
+                    : 23,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(
+                    WpfQuotaColors.ForRemainingPercent(window.RemainingPercent)),
+                Margin = new Thickness(0, -2, 0, 2),
+            });
+            stack.Children.Add(new WpfQuotaProgressBar
+            {
+                Height = OverlayVisualMetrics.ProgressTrackHeight,
+                Margin = new Thickness(0, 0, 0, index == windows.Count - 1 ? 0 : 4),
+                RemainingPercent = window.RemainingPercent,
+                TrackBrush = palette.Track,
+            });
+        }
+        return stack;
     }
 
     private static Border BuildFullWidthSeparator(WpfOverlayPalette palette) => new()

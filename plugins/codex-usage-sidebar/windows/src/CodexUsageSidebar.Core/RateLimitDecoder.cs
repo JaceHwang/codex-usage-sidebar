@@ -88,7 +88,35 @@ public static class RateLimitDecoder
             OptionalInteger(primary, "windowDurationMins"),
             OptionalString(bucket, "planType"),
             DecodeCredits(bucket),
-            DecodeBank(container));
+            DecodeBank(container),
+            DecodeWindow(bucket));
+    }
+
+    private static QuotaWindowSnapshot? DecodeWindow(JsonElement bucket)
+    {
+        if (!TryProperty(bucket, "secondary", out var window)
+            || window.ValueKind != JsonValueKind.Object
+            || !TryProperty(window, "usedPercent", out var usedProperty)
+            || usedProperty.ValueKind != JsonValueKind.Number
+            || !usedProperty.TryGetDouble(out var usedPercent)
+            || !double.IsFinite(usedPercent)
+            || !TryProperty(window, "resetsAt", out var resetProperty)
+            || resetProperty.ValueKind != JsonValueKind.Number
+            || !resetProperty.TryGetDouble(out var resetTimestamp)
+            || !double.IsFinite(resetTimestamp)
+            || resetTimestamp <= 0)
+        {
+            return null;
+        }
+
+        var remaining = (int)Math.Round(
+            Math.Clamp(100d - usedPercent, 0, 100),
+            MidpointRounding.AwayFromZero);
+        return new QuotaWindowSnapshot(
+            usedPercent,
+            remaining,
+            DateTimeOffset.FromUnixTimeSeconds(checked((long)resetTimestamp)),
+            OptionalInteger(window, "windowDurationMins"));
     }
 
     private static CreditBalance? DecodeCredits(JsonElement bucket)

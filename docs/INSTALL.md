@@ -1,5 +1,12 @@
 # Installation and Operations
 
+## v0.3.3 local candidate
+
+The current development candidate reads the official `primary` (5-hour) and optional `secondary`
+(7-day) windows. Both appear in the titlebar indicator and detail card with independent progress
+bars and reset rows. The published v0.3.2 assets remain the stable download path until this
+candidate completes Windows packaging and real-device validation.
+
 ## Windows 11 AMD64/x64
 
 Windows `v0.3.2` supports Windows 11 on AMD64/x64 only; Windows ARM64 is not supported. The current-user setup is unsigned (`NotSigned`)
@@ -59,7 +66,7 @@ the deterministic prompt and evidence checklist.
 
 ### Validation boundary
 
-The `v0.3.2` Windows source has passed the portable automated gates; the published setup is available, but the
+The `v0.3.3` Windows source has passed the portable source gates; the published v0.3.2 setup is available, but the
 130-case Windows manual matrix is incomplete. Do not claim full real-device setup lifecycle
 validation unless you have run that validation on the target machine. Unknown or unsupported UI
 Automation structures hide the overlay; no coordinates are guessed.

@@ -42,6 +42,38 @@ public struct QuotaLocalization: Sendable {
         }
     }
 
+    public var primaryQuotaWindow: String {
+        switch language {
+        case .simplifiedChinese: "5 小时"
+        case .traditionalChinese: "5 小時"
+        case .english: "5 hours"
+        }
+    }
+
+    public var secondaryQuotaWindow: String {
+        switch language {
+        case .simplifiedChinese: "额度周期（7天）"
+        case .traditionalChinese: "額度週期（7天）"
+        case .english: "Quota window (7 days)"
+        }
+    }
+
+    public var secondaryQuotaWindowValue: String {
+        switch language {
+        case .simplifiedChinese: "7 天"
+        case .traditionalChinese: "7 天"
+        case .english: "7 days"
+        }
+    }
+
+    public var secondaryNextReset: String {
+        switch language {
+        case .simplifiedChinese: "下次重置（7天）"
+        case .traditionalChinese: "下次重設（7天）"
+        case .english: "Next reset (7 days)"
+        }
+    }
+
     public var nextReset: String {
         switch language {
         case .simplifiedChinese: "下次重置"

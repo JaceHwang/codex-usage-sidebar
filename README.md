@@ -30,36 +30,32 @@
 
 | Platform | Status | Distribution |
 | --- | --- | --- |
-| macOS 14+ Apple Silicon | v0.3.2 release | Signed companion plus a published v0.3.2 arm64 DMG |
-| Windows 11 AMD64 (`x64`) | v0.3.2 release | Unsigned `x64` setup asset; Windows ARM64 is out of scope |
+| macOS 14+ Apple Silicon | v0.3.3 local candidate | Dual 5-hour/7-day quota card; local arm64 DMG build is available |
+| Windows 11 AMD64 (`x64`) | v0.3.3 source parity | Dual-window .NET/WPF implementation; Windows packaging still requires a Windows runner |
 
-Windows `v0.3.2` is the Windows 11 AMD64/x64 release line. It carries the macOS-visible quota card
-model (token usage, account identity, theme-aware icon, reset countdown, Credits, Bank details, and
-the GitHub footer). The current v0.3.2 card does not render a Tibo X row on either platform. The shared quota contracts, .NET core, Win32 window
-boundary, sanitized UI Automation probe, per-user installer backend, payload digest verification,
-and Windows CI preserve the stable macOS payload. The v0.3.2 Windows asset is locally packaged and
-includes quick-prerelease validation metadata; the 130-case Windows manual matrix is still incomplete,
-so this release does not claim complete real-device validation. The selector no longer rejects a Codex build
-solely because its file version changed; it still requires a safe semantic UI Automation structure,
-and hides the overlay instead of guessing coordinates when that structure is unavailable. See [Windows beta development](docs/WINDOWS-BETA.md)
-for development and validation details, and [Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md)
-for the device procedure. To move the active work into Codex on a Windows computer, follow the
-[Windows Codex continuation guide](docs/WINDOWS-CODEX-CONTINUATION.md); the Git branch and its
-verified commit history are the handoff source of truth. The complete feature matrix is in
-[Windows v0.3.2 parity notes](docs/WINDOWS-V031-PARITY.md).
+The v0.3.3 development line adds a primary 5-hour window and an independent 7-day window to the
+titlebar indicator and detail card. Both platforms use the same app-server `primary`/`secondary`
+contract, localized labels, gradient progress colors, reset countdown emphasis, token chart, account
+footer, and GitHub link. macOS can build the local arm64 installer on this host; Windows source parity
+is complete but the setup asset and the real-device UIA/DPI matrix must be produced on Windows. The
+selector still refuses unknown or unsafe semantic UI Automation structures instead of guessing coordinates.
+The stable v0.3.2 release remains the published installation path until v0.3.3 is promoted.
+See [Windows beta development](docs/WINDOWS-BETA.md) and [Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md)
+for validation boundaries.
 
 ## Current appearance
 
 <p align="center">
-  <img src="docs/images/quota-popover-v0.3.2-en-light.png" alt="Codex Usage Sidebar v0.3.2 quota popover with token usage, themed app icon, and GitHub footer link in the light theme" width="48%">
-  <img src="docs/images/quota-popover-v0.3.2-en-dark.png" alt="Codex Usage Sidebar v0.3.2 quota popover with token usage, themed app icon, and GitHub footer link in the dark theme" width="48%">
+  <img src="docs/images/quota-popover-v0.3.3-en-light.png" alt="Codex Usage Sidebar v0.3.3 dual 5-hour and 7-day quota popover in the light theme" width="48%">
+  <img src="docs/images/quota-popover-v0.3.3-en-dark.png" alt="Codex Usage Sidebar v0.3.3 dual 5-hour and 7-day quota popover in the dark theme" width="48%">
 </p>
 
 <p align="center"><em>Current light theme · Current dark theme</em></p>
 
-These captures are generated from the native AppKit card and bundled theme assets. They
-show the Codex account identity, seven-day token-usage chart, emphasized reset countdown, themed
-quota icon, borderless compact GitHub link, and the light/dark separator and shadow materials.
+These captures are generated from the native AppKit card and bundled theme assets. They show the
+primary 5-hour and secondary 7-day percentages with independent gradient bars, the seven-day
+token-usage chart, emphasized reset countdowns, themed quota icon, account identity, borderless
+compact GitHub link, and the light/dark separator and shadow materials.
 
 ## Adaptive titlebar placement
 
@@ -87,6 +83,7 @@ and renders one non-activating control in the nearest safe titlebar slot.
 | Window moves or resizes | The collision-aware layout is sampled every 0.1 seconds, so the control tracks the available titlebar space without overlapping native controls or titles. |
 | Hover | A native detail card shows the synchronized plugin version, account identity, theme icon, plan, period, daily and total token usage, Credits, and every Bank entry with status and expiry. |
 | Click | The detail card stays pinned until the quota control is clicked again; hover behavior remains available. |
+| Two quota windows | The card and titlebar indicator show the 5-hour window first and the 7-day window second. Each has its own percentage, progress bar, reset timestamp, and localized table rows. |
 | Footer GitHub button | Opens the project repository at [github.com/JaceHwang/codex-usage-sidebar](https://github.com/JaceHwang/codex-usage-sidebar). The resting button blends into the footer; hover adds only a soft rounded shadow. |
 | Quota changes | Percentage color follows the exact 100% green, 49% orange, and 10% red palette while the filled bar reveals the matching spectrum. |
 | Codex language changes | The control and detail card follow Codex's effective Simplified Chinese, Traditional Chinese, or English locale within one second. |
@@ -101,7 +98,7 @@ quota control.
 ## Quick install
 
 Choose the platform-specific installation path below. Windows support is Windows 11 AMD64/x64 only;
-Windows ARM64 is not supported. The v0.3.2 setup uses explicit unsigned-install safeguards and must
+Windows ARM64 is not supported. The published v0.3.2 setup uses explicit unsigned-install safeguards and must
 be verified by SHA-256 before launch.
 
 ### Windows 11 AMD64/x64
@@ -163,7 +160,7 @@ plugin support. The installer does not pin a Codex version. It searches the stan
 the current `PATH`; a CLI release is compatible when it provides the `plugin marketplace` and
 `plugin add` commands used by the installer.
 
-#### Install the v0.3.2 DMG
+#### Install the published v0.3.2 DMG
 
 Download `codex-usage-sidebar-v0.3.2-macos-arm64.dmg` together with
 `MACOS-V032-SHA256SUMS.txt` and `MACOS-V032-PROVENANCE.json` from the
@@ -184,17 +181,17 @@ The installer keeps its files outside the Codex application and never copies you
 credentials. See [Installation and operations](docs/INSTALL.md) for repair, update, and uninstall
 behavior.
 
-#### Reproduce the macOS release asset
+#### Build the v0.3.3 local macOS candidate
 
-Maintainers can reproduce the v0.3.2 installer from a checkout of the `v0.3.2` branch. This is a
-verification/development path, not a replacement for the published DMG above:
+Maintainers can build the v0.3.3 dual-window candidate from the current `v0.3.2` development branch.
+This is a local verification path; it does not publish or move a GitHub tag:
 
 ```bash
-bash scripts/build-macos-v032-installer.sh
-bash scripts/package-macos-v032-installer.sh
-bash scripts/verify-macos-v032-installer-package.sh \
-  ".dist/v0.3.2/macos/Codex Usage Sidebar Installer.app" \
-  ".dist/v0.3.2/macos/codex-usage-sidebar-v0.3.2-macos-arm64.dmg"
+bash scripts/build-macos-v033-installer.sh
+bash scripts/package-macos-v033-installer.sh
+bash scripts/verify-macos-v033-installer-package.sh \
+  ".dist/v0.3.3/macos/Codex Usage Sidebar Installer.app" \
+  ".dist/v0.3.3/macos/codex-usage-sidebar-v0.3.3-macos-arm64.dmg"
 ```
 
 ### Advanced: manual marketplace installation

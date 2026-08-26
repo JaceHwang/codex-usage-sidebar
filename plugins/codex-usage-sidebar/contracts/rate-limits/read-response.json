@@ -6,8 +6,13 @@
       "planType": "plus",
       "primary": {
         "usedPercent": 24,
-        "windowDurationMins": 10080,
+        "windowDurationMins": 300,
         "resetsAt": 1785628824
+      },
+      "secondary": {
+        "usedPercent": 2,
+        "windowDurationMins": 10080,
+        "resetsAt": 1786233624
       },
       "credits": {
         "hasCredits": true,

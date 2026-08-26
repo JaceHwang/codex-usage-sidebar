@@ -3,19 +3,31 @@ import CoreGraphics
 public struct QuotaDetailHeaderFrames: Equatable, Sendable {
     public let title: CGRect
     public let versionBadge: CGRect
+    public let primaryLabel: CGRect
     public let remaining: CGRect
     public let progress: CGRect
+    public let secondaryLabel: CGRect
+    public let secondaryRemaining: CGRect
+    public let secondaryProgress: CGRect
 
     public init(
         title: CGRect,
         versionBadge: CGRect,
+        primaryLabel: CGRect = .zero,
         remaining: CGRect,
-        progress: CGRect
+        progress: CGRect,
+        secondaryLabel: CGRect = .zero,
+        secondaryRemaining: CGRect = .zero,
+        secondaryProgress: CGRect = .zero
     ) {
         self.title = title
         self.versionBadge = versionBadge
+        self.primaryLabel = primaryLabel
         self.remaining = remaining
         self.progress = progress
+        self.secondaryLabel = secondaryLabel
+        self.secondaryRemaining = secondaryRemaining
+        self.secondaryProgress = secondaryProgress
     }
 }
 
@@ -48,6 +60,7 @@ public enum QuotaDetailLayout {
     /// Compact dimensions tuned to the native Codex popover scale.
     public static let width: CGFloat = 360
     public static let headerHeight: CGFloat = 120
+    public static let dualQuotaHeaderHeight: CGFloat = 170
     public static let rowHeight: CGFloat = 32
     public static let verticalPadding: CGFloat = 16
     public static let maximumHeight: CGFloat = 580
@@ -61,6 +74,10 @@ public enum QuotaDetailLayout {
     public static let rowTopGap: CGFloat = 10
     public static let footerHeight: CGFloat = 44
 
+    public static func headerHeight(secondaryQuotaVisible: Bool) -> CGFloat {
+        secondaryQuotaVisible ? dualQuotaHeaderHeight : headerHeight
+    }
+
     public static func titleWidth(
         intrinsicWidth: CGFloat,
         fittingWidth: CGFloat
@@ -71,7 +88,8 @@ public enum QuotaDetailLayout {
     public static func headerFrames(
         in bounds: CGRect,
         titleWidth: CGFloat,
-        versionBadgeWidth: CGFloat
+        versionBadgeWidth: CGFloat,
+        secondaryQuotaVisible: Bool = false
     ) -> QuotaDetailHeaderFrames {
         let badgeWidth = max(0, versionBadgeWidth)
         let titleX = bounds.minX + contentHorizontalInset + 32 + 10
@@ -91,6 +109,12 @@ public enum QuotaDetailLayout {
             width: badgeWidth,
             height: 22
         )
+        let primaryLabel = CGRect(
+            x: bounds.minX + contentHorizontalInset,
+            y: bounds.maxY - 78,
+            width: max(0, bounds.width - contentHorizontalInset * 2),
+            height: 20
+        )
         let remaining = CGRect(
             x: bounds.minX + contentHorizontalInset,
             y: bounds.maxY - 104,
@@ -103,18 +127,48 @@ public enum QuotaDetailLayout {
             width: max(0, bounds.width - contentHorizontalInset * 2),
             height: 6
         )
+        let secondaryLabel = secondaryQuotaVisible
+            ? CGRect(
+                x: bounds.minX + contentHorizontalInset,
+                y: bounds.maxY - 137,
+                width: max(0, bounds.width - contentHorizontalInset * 2),
+                height: 20
+            )
+            : .zero
+        let secondaryRemaining = secondaryQuotaVisible
+            ? CGRect(
+                x: bounds.minX + contentHorizontalInset,
+                y: bounds.maxY - 159,
+                width: max(0, bounds.width - contentHorizontalInset * 2),
+                height: 26
+            )
+            : .zero
+        let secondaryProgress = secondaryQuotaVisible
+            ? CGRect(
+                x: bounds.minX + contentHorizontalInset,
+                y: bounds.maxY - 166,
+                width: max(0, bounds.width - contentHorizontalInset * 2),
+                height: 5
+            )
+            : .zero
         return QuotaDetailHeaderFrames(
             title: title,
             versionBadge: versionBadge,
+            primaryLabel: primaryLabel,
             remaining: remaining,
-            progress: progress
+            progress: progress,
+            secondaryLabel: secondaryLabel,
+            secondaryRemaining: secondaryRemaining,
+            secondaryProgress: secondaryProgress
         )
     }
 
     public static func informationFrames(
         in bounds: CGRect,
-        tokenUsageVisible: Bool = false
+        tokenUsageVisible: Bool = false,
+        secondaryQuotaVisible: Bool = false
     ) -> QuotaDetailInformationFrames {
+        let headerHeight = headerHeight(secondaryQuotaVisible: secondaryQuotaVisible)
         let tokenBand: CGRect
         if tokenUsageVisible {
             tokenBand = CGRect(
@@ -142,7 +196,11 @@ public enum QuotaDetailLayout {
                     height: 1
                 )
                 : .zero,
-            rowArea: rowAreaFrame(in: bounds, tokenUsageVisible: tokenUsageVisible),
+            rowArea: rowAreaFrame(
+                in: bounds,
+                tokenUsageVisible: tokenUsageVisible,
+                secondaryQuotaVisible: secondaryQuotaVisible
+            ),
             footerDivider: CGRect(
                 x: bounds.minX,
                 y: footerFrame(in: bounds).maxY,
@@ -155,9 +213,10 @@ public enum QuotaDetailLayout {
 
     public static func rowAreaFrame(
         in bounds: CGRect,
-        tokenUsageVisible: Bool = false
+        tokenUsageVisible: Bool = false,
+        secondaryQuotaVisible: Bool = false
     ) -> CGRect {
-        let informationHeight = headerHeight
+        let informationHeight = headerHeight(secondaryQuotaVisible: secondaryQuotaVisible)
         let reservedHeight = informationHeight + (
             tokenUsageVisible ? tokenBandReservedHeight : 0
         ) + footerHeight
@@ -180,21 +239,24 @@ public enum QuotaDetailLayout {
 
     public static func contentHeight(
         rowCount: Int,
-        tokenUsageVisible: Bool = false
+        tokenUsageVisible: Bool = false,
+        secondaryQuotaVisible: Bool = false
     ) -> CGFloat {
         contentHeight(
             rowContentHeight: CGFloat(max(0, rowCount)) * rowHeight,
-            tokenUsageVisible: tokenUsageVisible
+            tokenUsageVisible: tokenUsageVisible,
+            secondaryQuotaVisible: secondaryQuotaVisible
         )
     }
 
     public static func contentHeight(
         rowContentHeight: CGFloat,
-        tokenUsageVisible: Bool = false
+        tokenUsageVisible: Bool = false,
+        secondaryQuotaVisible: Bool = false
     ) -> CGFloat {
         min(
             maximumHeight,
-            headerHeight + verticalPadding + max(0, rowContentHeight) +
+            headerHeight(secondaryQuotaVisible: secondaryQuotaVisible) + verticalPadding + max(0, rowContentHeight) +
                 (tokenUsageVisible ? tokenBandReservedHeight : 0) + footerHeight
         )
     }
@@ -203,13 +265,15 @@ public enum QuotaDetailLayout {
         indicatorFrame: CGRect,
         rowCount: Int,
         visibleFrame: CGRect,
-        tokenUsageVisible: Bool = false
+        tokenUsageVisible: Bool = false,
+        secondaryQuotaVisible: Bool = false
     ) -> CGRect {
         frame(
             indicatorFrame: indicatorFrame,
             rowContentHeight: CGFloat(max(0, rowCount)) * rowHeight,
             visibleFrame: visibleFrame,
-            tokenUsageVisible: tokenUsageVisible
+            tokenUsageVisible: tokenUsageVisible,
+            secondaryQuotaVisible: secondaryQuotaVisible
         )
     }
 
@@ -217,13 +281,15 @@ public enum QuotaDetailLayout {
         indicatorFrame: CGRect,
         rowContentHeight: CGFloat,
         visibleFrame: CGRect,
-        tokenUsageVisible: Bool = false
+        tokenUsageVisible: Bool = false,
+        secondaryQuotaVisible: Bool = false
     ) -> CGRect {
         let availableHeight = max(0, visibleFrame.height - screenMargin * 2)
         let height = min(
             contentHeight(
                 rowContentHeight: rowContentHeight,
-                tokenUsageVisible: tokenUsageVisible
+                tokenUsageVisible: tokenUsageVisible,
+                secondaryQuotaVisible: secondaryQuotaVisible
             ),
             availableHeight
         )

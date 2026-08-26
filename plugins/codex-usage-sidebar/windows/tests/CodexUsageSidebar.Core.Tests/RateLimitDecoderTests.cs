@@ -15,7 +15,9 @@ public sealed class RateLimitDecoderTests
         Assert.AreEqual(24d, snapshot.UsedPercent);
         Assert.AreEqual(76, snapshot.RemainingPercent);
         Assert.AreEqual(DateTimeOffset.FromUnixTimeSeconds(1_785_628_824), snapshot.ResetsAt);
-        Assert.AreEqual(10_080, snapshot.WindowDurationMinutes);
+        Assert.AreEqual(300, snapshot.WindowDurationMinutes);
+        Assert.AreEqual(98, snapshot.Secondary?.RemainingPercent);
+        Assert.AreEqual(10_080, snapshot.Secondary?.WindowDurationMinutes);
         Assert.AreEqual("plus", snapshot.PlanType);
         Assert.AreEqual("12.50", snapshot.Credits?.Balance);
         Assert.AreEqual(2, snapshot.Bank?.AvailableCount);

@@ -19,6 +19,34 @@ enum QuotaDetailIconKind {
         default: return .bank
         }
     }
+
+    static func kind(forRowLabel label: String, index: Int, count: Int) -> QuotaDetailIconKind {
+        let normalized = label.lowercased()
+        if normalized.contains("额度周期") ||
+            normalized.contains("額度週期") ||
+            normalized.contains("quota window")
+        {
+            return .quotaWindow
+        }
+        if normalized.contains("重置") ||
+            normalized.contains("重設") ||
+            normalized.contains("reset")
+        {
+            return .reset
+        }
+        if normalized == "credits" {
+            return .credits
+        }
+        if normalized.contains("bank") {
+            return .bank
+        }
+        if normalized.contains("更新") ||
+            normalized == "updated"
+        {
+            return .refresh
+        }
+        return kind(forRowAt: index, count: count)
+    }
 }
 
 @MainActor
