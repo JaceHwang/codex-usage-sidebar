@@ -121,4 +121,34 @@ final class QuotaCountdownSegmentsTests: XCTestCase {
             ]
         )
     }
+
+    func testSegmentsMultilineSimplifiedResetPrefixWithoutEmphasizingTimestampDigits() {
+        let value = "4天23小时\n（2025/08/19 19:30）"
+
+        XCTAssertEqual(
+            QuotaCountdownSegmenter.segments(in: value),
+            [
+                .init(text: "4", role: .digits),
+                .init(text: "天", role: .unit),
+                .init(text: "23", role: .digits),
+                .init(text: "小时", role: .unit),
+                .init(text: "\n（2025/08/19 19:30）", role: .plain)
+            ]
+        )
+    }
+
+    func testSegmentsMultilineEnglishResetPrefixWithoutEmphasizingTimestampDigits() {
+        let value = "4d 23h\n(2025/08/19 19:30)"
+
+        XCTAssertEqual(
+            QuotaCountdownSegmenter.segments(in: value),
+            [
+                .init(text: "4", role: .digits),
+                .init(text: "d ", role: .unit),
+                .init(text: "23", role: .digits),
+                .init(text: "h", role: .unit),
+                .init(text: "\n(2025/08/19 19:30)", role: .plain)
+            ]
+        )
+    }
 }

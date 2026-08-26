@@ -93,7 +93,7 @@ public enum QuotaCountdownSegmenter {
         in value: String
     ) -> [QuotaCountdownSegment]? {
         let patterns = [
-            #"^([0-9]+)(天)([0-9]+)(小时|小時)([（(].*)$"#,
+            #"^([0-9]+)(天)([0-9]+)(小时|小時)(\s*[（(].*)$"#,
             #"^([0-9]+)(d\s+)([0-9]+)(h)(\s+\(.*)$"#
         ]
         for pattern in patterns {
