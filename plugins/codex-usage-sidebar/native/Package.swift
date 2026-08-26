@@ -21,7 +21,8 @@ let package = Package(
         .target(name: "InstallerCore"),
         .executableTarget(
             name: "CodexUsageSidebar",
-            dependencies: ["SidebarCore"]
+            dependencies: ["SidebarCore"],
+            resources: [.copy("Resources")]
         ),
         .executableTarget(
             name: "CodexUsageSidebarInstaller",
