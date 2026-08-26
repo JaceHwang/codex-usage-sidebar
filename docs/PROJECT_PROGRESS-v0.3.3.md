@@ -25,11 +25,13 @@ reset times, localized copy, and the existing token/account/Credits/Bank/GitHub 
 | macOS titlebar | Two-line summary with colored percentages | Done |
 | Windows core/formatter | Shared secondary-window contract and localized rows | Done in source; Windows runner required |
 | Windows WPF | Dual bars, icons, account footer, GitHub link | Done in source; Windows runner required |
-| macOS installer | v0.3.3 build/package/verify scripts | Pending local packaging |
+| macOS installer | v0.3.3 build/package/verify scripts and arm64 DMG | Done locally: `sourceCommit=58c4c83`, `hdiutil verify` and code-signature checks passed |
 | Windows installer/device matrix | Build, UIA, DPI, theme, lifecycle | Pending Windows 11 AMD64/x64 host |
 
 ## Verification constraints
 
 The current host is macOS Apple Silicon and does not have the .NET SDK, WPF runtime, or Windows UI
 Automation environment. Windows source checks therefore remain static until a Windows machine runs the
-solution build and device matrix. No GitHub push is part of this local implementation phase.
+solution build and device matrix. The local macOS arm64 DMG checksum is
+`b901ba75eafd133c319f9983e00d58ef7af29a9a64391e77fb95f6ff18539bce`.
+No GitHub push is part of this local implementation phase.
