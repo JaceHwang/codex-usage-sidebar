@@ -194,6 +194,10 @@ bash scripts/verify-macos-v033-installer-package.sh \
   ".dist/v0.3.3/macos/codex-usage-sidebar-v0.3.3-macos-arm64.dmg"
 ```
 
+The published v0.3.2 asset remains reproducible with the historical
+`scripts/build-macos-v032-installer.sh`, `scripts/package-macos-v032-installer.sh`, and
+`scripts/verify-macos-v032-installer-package.sh` trio.
+
 ### Advanced: manual marketplace installation
 
 ```bash
