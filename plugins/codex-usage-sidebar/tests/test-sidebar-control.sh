@@ -184,6 +184,22 @@ assert_contains "bootout gui/501/com.jace.codex-usage-sidebar" "$launchctl_log"
 assert_contains "kickstart -k gui/501/com.jace.codex-usage-sidebar" "$launchctl_log"
 assert_contains "repaired --diagnostic-once" "$app_log"
 
+# The installed controller is also the repair entry point after a plugin update.
+# It must not fail while synchronizing itself onto the same destination path.
+cat >"$fake_app/Contents/MacOS/CodexUsageSidebar" <<'INSTALLED_CONTROLLER_REPAIRED_APP'
+#!/usr/bin/env bash
+printf 'installed-controller-repaired %s\n' "$*" >>"${CUS_TEST_APP_LOG:?}"
+INSTALLED_CONTROLLER_REPAIRED_APP
+chmod +x "$fake_app/Contents/MacOS/CodexUsageSidebar"
+/usr/libexec/PlistBuddy \
+  -c 'Set :CFBundleShortVersionString 0.4.0-test' \
+  "$fake_app/Contents/Info.plist"
+
+"$installed_root/sidebar-control.sh" repair --plugin-root "$fake_plugin" --plugin-data "$fixture_root/plugin-data"
+assert_contains "0.4.0-test" "$installed_app/Contents/Info.plist"
+assert_contains "installed-controller-repaired" "$installed_app/Contents/MacOS/CodexUsageSidebar"
+assert_contains "installed-controller-repaired --diagnostic-once" "$app_log"
+
 malformed_plugin="$fixture_root/malformed plugin"
 mkdir -p "$malformed_plugin/assets/Codex Usage Sidebar.app/Contents/MacOS"
 cp "$fake_app/Contents/Info.plist" \

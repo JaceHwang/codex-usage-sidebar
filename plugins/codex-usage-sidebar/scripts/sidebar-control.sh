@@ -223,8 +223,11 @@ sync_payload() {
 
   verify_bundle_signature "$installed_app" "installed companion" || exit 65
 
-  /bin/cp "$0" "$install_root/sidebar-control.sh"
-  /bin/chmod 755 "$install_root/sidebar-control.sh" "$installed_binary"
+  local installed_control="$install_root/sidebar-control.sh"
+  if [[ ! -e "$installed_control" || ! "$0" -ef "$installed_control" ]]; then
+    /bin/cp "$0" "$installed_control"
+  fi
+  /bin/chmod 755 "$installed_control" "$installed_binary"
   printf '%s\n' "$plugin_root" >"$install_root/plugin-root.txt.tmp.$$"
   /bin/mv -f "$install_root/plugin-root.txt.tmp.$$" "$install_root/plugin-root.txt"
   write_agent_plist
