@@ -19,6 +19,34 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         )
     }
 
+    func testThemeIconViewRendersTheBundledColoredAsset() throws {
+        let icon = QuotaThemeIconView(frame: CGRect(x: 0, y: 0, width: 48, height: 48))
+        let appearance = try XCTUnwrap(NSAppearance(named: .aqua))
+        icon.updateAppearance(appearance)
+
+        let representation = try XCTUnwrap(
+            icon.bitmapImageRepForCachingDisplay(in: icon.bounds)
+        )
+        icon.cacheDisplay(in: icon.bounds, to: representation)
+
+        let coloredPixelCount = (0 ..< Int(icon.bounds.width)).reduce(0) { count, x in
+            count + (0 ..< Int(icon.bounds.height)).reduce(0) { count, y in
+                guard let color = representation.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB)
+                else {
+                    return count
+                }
+                let components = [color.redComponent, color.greenComponent, color.blueComponent]
+                return components.max()! - components.min()! > 0.15 ? count + 1 : count
+            }
+        }
+
+        XCTAssertGreaterThan(
+            coloredPixelCount,
+            80,
+            "The visual fixture must render the shipped theme icon rather than the gray fallback ring."
+        )
+    }
+
     func testRendersEveryLocalizedThemeFixtureWithFixedInformationBand() throws {
         let outputDirectory = ProcessInfo.processInfo.environment[
             "CUS_VISUAL_OUTPUT_DIR"
