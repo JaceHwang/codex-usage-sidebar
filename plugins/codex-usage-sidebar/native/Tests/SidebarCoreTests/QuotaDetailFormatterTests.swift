@@ -44,7 +44,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
             content.rows.contains(
                 .init(
                     label: "Bank 1到期时间",
-                    value: "6天2小时（2026/08/01 04:19）"
+                    value: "6天2小时\n（2026/08/01 04:19）"
                 )
             )
         )
@@ -52,7 +52,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
             content.rows.contains(
                 .init(
                     label: "Bank 2到期时间",
-                    value: "18天0小时（2026/08/13 02:00）"
+                    value: "18天0小时\n（2026/08/13 02:00）"
                 )
             )
         )
@@ -60,14 +60,14 @@ final class QuotaDetailFormatterTests: XCTestCase {
             content.rows.contains(
                 .init(
                     label: "下次重置",
-                    value: "7天6小时（2026/08/02 08:00）",
+                    value: "7天6小时\n（2026/08/02 08:00）",
                     valueStyle: .resetCountdown,
                     accentRemainingPercent: 76
                 )
             )
         )
         XCTAssertTrue(content.rows.contains(.init(label: "套餐", value: "Plus")))
-        XCTAssertTrue(content.rows.contains(.init(label: "额度周期", value: "7 天")))
+        XCTAssertFalse(content.rows.contains { $0.label == "额度周期" })
         XCTAssertTrue(content.rows.contains(.init(label: "Credits", value: "12.50")))
     }
 
@@ -84,16 +84,15 @@ final class QuotaDetailFormatterTests: XCTestCase {
         XCTAssertEqual(
             content.rows.map(\.label),
             [
-                "套餐", "额度周期", "下次重置（5小时）",
-                "额度周期（7天）", "下次重置（7天）",
+                "套餐", "下次重置（5小时）", "下次重置（7天）",
                 "Credits", "Bank 可用重置", "数据更新"
             ]
         )
-        XCTAssertTrue(content.rows.contains(.init(label: "额度周期（7天）", value: "7 天")))
+        XCTAssertFalse(content.rows.contains { $0.label == "额度周期（7天）" })
         XCTAssertTrue(content.rows.contains(
             .init(
                 label: "下次重置（5小时）",
-                value: "31天13小时（2026/08/26 14:55）",
+                value: "31天13小时\n（2026/08/26 14:55）",
                 valueStyle: .resetCountdown,
                 accentRemainingPercent: 85
             )
@@ -101,7 +100,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
         XCTAssertTrue(content.rows.contains(
             .init(
                 label: "下次重置（7天）",
-                value: "37天6小时（2026/09/01 08:00）",
+                value: "37天6小时\n（2026/09/01 08:00）",
                 valueStyle: .resetCountdown,
                 accentRemainingPercent: 98
             )
@@ -193,15 +192,15 @@ final class QuotaDetailFormatterTests: XCTestCase {
             [
                 .init(
                     label: "Bank 1到期时间",
-                    value: "<1m（2026/07/26 01:19） · 已过期"
+                    value: "<1m\n（2026/07/26 01:19） · 已过期"
                 ),
                 .init(
                     label: "Bank 2到期时间",
-                    value: "6天2小时（2026/08/01 04:19）"
+                    value: "6天2小时\n（2026/08/01 04:19）"
                 ),
                 .init(
                     label: "Bank 3到期时间",
-                    value: "18天0小时（2026/08/13 02:00） · 已使用"
+                    value: "18天0小时\n（2026/08/13 02:00） · 已使用"
                 ),
                 .init(label: "Bank 4到期时间", value: "未提供到期时间")
             ]
@@ -261,14 +260,14 @@ final class QuotaDetailFormatterTests: XCTestCase {
             "https://x.com/thsottiaux"
         )
         XCTAssertTrue(content.rows.contains(.init(label: "Plan", value: "Plus")))
-        XCTAssertTrue(
-            content.rows.contains(.init(label: "Quota window", value: "7 days"))
+        XCTAssertFalse(
+            content.rows.contains { $0.label == "Quota window" }
         )
         XCTAssertTrue(
             content.rows.contains(
                 .init(
                     label: "Next reset",
-                    value: "7d 6h (2026/08/02 08:00)",
+                    value: "7d 6h\n(2026/08/02 08:00)",
                     valueStyle: .resetCountdown,
                     accentRemainingPercent: 76
                 )
@@ -281,7 +280,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
         )
         XCTAssertTrue(
             content.rows.contains(
-                .init(label: "Bank 1 expires", value: "6d 2h (2026/08/01 04:19)")
+                .init(label: "Bank 1 expires", value: "6d 2h\n(2026/08/01 04:19)")
             )
         )
         XCTAssertTrue(
@@ -304,12 +303,12 @@ final class QuotaDetailFormatterTests: XCTestCase {
             "在瀏覽器中開啟 Tibo 的 X 主頁"
         )
         XCTAssertTrue(content.rows.contains(.init(label: "方案", value: "Plus")))
-        XCTAssertTrue(content.rows.contains(.init(label: "額度週期", value: "7 天")))
+        XCTAssertFalse(content.rows.contains { $0.label == "額度週期" })
         XCTAssertTrue(
             content.rows.contains(
                 .init(
                     label: "下次重設",
-                    value: "7天6小時（2026/08/02 08:00）",
+                    value: "7天6小時\n（2026/08/02 08:00）",
                     valueStyle: .resetCountdown,
                     accentRemainingPercent: 76
                 )
@@ -317,7 +316,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
         )
         XCTAssertTrue(
             content.rows.contains(
-                .init(label: "Bank 1到期時間", value: "6天2小時（2026/08/01 04:19）")
+                .init(label: "Bank 1到期時間", value: "6天2小時\n（2026/08/01 04:19）")
             )
         )
     }
@@ -401,15 +400,15 @@ final class QuotaDetailFormatterTests: XCTestCase {
 
         XCTAssertTrue(resetSimplified.rows.contains {
             $0.label == "下次重置" &&
-                $0.value == "4天23小时（2025/08/19 19:30）"
+                $0.value == "4天23小时\n（2025/08/19 19:30）"
         })
         XCTAssertTrue(resetTraditional.rows.contains {
             $0.label == "下次重設" &&
-                $0.value == "4天23小時（2025/08/19 19:30）"
+                $0.value == "4天23小時\n（2025/08/19 19:30）"
         })
         XCTAssertTrue(resetEnglish.rows.contains {
             $0.label == "Next reset" &&
-                $0.value == "4d 23h (2025/08/19 19:30)"
+                $0.value == "4d 23h\n(2025/08/19 19:30)"
         })
 
         XCTAssertEqual(

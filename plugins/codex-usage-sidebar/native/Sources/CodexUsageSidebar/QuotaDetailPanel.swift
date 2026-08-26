@@ -165,7 +165,7 @@ final class QuotaDetailCardView: NSView {
 
         let remaining = label(
             "\(content.remainingPercent)%",
-            font: .systemFont(ofSize: 28, weight: .semibold),
+            font: .systemFont(ofSize: 24, weight: .semibold),
             color: QuotaColorScale.components(
                 remainingPercent: content.remainingPercent
             ).appKitColor,
@@ -303,7 +303,7 @@ final class QuotaDetailCardView: NSView {
             )
             icon.frame = CGRect(
                 x: QuotaDetailLayout.contentHorizontalInset,
-                y: rowY + 5,
+                y: rowY + (isStacked ? (rowHeight - 18) / 2 : 5),
                 width: 18,
                 height: 18
             )
@@ -320,7 +320,7 @@ final class QuotaDetailCardView: NSView {
             )
             rowLabel.frame = CGRect(
                 x: 42,
-                y: rowY + 7,
+                y: rowY + (isStacked ? (rowHeight - 16) / 2 : 7),
                 width: labelWidth,
                 height: 16
             )
@@ -337,12 +337,12 @@ final class QuotaDetailCardView: NSView {
                 remainingPercent: row.accentRemainingPercent ?? content.remainingPercent
             )
             if isStacked {
-                let valueHeight = rowHeight - 18
-                value.maximumNumberOfLines = Int(valueHeight / 15)
+                let valueHeight = rowHeight - 8
+                value.maximumNumberOfLines = 2
                 value.lineBreakMode = .byCharWrapping
                 value.frame = CGRect(
                     x: 42,
-                    y: rowY + 18,
+                    y: rowY + 4,
                     width: rowContentWidth - 52,
                     height: valueHeight
                 )
@@ -877,6 +877,9 @@ private enum QuotaDetailRowMetrics {
         remainingPercent: Int
     ) -> [CGFloat] {
         rows.map { row in
+            if row.value.contains("\n") {
+                return 46
+            }
             let labelWidth = min(118, textWidth(row.label, font: labelFont) + 2)
             let valueX = max(148, 42 + labelWidth + 10)
             let columnWidth = max(1, cardWidth - valueX - 12)

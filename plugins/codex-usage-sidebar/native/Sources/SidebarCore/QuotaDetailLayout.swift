@@ -60,7 +60,7 @@ public enum QuotaDetailLayout {
     /// Compact dimensions tuned to the native Codex popover scale.
     public static let width: CGFloat = 360
     public static let headerHeight: CGFloat = 120
-    public static let dualQuotaHeaderHeight: CGFloat = 160
+    public static let dualQuotaHeaderHeight: CGFloat = 171
     public static let rowHeight: CGFloat = 32
     public static let verticalPadding: CGFloat = 16
     public static let maximumHeight: CGFloat = 580
@@ -134,7 +134,7 @@ public enum QuotaDetailLayout {
         let secondaryLabel = secondaryQuotaVisible
             ? CGRect(
                 x: bounds.minX + contentHorizontalInset,
-                y: bounds.maxY - 119,
+                y: bounds.maxY - 129,
                 width: quotaLabelWidth,
                 height: 20
             )
@@ -142,7 +142,7 @@ public enum QuotaDetailLayout {
         let secondaryRemaining = secondaryQuotaVisible
             ? CGRect(
                 x: quotaValueX,
-                y: bounds.maxY - 123,
+                y: bounds.maxY - 133,
                 width: quotaValueWidth,
                 height: 28
             )
@@ -150,7 +150,7 @@ public enum QuotaDetailLayout {
         let secondaryProgress = secondaryQuotaVisible
             ? CGRect(
                 x: bounds.minX + contentHorizontalInset,
-                y: bounds.maxY - 136,
+                y: bounds.maxY - 146,
                 width: quotaWidth,
                 height: 6
             )

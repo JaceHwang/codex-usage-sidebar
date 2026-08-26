@@ -375,6 +375,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         XCTAssertEqual(weeklyLabel.frame.midY, weeklyPercent.frame.midY)
         XCTAssertEqual(primaryPercent.alignment, .right)
         XCTAssertEqual(weeklyPercent.alignment, .right)
+        XCTAssertEqual(primaryPercent.font?.pointSize, weeklyPercent.font?.pointSize)
     }
 
     func testNarrowPanelMeasuresWrappedRowsUsingClampedCardWidth() {

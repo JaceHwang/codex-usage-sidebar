@@ -144,14 +144,6 @@ public struct QuotaDetailFormatter: Sendable {
         if let planType = snapshot.planType, !planType.isEmpty {
             rows.append(.init(label: copy.plan, value: displayPlan(planType)))
         }
-        if let minutes = snapshot.windowDurationMins, minutes > 0 {
-            rows.append(
-                .init(
-                    label: copy.quotaWindow,
-                    value: copy.period(minutes: minutes)
-                )
-            )
-        }
         rows.append(
             .init(
                 label: primaryResetLabel(snapshot: snapshot, copy: copy),
@@ -166,12 +158,6 @@ public struct QuotaDetailFormatter: Sendable {
             )
         )
         if let secondary = snapshot.secondary {
-            rows.append(
-                .init(
-                    label: copy.secondaryQuotaWindow,
-                    value: copy.period(minutes: secondary.windowDurationMins ?? 10_080)
-                )
-            )
             rows.append(
                 .init(
                     label: copy.secondaryNextReset,
@@ -332,7 +318,10 @@ public struct QuotaDetailFormatter: Sendable {
             to: date,
             language: copy.language
         )
-        return "\(relative)\(copy.openingParenthesis)\(formatter.string(from: date))\(copy.closingParenthesis)"
+        let openingParenthesis = copy.openingParenthesis.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        return "\(relative)\n\(openingParenthesis)\(formatter.string(from: date))\(copy.closingParenthesis)"
     }
 
     private func displayTokenUsage(

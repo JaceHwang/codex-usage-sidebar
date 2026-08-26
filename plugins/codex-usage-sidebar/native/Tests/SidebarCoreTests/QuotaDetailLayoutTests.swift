@@ -175,12 +175,18 @@ final class QuotaDetailLayoutTests: XCTestCase {
         )
 
         XCTAssertEqual(header.secondaryRemaining.height, 28)
+        XCTAssertEqual(header.remaining.height, header.secondaryRemaining.height)
         XCTAssertEqual(header.primaryLabel.midY, header.remaining.midY)
         XCTAssertEqual(header.secondaryLabel.midY, header.secondaryRemaining.midY)
         XCTAssertGreaterThan(header.remaining.minX, header.primaryLabel.minX)
         XCTAssertGreaterThan(header.secondaryRemaining.minX, header.secondaryLabel.minX)
         XCTAssertLessThan(header.secondaryProgress.minY, header.progress.minY)
         XCTAssertLessThan(header.secondaryProgress.maxY, header.progress.minY)
+        XCTAssertGreaterThanOrEqual(
+            header.progress.minY - header.secondaryLabel.maxY,
+            10,
+            "The paired quota rows keep a visible breathing gap between the first bar and the second label."
+        )
         XCTAssertLessThan(header.secondaryProgress.maxY, header.title.minY)
     }
 
