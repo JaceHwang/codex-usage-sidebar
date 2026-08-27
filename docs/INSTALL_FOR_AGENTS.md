@@ -1,7 +1,7 @@
 # Install with an Agent
 
 This playbook is for a coding agent with terminal access to the target computer. Use the Windows
-path for the published `v0.3.3` setup and the macOS v0.3.2 DMG installation.
+path for the published `v0.3.3` setup and the macOS v0.3.3 DMG installation.
 
 ## Windows 11 AMD64/x64 automatic setup install
 
