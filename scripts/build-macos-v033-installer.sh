@@ -36,6 +36,7 @@ plugin_version="$(/usr/bin/python3 -c 'import json,sys; print(json.load(open(sys
   exit 65
 }
 
+CUS_COMPANION_SOURCE_COMMIT="$source_commit" \
 DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}" \
   /bin/bash "$source_root/plugins/codex-usage-sidebar/scripts/build-companion.sh"
 rebuilt_companion="$source_root/plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app"

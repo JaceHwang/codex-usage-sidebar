@@ -39,16 +39,19 @@ verify_app() {
   [[ "$(/usr/bin/lipo -archs "$companion")" == "arm64" ]]
   [[ "$(/bin/cat "$payload_commit")" =~ ^[0-9a-f]{40}$ ]]
   /usr/bin/codesign --verify --deep --strict "$candidate"
-  /usr/bin/python3 - "$manifest" "$payload_provenance" "$companion" "$version" <<'PY'
+  /usr/bin/python3 - "$manifest" "$payload_provenance" "$companion" "$payload_commit" "$version" <<'PY'
 import hashlib
 import json
 import sys
 
-manifest_path, provenance_path, companion_path, version = sys.argv[1:]
+manifest_path, provenance_path, companion_path, payload_commit_path, version = sys.argv[1:]
 manifest = json.load(open(manifest_path, encoding="utf-8"))
 if manifest["version"].split("+", 1)[0] != version:
     raise SystemExit("embedded plugin version mismatch")
 provenance = json.load(open(provenance_path, encoding="utf-8"))
+payload_commit = open(payload_commit_path, encoding="utf-8").read().strip()
+if provenance["sourceCommit"] != payload_commit:
+    raise SystemExit("embedded companion provenance source commit differs from InstallerPayloadCommit")
 digest = hashlib.sha256(open(companion_path, "rb").read()).hexdigest()
 if digest != provenance["companion"]["executableSha256"]:
     raise SystemExit("embedded companion digest differs from provenance")

@@ -50,6 +50,11 @@ if [[ "$combined" == *'required_branch='* || "$combined" == *'branch --show-curr
   exit 1
 fi
 
+if [[ "$combined" != *'provenance["sourceCommit"] != payload_commit'* ]]; then
+  printf 'macOS v0.3.3 verifier must bind embedded companion provenance to InstallerPayloadCommit\n' >&2
+  exit 1
+fi
+
 for document in README.md README.zh-CN.md docs/INSTALL.md docs/releases/v0.3.3.md; do
   grep -q 'codex-usage-sidebar-v0.3.3-macos-arm64.dmg' "$repo_root/$document" || {
     printf 'v0.3.3 macOS release documentation is missing the DMG asset: %s\n' "$document" >&2
