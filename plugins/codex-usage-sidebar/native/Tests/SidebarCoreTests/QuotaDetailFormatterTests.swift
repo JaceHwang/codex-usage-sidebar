@@ -69,6 +69,8 @@ final class QuotaDetailFormatterTests: XCTestCase {
         XCTAssertTrue(content.rows.contains(.init(label: "套餐", value: "Plus")))
         XCTAssertFalse(content.rows.contains { $0.label == "额度周期" })
         XCTAssertTrue(content.rows.contains(.init(label: "Credits", value: "12.50")))
+        XCTAssertEqual(content.rows.dropLast().last?.label, "Credits")
+        XCTAssertEqual(content.rows.last?.label, "数据更新")
     }
 
     func testFormatsPrimaryAndSecondaryQuotaWindowsAndRows() {
@@ -85,7 +87,7 @@ final class QuotaDetailFormatterTests: XCTestCase {
             content.rows.map(\.label),
             [
                 "套餐", "下次重置（5小时）", "下次重置（7天）",
-                "Credits", "Bank 可用重置", "数据更新"
+                "Bank 可用重置", "Credits", "数据更新"
             ]
         )
         XCTAssertFalse(content.rows.contains { $0.label == "额度周期（7天）" })
@@ -474,6 +476,57 @@ final class QuotaDetailFormatterTests: XCTestCase {
         XCTAssertEqual(content.tokenUsage?.days.map(\.label), [
             "8月13日", "8月14日", "8月15日", "8月16日",
             "8月17日", "8月18日", "8月19日"
+        ])
+    }
+
+    func testTokenUsageUsesWeeklySecondaryQuotaInsteadOfFiveHourPrimary() {
+        let now = date(year: 2026, month: 8, day: 26, hour: 12)
+        let allowance = AllowanceSnapshot(
+            primary: QuotaWindowSnapshot(
+                usedPercent: 12,
+                remainingPercent: 88,
+                resetsAt: date(year: 2026, month: 8, day: 26, hour: 15, minute: 55),
+                windowDurationMins: 300
+            ),
+            secondary: QuotaWindowSnapshot(
+                usedPercent: 2,
+                remainingPercent: 98,
+                resetsAt: date(year: 2026, month: 9, day: 1, hour: 14, minute: 55),
+                windowDurationMins: 10_080
+            ),
+            receivedAt: now
+        )
+        let usage = TokenUsageSnapshot(
+            receivedAt: now,
+            dailyBuckets: [
+                TokenUsageDay(
+                    date: date(year: 2026, month: 8, day: 25),
+                    tokens: 100,
+                    timeZone: timeZone
+                ),
+                TokenUsageDay(
+                    date: date(year: 2026, month: 8, day: 26),
+                    tokens: 200,
+                    timeZone: timeZone
+                )
+            ],
+            summary: nil,
+            availability: .available
+        )
+
+        let content = formatter.content(
+            snapshot: allowance,
+            tokenUsage: usage,
+            now: now,
+            language: .simplifiedChinese,
+            timeZone: timeZone
+        )
+
+        XCTAssertEqual(content.tokenUsage?.totalTokens, 300)
+        XCTAssertEqual(content.tokenUsage?.days.map(\.tokens), [100, 200, 0, 0, 0, 0, 0])
+        XCTAssertEqual(content.tokenUsage?.days.map(\.label), [
+            "8月25日", "8月26日", "8月27日", "8月28日",
+            "8月29日", "8月30日", "8月31日"
         ])
     }
 

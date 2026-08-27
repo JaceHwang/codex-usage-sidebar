@@ -407,11 +407,88 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         )
     }
 
+    func testResolvedPanelLayoutRetainsTheRequestedResizeHeight() {
+        let content = QuotaDetailContent(
+            title: "Codex usage",
+            remainingPercent: 32,
+            informationEntry: QuotaInformationEntry(
+                title: "Tibo on X",
+                accessibilityLabel: "Tibo on X",
+                destination: URL(string: "https://x.com/thsottiaux")!
+            ),
+            rows: [
+                QuotaDetailRow(label: "Plan", value: "Plus")
+            ]
+        )
+        let indicator = CGRect(x: 300, y: 760, width: 164, height: 46)
+        let layout = QuotaDetailPanelResolvedLayout.resolve(
+            content: content,
+            indicatorFrame: indicator,
+            visibleFrame: CGRect(x: 0, y: 0, width: 1_200, height: 900),
+            requestedHeight: 680
+        )
+
+        XCTAssertEqual(layout.frame.height, 680)
+        XCTAssertEqual(
+            layout.frame.maxY,
+            indicator.minY - QuotaDetailLayout.controlGap
+        )
+    }
+
     func testCardMaterialResolvesAThemeShadow() {
         let material = QuotaCardMaterialView(frame: CGRect(x: 0, y: 0, width: 520, height: 680))
 
         XCTAssertEqual(material.shadowOpacity(for: .aqua), 0.03, accuracy: 0.001)
         XCTAssertEqual(material.shadowOpacity(for: .darkAqua), 0.08, accuracy: 0.001)
+    }
+
+    func testResizeHandleUsesExpandedHitAreaAndGrowsTheScrollableRegion() throws {
+        let content = QuotaDetailFormatter().content(
+            snapshot: longBankSnapshot,
+            tokenUsage: tokenUsageSnapshot,
+            footerName: "jace@example.com",
+            now: now,
+            language: .simplifiedChinese,
+            timeZone: timeZone
+        )
+        let card = QuotaDetailCardView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: QuotaDetailLayout.width,
+                height: QuotaDetailLayout.maximumHeight
+            ),
+            content: content,
+            rowHeights: Array(
+                repeating: QuotaDetailLayout.rowHeight,
+                count: content.rows.count
+            ),
+            version: "0.3.3",
+            onOpenURL: { _ in }
+        )
+        card.layoutSubtreeIfNeeded()
+
+        let handle = try XCTUnwrap(
+            descendants(of: card).first {
+                $0.accessibilityRole() == .slider
+            }
+        )
+        let scrollView = try XCTUnwrap(
+            descendants(of: card).compactMap { $0 as? NSScrollView }.first
+        )
+        let initialScrollHeight = scrollView.frame.height
+
+        XCTAssertEqual(handle.frame.width, 44)
+        XCTAssertEqual(handle.frame.height, 14)
+        XCTAssertEqual(handle.accessibilityLabel(), "调整高度")
+
+        card.setFrameSize(NSSize(
+            width: QuotaDetailLayout.width,
+            height: QuotaDetailLayout.maximumHeight + 120
+        ))
+        card.layoutSubtreeIfNeeded()
+
+        XCTAssertEqual(scrollView.frame.height, initialScrollHeight + 120)
     }
 
     func testChromeOutlinesUseTheSharedSeparatorStyle() {

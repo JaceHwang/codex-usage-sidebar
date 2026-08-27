@@ -85,6 +85,39 @@ final class QuotaDetailLayoutTests: XCTestCase {
         XCTAssertEqual(frame.minY, 8)
     }
 
+    func testUserRequestedHeightKeepsPopoverTopAnchoredAndClampsToUsableRange() {
+        let indicator = CGRect(x: 300, y: 760, width: 164, height: 46)
+        let visible = CGRect(x: 0, y: 0, width: 1_200, height: 900)
+        let frame = QuotaDetailLayout.frame(
+            indicatorFrame: indicator,
+            rowContentHeight: 360,
+            visibleFrame: visible,
+            tokenUsageVisible: true,
+            secondaryQuotaVisible: true,
+            requestedHeight: 680
+        )
+
+        XCTAssertEqual(frame.width, QuotaDetailLayout.width)
+        XCTAssertEqual(frame.height, 680)
+        XCTAssertEqual(frame.maxY, indicator.minY - QuotaDetailLayout.controlGap)
+
+        let minimum = QuotaDetailLayout.frame(
+            indicatorFrame: indicator,
+            rowContentHeight: 360,
+            visibleFrame: visible,
+            tokenUsageVisible: true,
+            secondaryQuotaVisible: true,
+            requestedHeight: 1
+        )
+        XCTAssertEqual(
+            minimum.height,
+            QuotaDetailLayout.minimumResizableHeight(
+                tokenUsageVisible: true,
+                secondaryQuotaVisible: true
+            )
+        )
+    }
+
     func testAccountsForWrappedDetailRows() {
         XCTAssertEqual(QuotaDetailLayout.contentHeight(rowContentHeight: 210), 390)
         let frame = QuotaDetailLayout.frame(

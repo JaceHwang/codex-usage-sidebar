@@ -64,6 +64,9 @@ public enum QuotaDetailLayout {
     public static let rowHeight: CGFloat = 32
     public static let verticalPadding: CGFloat = 16
     public static let maximumHeight: CGFloat = 580
+    /// The largest manual height retains the compact native-popover character
+    /// while allowing the user to reveal substantially more detail rows.
+    public static let maximumResizableHeight: CGFloat = 720
     public static let screenMargin: CGFloat = 8
     public static let controlGap: CGFloat = 8
     public static let tokenBandHeight: CGFloat = 150
@@ -73,6 +76,7 @@ public enum QuotaDetailLayout {
     public static let contentHorizontalInset: CGFloat = 18
     public static let rowTopGap: CGFloat = 10
     public static let footerHeight: CGFloat = 44
+    public static let minimumRowViewportHeight: CGFloat = rowHeight * 2
 
     public static func headerHeight(secondaryQuotaVisible: Bool) -> CGFloat {
         secondaryQuotaVisible ? dualQuotaHeaderHeight : headerHeight
@@ -253,6 +257,15 @@ public enum QuotaDetailLayout {
         )
     }
 
+    public static func minimumResizableHeight(
+        tokenUsageVisible: Bool = false,
+        secondaryQuotaVisible: Bool = false
+    ) -> CGFloat {
+        headerHeight(secondaryQuotaVisible: secondaryQuotaVisible) +
+            (tokenUsageVisible ? tokenBandReservedHeight : 0) +
+            footerHeight + rowTopGap + minimumRowViewportHeight
+    }
+
     public static func contentHeight(
         rowContentHeight: CGFloat,
         tokenUsageVisible: Bool = false,
@@ -286,16 +299,29 @@ public enum QuotaDetailLayout {
         rowContentHeight: CGFloat,
         visibleFrame: CGRect,
         tokenUsageVisible: Bool = false,
-        secondaryQuotaVisible: Bool = false
+        secondaryQuotaVisible: Bool = false,
+        requestedHeight: CGFloat? = nil
     ) -> CGRect {
         let availableHeight = max(0, visibleFrame.height - screenMargin * 2)
-        let height = min(
-            contentHeight(
-                rowContentHeight: rowContentHeight,
+        let naturalHeight = contentHeight(
+            rowContentHeight: rowContentHeight,
+            tokenUsageVisible: tokenUsageVisible,
+            secondaryQuotaVisible: secondaryQuotaVisible
+        )
+        let maximumHeight = min(
+            availableHeight,
+            max(naturalHeight, maximumResizableHeight)
+        )
+        let minimumHeight = min(
+            maximumHeight,
+            minimumResizableHeight(
                 tokenUsageVisible: tokenUsageVisible,
                 secondaryQuotaVisible: secondaryQuotaVisible
-            ),
-            availableHeight
+            )
+        )
+        let height = min(
+            maximumHeight,
+            max(minimumHeight, requestedHeight ?? naturalHeight)
         )
         let cardWidth = min(
             width,

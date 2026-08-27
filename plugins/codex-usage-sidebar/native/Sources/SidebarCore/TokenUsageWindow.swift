@@ -9,7 +9,8 @@ public enum TokenUsageWindow {
     ) -> [TokenUsageDay] {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
-        guard let durationMins = allowance.windowDurationMins, durationMins > 0 else {
+        let usageWindow = allowance.tokenUsageWindow
+        guard let durationMins = usageWindow.windowDurationMins, durationMins > 0 else {
             let endDay = calendar.startOfDay(for: now)
             return (-6 ... 0).map { offset in
                 TokenUsageDay(
@@ -20,9 +21,9 @@ public enum TokenUsageWindow {
             }
         }
 
-        let periodStart = allowance.resetsAt.addingTimeInterval(-Double(durationMins) * 60)
+        let periodStart = usageWindow.resetsAt.addingTimeInterval(-Double(durationMins) * 60)
         let startDay = calendar.startOfDay(for: periodStart)
-        let latestKnownDay = calendar.startOfDay(for: min(now, allowance.resetsAt))
+        let latestKnownDay = calendar.startOfDay(for: min(now, usageWindow.resetsAt))
         let referenceDates = (0 ..< 7).map {
             calendar.date(byAdding: .day, value: $0, to: startDay) ?? startDay
         }
@@ -63,15 +64,16 @@ public enum TokenUsageWindow {
         now: Date,
         timeZone: TimeZone
     ) -> TokenUsageCycle? {
-        guard let durationMins = allowance.windowDurationMins, durationMins > 0 else {
+        let usageWindow = allowance.tokenUsageWindow
+        guard let durationMins = usageWindow.windowDurationMins, durationMins > 0 else {
             return nil
         }
 
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
-        let periodStart = allowance.resetsAt.addingTimeInterval(-Double(durationMins) * 60)
+        let periodStart = usageWindow.resetsAt.addingTimeInterval(-Double(durationMins) * 60)
         let startDay = calendar.startOfDay(for: periodStart)
-        let endDay = calendar.startOfDay(for: min(now, allowance.resetsAt))
+        let endDay = calendar.startOfDay(for: min(now, usageWindow.resetsAt))
         guard startDay <= endDay else {
             return TokenUsageCycle(dailyBuckets: [], totalTokens: 0)
         }

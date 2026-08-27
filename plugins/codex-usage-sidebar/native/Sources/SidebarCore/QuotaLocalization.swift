@@ -90,6 +90,14 @@ public struct QuotaLocalization: Sendable {
         }
     }
 
+    public var resizeHeight: String {
+        switch language {
+        case .simplifiedChinese: "调整高度"
+        case .traditionalChinese: "調整高度"
+        case .english: "Adjust height"
+        }
+    }
+
     public var bankAvailable: String {
         switch language {
         case .simplifiedChinese: "Bank 可用重置"

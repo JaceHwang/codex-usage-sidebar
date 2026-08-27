@@ -93,6 +93,7 @@ public struct QuotaDetailContent: Equatable, Sendable {
     public let remainingSummary: String?
     public let footerName: String?
     public let footerAvatarURL: URL?
+    public let resizeHint: String
     public let informationEntry: QuotaInformationEntry
     public let tokenUsage: QuotaTokenUsagePresentation?
     public let quotaWindows: [QuotaWindowPresentation]
@@ -104,6 +105,7 @@ public struct QuotaDetailContent: Equatable, Sendable {
         remainingSummary: String? = nil,
         footerName: String? = nil,
         footerAvatarURL: URL? = nil,
+        resizeHint: String = "Adjust height",
         informationEntry: QuotaInformationEntry,
         tokenUsage: QuotaTokenUsagePresentation? = nil,
         quotaWindows: [QuotaWindowPresentation] = [],
@@ -114,6 +116,7 @@ public struct QuotaDetailContent: Equatable, Sendable {
         self.remainingSummary = remainingSummary
         self.footerName = footerName
         self.footerAvatarURL = footerAvatarURL
+        self.resizeHint = resizeHint
         self.informationEntry = informationEntry
         self.tokenUsage = tokenUsage
         self.quotaWindows = quotaWindows
@@ -172,13 +175,6 @@ public struct QuotaDetailFormatter: Sendable {
                 )
             )
         }
-        rows.append(
-            .init(
-                label: "Credits",
-                value: displayCredits(snapshot.credits, copy: copy)
-            )
-        )
-
         if let bank = snapshot.bank {
             rows.append(
                 .init(
@@ -225,6 +221,13 @@ public struct QuotaDetailFormatter: Sendable {
 
         rows.append(
             .init(
+                label: "Credits",
+                value: displayCredits(snapshot.credits, copy: copy)
+            )
+        )
+
+        rows.append(
+            .init(
                 label: copy.updated,
                 value: displayFreshness(
                     snapshot.receivedAt,
@@ -244,6 +247,7 @@ public struct QuotaDetailFormatter: Sendable {
             remainingSummary: copy.remainingSummary(snapshot.remainingPercent),
             footerName: footerName,
             footerAvatarURL: footerAvatarURL,
+            resizeHint: copy.resizeHeight,
             informationEntry: QuotaInformationEntry(
                 title: copy.tiboXTitle,
                 accessibilityLabel: copy.tiboXAccessibilityLabel,

@@ -12,6 +12,7 @@ final class QuotaDetailPanel {
     private var lastContent: QuotaDetailContent?
     private var lastIndicatorFrame: CGRect?
     private var lastTheme: CodexInterfaceTheme?
+    private var requestedHeight: CGFloat?
     var onOpenURL: ((URL) -> Void)?
 
     init() {
@@ -61,10 +62,25 @@ final class QuotaDetailPanel {
             dx: -400,
             dy: -400
         )
+        apply(
+            content: content,
+            indicatorFrame: indicatorFrame,
+            theme: theme,
+            visibleFrame: visibleFrame
+        )
+    }
+
+    private func apply(
+        content: QuotaDetailContent,
+        indicatorFrame: CGRect,
+        theme: CodexInterfaceTheme,
+        visibleFrame: CGRect
+    ) {
         let resolvedLayout = QuotaDetailPanelResolvedLayout.resolve(
             content: content,
             indicatorFrame: indicatorFrame,
-            visibleFrame: visibleFrame
+            visibleFrame: visibleFrame,
+            requestedHeight: requestedHeight
         )
         let rowHeights = resolvedLayout.rowHeights
         let panelFrame = resolvedLayout.frame
@@ -78,6 +94,12 @@ final class QuotaDetailPanel {
                 rowHeights: rowHeights,
                 onOpenURL: { [weak self] destination in
                     self?.onOpenURL?(destination)
+                },
+                onResizeHeight: { [weak self] requestedHeight in
+                    self?.resize(to: requestedHeight)
+                },
+                onResizeEnded: { [weak self] in
+                    self?.finishResize()
                 }
             )
             card?.appearance = appearance
@@ -85,6 +107,59 @@ final class QuotaDetailPanel {
         panel.contentView = card
         panel.setFrame(panelFrame, display: true)
         panel.orderFrontRegardless()
+    }
+
+    private func resize(to requestedHeight: CGFloat) {
+        guard
+            let content = lastContent,
+            let indicatorFrame = lastIndicatorFrame
+        else {
+            return
+        }
+        self.requestedHeight = requestedHeight
+        let screen = NSScreen.screens.first {
+            $0.frame.contains(
+                CGPoint(x: indicatorFrame.midX, y: indicatorFrame.midY)
+            )
+        } ?? NSScreen.main
+        let visibleFrame = screen?.visibleFrame ?? indicatorFrame.insetBy(
+            dx: -400,
+            dy: -400
+        )
+        let resolvedLayout = QuotaDetailPanelResolvedLayout.resolve(
+            content: content,
+            indicatorFrame: indicatorFrame,
+            visibleFrame: visibleFrame,
+            requestedHeight: requestedHeight
+        )
+        panel.setFrame(resolvedLayout.frame, display: true)
+        panel.contentView?.setFrameSize(resolvedLayout.frame.size)
+        panel.contentView?.layoutSubtreeIfNeeded()
+    }
+
+    private func finishResize() {
+        guard
+            let content = lastContent,
+            let indicatorFrame = lastIndicatorFrame,
+            let theme = lastTheme
+        else {
+            return
+        }
+        let screen = NSScreen.screens.first {
+            $0.frame.contains(
+                CGPoint(x: indicatorFrame.midX, y: indicatorFrame.midY)
+            )
+        } ?? NSScreen.main
+        let visibleFrame = screen?.visibleFrame ?? indicatorFrame.insetBy(
+            dx: -400,
+            dy: -400
+        )
+        apply(
+            content: content,
+            indicatorFrame: indicatorFrame,
+            theme: theme,
+            visibleFrame: visibleFrame
+        )
     }
 
     func hide() {
@@ -100,14 +175,16 @@ struct QuotaDetailPanelResolvedLayout {
     static func resolve(
         content: QuotaDetailContent,
         indicatorFrame: CGRect,
-        visibleFrame: CGRect
+        visibleFrame: CGRect,
+        requestedHeight: CGFloat? = nil
     ) -> QuotaDetailPanelResolvedLayout {
         let widthFrame = QuotaDetailLayout.frame(
             indicatorFrame: indicatorFrame,
             rowContentHeight: 0,
             visibleFrame: visibleFrame,
             tokenUsageVisible: content.tokenUsage != nil,
-            secondaryQuotaVisible: content.quotaWindows.count > 1
+            secondaryQuotaVisible: content.quotaWindows.count > 1,
+            requestedHeight: requestedHeight
         )
         let rowHeights = QuotaDetailRowMetrics.heights(
             for: content.rows,
@@ -119,7 +196,8 @@ struct QuotaDetailPanelResolvedLayout {
             rowContentHeight: rowHeights.reduce(0, +),
             visibleFrame: visibleFrame,
             tokenUsageVisible: content.tokenUsage != nil,
-            secondaryQuotaVisible: content.quotaWindows.count > 1
+            secondaryQuotaVisible: content.quotaWindows.count > 1,
+            requestedHeight: requestedHeight
         )
         return QuotaDetailPanelResolvedLayout(
             frame: frame,
@@ -135,7 +213,9 @@ final class QuotaDetailCardView: NSView {
         content: QuotaDetailContent,
         rowHeights: [CGFloat],
         version: String? = nil,
-        onOpenURL: @escaping (URL) -> Void
+        onOpenURL: @escaping (URL) -> Void,
+        onResizeHeight: @escaping (CGFloat) -> Void = { _ in },
+        onResizeEnded: @escaping () -> Void = {}
     ) {
         super.init(frame: frameRect)
         wantsLayer = true
@@ -186,6 +266,10 @@ final class QuotaDetailCardView: NSView {
             width: 32,
             height: 32
         ))
+        themeIcon.autoresizingMask = [.minYMargin]
+        title.autoresizingMask = [.minYMargin]
+        versionBadge.autoresizingMask = [.minYMargin]
+        remaining.autoresizingMask = [.minYMargin]
         title.frame = headerFrames.title
         versionBadge.frame = headerFrames.versionBadge
         if let primaryWindow = content.quotaWindows.first {
@@ -196,6 +280,7 @@ final class QuotaDetailCardView: NSView {
                 alignment: .left
             )
             primaryWindowLabel.frame = headerFrames.primaryLabel
+            primaryWindowLabel.autoresizingMask = [.minYMargin]
             addSubview(primaryWindowLabel)
         }
         remaining.frame = headerFrames.remaining
@@ -208,6 +293,7 @@ final class QuotaDetailCardView: NSView {
             frame: headerFrames.progress,
             value: content.remainingPercent
         )
+        progress.autoresizingMask = [.minYMargin, .width]
         addSubview(progress)
 
         if let secondaryWindow = content.quotaWindows.dropFirst().first {
@@ -218,6 +304,7 @@ final class QuotaDetailCardView: NSView {
                 alignment: .left
             )
             secondaryWindowLabel.frame = headerFrames.secondaryLabel
+            secondaryWindowLabel.autoresizingMask = [.minYMargin]
             addSubview(secondaryWindowLabel)
 
             let secondaryRemaining = label(
@@ -229,12 +316,14 @@ final class QuotaDetailCardView: NSView {
                 alignment: .right
             )
             secondaryRemaining.frame = headerFrames.secondaryRemaining
+            secondaryRemaining.autoresizingMask = [.minYMargin]
             addSubview(secondaryRemaining)
 
             let secondaryProgress = QuotaProgressView(
                 frame: headerFrames.secondaryProgress,
                 value: secondaryWindow.remainingPercent
             )
+            secondaryProgress.autoresizingMask = [.minYMargin, .width]
             addSubview(secondaryProgress)
         }
 
@@ -247,6 +336,7 @@ final class QuotaDetailCardView: NSView {
             frame: informationFrames.topDivider
         )
         topDivider.boxType = .separator
+        topDivider.autoresizingMask = [.minYMargin, .width]
         addSubview(topDivider)
 
         if let tokenUsage = content.tokenUsage {
@@ -255,12 +345,14 @@ final class QuotaDetailCardView: NSView {
                 presentation: tokenUsage,
                 remainingPercent: content.remainingPercent
             )
+            tokenUsageView.autoresizingMask = [.minYMargin, .width]
             addSubview(tokenUsageView)
         }
 
         if content.tokenUsage != nil {
             let tokenDivider = NSBox(frame: informationFrames.tokenDivider)
             tokenDivider.boxType = .separator
+            tokenDivider.autoresizingMask = [.minYMargin, .width]
             addSubview(tokenDivider)
         }
 
@@ -271,6 +363,7 @@ final class QuotaDetailCardView: NSView {
         scrollView.hasHorizontalScroller = false
         scrollView.hasVerticalScroller = rowHeights.reduce(0, +) > rowAreaFrame.height
         scrollView.autohidesScrollers = true
+        scrollView.autoresizingMask = [.width, .height]
 
         let rowContentWidth = scrollView.contentSize.width
         let effectiveRowHeights = scrollView.hasVerticalScroller
@@ -387,6 +480,35 @@ final class QuotaDetailCardView: NSView {
                 onOpenURL: onOpenURL
             )
         )
+        let resizeHint = QuotaResizeHintView(text: content.resizeHint)
+        let resizeHintSize = resizeHint.intrinsicContentSize
+        resizeHint.frame = CGRect(
+            x: informationFrames.footer.midX - resizeHintSize.width / 2,
+            y: informationFrames.footer.maxY + 4,
+            width: resizeHintSize.width,
+            height: resizeHintSize.height
+        )
+        resizeHint.isHidden = true
+        addSubview(resizeHint)
+
+        let resizeHandle = QuotaDetailHeightResizeHandleView(
+            frame: CGRect(
+                x: informationFrames.footer.midX - 22,
+                y: informationFrames.footer.maxY - 7,
+                width: 44,
+                height: 14
+            ),
+            accessibilityLabel: content.resizeHint,
+            onResizeHeight: onResizeHeight,
+            onResizeBegan: {
+                resizeHint.isHidden = false
+            },
+            onResizeEnded: {
+                resizeHint.isHidden = true
+                onResizeEnded()
+            }
+        )
+        addSubview(resizeHandle)
     }
 
     @available(*, unavailable)
@@ -407,6 +529,189 @@ final class QuotaDetailCardView: NSView {
         field.maximumNumberOfLines = 1
         field.isSelectable = false
         return field
+    }
+}
+
+@MainActor
+private final class QuotaDetailHeightResizeHandleView: NSView {
+    private let onResizeHeight: (CGFloat) -> Void
+    private let onResizeBegan: () -> Void
+    private let onResizeEnded: () -> Void
+    private var startingHeight: CGFloat = 0
+    private var startingScreenY: CGFloat = 0
+    private var resizingWindow: NSWindow?
+    private var trackingArea: NSTrackingArea?
+    private var isPointerInside = false
+    private var isDragging = false
+
+    init(
+        frame frameRect: NSRect,
+        accessibilityLabel: String,
+        onResizeHeight: @escaping (CGFloat) -> Void,
+        onResizeBegan: @escaping () -> Void,
+        onResizeEnded: @escaping () -> Void
+    ) {
+        self.onResizeHeight = onResizeHeight
+        self.onResizeBegan = onResizeBegan
+        self.onResizeEnded = onResizeEnded
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.cornerRadius = 7
+        layer?.cornerCurve = .continuous
+        setAccessibilityElement(true)
+        setAccessibilityRole(.slider)
+        setAccessibilityLabel(accessibilityLabel)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        addCursorRect(bounds, cursor: .resizeUpDown)
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+        let trackingArea = NSTrackingArea(
+            rect: bounds,
+            options: [
+                .mouseEnteredAndExited,
+                .cursorUpdate,
+                .activeAlways,
+                .inVisibleRect
+            ],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(trackingArea)
+        self.trackingArea = trackingArea
+    }
+
+    override func cursorUpdate(with event: NSEvent) {
+        NSCursor.resizeUpDown.set()
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isPointerInside = true
+        NSCursor.resizeUpDown.set()
+        updateAppearance()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        guard !isDragging else {
+            return
+        }
+        isPointerInside = false
+        updateAppearance()
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        guard let window else {
+            return
+        }
+        resizingWindow = window
+        startingHeight = window.frame.height
+        startingScreenY = window.convertPoint(toScreen: event.locationInWindow).y
+        isDragging = true
+        NSCursor.resizeUpDown.set()
+        updateAppearance()
+        onResizeBegan()
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let resizingWindow else {
+            return
+        }
+        let screenY = resizingWindow.convertPoint(
+            toScreen: event.locationInWindow
+        ).y
+        onResizeHeight(startingHeight + startingScreenY - screenY)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        resizingWindow = nil
+        isDragging = false
+        updateAppearance()
+        onResizeEnded()
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let grip = CGRect(
+            x: bounds.midX - 10,
+            y: bounds.midY - 1,
+            width: 20,
+            height: 2
+        )
+        (isDragging ? NSColor.controlAccentColor : NSColor.separatorColor)
+            .withAlphaComponent(isPointerInside || isDragging ? 0.9 : 0.72)
+            .setFill()
+        NSBezierPath(roundedRect: grip, xRadius: 1, yRadius: 1).fill()
+    }
+
+    private func updateAppearance() {
+        layer?.backgroundColor = NSColor.labelColor
+            .withAlphaComponent(isPointerInside || isDragging ? 0.07 : 0)
+            .cgColor
+        needsDisplay = true
+        window?.invalidateCursorRects(for: self)
+    }
+}
+
+@MainActor
+private final class QuotaResizeHintView: NSView {
+    private let text: String
+    private let font = NSFont.systemFont(ofSize: 11, weight: .medium)
+
+    init(text: String) {
+        self.text = text
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.cornerRadius = 8
+        layer?.cornerCurve = .continuous
+        layer?.backgroundColor = NSColor.windowBackgroundColor
+            .withAlphaComponent(0.96)
+            .cgColor
+        layer?.borderColor = QuotaChromeStyle.separatorColor.cgColor
+        layer?.borderWidth = QuotaChromeStyle.separatorLineWidth
+        layer?.shadowColor = NSColor.black.withAlphaComponent(0.16).cgColor
+        layer?.shadowOpacity = 1
+        layer?.shadowRadius = 6
+        layer?.shadowOffset = CGSize(width: 0, height: -2)
+        setAccessibilityElement(false)
+    }
+
+    override var intrinsicContentSize: NSSize {
+        let textSize = (text as NSString).size(withAttributes: [.font: font])
+        return NSSize(
+            width: max(74, ceil(textSize.width) + 18),
+            height: 22
+        )
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: NSColor.secondaryLabelColor
+        ]
+        let textSize = (text as NSString).size(withAttributes: attributes)
+        let textPoint = CGPoint(
+            x: floor((bounds.width - textSize.width) / 2),
+            y: floor((bounds.height - textSize.height) / 2)
+        )
+        (text as NSString).draw(at: textPoint, withAttributes: attributes)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
     }
 }
 

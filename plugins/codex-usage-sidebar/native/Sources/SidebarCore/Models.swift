@@ -75,6 +75,19 @@ public struct AllowanceSnapshot: Equatable, Sendable {
     public var remainingPercent: Int { primary.remainingPercent }
     public var resetsAt: Date { primary.resetsAt }
     public var windowDurationMins: Int? { primary.windowDurationMins }
+    /// Token usage is a period-level measure. In dual-quota accounts, use the
+    /// longest available window (normally the seven-day secondary quota), not
+    /// the short five-hour interaction limit.
+    public var tokenUsageWindow: QuotaWindowSnapshot {
+        guard
+            let secondary,
+            (secondary.windowDurationMins ?? 0) >
+                (primary.windowDurationMins ?? 0)
+        else {
+            return primary
+        }
+        return secondary
+    }
 
     public init(
         usedPercent: Double,
