@@ -1,12 +1,12 @@
 {
-  "schemaVersion": 1,
   "build": {
     "kind": "local-unpublished"
   },
-  "sourceCommit": "7b0335eec89dd3c10f76841e636fdf211f780d67",
   "companion": {
-    "executableSha256": "49e82ddd65e64f2eec94b8bcd213f8ca94a78bfe4b2cf2610d38085506d41123",
-    "cdhashSha256": "7b13663295637e33a7795bed4a0121d54b79f46dc35cc8130061bce408252870",
+    "cdhashSha256": "279a034fa7544354ebb0538c76da0662ce3b5967cc461f9727d17fa5d69f5f37",
+    "executableSha256": "68096a61e4e8d5243bd8b26e0ea3d84a5a6790c03954ff55211746e12e3ab2fe",
     "signature": "adhoc"
-  }
+  },
+  "schemaVersion": 1,
+  "sourceCommit": "b2de494ba6e5d7f009874c4a6f687ceccfa393ae"
 }
