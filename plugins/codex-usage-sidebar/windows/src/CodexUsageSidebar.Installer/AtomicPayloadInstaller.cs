@@ -496,6 +496,20 @@ public sealed class AtomicPayloadInstaller
         JsonElement summary,
         TrustedPayloadIdentity trustedIdentity)
     {
+        if (string.Equals(trustedIdentity.Version, "0.3.3", StringComparison.Ordinal))
+        {
+            ValidateV033FormalEvidence(evidencePath, summary, trustedIdentity);
+            return;
+        }
+
+        ValidateLegacyFormalEvidence(evidencePath, summary, trustedIdentity);
+    }
+
+    private static void ValidateLegacyFormalEvidence(
+        string evidencePath,
+        JsonElement summary,
+        TrustedPayloadIdentity trustedIdentity)
+    {
         using var evidenceDocument = JsonDocument.Parse(File.ReadAllText(evidencePath));
         var evidence = evidenceDocument.RootElement;
         if (!JsonPropertyNamesEqual(
@@ -572,6 +586,81 @@ public sealed class AtomicPayloadInstaller
         }
     }
 
+    private static void ValidateV033FormalEvidence(
+        string evidencePath,
+        JsonElement summary,
+        TrustedPayloadIdentity trustedIdentity)
+    {
+        using var evidenceDocument = JsonDocument.Parse(File.ReadAllText(evidencePath));
+        var evidence = evidenceDocument.RootElement;
+        if (!JsonPropertyNamesEqual(
+                summary,
+                ["sha256", "windowsBuild", "codexFileBuild", "completedAt", "caseCounts"])
+            || !summary.TryGetProperty("caseCounts", out var caseCounts)
+            || !JsonPropertyNamesEqual(
+                caseCounts,
+                ["visual", "geometry", "interaction", "lifecycle"])
+            || !HasExactInteger(caseCounts, "visual", 72)
+            || !HasExactInteger(caseCounts, "geometry", 3)
+            || !HasExactInteger(caseCounts, "interaction", 3)
+            || !HasExactInteger(caseCounts, "lifecycle", 7)
+            || evidence.ValueKind != JsonValueKind.Object
+            || !JsonPropertyNamesEqual(
+                evidence,
+                [
+                    "schemaVersion", "version", "sourceCommit", "architecture", "windowsBuild",
+                    "codexFileBuild", "completedAt", "cases",
+                ])
+            || !HasExactInteger(evidence, "schemaVersion", 1)
+            || !HasExactString(evidence, "version", trustedIdentity.Version)
+            || !HasExactString(evidence, "sourceCommit", trustedIdentity.SourceCommit)
+            || !HasExactString(evidence, "architecture", "x64")
+            || !evidence.TryGetProperty("windowsBuild", out var windowsBuild)
+            || windowsBuild.ValueKind != JsonValueKind.Number
+            || !windowsBuild.TryGetInt32(out var windowsBuildValue)
+            || windowsBuildValue < 22_000
+            || !summary.TryGetProperty("windowsBuild", out var summaryWindowsBuild)
+            || !summaryWindowsBuild.TryGetInt32(out var summaryWindowsBuildValue)
+            || summaryWindowsBuildValue != windowsBuildValue
+            || !evidence.TryGetProperty("codexFileBuild", out var codexFileBuild)
+            || codexFileBuild.ValueKind != JsonValueKind.String
+            || !IsFourPartNumericVersion(codexFileBuild.GetString())
+            || !summary.TryGetProperty("codexFileBuild", out var summaryCodexBuild)
+            || summaryCodexBuild.ValueKind != JsonValueKind.String
+            || summaryCodexBuild.GetString() != codexFileBuild.GetString()
+            || !evidence.TryGetProperty("completedAt", out var completedAt)
+            || completedAt.ValueKind != JsonValueKind.String
+            || !IsUtcSecondTimestamp(completedAt.GetString())
+            || !summary.TryGetProperty("completedAt", out var summaryCompletedAt)
+            || summaryCompletedAt.ValueKind != JsonValueKind.String
+            || summaryCompletedAt.GetString() != completedAt.GetString()
+            || !evidence.TryGetProperty("cases", out var cases)
+            || cases.ValueKind != JsonValueKind.Object
+            || !JsonPropertyNamesEqual(
+                cases,
+                ["visual", "geometry", "interaction", "lifecycle"])
+            || !ValidateV033FormalVisualCases(cases.GetProperty("visual"))
+            || !ValidateFormalNamedCases(
+                cases.GetProperty("geometry"),
+                "name",
+                ["restored", "maximized", "fullscreen"])
+            || !ValidateFormalNamedCases(
+                cases.GetProperty("interaction"),
+                "name",
+                ["safe-dock-drag-snap", "safe-dock-lock-reset", "three-success-recovery"])
+            || !ValidateFormalNamedCases(
+                cases.GetProperty("lifecycle"),
+                "name",
+                [
+                    "codex-restart-update", "sleep-resume", "app-server-recovery", "install-repair",
+                    "upgrade-retains-preferences", "uninstall", "package-provenance",
+                ]))
+        {
+            throw new InvalidDataException(
+                "The embedded formal validation evidence is not the exact complete v0.3.3 85-case matrix.");
+        }
+    }
+
     private static bool ValidateFormalVisualCases(JsonElement cases)
     {
         if (cases.ValueKind != JsonValueKind.Array) return false;
@@ -599,6 +688,40 @@ public sealed class AtomicPayloadInstaller
         foreach (var layout in new[] { "restored-collapsed", "right-wide", "left-right-expanded" })
             foreach (var theme in new[] { "light", "dark", "system" })
                 foreach (var language in new[] { "zh-CN", "zh-TW", "en-US" })
+                    foreach (var scale in new[] { 100, 125, 150, 200 })
+                    {
+                        expected.Add($"{layout}\0{theme}\0{language}\0{scale}");
+                    }
+        return cases.GetArrayLength() == expected.Count && actual.SetEquals(expected);
+    }
+
+    private static bool ValidateV033FormalVisualCases(JsonElement cases)
+    {
+        if (cases.ValueKind != JsonValueKind.Array) return false;
+        var actual = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var item in cases.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object
+                || !JsonPropertyNamesEqual(item, ["layout", "theme", "language", "scale", "result"])
+                || !item.TryGetProperty("layout", out var layout)
+                || layout.ValueKind != JsonValueKind.String
+                || !item.TryGetProperty("theme", out var theme)
+                || theme.ValueKind != JsonValueKind.String
+                || !item.TryGetProperty("language", out var language)
+                || language.ValueKind != JsonValueKind.String
+                || !item.TryGetProperty("scale", out var scale)
+                || scale.ValueKind != JsonValueKind.Number
+                || !scale.TryGetInt32(out var scaleValue)
+                || !HasExactString(item, "result", "pass"))
+            {
+                return false;
+            }
+            actual.Add($"{layout.GetString()}\0{theme.GetString()}\0{language.GetString()}\0{scaleValue}");
+        }
+        var expected = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var layout in new[] { "wide", "narrow", "right-pane" })
+            foreach (var theme in new[] { "light", "dark", "system" })
+                foreach (var language in new[] { "en", "zh-CN" })
                     foreach (var scale in new[] { 100, 125, 150, 200 })
                     {
                         expected.Add($"{layout}\0{theme}\0{language}\0{scale}");

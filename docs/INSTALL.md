@@ -1,26 +1,33 @@
 # Installation and Operations
 
-## v0.3.3 local candidate
+## v0.3.3 release
 
-The current development candidate reads the official `primary` (5-hour) and optional `secondary`
-(7-day) windows. Both appear in the titlebar indicator and detail card with independent progress
-bars and reset rows. The published v0.3.2 assets remain the stable download path until this
-candidate completes Windows packaging and real-device validation.
+The v0.3.3 GitHub Release contains platform-specific assets. Windows 11 AMD64/x64 users download
+the formal setup described below; macOS 14+ Apple Silicon users download the arm64 DMG, checksum,
+and provenance files from the same release. Every installer asset is verified before publication.
 
 ## Windows 11 AMD64/x64
 
-Windows `v0.3.2` supports Windows 11 on AMD64/x64 only; Windows ARM64 is not supported. The current-user setup is unsigned (`NotSigned`)
+The formal v0.3.3 Windows x64 installer is published in the
+[v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3).
+It is the single installation entry point. It embeds the schema-v2 selector catalog and signed
+compatibility-update configuration; do not edit `selectors.json` by hand. The generic selector and
+signed compatibility updates recover automatically: an unavailable update keeps the packaged or
+previously validated catalog usable. Setup waits briefly for local runtime health and reports whether
+the indicator is visible, using the automatic safe dock, or needs compatibility validation.
+
+Windows `v0.3.3` supports Windows 11 on AMD64/x64 only; Windows ARM64 is not supported. The current-user setup is unsigned (`NotSigned`)
 and does not require administrator privileges.
 
 ### Download and verify
 
-Download only `codex-usage-sidebar-v0.3.2-windows-x64-setup.exe` and
-`WINDOWS-V032-SHA256SUMS.txt` from the
-[v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2). Before launching the setup,
+Download only `codex-usage-sidebar-v0.3.3-windows-x64-setup.exe` and
+`WINDOWS-V033-SHA256SUMS.txt` from the
+[v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3). Before launching the setup,
 calculate its SHA-256:
 
 ```powershell
-Get-FileHash .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+Get-FileHash .\codex-usage-sidebar-v0.3.3-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
 ```
 
 Compare the digest case-insensitively with the matching checksum-file entry. A matching digest is
@@ -33,7 +40,7 @@ system policy.
 Run the verified setup normally to install for the current user:
 
 ```powershell
-Start-Process .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe
+Start-Process .\codex-usage-sidebar-v0.3.3-windows-x64-setup.exe
 ```
 
 Because this public setup is unsigned, Windows may show **Unknown publisher**. Only after the
@@ -66,12 +73,14 @@ the deterministic prompt and evidence checklist.
 
 ### Validation boundary
 
-The `v0.3.3` Windows source has passed the portable source gates; the published v0.3.2 setup is available, but the
-130-case Windows manual matrix is incomplete. Do not claim full real-device setup lifecycle
-validation unless you have run that validation on the target machine. Unknown or unsupported UI
-Automation structures hide the overlay; no coordinates are guessed.
+The published `v0.3.3` Windows setup is bound to complete 85-case Windows 11 x64 real-device
+evidence. Local install, repair, and uninstall results still describe only the operations actually
+performed on the target machine. Unknown or unsupported UI Automation structures hide the overlay;
+no coordinates are guessed.
 
-## Requirements
+## macOS 14+ Apple Silicon
+
+### Requirements
 
 - macOS 14 or later
 - Apple Silicon Mac (`arm64`)
@@ -91,22 +100,29 @@ advertised by `codex plugin --help`. A CLI that predates the plugin marketplace 
 install this plugin until Codex adds that capability; this is a feature-capability check, not a
 hard-coded version gate.
 
-## Install with the graphical installer
+### Install with the graphical installer
 
-Download the v0.3.2 arm64 DMG, its checksum file, and its provenance from the
-[v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2):
+Download the v0.3.3 arm64 DMG, its checksum file, and its provenance from the
+[v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3):
 
 ```bash
-shasum -a 256 codex-usage-sidebar-v0.3.2-macos-arm64.dmg
+shasum -a 256 codex-usage-sidebar-v0.3.3-macos-arm64.dmg
 ```
 
-Compare the output with `MACOS-V032-SHA256SUMS.txt`. `MACOS-V032-PROVENANCE.json` records the
+Compare the output with `MACOS-V033-SHA256SUMS.txt`. `MACOS-V033-PROVENANCE.json` records the
 digest and exact source commit. Open the verified DMG, then open **Codex Usage Sidebar Installer**. The asset is not
 notarized. If macOS blocks it, right-click the installer in Finder and choose Open. Click **Install**,
 complete the isolated Codex login when prompted, enable Accessibility, then click **Verify**.
 
-The installer embeds the already-promoted v0.3.2 marketplace payload and places the companion and
+The installer embeds the verified v0.3.3 marketplace payload and places the companion and
 LaunchAgent in the same locations used by the marketplace hook. It does not modify the Codex app.
+
+### Resize the detail card
+
+The small centered grip immediately above the footer is the macOS height control. Hovering it
+shows an up/down resize cursor; dragging changes only the card height, preserves its fixed width and
+titlebar anchor, and expands the scrollable row viewport. The card performs a full layout
+reconciliation only when the drag ends, avoiding stutter while the pointer moves.
 
 ## Advanced: install from the marketplace
 
@@ -170,7 +186,7 @@ Repair once after changing the switch:
 A healthy adaptive-positioning result is read from the actual managed process and includes:
 
 ```text
-pid=12345 version=0.3.2 runtime=shown placement=content-header anchor=labeledControl
+pid=12345 version=0.3.3 runtime=shown placement=content-header anchor=labeledControl
 language=simplifiedChinese language_source=process
 indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app
@@ -179,7 +195,7 @@ installed and loaded: .../Codex Usage Sidebar.app
 `openLocation`, `labeledControl`, and `rightPaneBoundary` are valid resolved sources. For those
 sources, an indicator frame `x,y,width,height` satisfies `x + width = edge - 8`. A `fallback` with
 a numeric edge is also healthy: it is the deliberate safe right-side position used when no full
-local slot remains. v0.3.2 normally reports `cached:false` because every placement tick re-scans
+local slot remains. v0.3.3 normally reports `cached:false` because every placement tick re-scans
 eligible titlebar geometry; the version must match the badge beside the hover-card title. See
 [Troubleshooting](TROUBLESHOOTING.md).
 

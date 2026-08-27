@@ -20,24 +20,22 @@
 
 | 平台 | 状态 | 分发方式 |
 | --- | --- | --- |
-| macOS 14+ Apple Silicon | `v0.3.3` 本地候选版 | 双额度周期浮窗；可在本机生成 arm64 DMG |
-| Windows 11 AMD64（`x64`） | `v0.3.3` 源码对齐 | 双额度周期 .NET/WPF 实现；安装包仍需 Windows 主机打包 |
+| macOS 14+ Apple Silicon | [`v0.3.3` 发布版](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) | 已发布的 arm64 DMG，含 5 小时/7 天双额度展示 |
+| Windows 11 AMD64（`x64`） | [`v0.3.3` 发布版](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) | 未签名 `x64` 安装包，带签名兼容更新；Windows ARM64 不在支持范围 |
 
-v0.3.3 新增主额度 `5 小时` 与独立的 `7 天` 额度，并在标题栏按钮和浮窗中分别显示百分比、渐变进度条、重置时间及表格行。macOS 与 Windows 共用 app-server 的 `primary`/`secondary` 额度契约、三语言文案、Token 图表、账号页脚和 GitHub 入口。macOS 可在当前主机生成本地 arm64 安装包；Windows 源码已完成对齐，但安装包与真实 Windows UIA/DPI 矩阵仍需在 Windows 电脑完成。选择器遇到未知或不安全的 UI Automation 结构时会隐藏浮层，不会猜测坐标。稳定的 v0.3.2 仍是已发布安装路径，v0.3.3 通过验证后再升级发布。
-开发和验证边界见 [Windows Beta 开发说明](docs/WINDOWS-BETA.md) 与 [Windows 实机诊断交接手册](docs/WINDOWS-DEVICE-HANDOFF.zh-CN.md)。
+v0.3.3 为 macOS 增加双额度浮窗：独立展示 **5 小时** 与 **7 天** 的百分比、渐变进度条、重置倒计时，以及基于 7 天周期的 Token 用量。页脚上沿中部的细小拖拽条可平滑调整浮窗高度，宽度与标题栏锚点保持不变，仅扩展可滚动的明细区域。该版本同时保留 Windows 11 AMD64/x64 已发布安装包、85 项实机验证、来源证明和签名兼容更新。遇到未知或不安全的标题栏结构时仍会隐藏，而不会猜测坐标。资产与验证范围见 [v0.3.3 发布说明](docs/releases/v0.3.3.md)。
 
 ## 当前实际效果
 
 <p align="center">
-  <img src="docs/images/quota-popover-v0.3.3-zh-light.png" alt="Codex Usage Sidebar v0.3.3 浅色主题双额度周期浮窗" width="48%">
-  <img src="docs/images/quota-popover-v0.3.3-zh-dark.png" alt="Codex Usage Sidebar v0.3.3 深色主题双额度周期浮窗" width="48%">
+  <img src="docs/images/quota-popover-v0.3.3-zh-light.png" alt="Codex Usage Sidebar v0.3.3 浅色主题 5 小时与 7 天双额度浮窗" width="48%">
+  <img src="docs/images/quota-popover-v0.3.3-zh-dark.png" alt="Codex Usage Sidebar v0.3.3 深色主题 5 小时与 7 天双额度浮窗" width="48%">
 </p>
 
 <p align="center"><em>当前浅色主题 · 当前深色主题</em></p>
 
-这些截图由当前原生 AppKit 浮窗和安装包内的主题图标生成，展示了 `5 小时` 与 `7 天` 两组
-独立百分比和渐变进度条、七日 Token 使用量图表、醒目的两组重置倒计时、主题自适应额度图标、
-账号身份、无边框紧凑 GitHub 链接，以及浅色/深色主题下的分隔线和阴影材质。
+这些原生 AppKit 截图展示独立的双额度进度条、七日 Token 图表、强调的重置倒计时、账号身份、
+主题图标、紧凑 GitHub 链接，以及浅色/深色材质。
 
 ## 自适应标题栏定位
 
@@ -62,9 +60,9 @@ Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生�
 | --- | --- |
 | 打开或关闭左、右、下侧栏 | 优先跟随原生“打开位置”，遇到占用控件时向左寻找最近空位；本地空间不足才切换到右侧预留位置。 |
 | 移动或缩放窗口 | 每 `0.1 秒`重新核对可用标题栏空间，避免覆盖原生按钮和页签标题；没有可靠中间锚点时固定回退到右侧停靠位。 |
-| 鼠标悬浮 | 展示同步的插件版本、账号身份、主题图标、套餐、额度周期、每日与总 Token 使用量、Credits、全部 Bank 次数、状态与过期时间。 |
+| 鼠标悬浮 | 展示同步的插件版本、账号身份、主题图标、独立的 5 小时/7 天额度、七日每日与总 Token 使用量、Credits、全部 Bank 次数、状态与过期时间。 |
 | 鼠标点击 | 浮窗保持常驻，再次点击收回；原有悬浮查看方式继续保留。 |
-| 双额度周期 | 标题栏按钮和浮窗先显示 5 小时，再显示 7 天；两者各自拥有百分比、进度条、重置时间和本地化表格行。 |
+| 调整浮窗高度 | 拖动页脚上沿中央的小拖拽条。鼠标会变为上下调整光标；保持固定宽度和顶部标题栏锚点，仅平滑扩展可滚动的明细区。 |
 | 底部 GitHub 按钮 | 打开 [github.com/JaceHwang/codex-usage-sidebar](https://github.com/JaceHwang/codex-usage-sidebar)。默认态融入底部背景，悬浮时仅显示柔和圆角阴影。 |
 | 剩余额度变化 | 百分比严格按 100% 绿、49% 橙、10% 红连续过渡，已填充进度显示对应光谱。 |
 | Codex 语言变化 | 按 Codex 最终显示语言在 1 秒内切换简体中文、繁体中文或英文。 |
@@ -78,8 +76,7 @@ Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生�
 ## 快速安装
 
 请按平台选择安装路径。Windows 仅支持 Windows 11 AMD64/x64，不支持 Windows ARM64。Windows
-已发布的 `v0.3.2` 安装程序为未签名本机打包资产，启动前必须先完成 SHA-256 校验；`v0.3.3`
-当前先作为本地候选版本验证。
+`v0.3.3` 安装程序为未签名本机打包资产，启动前必须先完成 SHA-256 校验。
 
 ### Windows 11 AMD64/x64
 
@@ -89,19 +86,19 @@ Codex 文件最低版本；新版本只要提供已验证的安全标题栏语�
 
 #### 人工安装
 
-1. 打开 [v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2)，只下载
-   `codex-usage-sidebar-v0.3.2-windows-x64-setup.exe` 与 `WINDOWS-V032-SHA256SUMS.txt`。
+1. 打开 [v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3)，只下载
+   `codex-usage-sidebar-v0.3.3-windows-x64-setup.exe` 与 `WINDOWS-V033-SHA256SUMS.txt`。
 2. 启动安装程序前，先校验 SHA-256：
 
    ```powershell
-   Get-FileHash .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+   Get-FileHash .\codex-usage-sidebar-v0.3.3-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
    ```
 
-   将结果与 `WINDOWS-V032-SHA256SUMS.txt` 中对应条目比较；大小写不影响判断。
+   将结果与 `WINDOWS-V033-SHA256SUMS.txt` 中对应条目比较；大小写不影响判断。
 3. 摘要匹配后，为当前用户启动安装：
 
    ```powershell
-   Start-Process .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe
+   Start-Process .\codex-usage-sidebar-v0.3.3-windows-x64-setup.exe
    ```
 
 4. 该安装程序有意保持未签名（`NotSigned`），Windows 可能显示“未知发布者”。只有在 SHA-256
@@ -117,8 +114,8 @@ Codex 文件最低版本；新版本只要提供已验证的安全标题栏语�
 可以把下面这段任务交给 Windows 电脑上的 Agent：
 
 ```text
-从 GitHub Release 安装 Codex Usage Sidebar v0.3.2。当前电脑必须是 Windows 11 AMD64/x64。
-只下载 codex-usage-sidebar-v0.3.2-windows-x64-setup.exe 和 WINDOWS-V032-SHA256SUMS.txt，先验证
+从 GitHub Release 安装 Codex Usage Sidebar v0.3.3。当前电脑必须是 Windows 11 AMD64/x64。
+只下载 codex-usage-sidebar-v0.3.3-windows-x64-setup.exe 和 WINDOWS-V033-SHA256SUMS.txt，先验证
 安装程序 SHA-256 与发行页对应条目一致，只有摘要匹配时才运行安装程序，并回报安装路径和运行状态。不要关闭或绕过
 Defender、SmartScreen、杀毒软件或系统策略。如果出现安装器、SmartScreen、卸载或 Windows 安全对话框，
 先停下来让我即时确认，再点击任何按钮。
@@ -133,26 +130,26 @@ Agent 可以自动完成下载、摘要比对和启动安装器；但不能绕�
 版本，会同时搜索标准安装路径和当前 `PATH`；只要 CLI 提供安装器使用的 `plugin marketplace` 与
 `plugin add` 命令即可兼容。
 
-#### 安装已发布的 v0.3.2 图形安装器
+#### 安装 v0.3.3 图形安装器
 
-从 [v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2)
-下载 `codex-usage-sidebar-v0.3.2-macos-arm64.dmg`、`MACOS-V032-SHA256SUMS.txt` 与
-`MACOS-V032-PROVENANCE.json`。打开前先校验 DMG：
+从 [v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3)
+下载 `codex-usage-sidebar-v0.3.3-macos-arm64.dmg`、`MACOS-V033-SHA256SUMS.txt` 与
+`MACOS-V033-PROVENANCE.json`。打开前先校验 DMG：
 
 ```bash
-shasum -a 256 codex-usage-sidebar-v0.3.2-macos-arm64.dmg
+shasum -a 256 codex-usage-sidebar-v0.3.3-macos-arm64.dmg
 ```
 
-将输出与 `MACOS-V032-SHA256SUMS.txt` 对应条目比较。打开已校验的 DMG，再打开 **Codex Usage Sidebar Installer**。该资产尚未公证；如被 macOS 阻止，
+将输出与 `MACOS-V033-SHA256SUMS.txt` 对应条目比较；`MACOS-V033-PROVENANCE.json` 记录精确源码提交与内嵌可执行文件摘要。打开已校验的 DMG，再打开 **Codex Usage Sidebar Installer**。该资产尚未公证；如被 macOS 阻止，
 请在 Finder 中右键点击安装器并选择“打开”。随后点击 **安装**，按引导完成 Codex 登录，并在 macOS
 提示时为 **Codex Usage Sidebar** 开启“辅助功能”；最后点击 **验证**，确认受管理的伴随程序正在运行。
 
 安装器会把文件放在 Codex 应用包之外，也绝不会复制普通 `~/.codex` 凭据。修复、更新和卸载行为请见
 [安装运维说明](docs/INSTALL.md)。
 
-#### 构建 v0.3.3 本地 macOS 候选版
+#### 从源码复现 macOS v0.3.3 发布资产
 
-维护者可在当前 `v0.3.2` 开发分支上构建双额度周期候选版；这是本地校验路径，不会推送或移动 GitHub 标签：
+维护者可从 provenance 中记录的精确 v0.3.3 源码提交重建资产。脚本会把载荷提交写入安装器，且不会覆盖已有资产：
 
 ```bash
 bash scripts/build-macos-v033-installer.sh
@@ -161,10 +158,6 @@ bash scripts/verify-macos-v033-installer-package.sh \
   ".dist/v0.3.3/macos/Codex Usage Sidebar Installer.app" \
   ".dist/v0.3.3/macos/codex-usage-sidebar-v0.3.3-macos-arm64.dmg"
 ```
-
-已发布的 v0.3.2 资产仍可使用历史脚本
-`scripts/build-macos-v032-installer.sh`、`scripts/package-macos-v032-installer.sh` 与
-`scripts/verify-macos-v032-installer-package.sh` 复现。
 
 ### 高级：手动 Marketplace 安装
 
@@ -216,7 +209,7 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 
 ## 语言自动匹配
 
-v0.3.2 直接跟随 Codex **最终实际显示的语言**。Codex 明确选择的语言优先；设为“自动”时，
+当前版本直接跟随 Codex **最终实际显示的语言**。Codex 明确选择的语言优先；设为“自动”时，
 插件跟随运行中的 Codex 渲染进程语言。Codex 偏好设置与 macOS 首选语言仅作为启动阶段的安全回退。
 
 | Codex 最终语言 | 插件显示 |
@@ -266,7 +259,7 @@ v0.3.2 直接跟随 Codex **最终实际显示的语言**。Codex 明确选择�
 精确定位正常时会返回常驻 LaunchAgent 进程的真实状态：
 
 ```text
-pid=12345 version=0.3.2 runtime=shown placement=content-header anchor=labeledControl
+pid=12345 version=0.3.3 runtime=shown placement=content-header anchor=labeledControl
 language=simplifiedChinese language_source=process
 indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app
@@ -310,6 +303,7 @@ CUS_ALLOW_SOURCE_AHEAD=1 bash scripts/validate-public-repo.sh
 - [隐私](docs/PRIVACY.md)
 - [支持](SUPPORT.md)
 - [更新记录](CHANGELOG.md)
+- [v0.3.3 发布说明](docs/releases/v0.3.3.md)
 
 ## 许可证
 

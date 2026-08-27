@@ -30,32 +30,28 @@
 
 | Platform | Status | Distribution |
 | --- | --- | --- |
-| macOS 14+ Apple Silicon | v0.3.3 local candidate | Dual 5-hour/7-day quota card; local arm64 DMG build is available |
-| Windows 11 AMD64 (`x64`) | v0.3.3 source parity | Dual-window .NET/WPF implementation; Windows packaging still requires a Windows runner |
+| macOS 14+ Apple Silicon | [v0.3.3 release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) | Published arm64 DMG with dual 5-hour/7-day quota presentation |
+| Windows 11 AMD64 (`x64`) | [v0.3.3 release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) | Unsigned `x64` setup with signed compatibility updates; Windows ARM64 is out of scope |
 
-The v0.3.3 development line adds a primary 5-hour window and an independent 7-day window to the
-titlebar indicator and detail card. Both platforms use the same app-server `primary`/`secondary`
-contract, localized labels, gradient progress colors, reset countdown emphasis, token chart, account
-footer, and GitHub link. macOS can build the local arm64 installer on this host; Windows source parity
-is complete but the setup asset and the real-device UIA/DPI matrix must be produced on Windows. The
-selector still refuses unknown or unsafe semantic UI Automation structures instead of guessing coordinates.
-The stable v0.3.2 release remains the published installation path until v0.3.3 is promoted.
-See [Windows beta development](docs/WINDOWS-BETA.md) and [Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md)
-for validation boundaries.
+v0.3.3 adds the macOS dual-quota card: independent **5-hour** and **7-day** percentage labels,
+gradient bars, reset countdowns, and seven-day Token usage. The centered footer grip resizes the
+detail card smoothly while preserving its fixed width and titlebar anchor; its scrollable table
+expands with the chosen height. The release also retains the Windows 11 AMD64/x64 formal setup,
+85-case real-device evidence, provenance, and signed compatibility updates. Both platforms remain
+fail-hidden on unknown or unsafe titlebar structures rather than guessing coordinates. See the
+[v0.3.3 release notes](docs/releases/v0.3.3.md) for assets and validation scope.
 
 ## Current appearance
 
 <p align="center">
-  <img src="docs/images/quota-popover-v0.3.3-en-light.png" alt="Codex Usage Sidebar v0.3.3 dual 5-hour and 7-day quota popover in the light theme" width="48%">
-  <img src="docs/images/quota-popover-v0.3.3-en-dark.png" alt="Codex Usage Sidebar v0.3.3 dual 5-hour and 7-day quota popover in the dark theme" width="48%">
+  <img src="docs/images/quota-popover-v0.3.3-en-light.png" alt="Codex Usage Sidebar v0.3.3 light-theme dual 5-hour and 7-day quota popover" width="48%">
+  <img src="docs/images/quota-popover-v0.3.3-en-dark.png" alt="Codex Usage Sidebar v0.3.3 dark-theme dual 5-hour and 7-day quota popover" width="48%">
 </p>
 
 <p align="center"><em>Current light theme · Current dark theme</em></p>
 
-These captures are generated from the native AppKit card and bundled theme assets. They show the
-primary 5-hour and secondary 7-day percentages with independent gradient bars, the seven-day
-token-usage chart, emphasized reset countdowns, themed quota icon, account identity, borderless
-compact GitHub link, and the light/dark separator and shadow materials.
+These native AppKit captures show the two independent quota bars, seven-day Token chart, accented
+reset countdowns, account identity, themed icon, compact GitHub link, and light/dark materials.
 
 ## Adaptive titlebar placement
 
@@ -81,9 +77,9 @@ and renders one non-activating control in the nearest safe titlebar slot.
 | --- | --- |
 | Left, right, or bottom pane changes | The quota control prefers the native **Open Location** anchor, slides left around occupied controls, and moves to the reserved right-side position only when the local titlebar cannot fit it. |
 | Window moves or resizes | The collision-aware layout is sampled every 0.1 seconds, so the control tracks the available titlebar space without overlapping native controls or titles. |
-| Hover | A native detail card shows the synchronized plugin version, account identity, theme icon, plan, period, daily and total token usage, Credits, and every Bank entry with status and expiry. |
+| Hover | A native detail card shows the synchronized plugin version, account identity, theme icon, independent 5-hour/7-day quotas, daily and total seven-day Token usage, Credits, and every Bank entry with status and expiry. |
 | Click | The detail card stays pinned until the quota control is clicked again; hover behavior remains available. |
-| Two quota windows | The card and titlebar indicator show the 5-hour window first and the 7-day window second. Each has its own percentage, progress bar, reset timestamp, and localized table rows. |
+| Resize detail card | Drag the small centered grip above the footer. The pointer becomes an up/down resize cursor; resize remains smooth, fixed-width, top-anchored, and expands only the scrolling detail region. |
 | Footer GitHub button | Opens the project repository at [github.com/JaceHwang/codex-usage-sidebar](https://github.com/JaceHwang/codex-usage-sidebar). The resting button blends into the footer; hover adds only a soft rounded shadow. |
 | Quota changes | Percentage color follows the exact 100% green, 49% orange, and 10% red palette while the filled bar reveals the matching spectrum. |
 | Codex language changes | The control and detail card follow Codex's effective Simplified Chinese, Traditional Chinese, or English locale within one second. |
@@ -98,7 +94,7 @@ quota control.
 ## Quick install
 
 Choose the platform-specific installation path below. Windows support is Windows 11 AMD64/x64 only;
-Windows ARM64 is not supported. The published v0.3.2 setup uses explicit unsigned-install safeguards and must
+Windows ARM64 is not supported. The v0.3.3 setup uses explicit unsigned-install safeguards and must
 be verified by SHA-256 before launch.
 
 ### Windows 11 AMD64/x64
@@ -110,19 +106,19 @@ fail-hidden until it can be validated.
 
 #### Manual setup install
 
-1. Open the [v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2) and download only
-   `codex-usage-sidebar-v0.3.2-windows-x64-setup.exe` plus `WINDOWS-V032-SHA256SUMS.txt`.
+1. Open the [v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) and download only
+   `codex-usage-sidebar-v0.3.3-windows-x64-setup.exe` plus `WINDOWS-V033-SHA256SUMS.txt`.
 2. Verify the setup SHA-256 before launching it:
 
    ```powershell
-   Get-FileHash .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+   Get-FileHash .\codex-usage-sidebar-v0.3.3-windows-x64-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
    ```
 
-   Compare it case-insensitively with the matching entry in `WINDOWS-V032-SHA256SUMS.txt`.
+   Compare it case-insensitively with the matching entry in `WINDOWS-V033-SHA256SUMS.txt`.
 3. Run the verified setup for the current user:
 
    ```powershell
-   Start-Process .\codex-usage-sidebar-v0.3.2-windows-x64-setup.exe
+   Start-Process .\codex-usage-sidebar-v0.3.3-windows-x64-setup.exe
    ```
 
 4. The setup is intentionally unsigned (`NotSigned`), so Windows may show **Unknown publisher**.
@@ -140,8 +136,8 @@ of guessing coordinates. See [Installation and operations](docs/INSTALL.md) for 
 Give your Windows coding agent this task:
 
 ```text
-Install Codex Usage Sidebar v0.3.2 from the GitHub Release on this Windows 11 AMD64/x64 machine.
-Download codex-usage-sidebar-v0.3.2-windows-x64-setup.exe and WINDOWS-V032-SHA256SUMS.txt only,
+Install Codex Usage Sidebar v0.3.3 from the GitHub Release on this Windows 11 AMD64/x64 machine.
+Download codex-usage-sidebar-v0.3.3-windows-x64-setup.exe and WINDOWS-V033-SHA256SUMS.txt only,
 verify the setup SHA-256 against the matching release entry, run the setup only if the digest matches, and report the install
 path and runtime status. Do not disable or bypass Defender, SmartScreen, antivirus, or system policy.
 If an installer, SmartScreen, uninstall, or Windows security dialog appears, stop and ask me for
@@ -160,18 +156,19 @@ plugin support. The installer does not pin a Codex version. It searches the stan
 the current `PATH`; a CLI release is compatible when it provides the `plugin marketplace` and
 `plugin add` commands used by the installer.
 
-#### Install the published v0.3.2 DMG
+#### Install the v0.3.3 DMG
 
-Download `codex-usage-sidebar-v0.3.2-macos-arm64.dmg` together with
-`MACOS-V032-SHA256SUMS.txt` and `MACOS-V032-PROVENANCE.json` from the
-[v0.3.2 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2).
+Download `codex-usage-sidebar-v0.3.3-macos-arm64.dmg` together with
+`MACOS-V033-SHA256SUMS.txt` and `MACOS-V033-PROVENANCE.json` from the
+[v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3).
 Verify the DMG before opening it:
 
 ```bash
-shasum -a 256 codex-usage-sidebar-v0.3.2-macos-arm64.dmg
+shasum -a 256 codex-usage-sidebar-v0.3.3-macos-arm64.dmg
 ```
 
-Compare the result with the matching entry in `MACOS-V032-SHA256SUMS.txt`. Open the verified DMG,
+Compare the result with the matching entry in `MACOS-V033-SHA256SUMS.txt`. `MACOS-V033-PROVENANCE.json`
+records the exact source commit and embedded executable digests. Open the verified DMG,
 then open **Codex Usage Sidebar Installer**. This asset is not notarized;
 if macOS blocks it, right-click the installer in Finder and choose Open. Click **Install**, complete the
 guided Codex login, enable Accessibility for **Codex Usage Sidebar** when macOS asks, then click
@@ -181,10 +178,11 @@ The installer keeps its files outside the Codex application and never copies you
 credentials. See [Installation and operations](docs/INSTALL.md) for repair, update, and uninstall
 behavior.
 
-#### Build the v0.3.3 local macOS candidate
+#### Reproduce the macOS v0.3.3 release asset
 
-Maintainers can build the v0.3.3 dual-window candidate from the current `v0.3.2` development branch.
-This is a local verification path; it does not publish or move a GitHub tag:
+Maintainers can rebuild the release asset from the exact v0.3.3 source commit recorded in the
+provenance file. The scripts bind the payload commit into the app and never overwrite an existing
+asset:
 
 ```bash
 bash scripts/build-macos-v033-installer.sh
@@ -193,10 +191,6 @@ bash scripts/verify-macos-v033-installer-package.sh \
   ".dist/v0.3.3/macos/Codex Usage Sidebar Installer.app" \
   ".dist/v0.3.3/macos/codex-usage-sidebar-v0.3.3-macos-arm64.dmg"
 ```
-
-The published v0.3.2 asset remains reproducible with the historical
-`scripts/build-macos-v032-installer.sh`, `scripts/package-macos-v032-installer.sh`, and
-`scripts/verify-macos-v032-installer-package.sh` trio.
 
 ### Advanced: manual marketplace installation
 
@@ -258,7 +252,7 @@ companion never modifies Codex internals.
 
 ## Language matching
 
-Version 0.3.2 follows the language Codex is actually displaying. An explicit Codex language choice
+The current release follows the language Codex is actually displaying. An explicit Codex language choice
 is authoritative; when Codex is set to **Auto**, the running renderer's resolved locale is used.
 Codex preferences and the macOS preferred language remain safe startup fallbacks.
 
@@ -315,7 +309,7 @@ Read the complete [privacy model](docs/PRIVACY.md), [architecture](docs/ARCHITEC
 A healthy precise-positioning result includes the state from the actual LaunchAgent process:
 
 ```text
-pid=12345 version=0.3.2 runtime=shown placement=content-header anchor=labeledControl
+pid=12345 version=0.3.3 runtime=shown placement=content-header anchor=labeledControl
 language=simplifiedChinese language_source=process
 indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app
@@ -360,6 +354,7 @@ CI. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 - [Privacy](docs/PRIVACY.md)
 - [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
+- [v0.3.3 release notes](docs/releases/v0.3.3.md)
 
 ## License
 

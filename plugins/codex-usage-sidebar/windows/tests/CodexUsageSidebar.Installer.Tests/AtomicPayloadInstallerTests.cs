@@ -8,7 +8,8 @@ namespace CodexUsageSidebar.Installer.Tests;
 [TestClass]
 public sealed class AtomicPayloadInstallerTests
 {
-    private const string ExpectedVersion = "0.3.3";
+    private const string ExpectedVersion = "0.3.2";
+    private const string V033Version = "0.3.3";
 
     [TestMethod]
     public void InstallsAndAtomicallyReplacesVersionMatchedPayload()
@@ -303,6 +304,20 @@ public sealed class AtomicPayloadInstallerTests
     }
 
     [TestMethod]
+    public void FormalV033PayloadInstallsWithItsCanonicalCompleteEvidence()
+    {
+        using var fixture = Fixture.Create();
+        fixture.WritePayload(V033Version, "new");
+        fixture.MakeV033PublishedRelease();
+        fixture.WriteExistingPayload("old");
+
+        fixture.Installer(PayloadManifestPolicy.PublishedRelease, V033Version)
+            .Install(fixture.Source, fixture.Destination);
+
+        Assert.AreEqual("new", File.ReadAllText(Path.Combine(fixture.Destination, "marker.txt")));
+    }
+
+    [TestMethod]
     public void DeviceTestPayloadRejectsReleaseProfileMetadata()
     {
         using var fixture = Fixture.Create();
@@ -433,8 +448,8 @@ public sealed class AtomicPayloadInstallerTests
                 stageValidator,
                 reportSafeStages);
 
-        public AtomicPayloadInstaller Installer(PayloadManifestPolicy policy) => new(
-            new TrustedPayloadIdentity(ExpectedVersion, SourceCommit, CodexSource, RuntimeSha256, Policy: policy));
+        public AtomicPayloadInstaller Installer(PayloadManifestPolicy policy, string version = ExpectedVersion) => new(
+            new TrustedPayloadIdentity(version, SourceCommit, CodexSource, RuntimeSha256, Policy: policy));
 
         public void WritePayload(string version, string marker)
         {
@@ -589,6 +604,36 @@ public sealed class AtomicPayloadInstallerTests
             File.WriteAllText(path, document.ToJsonString());
         }
 
+        public void MakeV033PublishedRelease()
+        {
+            var evidencePath = Path.Combine(Source, "windows-validation.json");
+            var evidence = CreateV033FormalEvidence();
+            File.WriteAllText(evidencePath, evidence.ToJsonString());
+            var evidenceSha256 = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(evidencePath))).ToLowerInvariant();
+            var path = Path.Combine(Source, "windows-payload.json");
+            var document = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+            document["status"] = "release";
+            document["realDeviceValidated"] = true;
+            document["publishableInstaller"] = true;
+            document["files"]!["windows-validation.json"] = evidenceSha256;
+            document["realDeviceValidation"] = new JsonObject
+            {
+                ["sha256"] = evidenceSha256,
+                ["windowsBuild"] = 26100,
+                ["codexFileBuild"] = "151.0.7922.76",
+                ["completedAt"] = "2026-08-23T00:00:00Z",
+                ["caseCounts"] = new JsonObject
+                {
+                    ["visual"] = 72,
+                    ["geometry"] = 3,
+                    ["interaction"] = 3,
+                    ["lifecycle"] = 7,
+                },
+            };
+            File.WriteAllText(path, document.ToJsonString());
+        }
+
         private static JsonObject CreateFormalEvidence()
         {
             var visual = new JsonArray();
@@ -635,6 +680,53 @@ public sealed class AtomicPayloadInstallerTests
                     ["lifecycle"] = States("name", [
                         "sleep-resume", "codex-restart", "codex-upgrade", "authorization",
                         "install", "repair", "uninstall",
+                    ]),
+                },
+            };
+        }
+
+        private static JsonObject CreateV033FormalEvidence()
+        {
+            var visual = new JsonArray();
+            foreach (var layout in new[] { "wide", "narrow", "right-pane" })
+                foreach (var theme in new[] { "light", "dark", "system" })
+                    foreach (var language in new[] { "en", "zh-CN" })
+                        foreach (var scale in new[] { 100, 125, 150, 200 })
+                        {
+                            visual.Add(new JsonObject
+                            {
+                                ["layout"] = layout,
+                                ["theme"] = theme,
+                                ["language"] = language,
+                                ["scale"] = scale,
+                                ["result"] = "pass",
+                            });
+                        }
+            static JsonArray Cases(IEnumerable<string> names) =>
+                new(names.Select(name => (JsonNode)new JsonObject
+                {
+                    ["name"] = name,
+                    ["result"] = "pass",
+                }).ToArray());
+            return new JsonObject
+            {
+                ["schemaVersion"] = 1,
+                ["version"] = V033Version,
+                ["sourceCommit"] = SourceCommit,
+                ["architecture"] = "x64",
+                ["windowsBuild"] = 26100,
+                ["codexFileBuild"] = "151.0.7922.76",
+                ["completedAt"] = "2026-08-23T00:00:00Z",
+                ["cases"] = new JsonObject
+                {
+                    ["visual"] = visual,
+                    ["geometry"] = Cases(["restored", "maximized", "fullscreen"]),
+                    ["interaction"] = Cases([
+                        "safe-dock-drag-snap", "safe-dock-lock-reset", "three-success-recovery",
+                    ]),
+                    ["lifecycle"] = Cases([
+                        "codex-restart-update", "sleep-resume", "app-server-recovery", "install-repair",
+                        "upgrade-retains-preferences", "uninstall", "package-provenance",
                     ]),
                 },
             };

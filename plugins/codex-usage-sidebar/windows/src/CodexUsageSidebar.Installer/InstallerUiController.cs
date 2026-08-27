@@ -15,6 +15,14 @@ public enum InstallerUiState
     Failed,
 }
 
+public enum InstallerRuntimeHealth
+{
+    Healthy,
+    InstallRequired,
+    SafeDockVisible,
+    ValidationNeeded,
+}
+
 public enum InstallerUiFlavor
 {
     DeviceTest,
@@ -38,8 +46,9 @@ public sealed record InstallerUiModel(
         InstallerUiMode mode,
         InstallerUiState state,
         string? error = null,
+        InstallerRuntimeHealth? health = null,
         InstallerUiFlavor flavor = InstallerUiFlavor.DeviceTest,
-        string displayVersion = "0.3.3")
+        string displayVersion = "0.3.2")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayVersion);
         var language = ResolveLanguage(locale);
@@ -48,7 +57,7 @@ public sealed record InstallerUiModel(
         {
             InstallerUiState.Ready => copy.Ready,
             InstallerUiState.Working => copy.Working,
-            InstallerUiState.Succeeded => copy.Succeeded,
+            InstallerUiState.Succeeded => health is null ? copy.Succeeded : copy.Health(health.Value),
             InstallerUiState.Failed => copy.Failed + (string.IsNullOrWhiteSpace(error) ? string.Empty : " " + error),
             _ => throw new ArgumentOutOfRangeException(nameof(state)),
         };
@@ -97,6 +106,20 @@ public sealed record InstallerUiModel(
         string Succeeded,
         string Failed)
     {
+        public string Health(InstallerRuntimeHealth health) => health switch
+        {
+            InstallerRuntimeHealth.Healthy => Succeeded,
+            InstallerRuntimeHealth.InstallRequired => Title.Contains("安装", StringComparison.Ordinal)
+                ? "需要安装。请运行此安装程序。"
+                : Title.Contains("安裝", StringComparison.Ordinal) ? "需要安裝。請執行此安裝程式。" : "Installation is required. Run this setup.",
+            InstallerRuntimeHealth.SafeDockVisible => Title.Contains("安装", StringComparison.Ordinal)
+                ? "安装完成。安全停靠栏正在显示配额。"
+                : Title.Contains("安裝", StringComparison.Ordinal) ? "安裝完成。安全停靠欄正在顯示配額。" : "Installation complete. The safe dock is visible.",
+            InstallerRuntimeHealth.ValidationNeeded => Title.Contains("安装", StringComparison.Ordinal)
+                ? "安装完成。需要兼容性验证；安全停靠栏会在可用时显示。"
+                : Title.Contains("安裝", StringComparison.Ordinal) ? "安裝完成。需要相容性驗證；安全停靠欄會在可用時顯示。" : "Installation complete. Compatibility validation is needed; the safe dock will appear when available.",
+            _ => throw new ArgumentOutOfRangeException(nameof(health)),
+        };
         public static Copy For(
             InstallerLanguage language,
             InstallerUiMode mode,
@@ -167,12 +190,18 @@ public interface IInstallerUiActions
     Task ExecuteAsync(InstallerUiMode mode, CancellationToken cancellationToken);
 }
 
+public interface IInstallerRuntimeHealthSource
+{
+    Task<InstallerRuntimeHealth> WaitAsync(TimeSpan timeout, CancellationToken cancellationToken);
+}
+
 public sealed class InstallerUiController
 {
     private readonly string? locale;
     private readonly InstallerUiFlavor flavor;
     private readonly string displayVersion;
     private readonly IInstallerUiActions actions;
+    private readonly IInstallerRuntimeHealthSource? runtimeHealthSource;
     private int isExecuting;
 
     public InstallerUiController(
@@ -180,12 +209,14 @@ public sealed class InstallerUiController
         InstallerUiMode mode,
         IInstallerUiActions actions,
         InstallerUiFlavor flavor = InstallerUiFlavor.DeviceTest,
-        string displayVersion = "0.3.3")
+        string displayVersion = "0.3.2",
+        IInstallerRuntimeHealthSource? runtimeHealthSource = null)
     {
         this.locale = locale;
         this.flavor = flavor;
         this.displayVersion = displayVersion;
         this.actions = actions;
+        this.runtimeHealthSource = runtimeHealthSource;
         Model = InstallerUiModel.Create(
             locale, mode, InstallerUiState.Ready, flavor: flavor, displayVersion: displayVersion);
     }
@@ -203,7 +234,10 @@ public sealed class InstallerUiController
         {
             Update(InstallerUiState.Working);
             await actions.ExecuteAsync(Model.Mode, cancellationToken).ConfigureAwait(false);
-            Update(InstallerUiState.Succeeded);
+            InstallerRuntimeHealth? health = runtimeHealthSource is not null && Model.Mode is InstallerUiMode.Install or InstallerUiMode.Repair
+                ? await runtimeHealthSource.WaitAsync(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false)
+                : null;
+            Update(InstallerUiState.Succeeded, health: health);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -220,9 +254,9 @@ public sealed class InstallerUiController
         }
     }
 
-    private void Update(InstallerUiState state, string? error = null)
+    private void Update(InstallerUiState state, string? error = null, InstallerRuntimeHealth? health = null)
     {
-        Model = InstallerUiModel.Create(locale, Model.Mode, state, error, flavor, displayVersion);
+        Model = InstallerUiModel.Create(locale, Model.Mode, state, error, health, flavor, displayVersion);
         Changed?.Invoke(this, Model);
     }
 }

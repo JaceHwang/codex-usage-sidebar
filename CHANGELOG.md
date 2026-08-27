@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.3.3 - 2026-08-23
+
+- Published the macOS 14+ Apple Silicon DMG, SHA-256, and provenance assets alongside the existing
+  Windows release assets.
+- Added the macOS dual 5-hour/7-day quota card, weekly Token-usage aggregation, localized reset
+  emphasis, and smooth fixed-width detail-card resizing from the centered footer grip.
+- Published the formal Windows 11 AMD64/x64 setup, checksum, provenance, and signed compatibility-pack assets.
+- Added a P-256-verified HTTPS compatibility update path so selector changes can ship without manual user adaptation.
+- Completed and recorded the 85-case Windows 11 x64 real-device validation matrix.
+- Kept unknown or unsafe titlebar UI Automation structures fail-hidden while accepting compatible Codex builds without a fixed file-version allow list.
+- Added post-release Windows installation, diagnostics, provenance, and compatibility documentation in English and Simplified Chinese.
+
 ## v0.3.2
 
 - Published macOS 14+ Apple Silicon DMG and Windows 11 AMD64/x64 setup assets with SHA-256 and provenance files.
@@ -15,6 +27,13 @@ All notable changes to this project are documented here. The project follows
 
 ### Added
 
+### Fixed
+
+- Fixed the Windows selector packaging path to emit a schema-v2 catalog instead of the legacy
+  schema-v1 device-test document, and reject invalid selector catalogs before publication.
+- Made the runtime fall back to its built-in safe selector catalog when a stale packaged catalog is
+  encountered, and refreshed the Windows plugin cache metadata so the current hook is installed.
+
 - Add current-cycle daily and total token usage to the native quota popover.
 - Add a compact borderless GitHub project link to the footer with the official GitHub mark,
   theme-aware hover shadow, and direct navigation to the repository.
@@ -25,6 +44,13 @@ All notable changes to this project are documented here. The project follows
 
 - Remove the outer quota-card stroke while retaining the native shadow and internal separators.
 - Keep the footer GitHub control compact, rounded, and visually quiet until hovered.
+
+### Fixed
+
+- Use the validated signed Windows compatibility cache during runtime composition, preserve the
+  packaged selector catalog on cache failures, and report v0.3.3 control status labels.
+- Wait no longer than ten seconds after Windows setup install/repair for local runtime health and
+  show localized healthy, safe-dock, or validation-required outcomes.
 
 ## [0.3.1] - 2026-08-21
 

@@ -1,5 +1,6 @@
 #if WINDOWS
 using System.Globalization;
+using System.Reflection;
 using System.Security.Principal;
 using System.Windows;
 using System.Windows.Threading;
@@ -24,9 +25,43 @@ public static class WindowsHostApplication
             return 70;
         }
         Directory.CreateDirectory(paths.IsolatedCodexHome);
+        var stateDirectory = Path.Combine(localAppData, "CodexUsageSidebar");
+        var runtimeStateStore = new RuntimeStateStore(Path.Combine(stateDirectory, "runtime-state.json"));
+        var metadata = Assembly.GetExecutingAssembly().GetCustomAttributes<AssemblyMetadataAttribute>()
+            .ToDictionary(attribute => attribute.Key, attribute => attribute.Value, StringComparer.Ordinal);
+        var compatibilityConfiguration = CompatibilityUpdateConfiguration.Create(
+            metadata.GetValueOrDefault("CompatibilityPublicKey") ?? string.Empty,
+            metadata.GetValueOrDefault("CompatibilityUpdateUri") ?? string.Empty);
+        var compatibilityCache = new CompatibilityPackFileCache(Path.Combine(stateDirectory, "Compatibility"));
+        var compatibilityUpdater = new BackgroundCompatibilityCatalogUpdater(new CompatibilityPackUpdater(
+            compatibilityConfiguration.PublicKey,
+            new HttpCompatibilityPackTransport(compatibilityConfiguration.UpdateUri),
+            compatibilityCache,
+            () => DateTimeOffset.UtcNow));
+        var compatibilityRuntime = WindowsCompatibilityRuntime.CreateAsync(
+            File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "selectors.json")),
+            compatibilityConfiguration,
+            compatibilityCache,
+            compatibilityUpdater,
+            CancellationToken.None).AsTask().GetAwaiter().GetResult();
+        var safeDockPreferencesStore = new SafeDockPreferencesStore(Path.Combine(stateDirectory, "safe-dock-preferences.json"));
+        SafeDockPreferences safeDockPreferences;
+        try
+        {
+            safeDockPreferences = safeDockPreferencesStore.LoadAsync(CancellationToken.None).AsTask().GetAwaiter().GetResult();
+        }
+        catch (Exception)
+        {
+            safeDockPreferences = SafeDockPreferences.Default;
+        }
 
         var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        var runtime = new WindowsOverlayRuntime(paths);
+        var runtime = new WindowsOverlayRuntime(
+            paths,
+            runtimeStateStore,
+            safeDockPreferencesStore,
+            safeDockPreferences,
+            compatibilityRuntime.Scanner);
         application.Exit += (_, _) => runtime.Dispose();
         runtime.Start();
         return application.Run();
@@ -42,23 +77,35 @@ internal sealed class WindowsOverlayRuntime : IDisposable
     private readonly DispatcherTimer reconcileTimer;
     private readonly WindowsCodexLanguageProvider languageProvider;
     private readonly RuntimeLanguageState languageState;
+    private readonly WindowsTrayController tray;
+    private readonly ISafeDockPreferencesStore? safeDockPreferencesStore;
     private AllowanceSnapshot? latestSnapshot;
     private TokenUsageSnapshot? latestTokenUsage;
     private AccountIdentity? latestAccount;
     private DateTimeOffset nextLanguageRefresh = DateTimeOffset.MinValue;
     private int reconcileInProgress;
     private Task? sessionTask;
+    private RuntimeStateOutcome? lastOutcome;
 
-    internal WindowsOverlayRuntime(WindowsRuntimePaths paths)
+    internal WindowsOverlayRuntime(
+        WindowsRuntimePaths paths,
+        IRuntimeStateStore? runtimeStateStore = null,
+        ISafeDockPreferencesStore? safeDockPreferencesStore = null,
+        SafeDockPreferences? safeDockPreferences = null,
+        ITitlebarScanner? titlebarScanner = null)
     {
+        this.safeDockPreferencesStore = safeDockPreferencesStore;
         var language = LanguageResolver.Resolve(CultureInfo.CurrentUICulture.Name);
         languageProvider = WindowsCodexLanguageProvider.CreateDefault();
         languageState = new RuntimeLanguageState(language);
         overlay = new WpfOverlaySurface(language, TimeZoneInfo.Local);
         coordinator = new WindowsHostCoordinator(
             new Win32CodexWindowLocator(),
-            new ValidatedUiaTitlebarScanner(),
-            overlay);
+            titlebarScanner ?? new ValidatedUiaTitlebarScanner(),
+            overlay,
+            runtimeStateStore: runtimeStateStore,
+            safeDockPreferences: safeDockPreferences,
+            safeDockPreferencesStore: safeDockPreferencesStore);
         launchPlan = AppServerLaunchPlan.Create(
             paths.CodexExecutable,
             paths.IsolatedCodexHome);
@@ -67,6 +114,11 @@ internal sealed class WindowsOverlayRuntime : IDisposable
             DispatcherPriority.Background,
             async (_, _) => await ReconcileAsync(),
             Dispatcher.CurrentDispatcher);
+        tray = new WindowsTrayController(
+            () => lastOutcome,
+            locked => _ = UpdateFallbackLockAsync(locked),
+            ExportDiagnosticsAsync,
+            () => Application.Current?.Shutdown());
     }
 
     internal void Start()
@@ -78,6 +130,7 @@ internal sealed class WindowsOverlayRuntime : IDisposable
     public void Dispose()
     {
         reconcileTimer.Stop();
+        tray.Dispose();
         cancellation.Cancel();
         cancellation.Dispose();
     }
@@ -90,12 +143,20 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         }
         try
         {
-            await coordinator.ReconcileAsync(
+            var state = await coordinator.ReconcileAsync(
                 Volatile.Read(ref latestSnapshot),
                 CurrentLanguage(),
                 cancellation.Token,
                 Volatile.Read(ref latestTokenUsage),
                 Volatile.Read(ref latestAccount));
+            lastOutcome = new RuntimeStateOutcome(
+                state,
+                coordinator.LastCompatibilityDecision ?? new CompatibilityDecision(
+                    SemanticCompatibility.Unknown,
+                    ProfileCompatibility.Unknown,
+                    SafeDockPlacement.None,
+                    CompatibilityFailureCode.UiaUnavailable),
+                DateTimeOffset.UtcNow);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
@@ -116,6 +177,22 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         {
             Volatile.Write(ref reconcileInProgress, 0);
         }
+    }
+
+    private async Task UpdateFallbackLockAsync(bool locked)
+    {
+        var current = safeDockPreferencesStore is null
+            ? SafeDockPreferences.Default
+            : await safeDockPreferencesStore.LoadAsync(cancellation.Token).ConfigureAwait(false);
+        var preferences = current with { FallbackLocked = locked };
+        await coordinator.UpdateSafeDockPreferencesAsync(preferences, cancellation.Token).ConfigureAwait(false);
+    }
+
+    private async Task ExportDiagnosticsAsync(string destination)
+    {
+        var report = await new WindowsDiagnosticProbe(new Win32CodexWindowLocator())
+            .CaptureAsync(includeText: false, cancellation.Token).ConfigureAwait(false);
+        await WindowsDiagnosticExporter.ExportAsync(destination, report, lastOutcome, cancellation.Token).ConfigureAwait(false);
     }
 
     private DisplayLanguage CurrentLanguage()

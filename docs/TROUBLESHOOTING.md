@@ -1,21 +1,40 @@
 # Troubleshooting
 
-## Windows v0.3.2 setup and runtime
+## Windows setup and runtime
+
+The v0.3.3 installer is published in the
+[v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3).
+After installation, run `CodexUsageSidebar.Control.exe status` (or start a new Codex task) to see local runtime state. The
+generic selector and signed compatibility update recover automatically; ordinary users do not edit
+selector files. `placement=Fallback` means the automatic safe dock is intentionally visible while
+titlebar compatibility recovers; it is not a reason to edit selector files. If status says
+validation is needed, use the opt-in default-redacted diagnostic export from the control command and
+share only the generated redacted ZIP. The companion never uploads diagnostics automatically.
+
+### Startup exits with `InvalidSelectorCatalogException`
+
+If the Windows log says `selectors.json is not a valid schema-v2 selector catalog` and the installed
+file reports `schemaVersion: 1` or `status: device-test`, the payload is an obsolete or malformed
+package. This is a packaging defect, not a Codex titlebar compatibility failure. Do not edit the
+selector file by hand: the selector is loaded before the HTTPS compatibility updater can run. Use
+the corrected Windows release installer to replace `%LOCALAPPDATA%\CodexUsageSidebar\Current`, then
+start a new Codex task. The release verifier now rejects schema-v1 selectors before an installer can
+be published, and newer runtimes fall back to the built-in safe catalog instead of exiting.
 
 ### SmartScreen shows Unknown publisher
 
 The Windows x64 setup is intentionally unsigned. Verify the SHA-256 against
-`WINDOWS-V032-SHA256SUMS.txt` first. If it matches, **Unknown publisher** is expected: select
+`WINDOWS-V033-SHA256SUMS.txt` first. If it matches, **Unknown publisher** is expected: select
 **More info**, then **Run anyway**. If it does not match, do not run the setup; download it again
-from the v0.3.2 release. Never disable Defender, SmartScreen, antivirus, or system policy.
+from the v0.3.3 release. Never disable Defender, SmartScreen, antivirus, or system policy.
 
 ### The overlay is hidden after a Codex upgrade
 
 The Windows selector does not require a particular Codex file version anymore. A hidden overlay
 means the current title-bar UI Automation structure could not be proven safe; collect only a
-default-redacted probe and do not force the overlay to attach. The bounded coordinate fallback is
-still limited to the measured build `151.0.7922.76`; newer builds use the semantic selector and
-remain hidden until their structure is validated. `runtime=unavailable` means no approved runtime
+default-redacted diagnostic and do not force the overlay to attach. The bounded coordinate fallback
+is still limited to the measured build `151.0.7922.76`; newer builds use the generic semantic
+selector and automatic safe dock while compatibility recovers. `runtime=unavailable` means no approved runtime
 was found, `runtime=stopped` means the approved runtime is installed but not running, and
 `runtime=running` means it is active.
 

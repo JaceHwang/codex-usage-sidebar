@@ -7,7 +7,9 @@ public sealed record HostWindowSnapshot(
     RectD Bounds,
     bool IsForeground,
     double DpiScale,
-    string BuildIdentity);
+    string BuildIdentity,
+    RectD? WorkArea = null,
+    RectD? CaptionBounds = null);
 
 public readonly record struct PointD(double X, double Y);
 
@@ -63,7 +65,16 @@ public sealed record OverlayPresentation(
     PointD ThemeProbePoint,
     TokenUsageSnapshot? TokenUsage = null,
     AccountIdentity? Account = null,
-    string Version = QuotaDetailFormatter.ProductVersion);
+    string Version = QuotaDetailFormatter.ProductVersion,
+    PlacementMode Mode = PlacementMode.Titlebar,
+    SafeDockSize SafeDockSize = SafeDockSize.Standard,
+    SafeDockPlacementRequest? SafeDockRequest = null);
+
+public enum PlacementMode
+{
+    Titlebar,
+    SafeDock,
+}
 
 public enum HostRuntimeState
 {
@@ -99,4 +110,9 @@ public interface IOverlaySurface
 {
     ValueTask ShowAsync(OverlayPresentation presentation, CancellationToken cancellationToken);
     ValueTask HideAsync(CancellationToken cancellationToken);
+}
+
+public interface ISafeDockOverlaySurface : IOverlaySurface
+{
+    event Func<SafeDockPreferences, CancellationToken, ValueTask>? SafeDockPreferencesChanged;
 }

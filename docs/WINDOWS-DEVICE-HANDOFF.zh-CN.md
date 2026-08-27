@@ -1,6 +1,6 @@
-# Windows v0.3.2 实机验证交接手册
+# Windows v0.3.3 实机诊断交接手册
 
-本手册用于在真实 Windows 11 AMD64/x64 电脑上验证已发布的 v0.3.2 Windows 安装包。它是验证流程，不授权绕过 Windows 安全对话框或发布新资产。
+本手册用于在真实 Windows 11 AMD64/x64 电脑上进行已发布 v0.3.3 Windows 安装包的发布后诊断与兼容性报告。它不是绕过 Windows 安全对话框或发布新资产的授权。
 
 ## 1. 安全准备
 
@@ -8,18 +8,18 @@
 
 ## 2. 下载并校验精确 Release 资产
 
-从 [v0.3.2 Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2) 下载 `codex-usage-sidebar-v0.3.2-windows-x64-setup.exe`、`WINDOWS-V032-SHA256SUMS.txt` 和 `WINDOWS-V032-PROVENANCE.json`。在 PowerShell 中执行：
+从 [v0.3.3 Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) 下载 `codex-usage-sidebar-v0.3.3-windows-x64-setup.exe`、`WINDOWS-V033-SHA256SUMS.txt` 和 `WINDOWS-V033-PROVENANCE.json`。在 PowerShell 中执行：
 
 ```powershell
 $ErrorActionPreference = 'Stop'
-$asset = 'codex-usage-sidebar-v0.3.2-windows-x64-setup.exe'
+$asset = 'codex-usage-sidebar-v0.3.3-windows-x64-setup.exe'
 $actual = (Get-FileHash -LiteralPath ".\\$asset" -Algorithm SHA256).Hash.ToLowerInvariant()
-$line = Get-Content .\WINDOWS-V032-SHA256SUMS.txt | Where-Object { $_ -match [regex]::Escape($asset) } | Select-Object -First 1
+$line = Get-Content .\WINDOWS-V033-SHA256SUMS.txt | Where-Object { $_ -match [regex]::Escape($asset) } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($line)) { throw '校验文件中缺少安装包条目。' }
 $expected = ($line -split '\s+', 2)[0].ToLowerInvariant()
 if ($actual -ne $expected) { throw "SHA-256 不匹配：$actual" }
-$provenance = Get-Content -Raw .\WINDOWS-V032-PROVENANCE.json | ConvertFrom-Json
-if ($provenance.version -ne '0.3.2' -or $provenance.architecture -ne 'x64') { throw 'v0.3.2 provenance 不符合预期。' }
+$provenance = Get-Content -Raw .\WINDOWS-V033-PROVENANCE.json | ConvertFrom-Json
+if ($provenance.version -ne '0.3.3' -or $provenance.architecture -ne 'x64') { throw 'v0.3.3 provenance 不符合预期。' }
 ```
 
 仅在摘要一致后，用户才可以针对预期的未签名发布者提示选择 **更多信息** 和 **仍要运行**。不得关闭或绕过 Defender、SmartScreen、杀毒软件或系统策略。

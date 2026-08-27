@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('ensure', 'status', 'probe')]
+    [ValidateSet('ensure', 'status', 'diagnostic')]
     [string] $Command,
     [string] $PluginRoot,
     [string] $PluginData,
@@ -38,7 +38,8 @@ switch ($Command) {
         }
         if (-not (Test-Path -LiteralPath $runtime -PathType Leaf) -or
             -not (Test-Path -LiteralPath $selectors -PathType Leaf)) {
-            exit 0
+            Write-Output 'runtime=unavailable reason=install-required version=0.3.3'
+            exit 20
         }
         if (Get-ManagedProcess) {
             exit 0
@@ -74,27 +75,30 @@ switch ($Command) {
     'status' {
         $managed = Get-ManagedProcess
         if ($managed) {
-            Write-Output "runtime=running pid=$($managed.ProcessId) version=0.3.3"
+            if (Test-Path -LiteralPath $control -PathType Leaf) {
+                & $control status
+            }
+            else {
+                Write-Output 'runtime=running state=unknown'
+            }
             exit 0
         }
         if (-not (Test-Path -LiteralPath $runtime -PathType Leaf)) {
-        Write-Output 'runtime=unavailable reason=payload-not-installed version=0.3.3'
+            Write-Output 'runtime=unavailable reason=payload-not-installed version=0.3.3'
             exit 0
         }
-        Write-Output 'runtime=stopped reason=device-validation-required version=0.3.3'
+        Write-Output 'runtime=stopped reason=not-running version=0.3.3'
         exit 0
     }
-    'probe' {
+    'diagnostic' {
         if (-not $OutputPath) {
-            throw 'probe requires -OutputPath.'
+            throw 'diagnostic requires -OutputPath.'
         }
         if (-not (Test-Path -LiteralPath $control -PathType Leaf)) {
             throw 'CodexUsageSidebar.Control.exe is not installed.'
         }
-        $arguments = @('probe', [IO.Path]::GetFullPath($OutputPath))
-        if ($IncludeText) {
-            $arguments += '--include-text'
-        }
+        if ($IncludeText) { throw 'Diagnostic export never includes raw UI text.' }
+        $arguments = @('diagnostic', [IO.Path]::GetFullPath($OutputPath))
         & $control @arguments
         exit $LASTEXITCODE
     }

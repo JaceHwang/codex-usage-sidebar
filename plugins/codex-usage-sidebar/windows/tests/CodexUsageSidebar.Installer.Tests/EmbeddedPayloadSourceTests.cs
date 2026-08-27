@@ -22,7 +22,9 @@ public sealed class EmbeddedPayloadSourceTests
             using var lease = source.Extract(stageParent);
 
             Assert.AreEqual("host-fixture\n", File.ReadAllText(Path.Combine(lease.PayloadDirectory, "host.bin")).Replace("\r\n", "\n"));
-            Assert.AreEqual("{}\n", File.ReadAllText(Path.Combine(lease.PayloadDirectory, "selectors.json")).Replace("\r\n", "\n"));
+            Assert.AreEqual(
+                "{\n  \"schemaVersion\": 2,\n  \"profiles\": [\n    {\n      \"maxWrapperDepth\": 2,\n      \"depthTolerance\": 2\n    }\n  ]\n}\n",
+                File.ReadAllText(Path.Combine(lease.PayloadDirectory, "selectors.json")).Replace("\r\n", "\n"));
         }
         finally
         {

@@ -3,7 +3,6 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="0.3.3"
-required_branch="v0.3.2"
 output_root="$repo_root/.dist/v0.3.3/macos"
 final_app="$output_root/Codex Usage Sidebar Installer.app"
 payload_ref="${CUS_V033_SOURCE_COMMIT:-HEAD}"
@@ -17,11 +16,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-branch="$(/usr/bin/git -C "$repo_root" branch --show-current)"
-[[ "$branch" == "$required_branch" ]] || {
-  printf 'macOS v0.3.3 candidate requires branch %s, found %s\n' "$required_branch" "$branch" >&2
-  exit 65
-}
 /usr/bin/git -C "$repo_root" cat-file -e "$payload_ref^{commit}"
 source_commit="$(/usr/bin/git -C "$repo_root" rev-parse "$payload_ref^{commit}")"
 [[ ! -e "$final_app" ]] || {
@@ -38,7 +32,7 @@ app="$stage_root/Codex Usage Sidebar Installer.app"
 plugin_manifest="$source_root/plugins/codex-usage-sidebar/.codex-plugin/plugin.json"
 plugin_version="$(/usr/bin/python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"].split("+",1)[0])' "$plugin_manifest")"
 [[ "$plugin_version" == "$version" ]] || {
-  printf 'macOS v0.3.3 candidate requires plugin version %s, found %s\n' "$version" "$plugin_version" >&2
+  printf 'macOS v0.3.3 release requires plugin version %s, found %s\n' "$version" "$plugin_version" >&2
   exit 65
 }
 
@@ -67,7 +61,7 @@ output, commit, executable_sha, cdhash_sha, signature = sys.argv[1:]
 with open(output, "w", encoding="utf-8") as handle:
     json.dump({
         "schemaVersion": 1,
-        "build": {"kind": "v0.3.3-local-release-asset"},
+        "build": {"kind": "v0.3.3-release-asset"},
         "sourceCommit": commit,
         "companion": {
             "executableSha256": executable_sha,

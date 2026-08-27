@@ -110,6 +110,7 @@ public static class InstallerApplication
                 Environment.OSVersion.Version.Build),
             _ => null,
         };
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var controller = new InstallerUiController(
             CultureInfo.CurrentUICulture.Name,
             mode,
@@ -119,7 +120,8 @@ public static class InstallerApplication
                 : InstallerUiFlavor.DeviceTest,
             metadata.GetValueOrDefault("InstallerDisplayVersion")
                 ?? metadata.GetValueOrDefault(EmbeddedReleaseInstallerMetadata.VersionKey)
-                ?? "0.3.3");
+                ?? "0.3.2",
+            new RuntimeStateInstallerHealthSource(Path.Combine(localAppData, "CodexUsageSidebar", "runtime-state.json")));
         var application = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
         return application.Run(new InstallerWindow(controller));
     }

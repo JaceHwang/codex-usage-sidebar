@@ -3,7 +3,6 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="0.3.3"
-required_branch="v0.3.2"
 output_root="$repo_root/.dist/v0.3.3/macos"
 app="$output_root/Codex Usage Sidebar Installer.app"
 asset_name="codex-usage-sidebar-v0.3.3-macos-arm64.dmg"
@@ -19,10 +18,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-[[ "$(/usr/bin/git -C "$repo_root" branch --show-current)" == "$required_branch" ]] || {
-  printf 'macOS v0.3.3 package requires branch %s\n' "$required_branch" >&2
-  exit 65
-}
 for target in "$dmg" "$checksums" "$provenance"; do
   [[ ! -e "$target" ]] || { printf 'refusing to overwrite macOS release asset: %s\n' "$target" >&2; exit 66; }
 done
@@ -82,7 +77,7 @@ output, asset, dmg_sha, installer_sha, companion_sha, source, signature, sdk = s
 with open(output, "x", encoding="utf-8") as handle:
     json.dump({
         "schemaVersion": 1,
-        "status": "local-release-asset",
+        "status": "release-asset",
         "version": "0.3.3",
         "platform": "macos",
         "architecture": "arm64",

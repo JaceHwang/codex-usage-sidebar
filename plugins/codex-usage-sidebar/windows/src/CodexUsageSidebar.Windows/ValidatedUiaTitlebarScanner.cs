@@ -4,12 +4,22 @@ using CodexUsageSidebar.Core;
 
 namespace CodexUsageSidebar.Windows;
 
+internal sealed record UiaScanningObservation(
+    int Depth,
+    string ControlType,
+    string AutomationId,
+    string ClassName,
+    RectD Bounds,
+    string Name);
+
 public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
 {
     private const string CaptionContainerClass = "ChromeNodeCaptionButtonContainer";
     private const int MaximumDirectChildren = 64;
     private const int MaximumCandidateButtons = 1024;
     private const int MaximumRightPaneAncestorDepth = 8;
+    private const int MaximumTopTitlebarAncestorDepth = 6;
+    private const int MaximumTopTitlebarDescendantDepth = 6;
     private const string TitleGroupClassMarker = "text-md flex min-w-0 items-center";
     private const string RightToolbarClassMarker = "hide-scrollbar flex h-full min-w-0 flex-1";
     private const string RightToolbarOverflowMarker = "overflow-x-auto overflow-y-hidden";
@@ -30,7 +40,32 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         ControlType.Button);
     private readonly ValidatedTitlebarCache cache = new();
     private readonly object scanGate = new();
+    private readonly SelectorProfileCatalog selectorCatalog;
+    private readonly Func<HostWindowSnapshot, CancellationToken, ValueTask<IReadOnlyList<UiaScanningObservation>>>? observationProvider;
+    private readonly bool isCatalogValid;
     private InFlightScan? inFlight;
+
+    public ValidatedUiaTitlebarScanner()
+    {
+        isCatalogValid = SelectorProfileCatalog.TryLoadRuntime(out selectorCatalog);
+    }
+
+    internal ValidatedUiaTitlebarScanner(SelectorProfileCatalog selectorCatalog)
+    {
+        this.selectorCatalog = selectorCatalog ?? throw new ArgumentNullException(nameof(selectorCatalog));
+        isCatalogValid = true;
+    }
+
+    internal ValidatedUiaTitlebarScanner(
+        SelectorProfileCatalog selectorCatalog,
+        Func<HostWindowSnapshot, CancellationToken, ValueTask<IReadOnlyList<UiaScanningObservation>>> observationProvider)
+    {
+        this.selectorCatalog = selectorCatalog ?? throw new ArgumentNullException(nameof(selectorCatalog));
+        this.observationProvider = observationProvider ?? throw new ArgumentNullException(nameof(observationProvider));
+        isCatalogValid = true;
+    }
+
+    internal SelectorProfileCatalog Catalog => selectorCatalog;
 
     public TitlebarSnapshot? TryGetCurrent(HostWindowSnapshot host) => cache.TryGet(host);
     public TitlebarSnapshot? TryGetRetained(HostWindowSnapshot host) => cache.TryGetRetained(host);
@@ -93,22 +128,23 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
 
     public void Invalidate() => cache.Invalidate();
 
-    private static TitlebarSnapshot Scan(
+    private TitlebarSnapshot Scan(
         HostWindowSnapshot host,
         CancellationToken cancellationToken)
     {
-        var root = AutomationElement.FromHandle(host.Handle);
-        if (root is null)
+        if (!isCatalogValid)
         {
-            throw new WindowsDeviceValidationRequiredException(host.BuildIdentity);
+            throw new InvalidSelectorCatalogException();
         }
-
-        var nodes = QueryValidatedStructure(root, host.Bounds, host.DpiScale, cancellationToken);
+        var nodes = observationProvider is null
+            ? QueryValidatedStructureFromDesktop(host, cancellationToken)
+            : NormalizeObservations(observationProvider(host, cancellationToken).AsTask().GetAwaiter().GetResult());
         var snapshot = CodexTitlebarSelector.TryResolve(
             host.BuildIdentity,
             host.DpiScale,
             host.Bounds,
-            nodes);
+            nodes,
+            selectorCatalog);
         return snapshot ?? throw new WindowsDeviceValidationRequiredException(host.BuildIdentity);
     }
 
@@ -131,21 +167,28 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         foreach (var openLocation in openLocationButtons)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var contentGroup = TryGetParent(openLocation);
-            var toolbar = contentGroup is null ? null : TryGetParent(contentGroup);
-            if (contentGroup is null || toolbar is null)
+            var toolbar = TryFindAncestor(
+                openLocation,
+                element => ClassNameContains(element, "fixed z-30 flex h-toolbar")
+                    && ClassNameContains(element, "top-toolbar-sm"),
+                MaximumTopTitlebarAncestorDepth);
+            if (toolbar is null)
             {
                 continue;
             }
-            AddNode(toolbar, 14, nodes);
-            AddNode(contentGroup, 15, nodes);
-            AddDirectChildren(contentGroup, 16, nodes, cancellationToken);
-            AddTitleChildren(contentGroup, nodes, cancellationToken);
+            var observation = new List<UiaStructureNode>();
+            AddBoundedSubtree(
+                toolbar,
+                14,
+                MaximumTopTitlebarDescendantDepth,
+                observation,
+                cancellationToken);
+            nodes.AddRange(TopTitlebarObservationCollector.Normalize(observation));
         }
 
         AddRightPaneStructures(root, openLocationButtons, dpiScale, nodes, cancellationToken);
 
-        return nodes;
+        return TopTitlebarObservationCollector.Normalize(nodes);
     }
 
     private static IReadOnlyList<AutomationElement> DiscoverOpenLocationSeeds(
@@ -364,7 +407,10 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
     {
         try
         {
-            return (element.Current.ClassName ?? string.Empty).Contains(marker, StringComparison.Ordinal);
+            var tokens = (element.Current.ClassName ?? string.Empty)
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .ToHashSet(StringComparer.Ordinal);
+            return marker.Split(' ', StringSplitOptions.RemoveEmptyEntries).All(tokens.Contains);
         }
         catch (ElementNotAvailableException)
         {
@@ -407,6 +453,54 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         foreach (var child in DirectChildren(parent, cancellationToken))
         {
             AddNode(child, depth, nodes);
+        }
+    }
+
+    private static IReadOnlyList<UiaStructureNode> QueryValidatedStructureFromDesktop(
+        HostWindowSnapshot host,
+        CancellationToken cancellationToken)
+    {
+        var root = AutomationElement.FromHandle(host.Handle);
+        if (root is null)
+        {
+            throw new WindowsDeviceValidationRequiredException(host.BuildIdentity);
+        }
+        return QueryValidatedStructure(root, host.Bounds, host.DpiScale, cancellationToken);
+    }
+
+    private static IReadOnlyList<UiaStructureNode> NormalizeObservations(IReadOnlyList<UiaScanningObservation> observed)
+    {
+        ArgumentNullException.ThrowIfNull(observed);
+        return TopTitlebarObservationCollector.Normalize(observed
+            .Where(observation => UiaTraversalBudget.HasFiniteBounds(observation.Bounds))
+            .Select(observation => new UiaStructureNode(
+                observation.Depth,
+                observation.ControlType,
+                observation.AutomationId,
+                observation.ClassName,
+                observation.Bounds,
+                observation.Name.Length,
+                UiaSemanticRoleClassifier.Classify(observation.Name)))
+            .ToArray());
+    }
+
+    private static void AddBoundedSubtree(
+        AutomationElement parent,
+        int depth,
+        int remainingDepth,
+        List<UiaStructureNode> nodes,
+        CancellationToken cancellationToken)
+    {
+        if (remainingDepth < 0 || nodes.Count >= TopTitlebarObservationCollector.MaximumObservedNodes)
+        {
+            return;
+        }
+        AddNode(parent, depth, nodes);
+        if (remainingDepth == 0) return;
+        foreach (var child in DirectChildren(parent, cancellationToken))
+        {
+            if (nodes.Count >= TopTitlebarObservationCollector.MaximumObservedNodes) return;
+            AddBoundedSubtree(child, depth + 1, remainingDepth - 1, nodes, cancellationToken);
         }
     }
 
