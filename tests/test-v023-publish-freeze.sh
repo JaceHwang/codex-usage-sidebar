@@ -40,5 +40,15 @@ for guard in required_publisher_guards:
     if guard not in publisher:
         raise SystemExit(f"stable v0.2.3 publisher is missing freeze guard: {guard}")
 
+promoted_payload_restore = (
+    "git restore --source=HEAD -- "
+    "'plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app' "
+    "'plugins/codex-usage-sidebar/assets/PROVENANCE.json'"
+)
+if promoted_payload_restore not in ci:
+    raise SystemExit(
+        "main release packaging must restore both the promoted companion and its provenance"
+    )
+
 print("PASS: macOS v0.2.3 CI artifacts and publisher are frozen to the published source")
 PY

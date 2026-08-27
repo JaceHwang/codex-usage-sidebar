@@ -59,7 +59,7 @@ jobs:
       - name: Restore promoted payload for main release package
         if: github.ref == 'refs/heads/main'
         run: |
-          git restore --source=HEAD -- 'plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app'
+          git restore --source=HEAD -- 'plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app' 'plugins/codex-usage-sidebar/assets/PROVENANCE.json'
           bash scripts/validate-public-repo.sh
 
       - name: Package exact tested payload
