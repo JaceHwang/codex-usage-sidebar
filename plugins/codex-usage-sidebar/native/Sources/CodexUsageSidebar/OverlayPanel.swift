@@ -272,7 +272,7 @@ enum OverlayIndicatorTypography {
                     CharacterSet(charactersIn: "·")
                 )
             )
-        return "\(window)\t\(percent)\t\(date)"
+        return "\(window)\t\(percent)\t· \(date)"
     }
 
     private static func applyPercentStyle(

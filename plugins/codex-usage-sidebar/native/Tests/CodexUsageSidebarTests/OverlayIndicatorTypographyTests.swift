@@ -5,7 +5,7 @@ import XCTest
 
 @MainActor
 final class OverlayIndicatorTypographyTests: XCTestCase {
-    func testUsesFixedColumnsAndCompactTwoLineTypography() throws {
+    func testKeepsCenteredDotBetweenPercentageAndResetTimeInBothQuotaRows() throws {
         let text = OverlayIndicatorTypography.string(
             summary: ResetIndicatorSummary(
                 primary: "5 hours 85% · Aug 26, 14:55",
@@ -18,7 +18,7 @@ final class OverlayIndicatorTypographyTests: XCTestCase {
 
         XCTAssertEqual(
             text.string,
-            "5 hours\t85%\tAug 26, 14:55\n7 days\t98%\tSep 1, 08:00"
+            "5 hours\t85%\t· Aug 26, 14:55\n7 days\t98%\t· Sep 1, 08:00"
         )
         let paragraph = try XCTUnwrap(
             text.attribute(.paragraphStyle, at: 0, effectiveRange: nil)

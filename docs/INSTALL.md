@@ -1,10 +1,11 @@
 # Installation and Operations
 
-## v0.3.3 release
+## Current release
 
-The v0.3.3 GitHub Release contains platform-specific assets. Windows 11 AMD64/x64 users download
-the formal setup described below; macOS 14+ Apple Silicon users download the arm64 DMG, checksum,
-and provenance files from the same release. Every installer asset is verified before publication.
+macOS 14+ Apple Silicon users download the v0.3.5 arm64 DMG, checksum, and provenance files from
+the [v0.3.5 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5).
+Windows 11 AMD64/x64 remains on the separately validated v0.3.3 setup described below. Every
+installer asset is verified before publication.
 
 ## Windows 11 AMD64/x64
 
@@ -102,19 +103,19 @@ hard-coded version gate.
 
 ### Install with the graphical installer
 
-Download the v0.3.3 arm64 DMG, its checksum file, and its provenance from the
-[v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3):
+Download the v0.3.5 arm64 DMG, its checksum file, and its provenance from the
+[v0.3.5 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5):
 
 ```bash
-shasum -a 256 codex-usage-sidebar-v0.3.3-macos-arm64.dmg
+shasum -a 256 codex-usage-sidebar-v0.3.5-macos-arm64.dmg
 ```
 
-Compare the output with `MACOS-V033-SHA256SUMS.txt`. `MACOS-V033-PROVENANCE.json` records the
+Compare the output with `MACOS-V035-SHA256SUMS.txt`. `MACOS-V035-PROVENANCE.json` records the
 digest and exact source commit. Open the verified DMG, then open **Codex Usage Sidebar Installer**. The asset is not
 notarized. If macOS blocks it, right-click the installer in Finder and choose Open. Click **Install**,
 complete the isolated Codex login when prompted, enable Accessibility, then click **Verify**.
 
-The installer embeds the verified v0.3.3 marketplace payload and places the companion and
+The installer embeds the verified v0.3.5 marketplace payload and places the companion and
 LaunchAgent in the same locations used by the marketplace hook. It does not modify the Codex app.
 
 ### Resize the detail card
@@ -186,7 +187,7 @@ Repair once after changing the switch:
 A healthy adaptive-positioning result is read from the actual managed process and includes:
 
 ```text
-pid=12345 version=0.3.3 runtime=shown placement=content-header anchor=labeledControl
+pid=12345 version=0.3.5 runtime=shown placement=content-header anchor=labeledControl
 language=simplifiedChinese language_source=process
 indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app
@@ -195,7 +196,7 @@ installed and loaded: .../Codex Usage Sidebar.app
 `openLocation`, `labeledControl`, and `rightPaneBoundary` are valid resolved sources. For those
 sources, an indicator frame `x,y,width,height` satisfies `x + width = edge - 8`. A `fallback` with
 a numeric edge is also healthy: it is the deliberate safe right-side position used when no full
-local slot remains. v0.3.3 normally reports `cached:false` because every placement tick re-scans
+local slot remains. v0.3.5 normally reports `cached:false` because every placement tick re-scans
 eligible titlebar geometry; the version must match the badge beside the hover-card title. See
 [Troubleshooting](TROUBLESHOOTING.md).
 

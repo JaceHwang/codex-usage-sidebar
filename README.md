@@ -30,16 +30,15 @@
 
 | Platform | Status | Distribution |
 | --- | --- | --- |
-| macOS 14+ Apple Silicon | [v0.3.3 release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) | Published arm64 DMG with dual 5-hour/7-day quota presentation |
+| macOS 14+ Apple Silicon | [v0.3.5 release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5) | Published arm64 DMG with dual 5-hour/7-day quota presentation |
 | Windows 11 AMD64 (`x64`) | [v0.3.3 release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) | Unsigned `x64` setup with signed compatibility updates; Windows ARM64 is out of scope |
 
-v0.3.3 adds the macOS dual-quota card: independent **5-hour** and **7-day** percentage labels,
-gradient bars, reset countdowns, and seven-day Token usage. The centered footer grip resizes the
-detail card smoothly while preserving its fixed width and titlebar anchor; its scrollable table
-expands with the chosen height. The release also retains the Windows 11 AMD64/x64 formal setup,
-85-case real-device evidence, provenance, and signed compatibility updates. Both platforms remain
-fail-hidden on unknown or unsafe titlebar structures rather than guessing coordinates. See the
-[v0.3.3 release notes](docs/releases/v0.3.3.md) for assets and validation scope.
+v0.3.5 is a macOS maintenance release for the dual-quota presentation. Its two-row titlebar
+indicator keeps fixed 5-hour/7-day columns and now visibly separates each percentage from its reset
+time with ` · `, improving scanning without changing collision-aware placement. The macOS card keeps
+the gradient bars, reset countdowns, seven-day Token usage, and smooth fixed-width resize behavior.
+Windows remains on its separately validated v0.3.3 release. See the [v0.3.5 release notes](docs/releases/v0.3.5.md)
+for the macOS asset and validation scope.
 
 ## Current appearance
 
@@ -52,6 +51,15 @@ fail-hidden on unknown or unsafe titlebar structures rather than guessing coordi
 
 These native AppKit captures show the two independent quota bars, seven-day Token chart, accented
 reset countdowns, account identity, themed icon, compact GitHub link, and light/dark materials.
+
+### v0.3.5 titlebar indicator
+
+<p align="center">
+  <img src="docs/images/quota-header-indicator-v0.3.5-zh-light.png" alt="v0.3.5 two-row quota indicator with a centered dot between percentage and reset time" width="900">
+</p>
+
+The new separator stays in the time column of both rows, so the percentage and reset time remain
+distinct while the 5-hour and 7-day values stay aligned.
 
 ## Adaptive titlebar placement
 
@@ -156,18 +164,18 @@ plugin support. The installer does not pin a Codex version. It searches the stan
 the current `PATH`; a CLI release is compatible when it provides the `plugin marketplace` and
 `plugin add` commands used by the installer.
 
-#### Install the v0.3.3 DMG
+#### Install the v0.3.5 DMG
 
-Download `codex-usage-sidebar-v0.3.3-macos-arm64.dmg` together with
-`MACOS-V033-SHA256SUMS.txt` and `MACOS-V033-PROVENANCE.json` from the
-[v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3).
+Download `codex-usage-sidebar-v0.3.5-macos-arm64.dmg` together with
+`MACOS-V035-SHA256SUMS.txt` and `MACOS-V035-PROVENANCE.json` from the
+[v0.3.5 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5).
 Verify the DMG before opening it:
 
 ```bash
-shasum -a 256 codex-usage-sidebar-v0.3.3-macos-arm64.dmg
+shasum -a 256 codex-usage-sidebar-v0.3.5-macos-arm64.dmg
 ```
 
-Compare the result with the matching entry in `MACOS-V033-SHA256SUMS.txt`. `MACOS-V033-PROVENANCE.json`
+Compare the result with the matching entry in `MACOS-V035-SHA256SUMS.txt`. `MACOS-V035-PROVENANCE.json`
 records the exact source commit and embedded executable digests. Open the verified DMG,
 then open **Codex Usage Sidebar Installer**. This asset is not notarized;
 if macOS blocks it, right-click the installer in Finder and choose Open. Click **Install**, complete the
@@ -178,18 +186,18 @@ The installer keeps its files outside the Codex application and never copies you
 credentials. See [Installation and operations](docs/INSTALL.md) for repair, update, and uninstall
 behavior.
 
-#### Reproduce the macOS v0.3.3 release asset
+#### Reproduce the macOS v0.3.5 release asset
 
-Maintainers can rebuild the release asset from the exact v0.3.3 source commit recorded in the
+Maintainers can rebuild the release asset from the exact v0.3.5 source commit recorded in the
 provenance file. The scripts bind the payload commit into the app and never overwrite an existing
 asset:
 
 ```bash
-bash scripts/build-macos-v033-installer.sh
-bash scripts/package-macos-v033-installer.sh
-bash scripts/verify-macos-v033-installer-package.sh \
-  ".dist/v0.3.3/macos/Codex Usage Sidebar Installer.app" \
-  ".dist/v0.3.3/macos/codex-usage-sidebar-v0.3.3-macos-arm64.dmg"
+bash scripts/build-macos-v035-installer.sh
+bash scripts/package-macos-v035-installer.sh
+bash scripts/verify-macos-v035-installer-package.sh \
+  ".dist/v0.3.5/macos/Codex Usage Sidebar Installer.app" \
+  ".dist/v0.3.5/macos/codex-usage-sidebar-v0.3.5-macos-arm64.dmg"
 ```
 
 ### Advanced: manual marketplace installation
@@ -354,6 +362,7 @@ CI. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 - [Privacy](docs/PRIVACY.md)
 - [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
+- [v0.3.5 release notes](docs/releases/v0.3.5.md)
 - [v0.3.3 release notes](docs/releases/v0.3.3.md)
 
 ## License

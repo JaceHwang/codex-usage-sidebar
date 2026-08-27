@@ -20,10 +20,10 @@
 
 | 平台 | 状态 | 分发方式 |
 | --- | --- | --- |
-| macOS 14+ Apple Silicon | [`v0.3.3` 发布版](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) | 已发布的 arm64 DMG，含 5 小时/7 天双额度展示 |
+| macOS 14+ Apple Silicon | [`v0.3.5` 发布版](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5) | 已发布的 arm64 DMG，含 5 小时/7 天双额度展示 |
 | Windows 11 AMD64（`x64`） | [`v0.3.3` 发布版](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) | 未签名 `x64` 安装包，带签名兼容更新；Windows ARM64 不在支持范围 |
 
-v0.3.3 为 macOS 增加双额度浮窗：独立展示 **5 小时** 与 **7 天** 的百分比、渐变进度条、重置倒计时，以及基于 7 天周期的 Token 用量。页脚上沿中部的细小拖拽条可平滑调整浮窗高度，宽度与标题栏锚点保持不变，仅扩展可滚动的明细区域。该版本同时保留 Windows 11 AMD64/x64 已发布安装包、85 项实机验证、来源证明和签名兼容更新。遇到未知或不安全的标题栏结构时仍会隐藏，而不会猜测坐标。资产与验证范围见 [v0.3.3 发布说明](docs/releases/v0.3.3.md)。
+v0.3.5 是 macOS 双额度展示的维护版本。标题栏按钮保留固定的 5 小时/7 天列对齐，并在每行百分比与重置时间之间明确显示 ` · `，便于快速辨识；防碰撞定位逻辑不变。浮窗继续提供渐变进度条、重置倒计时、七日 Token 用量和固定宽度的平滑高度调整。Windows 继续使用独立验证的 v0.3.3 发布版。macOS 资产与验证范围见 [v0.3.5 发布说明](docs/releases/v0.3.5.md)。
 
 ## 当前实际效果
 
@@ -36,6 +36,14 @@ v0.3.3 为 macOS 增加双额度浮窗：独立展示 **5 小时** 与 **7 天**
 
 这些原生 AppKit 截图展示独立的双额度进度条、七日 Token 图表、强调的重置倒计时、账号身份、
 主题图标、紧凑 GitHub 链接，以及浅色/深色材质。
+
+### v0.3.5 标题栏按钮
+
+<p align="center">
+  <img src="docs/images/quota-header-indicator-v0.3.5-zh-light.png" alt="v0.3.5 双额度标题栏按钮：百分比与重置时间以居中圆点分隔" width="900">
+</p>
+
+两行的圆点位于固定的时间列中，既清晰隔开百分比与重置时间，又保持 5 小时和 7 天的列对齐。
 
 ## 自适应标题栏定位
 
@@ -130,33 +138,33 @@ Agent 可以自动完成下载、摘要比对和启动安装器；但不能绕�
 版本，会同时搜索标准安装路径和当前 `PATH`；只要 CLI 提供安装器使用的 `plugin marketplace` 与
 `plugin add` 命令即可兼容。
 
-#### 安装 v0.3.3 图形安装器
+#### 安装 v0.3.5 图形安装器
 
-从 [v0.3.3 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3)
-下载 `codex-usage-sidebar-v0.3.3-macos-arm64.dmg`、`MACOS-V033-SHA256SUMS.txt` 与
-`MACOS-V033-PROVENANCE.json`。打开前先校验 DMG：
+从 [v0.3.5 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5)
+下载 `codex-usage-sidebar-v0.3.5-macos-arm64.dmg`、`MACOS-V035-SHA256SUMS.txt` 与
+`MACOS-V035-PROVENANCE.json`。打开前先校验 DMG：
 
 ```bash
-shasum -a 256 codex-usage-sidebar-v0.3.3-macos-arm64.dmg
+shasum -a 256 codex-usage-sidebar-v0.3.5-macos-arm64.dmg
 ```
 
-将输出与 `MACOS-V033-SHA256SUMS.txt` 对应条目比较；`MACOS-V033-PROVENANCE.json` 记录精确源码提交与内嵌可执行文件摘要。打开已校验的 DMG，再打开 **Codex Usage Sidebar Installer**。该资产尚未公证；如被 macOS 阻止，
+将输出与 `MACOS-V035-SHA256SUMS.txt` 对应条目比较；`MACOS-V035-PROVENANCE.json` 记录精确源码提交与内嵌可执行文件摘要。打开已校验的 DMG，再打开 **Codex Usage Sidebar Installer**。该资产尚未公证；如被 macOS 阻止，
 请在 Finder 中右键点击安装器并选择“打开”。随后点击 **安装**，按引导完成 Codex 登录，并在 macOS
 提示时为 **Codex Usage Sidebar** 开启“辅助功能”；最后点击 **验证**，确认受管理的伴随程序正在运行。
 
 安装器会把文件放在 Codex 应用包之外，也绝不会复制普通 `~/.codex` 凭据。修复、更新和卸载行为请见
 [安装运维说明](docs/INSTALL.md)。
 
-#### 从源码复现 macOS v0.3.3 发布资产
+#### 从源码复现 macOS v0.3.5 发布资产
 
-维护者可从 provenance 中记录的精确 v0.3.3 源码提交重建资产。脚本会把载荷提交写入安装器，且不会覆盖已有资产：
+维护者可从 provenance 中记录的精确 v0.3.5 源码提交重建资产。脚本会把载荷提交写入安装器，且不会覆盖已有资产：
 
 ```bash
-bash scripts/build-macos-v033-installer.sh
-bash scripts/package-macos-v033-installer.sh
-bash scripts/verify-macos-v033-installer-package.sh \
-  ".dist/v0.3.3/macos/Codex Usage Sidebar Installer.app" \
-  ".dist/v0.3.3/macos/codex-usage-sidebar-v0.3.3-macos-arm64.dmg"
+bash scripts/build-macos-v035-installer.sh
+bash scripts/package-macos-v035-installer.sh
+bash scripts/verify-macos-v035-installer-package.sh \
+  ".dist/v0.3.5/macos/Codex Usage Sidebar Installer.app" \
+  ".dist/v0.3.5/macos/codex-usage-sidebar-v0.3.5-macos-arm64.dmg"
 ```
 
 ### 高级：手动 Marketplace 安装
@@ -303,6 +311,7 @@ CUS_ALLOW_SOURCE_AHEAD=1 bash scripts/validate-public-repo.sh
 - [隐私](docs/PRIVACY.md)
 - [支持](SUPPORT.md)
 - [更新记录](CHANGELOG.md)
+- [v0.3.5 发布说明](docs/releases/v0.3.5.md)
 - [v0.3.3 发布说明](docs/releases/v0.3.3.md)
 
 ## 许可证
