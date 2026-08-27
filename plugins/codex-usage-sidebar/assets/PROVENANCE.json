@@ -4,9 +4,9 @@
   },
   "companion": {
     "cdhashSha256": "8809f66493c4ae01e7607709a46287f1b230422a26b2305fe85f6fc4044c4789",
-    "executableSha256": "e2c0b355aac4ccb9b2a90d2a6042bd37ef84766748e3cc50828c9c06e01f0a30",
+    "executableSha256": "713b12c5bf6ca37c5e6749eaae3525954127a75bd260c238bc93fe872776943f",
     "signature": "adhoc"
   },
   "schemaVersion": 1,
-  "sourceCommit": "0df5ebe22b183b2e70c9e7fc9e4f433fbb35d98f"
+  "sourceCommit": "2b3dc77ed09e4e90f67fe4b706ca51aeaf947e28"
 }

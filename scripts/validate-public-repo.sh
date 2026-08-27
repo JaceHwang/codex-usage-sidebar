@@ -294,20 +294,20 @@ from pathlib import Path
 root = Path(sys.argv[1])
 required_copy = {
     "README.md": (
-        "codex-usage-sidebar-v0.3.3-macos-arm64.dmg",
+        "codex-usage-sidebar-v0.3.5-macos-arm64.dmg",
         "right-click the installer in Finder and choose Open",
     ),
     "README.zh-CN.md": (
-        "codex-usage-sidebar-v0.3.3-macos-arm64.dmg",
+        "codex-usage-sidebar-v0.3.5-macos-arm64.dmg",
         "在 Finder 中右键点击安装器并选择“打开”",
     ),
 }
 for relative, (asset_name, gatekeeper_warning) in required_copy.items():
     text = (root / relative).read_text(encoding="utf-8")
     if asset_name not in text:
-        raise SystemExit(f"{relative}: missing v0.3.3 macOS installer asset")
-    if "build-macos-v033-installer.sh" not in text:
-        raise SystemExit(f"{relative}: missing reproducible v0.3.3 macOS build command")
+        raise SystemExit(f"{relative}: missing v0.3.5 macOS installer asset")
+    if "build-macos-v035-installer.sh" not in text:
+        raise SystemExit(f"{relative}: missing reproducible v0.3.5 macOS build command")
     if gatekeeper_warning not in text:
         raise SystemExit(f"{relative}: missing Finder Open warning for the local installer")
 PY

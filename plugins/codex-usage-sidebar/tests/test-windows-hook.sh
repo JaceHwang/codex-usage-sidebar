@@ -27,7 +27,8 @@ import sys
 from pathlib import Path
 
 version = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["version"]
-assert version.startswith("0.3.3+codex."), version
+assert version.split("+", 1)[0] == "0.3.5", version
+assert "+codex." in version, version
 PY
 grep -q 'version=0.3.3' "$control"
 if grep -q 'version=0.3.2' "$control"; then
