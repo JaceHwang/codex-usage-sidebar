@@ -20,6 +20,9 @@ class ReleaseGovernanceTests(unittest.TestCase):
 
         self.assertEqual(1, catalog["schemaVersion"])
         self.assertEqual("independent-platform-patches", catalog["releasePolicy"])
+        self.assertEqual("macos", catalog["activeCandidate"]["platform"])
+        self.assertEqual("0.3.6", catalog["activeCandidate"]["version"])
+        self.assertEqual("macos-v0.3.6", catalog["activeCandidate"]["tag"])
         self.assertEqual("0.3.6", catalog["planned"]["macos"]["version"])
         self.assertEqual("macos-v0.3.6", catalog["planned"]["macos"]["tag"])
         self.assertEqual(
@@ -89,7 +92,8 @@ class ReleaseGovernanceTests(unittest.TestCase):
             "build-macos-platform-installer.sh",
             "package-macos-platform-installer.sh",
             "verify-macos-platform-installer-package.sh",
-            ".dist/${{ github.ref_name }}/macos",
+            "name: codex-usage-sidebar-${{ inputs.ref || github.ref_name }}-macos-arm64",
+            "path: .dist/${{ inputs.ref || github.ref_name }}/macos",
         ):
             self.assertIn(marker, workflow)
 

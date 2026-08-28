@@ -5,6 +5,7 @@ plugin_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 hooks="$plugin_root/hooks/hooks.json"
 control="$plugin_root/scripts/sidebar-control-windows.ps1"
 plugin_json="$plugin_root/.codex-plugin/plugin.json"
+release_catalog="$plugin_root/../../releases/platform-release-catalog.json"
 
 python3 - "$hooks" <<'PY'
 import json
@@ -21,14 +22,16 @@ assert "${PLUGIN_DATA}" in command
 PY
 
 [[ -f "$control" ]]
-python3 - "$plugin_json" <<'PY'
+python3 - "$plugin_json" "$release_catalog" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 version = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["version"]
-assert version.split("+", 1)[0] == "0.3.5", version
-assert version == "0.3.5", version
+candidate = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))["activeCandidate"]
+assert version.split("+", 1)[0] == candidate["version"], version
+assert candidate["tag"] == f"{candidate['platform']}-v{candidate['version']}", candidate
+assert "+codex." in version, version
 PY
 grep -q 'version=0.3.5' "$control"
 if grep -Eq 'version=0\.3\.[0-4]' "$control"; then

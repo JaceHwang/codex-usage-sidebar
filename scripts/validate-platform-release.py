@@ -92,6 +92,24 @@ def validate_candidate_payload(repo_root: Path, release: dict[str, Any]) -> None
         )
 
 
+def validate_active_candidate(catalog: dict[str, Any]) -> dict[str, Any]:
+    candidate = catalog.get("activeCandidate")
+    if not isinstance(candidate, dict) or set(candidate) != {"platform", "version", "tag"}:
+        fail("activeCandidate must contain exactly platform, version, and tag")
+    platform = candidate["platform"]
+    if platform not in PLATFORM_DISPLAY_NAMES:
+        fail("activeCandidate.platform is unsupported")
+    version = candidate["version"]
+    if not isinstance(version, str) or not SEMVER.fullmatch(version):
+        fail("activeCandidate.version must be a semantic version")
+    if candidate["tag"] != f"{platform}-v{version}":
+        fail("activeCandidate.tag must match its platform and version")
+    planned = catalog.get("planned", {}).get(platform)
+    if not isinstance(planned, dict) or planned.get("version") != version or planned.get("tag") != candidate["tag"]:
+        fail("activeCandidate must match one planned platform release")
+    return candidate
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--catalog", type=Path, required=True)
@@ -105,6 +123,7 @@ def main() -> None:
         fail("unsupported catalog schemaVersion")
     if catalog.get("releasePolicy") != "independent-platform-patches":
         fail("releasePolicy must be independent-platform-patches")
+    active_candidate = validate_active_candidate(catalog)
     for phase in ("published", "planned"):
         releases = catalog.get(phase)
         if not isinstance(releases, dict):
@@ -113,7 +132,7 @@ def main() -> None:
             validate_release(repo_root, arguments.target, phase, releases[arguments.target])
 
     planned = catalog["planned"].get(arguments.target)
-    if arguments.target == "macos" and isinstance(planned, dict):
+    if arguments.target == active_candidate["platform"] and isinstance(planned, dict):
         validate_candidate_payload(repo_root, planned)
     if planned is None and arguments.target not in catalog["published"]:
         fail(f"catalog has no {arguments.target} release")
