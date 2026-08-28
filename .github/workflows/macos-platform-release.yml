@@ -1,0 +1,94 @@
+name: Build macOS platform release assets
+
+on:
+  push:
+    tags:
+      - "macos-v*"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Exact macOS platform tag to build (for example macos-v0.3.6)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-release-assets:
+    name: Build verified macOS arm64 release assets
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer
+    steps:
+      - name: Check out exact release ref
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          fetch-depth: 0
+
+      - name: Verify release tag matches the planned macOS catalog entry
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.ref || github.ref_name }}
+        run: |
+          expected="$(python3 - <<'PY'
+          import json
+          catalog = json.load(open('releases/platform-release-catalog.json', encoding='utf-8'))
+          print(catalog['planned']['macos']['tag'])
+          PY
+          )"
+          test "$RELEASE_TAG" = "$expected"
+
+      - name: Validate release contract and run the native test suite
+        shell: bash
+        run: |
+          python3 scripts/validate-platform-release.py \
+            --catalog releases/platform-release-catalog.json --target macos
+          xcrun swift test --package-path plugins/codex-usage-sidebar/native
+
+      - name: Build and package the exact tagged payload
+        shell: bash
+        run: |
+          bash scripts/build-macos-platform-installer.sh \
+            --catalog releases/platform-release-catalog.json --source-commit "$(git rev-parse HEAD)"
+          bash scripts/package-macos-platform-installer.sh \
+            --catalog releases/platform-release-catalog.json
+
+      - name: Verify packaged checksums and provenance assets
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.ref || github.ref_name }}
+        run: |
+          output=".dist/$RELEASE_TAG/macos"
+          checksums="$(python3 - <<'PY'
+          import json
+          catalog = json.load(open('releases/platform-release-catalog.json', encoding='utf-8'))
+          print(catalog['planned']['macos']['assets']['checksums'])
+          PY
+          )"
+          provenance="$(python3 - <<'PY'
+          import json
+          catalog = json.load(open('releases/platform-release-catalog.json', encoding='utf-8'))
+          print(catalog['planned']['macos']['assets']['provenance'])
+          PY
+          )"
+          (cd "$output" && shasum -a 256 -c "$checksums")
+          test -f "$output/$provenance"
+          installer="$(python3 - <<'PY'
+          import json
+          catalog = json.load(open('releases/platform-release-catalog.json', encoding='utf-8'))
+          print(catalog['planned']['macos']['assets']['installer'])
+          PY
+          )"
+          bash scripts/verify-macos-platform-installer-package.sh \
+            --catalog releases/platform-release-catalog.json \
+            "$output/Codex Usage Sidebar Installer.app" "$output/$installer"
+
+      - name: Upload verified release assets
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: codex-usage-sidebar-${{ github.ref_name }}-macos-arm64
+          path: .dist/${{ github.ref_name }}/macos
+          if-no-files-found: error

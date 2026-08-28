@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "releasePolicy": "independent-platform-patches",
+  "published": {
+    "macos": {
+      "version": "0.3.5",
+      "tag": "v0.3.5",
+      "legacyTag": true,
+      "title": "Codex Usage Sidebar macOS v0.3.5",
+      "architecture": "arm64",
+      "minimumSystem": "macOS 14+ Apple Silicon",
+      "codexCompatibility": "No fixed Codex version; requires supported plugin CLI commands.",
+      "assets": {
+        "installer": "codex-usage-sidebar-v0.3.5-macos-arm64.dmg",
+        "checksums": "MACOS-V035-SHA256SUMS.txt",
+        "provenance": "MACOS-V035-PROVENANCE.json"
+      },
+      "releaseNotes": "docs/releases/v0.3.5.md"
+    },
+    "windows": {
+      "version": "0.3.3",
+      "tag": "v0.3.3",
+      "legacyTag": true,
+      "title": "Codex Usage Sidebar Windows v0.3.3",
+      "architecture": "x64",
+      "minimumSystem": "Windows 11 AMD64/x64",
+      "codexCompatibility": "No fixed Codex version; validated semantic titlebar structure is required.",
+      "assets": {
+        "installer": "codex-usage-sidebar-v0.3.3-windows-x64-setup.exe",
+        "checksums": "WINDOWS-V033-SHA256SUMS.txt",
+        "provenance": "WINDOWS-V033-PROVENANCE.json"
+      },
+      "releaseNotes": "docs/releases/v0.3.3.md"
+    }
+  },
+  "planned": {
+    "macos": {
+      "version": "0.3.6",
+      "tag": "macos-v0.3.6",
+      "title": "Codex Usage Sidebar macOS v0.3.6",
+      "architecture": "arm64",
+      "minimumSystem": "macOS 14+ Apple Silicon",
+      "codexCompatibility": "No fixed Codex version; requires supported plugin CLI commands.",
+      "assets": {
+        "installer": "codex-usage-sidebar-macos-arm64-v0.3.6.dmg",
+        "checksums": "MACOS-V036-SHA256SUMS.txt",
+        "provenance": "MACOS-V036-PROVENANCE.json"
+      },
+      "releaseNotes": "docs/releases/macos-v0.3.6.md"
+    }
+  }
+}

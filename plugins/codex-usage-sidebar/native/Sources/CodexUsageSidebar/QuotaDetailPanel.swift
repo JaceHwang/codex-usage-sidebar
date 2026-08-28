@@ -104,9 +104,27 @@ final class QuotaDetailPanel {
             )
             card?.appearance = appearance
         }
-        panel.contentView = card
-        panel.setFrame(panelFrame, display: true)
+        if let card {
+            Self.install(card, into: panel, frame: panelFrame)
+        }
         panel.orderFrontRegardless()
+    }
+
+    /// Installs a detail card only after the panel has its final geometry.
+    ///
+    /// `NSPanel` applies autoresizing masks as soon as a content view is
+    /// attached. A cold panel starts at a zero-sized content rect, so attaching
+    /// the card first permanently distorts its top-anchored header and
+    /// stretchable scroll area on the first render.
+    static func install(
+        _ card: NSView,
+        into panel: NSPanel,
+        frame: CGRect
+    ) {
+        panel.setFrame(frame, display: false)
+        panel.contentView = card
+        card.frame = CGRect(origin: .zero, size: frame.size)
+        card.layoutSubtreeIfNeeded()
     }
 
     private func resize(to requestedHeight: CGFloat) {
@@ -500,11 +518,10 @@ final class QuotaDetailCardView: NSView {
             ),
             accessibilityLabel: content.resizeHint,
             onResizeHeight: onResizeHeight,
-            onResizeBegan: {
-                resizeHint.isHidden = false
+            onHintVisibilityChanged: { isVisible in
+                resizeHint.isHidden = !isVisible
             },
             onResizeEnded: {
-                resizeHint.isHidden = true
                 onResizeEnded()
             }
         )
@@ -535,7 +552,7 @@ final class QuotaDetailCardView: NSView {
 @MainActor
 private final class QuotaDetailHeightResizeHandleView: NSView {
     private let onResizeHeight: (CGFloat) -> Void
-    private let onResizeBegan: () -> Void
+    private let onHintVisibilityChanged: (Bool) -> Void
     private let onResizeEnded: () -> Void
     private var startingHeight: CGFloat = 0
     private var startingScreenY: CGFloat = 0
@@ -548,11 +565,11 @@ private final class QuotaDetailHeightResizeHandleView: NSView {
         frame frameRect: NSRect,
         accessibilityLabel: String,
         onResizeHeight: @escaping (CGFloat) -> Void,
-        onResizeBegan: @escaping () -> Void,
+        onHintVisibilityChanged: @escaping (Bool) -> Void,
         onResizeEnded: @escaping () -> Void
     ) {
         self.onResizeHeight = onResizeHeight
-        self.onResizeBegan = onResizeBegan
+        self.onHintVisibilityChanged = onHintVisibilityChanged
         self.onResizeEnded = onResizeEnded
         super.init(frame: frameRect)
         wantsLayer = true
@@ -601,14 +618,13 @@ private final class QuotaDetailHeightResizeHandleView: NSView {
         isPointerInside = true
         NSCursor.resizeUpDown.set()
         updateAppearance()
+        updateHintVisibility()
     }
 
     override func mouseExited(with event: NSEvent) {
-        guard !isDragging else {
-            return
-        }
         isPointerInside = false
         updateAppearance()
+        updateHintVisibility()
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -621,7 +637,7 @@ private final class QuotaDetailHeightResizeHandleView: NSView {
         isDragging = true
         NSCursor.resizeUpDown.set()
         updateAppearance()
-        onResizeBegan()
+        updateHintVisibility()
     }
 
     override func mouseDragged(with event: NSEvent) {
@@ -638,6 +654,7 @@ private final class QuotaDetailHeightResizeHandleView: NSView {
         resizingWindow = nil
         isDragging = false
         updateAppearance()
+        updateHintVisibility()
         onResizeEnded()
     }
 
@@ -661,6 +678,10 @@ private final class QuotaDetailHeightResizeHandleView: NSView {
             .cgColor
         needsDisplay = true
         window?.invalidateCursorRects(for: self)
+    }
+
+    private func updateHintVisibility() {
+        onHintVisibilityChanged(isPointerInside || isDragging)
     }
 }
 

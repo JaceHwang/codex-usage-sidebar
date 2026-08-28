@@ -27,13 +27,8 @@ All notable changes to this project are documented here. The project follows
 
 ### Added
 
-### Fixed
-
-- Fixed the Windows selector packaging path to emit a schema-v2 catalog instead of the legacy
-  schema-v1 device-test document, and reject invalid selector catalogs before publication.
-- Made the runtime fall back to its built-in safe selector catalog when a stale packaged catalog is
-  encountered, and refreshed the Windows plugin cache metadata so the current hook is installed.
-
+- Add a source-controlled platform release catalog, semantic-version and branch-governance policy,
+  generic macOS installer packaging scripts, and CI contract validation for both platforms.
 - Add current-cycle daily and total token usage to the native quota popover.
 - Add a compact borderless GitHub project link to the footer with the official GitHub mark,
   theme-aware hover shadow, and direct navigation to the repository.
@@ -41,6 +36,18 @@ All notable changes to this project are documented here. The project follows
   themes.
 
 ### Changed
+
+- Define independent platform patch tags as `macos-vX.Y.Z` and `windows-vX.Y.Z`; shared features
+  continue to use a single `vX.Y.Z` release after parity verification.
+
+### Fixed
+
+- Prepare macOS v0.3.6 to prevent first-open quota-card layout corruption after reboot and show the
+  resize guidance when the footer grip is hovered.
+- Fixed the Windows selector packaging path to emit a schema-v2 catalog instead of the legacy
+  schema-v1 device-test document, and reject invalid selector catalogs before publication.
+- Made the runtime fall back to its built-in safe selector catalog when a stale packaged catalog is
+  encountered, and refreshed the Windows plugin cache metadata so the current hook is installed.
 
 - Remove the outer quota-card stroke while retaining the native shadow and internal separators.
 - Keep the footer GitHub control compact, rounded, and visually quiet until hovered.

@@ -25,6 +25,9 @@
 
 v0.3.5 是 macOS 双额度展示的维护版本。标题栏按钮保留固定的 5 小时/7 天列对齐，并在每行百分比与重置时间之间明确显示 ` · `，便于快速辨识；防碰撞定位逻辑不变。浮窗继续提供渐变进度条、重置倒计时、七日 Token 用量和固定宽度的平滑高度调整。Windows 继续使用独立验证的 v0.3.3 发布版。macOS 资产与验证范围见 [v0.3.5 发布说明](docs/releases/v0.3.5.md)。
 
+macOS 与 Windows 可以独立发布维护补丁。后续平台专属版本统一使用 `macos-vX.Y.Z` 或
+`windows-vX.Y.Z`；只有已完成双平台功能对齐的共享功能，才使用同一个 `vX.Y.Z` 发布页并同时提供两个安装包。完整规则见[版本与分支规范](VERSIONING.md)、[发布操作说明](docs/RELEASES.md)，以及受源码管理的[平台发布目录](releases/platform-release-catalog.json)。
+
 ## 当前实际效果
 
 <p align="center">

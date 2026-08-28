@@ -5,6 +5,11 @@ on:
     branches:
       - main
       - "codex/**"
+      - "release/**"
+    tags:
+      - "macos-v*"
+      - "windows-v*"
+      - "v*"
   pull_request:
 
 permissions:
@@ -29,6 +34,12 @@ jobs:
           test "$(xcrun --sdk macosx --show-sdk-version)" = "26.5"
           uname -m
           xcodebuild -version
+
+      - name: Validate version and macOS release governance
+        run: |
+          python3 tests/test-release-governance.py
+          python3 scripts/validate-platform-release.py \
+            --catalog releases/platform-release-catalog.json --target macos
 
       - name: Validate public repository
         run: bash scripts/validate-public-repo.sh

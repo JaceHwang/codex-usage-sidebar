@@ -40,6 +40,12 @@ the gradient bars, reset countdowns, seven-day Token usage, and smooth fixed-wid
 Windows remains on its separately validated v0.3.3 release. See the [v0.3.5 release notes](docs/releases/v0.3.5.md)
 for the macOS asset and validation scope.
 
+macOS and Windows may receive independent maintenance patches. New platform-only releases use
+`macos-vX.Y.Z` or `windows-vX.Y.Z`; only parity-verified shared features use one `vX.Y.Z` release
+with both assets. See the [versioning and branch policy](VERSIONING.md),
+[release operations](docs/RELEASES.md), and source-controlled
+[platform release catalog](releases/platform-release-catalog.json).
+
 ## Current appearance
 
 <p align="center">
