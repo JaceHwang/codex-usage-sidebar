@@ -47,6 +47,9 @@ class ReleaseGovernanceTests(unittest.TestCase):
     def test_governance_documents_describe_versions_releases_and_short_lived_branches(self) -> None:
         versioning = (REPO_ROOT / "VERSIONING.md").read_text(encoding="utf-8")
         releases = (REPO_ROOT / "docs" / "RELEASES.md").read_text(encoding="utf-8")
+        project_guide = (REPO_ROOT / "docs" / "PROJECT_GOVERNANCE.md").read_text(encoding="utf-8")
+        readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+        readme_zh = (REPO_ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
 
         for marker in (
             "MAJOR.MINOR.PATCH",
@@ -59,6 +62,18 @@ class ReleaseGovernanceTests(unittest.TestCase):
             self.assertIn(marker, versioning)
         for marker in ("SHA256SUMS.txt", "PROVENANCE", "same verified commit"):
             self.assertIn(marker, releases)
+        for marker in (
+            "# Project Development Governance",
+            "## Required workflow",
+            "## Before pushing to GitHub",
+            "## Before publishing a release",
+            "CHANGELOG.md",
+            "platform-release-catalog.json",
+            "Do not rewrite published releases",
+        ):
+            self.assertIn(marker, project_guide)
+        self.assertIn("PROJECT_GOVERNANCE.md", readme)
+        self.assertIn("PROJECT_GOVERNANCE.md", readme_zh)
 
     def test_generic_macos_release_scripts_read_the_catalog_instead_of_a_hard_coded_version(self) -> None:
         for script_name in (

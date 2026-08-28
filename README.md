@@ -45,6 +45,8 @@ macOS and Windows may receive independent maintenance patches. New platform-only
 with both assets. See the [versioning and branch policy](VERSIONING.md),
 [release operations](docs/RELEASES.md), and source-controlled
 [platform release catalog](releases/platform-release-catalog.json).
+Project contributors must follow the [project development governance guide](docs/PROJECT_GOVERNANCE.md)
+for every development, GitHub delivery, and release.
 
 ## Current appearance
 

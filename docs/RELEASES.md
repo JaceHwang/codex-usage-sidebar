@@ -1,5 +1,9 @@
 # Release Operations
 
+> This is the release-operation appendix to the required
+> [Project Development Governance](PROJECT_GOVERNANCE.md). Follow the project guide before pushing
+> or publishing any release.
+
 This project supports independent platform maintenance releases and unified cross-platform feature
 releases. The release catalog is the source of truth for platform version, tag, title, architecture,
 support boundary, asset names, and release notes.

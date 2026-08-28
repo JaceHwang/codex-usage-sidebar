@@ -1,5 +1,9 @@
 # Versioning and Branch Governance
 
+> This is the versioning and branch appendix to the required
+> [Project Development Governance](docs/PROJECT_GOVERNANCE.md). Follow the project guide for every
+> development, GitHub delivery, and release activity.
+
 Codex Usage Sidebar uses semantic `MAJOR.MINOR.PATCH` product versions. The public contract is the
 installer and upgrade flow, persisted settings, supported-platform matrix, quota data semantics, and
 documented user-visible behavior. The project is still in the `0.y.z` development phase, so an

@@ -27,6 +27,8 @@ All notable changes to this project are documented here. The project follows
 
 ### Added
 
+- Add `docs/PROJECT_GOVERNANCE.md` as the required project-wide procedure for development,
+  GitHub delivery, version management, platform releases, and hotfixes.
 - Add a source-controlled platform release catalog, semantic-version and branch-governance policy,
   generic macOS installer packaging scripts, and CI contract validation for both platforms.
 - Add current-cycle daily and total token usage to the native quota popover.
