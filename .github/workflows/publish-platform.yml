@@ -36,30 +36,37 @@ jobs:
       - name: Build and verify platform assets
         run: |
           set -euo pipefail
+          release_tag=${RELEASE_TAG-}
+          release_platform=${RELEASE_PLATFORM-}
+          test -n "$release_tag"
+          test -n "$release_platform"
           . .governance/policy.defaults.sh
           test -f .governance/policy.sh && . .governance/policy.sh
           case " $RELEASE_PLATFORMS " in
-            *" $RELEASE_PLATFORM "*) ;;
-            *) echo "unknown platform: $RELEASE_PLATFORM" >&2; exit 64 ;;
+            *" $release_platform "*) ;;
+            *) echo "unknown platform: $release_platform" >&2; exit 64 ;;
           esac
           test "$RELEASE_MODE" = staged
           chmod +x governance "$BUILD_RELEASE_ADAPTER" "$VERIFY_RELEASE_ADAPTER"
-          "$BUILD_RELEASE_ADAPTER" "$RELEASE_PLATFORM" "$RELEASE_TAG"
-          "$VERIFY_RELEASE_ADAPTER" "$RELEASE_PLATFORM" "$RELEASE_TAG"
-          asset_dir=".dist/release/$RELEASE_PLATFORM"
+          "$BUILD_RELEASE_ADAPTER" "$release_platform" "$release_tag"
+          "$VERIFY_RELEASE_ADAPTER" "$release_platform" "$release_tag"
+          asset_dir=".dist/release/$release_platform"
           compgen -G "$asset_dir/*" >/dev/null
           existing="$RUNNER_TEMP/existing-assets"
-          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' >"$existing"
+          gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' >"$existing"
           for asset in "$asset_dir"/*; do
             name=$(basename "$asset")
             ! grep -Fqx "$name" "$existing" || { echo "asset already exists: $name" >&2; exit 1; }
           done
-          gh release upload "$RELEASE_TAG" "$asset_dir"/* --repo "$GITHUB_REPOSITORY"
+          gh release upload "$release_tag" "$asset_dir"/* --repo "$GITHUB_REPOSITORY"
       - name: Update platform status and publish draft
         run: |
           set -euo pipefail
+          release_tag=${RELEASE_TAG-}
+          release_platform=${RELEASE_PLATFORM-}
+          test -n "$release_tag"
+          test -n "$release_platform"
           body="$RUNNER_TEMP/release-body.md"
-          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body >"$body"
-          ./governance release status "$body" "$RELEASE_PLATFORM" available
-          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$body" --draft=false
-
+          gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" --json body --jq .body >"$body"
+          ./governance release status "$body" "$release_platform" available
+          gh release edit "$release_tag" --repo "$GITHUB_REPOSITORY" --notes-file "$body" --draft=false
