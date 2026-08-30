@@ -28,14 +28,14 @@ from pathlib import Path
 
 version = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["version"]
 assert version.split("+", 1)[0] == "0.3.5", version
-assert "+codex." in version, version
+assert version == "0.3.5", version
 PY
-grep -q 'version=0.3.3' "$control"
-if grep -q 'version=0.3.2' "$control"; then
-  printf 'v0.3.3 control script must not emit v0.3.2 status labels\n' >&2
+grep -q 'version=0.3.5' "$control"
+if grep -Eq 'version=0\.3\.[0-4]' "$control"; then
+  printf 'current Windows control script must not emit an older product version\n' >&2
   exit 1
 fi
-grep -q 'runtime=stopped reason=not-running version=0.3.3' "$control"
+grep -q 'runtime=stopped reason=not-running version=0.3.5' "$control"
 if grep -q 'reason=device-validation-required' "$control"; then
   printf 'Windows control script must not report the retired device-validation gate\n' >&2
   exit 1

@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
+cd "$repo_root"
+
+if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
+  DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+  export DEVELOPER_DIR
+fi
+
+(
+  cd plugins/codex-usage-sidebar
+  xcrun swift test --package-path native
+  bash tests/test-build-sdk.sh
+  bash tests/test-bundle-version.sh
+  bash tests/test-sidebar-control.sh
+  bash tests/test-signing-identity.sh
+)

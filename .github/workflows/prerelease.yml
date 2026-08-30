@@ -1,0 +1,67 @@
+name: Prerelease Please
+
+on:
+  push:
+    branches:
+      - "codex/prerelease/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  prerelease:
+    name: release / prepare prerelease
+    runs-on: ubuntu-24.04
+    outputs:
+      release-created: ${{ steps.release.outputs.release_created }}
+      tag-name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Select channel configuration
+        id: channel
+        env:
+          TARGET_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          channel="${TARGET_BRANCH##*/}"
+          case "$channel" in alpha|beta|rc) ;; *) echo "unsupported prerelease branch: $TARGET_BRANCH" >&2; exit 64 ;; esac
+          echo "config=.governance/release/$channel.json" >>"$GITHUB_OUTPUT"
+      - name: Create or update prerelease pull request
+        id: release
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
+        with:
+          target-branch: ${{ github.ref_name }}
+          config-file: ${{ steps.channel.outputs.config }}
+          manifest-file: .release-please-manifest.json
+
+  publish-atomic:
+    name: release / publish prerelease
+    needs: prerelease
+    if: needs.prerelease.outputs.release-created == 'true'
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ needs.prerelease.outputs.tag-name }}
+    steps:
+      - name: Check out exact prerelease tag
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.prerelease.outputs.tag-name }}
+      - name: Build, verify, and publish atomic prerelease
+        run: |
+          set -euo pipefail
+          . .governance/policy.defaults.sh
+          test -f .governance/policy.sh && . .governance/policy.sh
+          if [[ "$RELEASE_MODE" != atomic ]]; then
+            echo "staged prerelease: publish platforms with publish-platform.yml"
+            exit 0
+          fi
+          chmod +x "$BUILD_RELEASE_ADAPTER" "$VERIFY_RELEASE_ADAPTER"
+          "$BUILD_RELEASE_ADAPTER" source "$RELEASE_TAG"
+          "$VERIFY_RELEASE_ADAPTER" source "$RELEASE_TAG"
+          compgen -G '.dist/release/*' >/dev/null
+          gh release upload "$RELEASE_TAG" .dist/release/* --repo "$GITHUB_REPOSITORY"
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
+

@@ -51,7 +51,7 @@ assert entry["category"] == "Productivity"
 
 manifest = json.loads((root / "plugins/codex-usage-sidebar/.codex-plugin/plugin.json").read_text())
 assert manifest["name"] == "codex-usage-sidebar"
-assert manifest["version"].count("+codex.") == 1
+assert re.fullmatch(r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)", manifest["version"])
 assert manifest["skills"] == "./skills/"
 
 hooks = json.loads((root / "plugins/codex-usage-sidebar/hooks/hooks.json").read_text())

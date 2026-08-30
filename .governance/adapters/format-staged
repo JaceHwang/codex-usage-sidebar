@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+# Replace in the governed repository with a deterministic staged-file formatter.
+exit 0
+
