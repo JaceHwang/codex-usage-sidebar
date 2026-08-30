@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+printf 'generic staged asset verification is not enabled; use the existing platform verifier\n' >&2
+exit 78

@@ -63,6 +63,7 @@ jobs:
           bash scripts/validate-public-repo.sh
 
       - name: Package exact tested payload
+        if: github.ref == 'refs/heads/main'
         run: |
           bash scripts/package-release.sh
           (cd .dist && shasum -a 256 -c SHA256SUMS.txt)
@@ -74,11 +75,13 @@ jobs:
           fi
 
       - name: Test installer package
+        if: github.ref == 'refs/heads/main'
         env:
           CUS_INSTALLER_PAYLOAD_REF: ${{ env.FROZEN_V023_INSTALLER_SOURCE_COMMIT }}
         run: bash tests/test-installer-package.sh
 
       - name: Verify installer package checksum
+        if: github.ref == 'refs/heads/main'
         run: (cd .dist && shasum -a 256 -c INSTALLER-SHA256SUMS.txt)
 
       - name: Upload tested release payload

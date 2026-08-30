@@ -51,7 +51,7 @@ assert entry["category"] == "Productivity"
 
 manifest = json.loads((root / "plugins/codex-usage-sidebar/.codex-plugin/plugin.json").read_text())
 assert manifest["name"] == "codex-usage-sidebar"
-assert manifest["version"].count("+codex.") == 1
+assert re.fullmatch(r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)", manifest["version"])
 assert manifest["skills"] == "./skills/"
 
 hooks = json.loads((root / "plugins/codex-usage-sidebar/hooks/hooks.json").read_text())
@@ -313,7 +313,9 @@ for relative, (asset_name, gatekeeper_warning) in required_copy.items():
 PY
 
 /usr/bin/ruby -ryaml -e '
-  ARGV.each { |path| YAML.safe_load(File.read(path), [], [], false) }
+  ARGV.each do |path|
+    YAML.safe_load(File.read(path), permitted_classes: [], permitted_symbols: [], aliases: false)
+  end
 ' "$repo_root/.github/workflows/ci.yml" "$repo_root/.github/workflows/publish-installer.yml" \
   "$repo_root/.github/workflows/windows-beta.yml"
 

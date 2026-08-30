@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+printf 'verify-release adapter is not configured\n' >&2
+exit 1
+

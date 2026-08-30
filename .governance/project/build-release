@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+
+platform=${1:-}
+tag=${2:-}
+printf '%s\n' "$tag" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' || {
+  printf 'invalid stable release tag: %s\n' "$tag" >&2
+  exit 64
+}
+
+case "$platform" in
+  macos-arm64)
+    printf 'macOS staged publishing remains on the verified versioned workflow until parity is proven\n' >&2
+    ;;
+  windows-x64)
+    printf 'Windows staged publishing remains on the verified evidence-bound workflow until parity is proven\n' >&2
+    ;;
+  *)
+    printf 'unsupported release platform: %s\n' "$platform" >&2
+    exit 64
+    ;;
+esac
+exit 78

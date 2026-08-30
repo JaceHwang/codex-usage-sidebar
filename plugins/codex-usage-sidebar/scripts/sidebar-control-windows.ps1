@@ -38,7 +38,7 @@ switch ($Command) {
         }
         if (-not (Test-Path -LiteralPath $runtime -PathType Leaf) -or
             -not (Test-Path -LiteralPath $selectors -PathType Leaf)) {
-            Write-Output 'runtime=unavailable reason=install-required version=0.3.3'
+            Write-Output 'runtime=unavailable reason=install-required version=0.3.5'
             exit 20
         }
         if (Get-ManagedProcess) {
@@ -84,10 +84,10 @@ switch ($Command) {
             exit 0
         }
         if (-not (Test-Path -LiteralPath $runtime -PathType Leaf)) {
-            Write-Output 'runtime=unavailable reason=payload-not-installed version=0.3.3'
+            Write-Output 'runtime=unavailable reason=payload-not-installed version=0.3.5'
             exit 0
         }
-        Write-Output 'runtime=stopped reason=not-running version=0.3.3'
+        Write-Output 'runtime=stopped reason=not-running version=0.3.5'
         exit 0
     }
     'diagnostic' {

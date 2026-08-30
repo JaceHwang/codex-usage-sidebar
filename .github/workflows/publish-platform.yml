@@ -1,0 +1,72 @@
+name: Publish release platform
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag, such as v1.2.3
+        required: true
+        type: string
+      platform:
+        description: Platform key declared by RELEASE_PLATFORMS
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: release / publish platform
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_PLATFORM: ${{ inputs.platform }}
+    steps:
+      - name: Validate release inputs
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)\.[1-9][0-9]*)?$ ]]
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
+      - name: Check out exact release tag
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.tag }}
+      - name: Build and verify platform assets
+        run: |
+          set -euo pipefail
+          release_tag=${RELEASE_TAG-}
+          release_platform=${RELEASE_PLATFORM-}
+          test -n "$release_tag"
+          test -n "$release_platform"
+          . .governance/policy.defaults.sh
+          test -f .governance/policy.sh && . .governance/policy.sh
+          case " $RELEASE_PLATFORMS " in
+            *" $release_platform "*) ;;
+            *) echo "unknown platform: $release_platform" >&2; exit 64 ;;
+          esac
+          test "$RELEASE_MODE" = staged
+          chmod +x governance "$BUILD_RELEASE_ADAPTER" "$VERIFY_RELEASE_ADAPTER"
+          "$BUILD_RELEASE_ADAPTER" "$release_platform" "$release_tag"
+          "$VERIFY_RELEASE_ADAPTER" "$release_platform" "$release_tag"
+          asset_dir=".dist/release/$release_platform"
+          compgen -G "$asset_dir/*" >/dev/null
+          existing="$RUNNER_TEMP/existing-assets"
+          gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' >"$existing"
+          for asset in "$asset_dir"/*; do
+            name=$(basename "$asset")
+            ! grep -Fqx "$name" "$existing" || { echo "asset already exists: $name" >&2; exit 1; }
+          done
+          gh release upload "$release_tag" "$asset_dir"/* --repo "$GITHUB_REPOSITORY"
+      - name: Update platform status and publish draft
+        run: |
+          set -euo pipefail
+          release_tag=${RELEASE_TAG-}
+          release_platform=${RELEASE_PLATFORM-}
+          test -n "$release_tag"
+          test -n "$release_platform"
+          body="$RUNNER_TEMP/release-body.md"
+          gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" --json body --jq .body >"$body"
+          ./governance release status "$body" "$release_platform" available
+          gh release edit "$release_tag" --repo "$GITHUB_REPOSITORY" --notes-file "$body" --draft=false

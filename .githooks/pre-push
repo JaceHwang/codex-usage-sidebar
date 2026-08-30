@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+root=$(git rev-parse --show-toplevel)
+"$root/governance" check branch
+exec "$root/governance" check all

@@ -1,0 +1,57 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    name: release / prepare
+    runs-on: ubuntu-24.04
+    outputs:
+      release-created: ${{ steps.release.outputs.release_created }}
+      tag-name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Create or update release pull request
+        id: release
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish-atomic:
+    name: release / publish atomic
+    needs: release-please
+    if: needs.release-please.outputs.release-created == 'true'
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ needs.release-please.outputs.tag-name }}
+    steps:
+      - name: Check out exact release tag
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.release-please.outputs.tag-name }}
+      - name: Build, verify, and publish atomic release
+        run: |
+          set -euo pipefail
+          . .governance/policy.defaults.sh
+          test -f .governance/policy.sh && . .governance/policy.sh
+          if [[ "$RELEASE_MODE" != atomic ]]; then
+            echo "staged release: publish platforms with publish-platform.yml"
+            exit 0
+          fi
+          chmod +x "$BUILD_RELEASE_ADAPTER" "$VERIFY_RELEASE_ADAPTER"
+          "$BUILD_RELEASE_ADAPTER" source "$RELEASE_TAG"
+          "$VERIFY_RELEASE_ADAPTER" source "$RELEASE_TAG"
+          compgen -G '.dist/release/*' >/dev/null
+          gh release upload "$RELEASE_TAG" .dist/release/* --repo "$GITHUB_REPOSITORY"
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+

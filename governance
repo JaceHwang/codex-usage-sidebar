@@ -1,0 +1,304 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+policy_defaults="$repo_root/.governance/policy.defaults.sh"
+policy_file="$repo_root/.governance/policy.sh"
+
+if [ ! -f "$policy_defaults" ]; then
+  printf 'governance: missing %s\n' "$policy_defaults" >&2
+  exit 2
+fi
+
+# Repository-owned executable policy is reviewed and versioned like other code.
+# shellcheck source=.governance/policy.defaults.sh
+. "$policy_defaults"
+if [ -f "$policy_file" ]; then
+  # shellcheck source=.governance/policy.sh
+  . "$policy_file"
+fi
+
+die() {
+  printf 'governance: %s\n' "$*" >&2
+  exit 1
+}
+
+run_adapter() {
+  adapter=$1
+  shift
+  path="$repo_root/$adapter"
+  [ -x "$path" ] || die "adapter is missing or not executable: $adapter"
+  (cd "$repo_root" && "$path" "$@")
+}
+
+check_branch() {
+  branch=${1:-}
+  [ -n "$branch" ] || die 'detached HEAD is not a valid development branch'
+  case "$branch" in
+    release-please--branches--*) return 0 ;;
+    codex/prerelease/alpha|codex/prerelease/beta|codex/prerelease/rc) return 0 ;;
+    "$DEFAULT_BRANCH") die "direct work on $DEFAULT_BRANCH is forbidden; create codex/<type>/<slug>" ;;
+  esac
+  printf '%s\n' "$branch" | grep -Eq "$BRANCH_PATTERN" ||
+    die "invalid branch '$branch'; expected codex/<type>/<kebab-case>"
+}
+
+normalize_message() {
+  message_file=$1
+  tmp_file="${message_file}.governance.$$"
+  awk '
+    {
+      sub(/\r$/, "")
+      sub(/[ \t]+$/, "")
+      lines[NR] = $0
+    }
+    END {
+      count = NR
+      while (count > 0 && lines[count] == "") count--
+      for (i = 1; i <= count; i++) {
+        line = lines[i]
+        if (i == 1 && match(line, /^[A-Za-z]+/)) {
+          line = tolower(substr(line, 1, RLENGTH)) substr(line, RLENGTH + 1)
+          sub(/\.$/, "", line)
+        }
+        print line
+      }
+    }
+  ' "$message_file" >"$tmp_file"
+  mv "$tmp_file" "$message_file"
+}
+
+validate_message_file() {
+  message_file=$1
+  [ -f "$message_file" ] || die "commit message file not found: $message_file"
+  normalize_message "$message_file"
+  header=$(sed -n '1p' "$message_file")
+  [ -n "$header" ] || die 'commit header is empty'
+  header_length=$(printf '%s' "$header" | LC_ALL=C wc -c | tr -d ' ')
+  [ "$header_length" -le "$MAX_HEADER_LENGTH" ] ||
+    die "commit header is $header_length characters; maximum is $MAX_HEADER_LENGTH"
+  printf '%s\n' "$header" | grep -Eq "$COMMIT_HEADER_PATTERN" ||
+    die "invalid commit header '$header'; example: fix(core): reject stale policy"
+  type=$(printf '%s\n' "$header" | sed -E 's/^([a-z]+).*/\1/')
+  case " $COMMIT_TYPES " in
+    *" $type "*) ;;
+    *) die "unsupported commit type '$type'; allowed: $COMMIT_TYPES" ;;
+  esac
+  second_line=$(sed -n '2p' "$message_file")
+  [ -z "$second_line" ] || die 'commit body must be separated from the header by a blank line'
+  if grep -Eq '^BREAKING[- ]CHANGE' "$message_file" &&
+     ! grep -Eq '^BREAKING CHANGE: .+' "$message_file"; then
+    die 'breaking footer must use: BREAKING CHANGE: <description>'
+  fi
+}
+
+current_branch() {
+  if [ -n "${GOVERNANCE_BRANCH:-}" ]; then
+    printf '%s\n' "$GOVERNANCE_BRANCH"
+  else
+    git -C "$repo_root" branch --show-current
+  fi
+}
+
+check_partial_staging() {
+  staged_list=$(mktemp "${TMPDIR:-/tmp}/governance-staged.XXXXXX")
+  unstaged_list=$(mktemp "${TMPDIR:-/tmp}/governance-unstaged.XXXXXX")
+  trap 'rm -f "$staged_list" "$unstaged_list"' EXIT HUP INT TERM
+  git -C "$repo_root" diff --cached --name-only --diff-filter=ACMR >"$staged_list"
+  git -C "$repo_root" diff --name-only --diff-filter=ACMR >"$unstaged_list"
+  while IFS= read -r path; do
+    [ -n "$path" ] || continue
+    if grep -Fqx -- "$path" "$unstaged_list"; then
+      die "partially staged file cannot be auto-formatted safely: $path"
+    fi
+  done <"$staged_list"
+  rm -f "$staged_list" "$unstaged_list"
+  trap - EXIT HUP INT TERM
+}
+
+check_staged() {
+  check_branch "$(current_branch)"
+  check_partial_staging
+  before_worktree=$(git -C "$repo_root" diff --binary | git hash-object --stdin)
+  run_adapter "$FORMAT_STAGED_ADAPTER"
+  after_worktree=$(git -C "$repo_root" diff --binary | git hash-object --stdin)
+  if [ "$before_worktree" != "$after_worktree" ]; then
+    die 'formatter changed staged files; review the result, stage it, and commit again'
+  fi
+  run_adapter "$FAST_CHECK_ADAPTER"
+}
+
+check_commit_range() {
+  base=$1
+  head=$2
+  git -C "$repo_root" rev-parse --verify "$base^{commit}" >/dev/null 2>&1 || die "invalid base commit: $base"
+  git -C "$repo_root" rev-parse --verify "$head^{commit}" >/dev/null 2>&1 || die "invalid head commit: $head"
+  commits=$(git -C "$repo_root" rev-list --reverse "$base..$head")
+  [ -n "$commits" ] || return 0
+  for commit in $commits; do
+    message_file=$(mktemp "${TMPDIR:-/tmp}/governance-message.XXXXXX")
+    git -C "$repo_root" show -s --format=%B "$commit" >"$message_file"
+    if ! validate_message_file "$message_file"; then
+      rm -f "$message_file"
+      die "commit $commit does not satisfy the message policy"
+    fi
+    rm -f "$message_file"
+  done
+}
+
+next_version() {
+  current=$1
+  base=$2
+  head=$3
+  path=${4:-}
+  printf '%s\n' "$current" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' ||
+    die "current version is not stable SemVer: $current"
+  major=${current%%.*}
+  rest=${current#*.}
+  minor=${rest%%.*}
+  patch=${rest#*.}
+  level=none
+  if [ -n "$path" ]; then
+    commits=$(git -C "$repo_root" rev-list --reverse "$base..$head" -- "$path")
+  else
+    commits=$(git -C "$repo_root" rev-list --reverse "$base..$head")
+  fi
+  for commit in $commits; do
+    subject=$(git -C "$repo_root" show -s --format=%s "$commit")
+    body=$(git -C "$repo_root" show -s --format=%B "$commit")
+    breaking=0
+    printf '%s\n' "$subject" | grep -Eq '^[a-z]+(\([a-z0-9]+(-[a-z0-9]+)*\))?!:' && breaking=1
+    printf '%s\n' "$body" | grep -Eq '^BREAKING CHANGE: .+' && breaking=1
+    type=$(printf '%s\n' "$subject" | sed -nE 's/^([a-z]+)(\([^)]*\))?!?:.*/\1/p')
+    if [ "$breaking" -eq 1 ]; then
+      if [ "$major" -eq 0 ]; then level=minor; else level=major; fi
+    elif [ "$type" = feat ] && [ "$level" != major ]; then
+      level=minor
+    elif { [ "$type" = fix ] || [ "$type" = perf ] || [ "$type" = revert ]; } &&
+         [ "$level" = none ]; then
+      level=patch
+    fi
+  done
+  case "$level" in
+    major) printf '%s.0.0\n' $((major + 1)) ;;
+    minor) printf '%s.%s.0\n' "$major" $((minor + 1)) ;;
+    patch) printf '%s.%s.%s\n' "$major" "$minor" $((patch + 1)) ;;
+    none) printf 'none\n' ;;
+  esac
+}
+
+update_release_status() {
+  body_file=$1
+  target_platform=$2
+  target_status=$3
+  [ -f "$body_file" ] || die "release body not found: $body_file"
+  case " $RELEASE_PLATFORMS " in
+    *" $target_platform "*) ;;
+    *) die "unknown release platform '$target_platform'; configured: $RELEASE_PLATFORMS" ;;
+  esac
+  case "$target_status" in
+    available|pending|not-targeted) ;;
+    *) die "invalid platform status '$target_status'" ;;
+  esac
+
+  tmp_file="${body_file}.governance.$$"
+  awk '/<!-- governance-platform-status:start -->/{exit} {print}' "$body_file" >"$tmp_file"
+  if [ -s "$tmp_file" ] && [ -n "$(tail -n 1 "$tmp_file")" ]; then
+    printf '\n' >>"$tmp_file"
+  fi
+  {
+    printf '<!-- governance-platform-status:start -->\n'
+    printf '## Platform availability\n\n'
+    printf '| Platform | Status |\n'
+    printf '| --- | --- |\n'
+    for platform in $RELEASE_PLATFORMS; do
+      status=$(awk -F'|' -v wanted="$platform" '
+        {
+          name=$2; value=$3
+          gsub(/^[ \t]+|[ \t]+$/, "", name)
+          gsub(/^[ \t]+|[ \t]+$/, "", value)
+          if (name == wanted) { print value; exit }
+        }
+      ' "$body_file")
+      [ -n "$status" ] || status=pending
+      [ "$platform" != "$target_platform" ] || status=$target_status
+      printf '| %s | %s |\n' "$platform" "$status"
+    done
+    printf '<!-- governance-platform-status:end -->\n'
+  } >>"$tmp_file"
+  awk '
+    found { print }
+    /<!-- governance-platform-status:end -->/ { found=1 }
+  ' "$body_file" >>"$tmp_file"
+  mv "$tmp_file" "$body_file"
+}
+
+doctor() {
+  status=0
+  template_version=$(cat "$repo_root/.governance/VERSION" 2>/dev/null || printf unknown)
+  printf 'template-version=%s\n' "$template_version"
+  configured_hooks=$(git -C "$repo_root" config --local --get core.hooksPath || true)
+  if [ "$configured_hooks" = .githooks ]; then
+    printf 'hooks=active\n'
+  else
+    printf 'hooks=inactive expected=.githooks actual=%s\n' "${configured_hooks:-unset}"
+    status=1
+  fi
+  branch=$(current_branch)
+  printf 'branch=%s\n' "${branch:-detached}"
+  if command -v gh >/dev/null 2>&1 && git -C "$repo_root" remote get-url origin >/dev/null 2>&1; then
+    private=$(cd "$repo_root" && gh repo view --json isPrivate --jq .isPrivate 2>/dev/null || printf unknown)
+    case "$private" in
+      false) printf 'remote-enforcement=available visibility=public\n' ;;
+      true) printf 'remote-enforcement=%s visibility=private\n' "$PRIVATE_REMOTE_ENFORCEMENT" ;;
+      *) printf 'remote-enforcement=unknown\n' ;;
+    esac
+  else
+    printf 'remote-enforcement=unknown\n'
+  fi
+  run_adapter "$FAST_CHECK_ADAPTER" || status=1
+  return "$status"
+}
+
+command=${1:-help}
+case "$command" in
+  bootstrap)
+    git -C "$repo_root" config --local core.hooksPath .githooks
+    printf 'hooks=active path=.githooks\n'
+    ;;
+  doctor) doctor ;;
+  check)
+    mode=${2:-}
+    case "$mode" in
+      branch) check_branch "${3:-$(current_branch)}" ;;
+      message) [ "$#" -eq 3 ] || die 'usage: governance check message <file>'; validate_message_file "$3" ;;
+      title)
+        [ "$#" -eq 3 ] || die 'usage: governance check title <title>'
+        title_file=$(mktemp "${TMPDIR:-/tmp}/governance-title.XXXXXX")
+        trap 'rm -f "$title_file"' EXIT HUP INT TERM
+        printf '%s\n' "$3" >"$title_file"
+        validate_message_file "$title_file"
+        rm -f "$title_file"
+        trap - EXIT HUP INT TERM
+        ;;
+      staged) check_staged ;;
+      commits) [ "$#" -eq 4 ] || die 'usage: governance check commits <base> <head>'; check_commit_range "$3" "$4" ;;
+      all) run_adapter "$FAST_CHECK_ADAPTER"; run_adapter "$FULL_CHECK_ADAPTER" ;;
+      *) die 'usage: governance check branch|message|title|staged|commits|all' ;;
+    esac
+    ;;
+  version)
+    [ "${2:-}" = next ] || die 'usage: governance version next <current> <base> <head> [path]'
+    [ "$#" -ge 5 ] && [ "$#" -le 6 ] || die 'usage: governance version next <current> <base> <head> [path]'
+    next_version "$3" "$4" "$5" "${6:-}"
+    ;;
+  release)
+    [ "${2:-}" = status ] || die 'usage: governance release status <body-file> <platform> <status>'
+    [ "$#" -eq 5 ] || die 'usage: governance release status <body-file> <platform> <status>'
+    update_release_status "$3" "$4" "$5"
+    ;;
+  *)
+    printf '%s\n' 'usage: governance bootstrap|doctor|check|version|release' >&2
+    exit 2
+    ;;
+esac
