@@ -45,7 +45,10 @@ jobs:
 
   project-verification:
     name: verify / project
-    runs-on: ubuntu-24.04
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -54,5 +57,5 @@ jobs:
       - name: Run repository verification adapter
         run: |
           set -euo pipefail
-          chmod +x governance .governance/adapters/*
+          chmod +x governance .governance/adapters/* .governance/project/*
           ./governance check all

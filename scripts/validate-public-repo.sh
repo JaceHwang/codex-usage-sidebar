@@ -313,7 +313,9 @@ for relative, (asset_name, gatekeeper_warning) in required_copy.items():
 PY
 
 /usr/bin/ruby -ryaml -e '
-  ARGV.each { |path| YAML.safe_load(File.read(path), [], [], false) }
+  ARGV.each do |path|
+    YAML.safe_load(File.read(path), permitted_classes: [], permitted_symbols: [], aliases: false)
+  end
 ' "$repo_root/.github/workflows/ci.yml" "$repo_root/.github/workflows/publish-installer.yml" \
   "$repo_root/.github/workflows/windows-beta.yml"
 
