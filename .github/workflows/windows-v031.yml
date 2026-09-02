@@ -4,13 +4,23 @@ on:
   push:
     branches:
       - main
-      - v0.3.1
+      - "codex/**"
+      - "release/**"
+    tags:
+      - "macos-v*"
+      - "windows-v*"
+      - "v*"
     paths:
       - ".github/workflows/windows-v031.yml"
       - "plugins/codex-usage-sidebar/contracts/**"
       - "plugins/codex-usage-sidebar/windows/**"
       - "plugins/codex-usage-sidebar/assets/quota-icon-*.png"
       - "docs/WINDOWS-V031-PARITY.md"
+      - "releases/**"
+      - "VERSIONING.md"
+      - "docs/RELEASES.md"
+      - "scripts/validate-platform-release.py"
+      - "tests/test-release-governance.py"
   pull_request:
     paths:
       - ".github/workflows/windows-v031.yml"
@@ -18,6 +28,11 @@ on:
       - "plugins/codex-usage-sidebar/windows/**"
       - "plugins/codex-usage-sidebar/assets/quota-icon-*.png"
       - "docs/WINDOWS-V031-PARITY.md"
+      - "releases/**"
+      - "VERSIONING.md"
+      - "docs/RELEASES.md"
+      - "scripts/validate-platform-release.py"
+      - "tests/test-release-governance.py"
   workflow_dispatch:
 
 permissions:
@@ -36,6 +51,10 @@ jobs:
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: 8.0.x
+
+      - name: Validate Windows release governance
+        shell: pwsh
+        run: python scripts/validate-platform-release.py --catalog releases/platform-release-catalog.json --target windows
 
       - name: Restore Windows solution
         shell: pwsh

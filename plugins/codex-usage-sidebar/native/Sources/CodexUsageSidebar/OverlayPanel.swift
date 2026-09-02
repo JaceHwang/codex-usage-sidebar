@@ -22,16 +22,38 @@ final class OverlayPanel: NSObject {
     }
 
     private let panel: NSPanel
+    private let interactionView = IndicatorInteractionView(frame: .zero)
     private let textField: NSTextField
     private let indicatorIconView = QuotaThemeIconView(frame: .zero)
     private let pillView = NSView()
     private let detailPanel = QuotaDetailPanel()
+    private let positionModePopover = IndicatorPositionModePopover()
+    private let detailSettingsMenu = QuotaDetailSettingsMenuPopover()
     private var hoverTimer: Timer?
     private var latestDetail: QuotaDetailContent?
     private var latestTheme: CodexInterfaceTheme = .light
+    private var latestLanguage: CodexDisplayLanguage = .english
     private var isIndicatorVisible = false
     private var isHoveringIndicator = false
     private var detailInteraction = QuotaDetailInteractionState()
+    private var dragOrigin: CGPoint?
+    private var pinnedDetailOutsideGlobalMonitor: Any?
+    private var pinnedDetailOutsideLocalMonitor: Any?
+    var placementMode: IndicatorPlacementMode = .automatic {
+        didSet {
+            interactionView.mode = placementMode
+            interactionView.window?.invalidateCursorRects(for: interactionView)
+        }
+    }
+    var onPlacementModeSelected: ((IndicatorPlacementMode, CGRect) -> Void)?
+    var onIndicatorDragged: ((CGRect) -> CGRect)?
+    var onIndicatorDragEnded: ((CGRect) -> Void)?
+    var onReloadRequested: (() -> Void)?
+    var onQuitRequested: (() -> Void)?
+
+    var isDraggingIndicator: Bool {
+        interactionView.isDraggingIndicator
+    }
     private lazy var externalLinkActivator = QuotaExternalLinkActivator(
         dismiss: { [weak self] in
             self?.dismissDetailForExternalNavigation()
@@ -59,7 +81,7 @@ final class OverlayPanel: NSObject {
         panel.hidesOnDeactivate = false
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.contentView = NSView(frame: .zero)
+        panel.contentView = interactionView
 
         pillView.wantsLayer = true
         pillView.layer?.cornerRadius = 10
@@ -74,21 +96,30 @@ final class OverlayPanel: NSObject {
         textField.usesSingleLineMode = false
         textField.alignment = .left
 
-        guard let contentView = panel.contentView else {
-            return
-        }
+        let contentView = interactionView
         detailPanel.onOpenURL = { [weak self] destination in
             self?.externalLinkActivator.activate(destination)
+        }
+        detailPanel.onSettingsButtonTapped = { [weak self] frame in
+            self?.showDetailSettingsMenu(relativeTo: frame)
         }
         pillView.addSubview(indicatorIconView)
         contentView.addSubview(pillView)
         contentView.addSubview(textField)
-        contentView.addGestureRecognizer(
-            NSClickGestureRecognizer(
-                target: self,
-                action: #selector(toggleDetailPin(_:))
-            )
-        )
+        interactionView.onPrimaryClick = { [weak self] in
+            self?.toggleDetailPin()
+        }
+        interactionView.onDragBegan = { [weak self] in
+            self?.dragOrigin = self?.panel.frame.origin
+        }
+        interactionView.onDrag = { [weak self] delta in
+            self?.dragIndicator(by: delta)
+        }
+        interactionView.onDragEnded = { [weak self] in
+            guard let self else { return }
+            self.dragOrigin = nil
+            self.onIndicatorDragEnded?(self.panel.frame)
+        }
     }
 
     func show(
@@ -96,6 +127,7 @@ final class OverlayPanel: NSObject {
         summary: ResetIndicatorSummary,
         indicatorFrame: CGRect,
         theme: CodexInterfaceTheme,
+        language: CodexDisplayLanguage,
         detail: QuotaDetailContent,
         dimmed: Bool
     ) {
@@ -113,9 +145,11 @@ final class OverlayPanel: NSObject {
         }
         latestDetail = detail
         latestTheme = theme
+        latestLanguage = language
         isIndicatorVisible = true
         panel.alphaValue = dimmed ? 0.52 : 1
         panel.setFrame(indicatorFrame, display: true)
+        interactionView.frame = CGRect(origin: .zero, size: indicatorFrame.size)
         let indicatorBounds = CGRect(origin: .zero, size: indicatorFrame.size)
         let controlSurface = OverlayLayout.controlSurfaceFrame(in: indicatorBounds)
         pillView.isHidden = false
@@ -139,6 +173,7 @@ final class OverlayPanel: NSObject {
         )
         updateControlAppearance()
         panel.orderFrontRegardless()
+        positionModePopover.reposition(relativeTo: panel.frame)
         updateDetailVisibility()
         startHoverTimerIfNeeded()
     }
@@ -159,6 +194,9 @@ final class OverlayPanel: NSObject {
         isIndicatorVisible = false
         isHoveringIndicator = false
         detailInteraction.reset()
+        removePinnedDetailOutsideMonitors()
+        positionModePopover.hide()
+        detailSettingsMenu.hide()
         panel.orderOut(nil)
         detailPanel.hide()
     }
@@ -170,10 +208,13 @@ final class OverlayPanel: NSObject {
         if panel.frame != frame {
             panel.setFrame(frame, display: true)
         }
+        interactionView.frame = CGRect(origin: .zero, size: frame.size)
         // Codex can rebuild/reorder its title-bar views while a side pane is
         // being resized. Reassert the non-activating panel's z-order so the
         // fallback indicator cannot be covered by the host window.
         panel.orderFrontRegardless()
+        positionModePopover.reposition(relativeTo: panel.frame)
+        updateDetailVisibility()
     }
 
     private func attributedSummary(
@@ -350,20 +391,19 @@ extension OverlayPanel {
                 detailFrame: $0
             ).contains(point)
         } ?? false
+        let overSettingsMenu = detailSettingsMenu.contains(point)
         if isHoveringIndicator != overIndicator {
             isHoveringIndicator = overIndicator
             updateControlAppearance()
         }
         detailInteraction.updatePointerInside(
-            overIndicator || overDetail || overBridge
+            overIndicator || overDetail || overBridge || overSettingsMenu
         )
         updateDetailVisibility()
     }
 
-    @objc
-    private func toggleDetailPin(_ gesture: NSClickGestureRecognizer) {
+    private func toggleDetailPin() {
         guard
-            gesture.state == .ended,
             isIndicatorVisible,
             latestDetail != nil
         else {
@@ -372,14 +412,91 @@ extension OverlayPanel {
         detailInteraction.togglePinned(
             pointerInside: panel.frame.contains(NSEvent.mouseLocation)
         )
+        if detailInteraction.isPinned {
+            installPinnedDetailOutsideMonitors()
+        } else {
+            removePinnedDetailOutsideMonitors()
+        }
         updateControlAppearance()
+        updateDetailVisibility()
+    }
+
+    private func showPositionModePopover() {
+        guard isIndicatorVisible else { return }
+        detailInteraction.reset()
+        removePinnedDetailOutsideMonitors()
+        detailPanel.hide()
+        positionModePopover.show(
+            relativeTo: panel.frame,
+            mode: placementMode,
+            localization: QuotaLocalization(language: latestLanguage),
+            theme: latestTheme
+        ) { [weak self] mode in
+            guard let self else { return }
+            self.placementMode = mode
+            self.onPlacementModeSelected?(mode, self.panel.frame)
+        }
+    }
+
+    private func showDetailSettingsMenu(relativeTo settingsButtonFrame: CGRect) {
+        guard isIndicatorVisible else { return }
+        detailSettingsMenu.show(
+            relativeTo: settingsButtonFrame,
+            mode: placementMode,
+            localization: QuotaLocalization(language: latestLanguage),
+            theme: latestTheme,
+            onPlacementModeSelected: { [weak self] mode in
+                guard let self else { return }
+                self.placementMode = mode
+                self.onPlacementModeSelected?(mode, self.panel.frame)
+            },
+            onCheckForUpdates: { [weak self] in
+                guard let self,
+                      let releasesURL = URL(
+                        string: "https://github.com/JaceHwang/codex-usage-sidebar/releases"
+                      )
+                else {
+                    return
+                }
+                self.externalLinkActivator.activate(releasesURL)
+            },
+            onReload: { [weak self] in
+                self?.detailSettingsMenu.hide()
+                self?.onReloadRequested?()
+            },
+            onQuit: { [weak self] in
+                self?.detailSettingsMenu.hide()
+                self?.onQuitRequested?()
+            }
+        )
+    }
+
+    private func dragIndicator(by delta: CGPoint) {
+        guard
+            placementMode == .free,
+            let dragOrigin
+        else {
+            return
+        }
+        let frame = CGRect(
+            x: dragOrigin.x + delta.x,
+            y: dragOrigin.y + delta.y,
+            width: panel.frame.width,
+            height: panel.frame.height
+        )
+        let resolvedFrame = onIndicatorDragged?(frame) ?? frame
+        panel.setFrameOrigin(resolvedFrame.origin)
+        positionModePopover.reposition(relativeTo: panel.frame)
+        detailSettingsMenu.hide()
         updateDetailVisibility()
     }
 
     private func updateDetailVisibility() {
         if
             isIndicatorVisible,
-            detailInteraction.shouldShowDetail,
+            detailInteraction.shouldShowDetail(
+                whilePositionModeMenuIsPresented: positionModePopover.isVisible
+            ),
             let latestDetail
         {
             detailPanel.show(
@@ -388,13 +505,66 @@ extension OverlayPanel {
                 theme: latestTheme
             )
         } else {
+            detailSettingsMenu.hide()
             detailPanel.hide()
         }
     }
 
     private func dismissDetailForExternalNavigation() {
         detailInteraction.reset()
+        removePinnedDetailOutsideMonitors()
         isHoveringIndicator = false
+        detailSettingsMenu.hide()
+        detailPanel.hide()
+        updateControlAppearance()
+    }
+
+    private func installPinnedDetailOutsideMonitors() {
+        removePinnedDetailOutsideMonitors()
+        pinnedDetailOutsideGlobalMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown]
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.dismissPinnedDetailIfPointerIsOutside()
+            }
+        }
+        pinnedDetailOutsideLocalMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown]
+        ) { [weak self] event in
+            Task { @MainActor [weak self] in
+                self?.dismissPinnedDetailIfPointerIsOutside()
+            }
+            return event
+        }
+    }
+
+    private func removePinnedDetailOutsideMonitors() {
+        if let pinnedDetailOutsideGlobalMonitor {
+            NSEvent.removeMonitor(pinnedDetailOutsideGlobalMonitor)
+        }
+        if let pinnedDetailOutsideLocalMonitor {
+            NSEvent.removeMonitor(pinnedDetailOutsideLocalMonitor)
+        }
+        pinnedDetailOutsideGlobalMonitor = nil
+        pinnedDetailOutsideLocalMonitor = nil
+    }
+
+    private func dismissPinnedDetailIfPointerIsOutside() {
+        guard detailInteraction.isPinned else {
+            removePinnedDetailOutsideMonitors()
+            return
+        }
+        let pointer = NSEvent.mouseLocation
+        let isInsideIndicator = panel.frame.contains(pointer)
+        let isInsideDetail = detailPanel.frame?.contains(pointer) == true
+        let isInsideSettingsMenu = detailSettingsMenu.contains(pointer)
+        guard !isInsideIndicator, !isInsideDetail, !isInsideSettingsMenu else {
+            return
+        }
+        detailInteraction.dismissForOutsideInteraction()
+        removePinnedDetailOutsideMonitors()
+        isHoveringIndicator = false
+        detailSettingsMenu.hide()
         detailPanel.hide()
         updateControlAppearance()
     }

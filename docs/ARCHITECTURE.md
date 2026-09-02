@@ -103,6 +103,13 @@ resolved edge clears that retained value immediately. Diagnostics expose `openLo
 `labeledControl`, `rightPaneBoundary`, or `fallback` as the selected source. The runtime has no
 sidebar-state model, global key monitor, global mouse monitor, or code injected into Codex.
 
+The indicator also has an explicit local placement mode. Its default **Automatic** mode resolves
+the frame through this same titlebar path. A right-click opens a native segmented selector for
+**Free** and **Locked** modes. Both manual modes store a normalized origin per display inside the
+display's `visibleFrame`, then clamp the resolved frame on every render; Free accepts only a
+deliberate left-button drag and Locked rejects drag input. Manual mode never changes the host
+window, and the detail card remains attached to the resulting indicator frame.
+
 ## Rendering and freshness
 
 The compact control and hover panel are native AppKit surfaces. They follow the Codex theme and do
@@ -117,6 +124,11 @@ legacy single-window card and indicator remain unchanged.
 Hover shows the detail card transiently. Clicking the quota control pins the same card; clicking
 again dismisses it. A one-second language check re-renders visible content from the current
 snapshot without changing interaction state or triggering an app-server refresh.
+
+The detail table has a stable default viewport of eight 32-point rows (256 points), so an
+initially sparse quota snapshot cannot collapse the card. The user can resize the viewport down to
+two rows or up to the screen-safe cap; a requested height overrides the default while the shared
+attached-panel layout continues to constrain the card to the visible display.
 
 App-server notifications update the snapshot immediately. Data dims after two minutes and hides
 after five minutes; the client restarts stalled or exited streams and schedules bounded refreshes.

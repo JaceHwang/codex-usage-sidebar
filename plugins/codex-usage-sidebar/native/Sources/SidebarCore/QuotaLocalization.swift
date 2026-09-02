@@ -98,6 +98,89 @@ public struct QuotaLocalization: Sendable {
         }
     }
 
+    public var positionModeTitle: String {
+        switch language {
+        case .simplifiedChinese, .traditionalChinese: "位置模式"
+        case .english: "Position mode"
+        }
+    }
+
+    public var settings: String {
+        switch language {
+        case .simplifiedChinese: "设置"
+        case .traditionalChinese: "設定"
+        case .english: "Settings"
+        }
+    }
+
+    public var checkForUpdates: String {
+        switch language {
+        case .simplifiedChinese: "检查更新"
+        case .traditionalChinese: "檢查更新"
+        case .english: "Check for Updates"
+        }
+    }
+
+    public var reloadCompanion: String {
+        switch language {
+        case .simplifiedChinese: "重新加载"
+        case .traditionalChinese: "重新載入"
+        case .english: "Reload"
+        }
+    }
+
+    public var quitCompanion: String {
+        switch language {
+        case .simplifiedChinese: "退出应用"
+        case .traditionalChinese: "結束應用程式"
+        case .english: "Quit App"
+        }
+    }
+
+    public func indicatorPlacementMode(_ mode: IndicatorPlacementMode) -> String {
+        switch (language, mode) {
+        case (.simplifiedChinese, .automatic): "自动"
+        case (.simplifiedChinese, .free): "自由"
+        case (.simplifiedChinese, .locked): "锁定"
+        case (.traditionalChinese, .automatic): "自動"
+        case (.traditionalChinese, .free): "自由"
+        case (.traditionalChinese, .locked): "鎖定"
+        case (.english, .automatic): "Auto"
+        case (.english, .free): "Free"
+        case (.english, .locked): "Locked"
+        }
+    }
+
+    public func settingsPlacementMode(_ mode: IndicatorPlacementMode) -> String {
+        switch (language, mode) {
+        case (.simplifiedChinese, .automatic): "自动贴合"
+        case (.simplifiedChinese, .free): "自由移动"
+        case (.simplifiedChinese, .locked): "锁定位置"
+        case (.traditionalChinese, .automatic): "自動貼合"
+        case (.traditionalChinese, .free): "自由移動"
+        case (.traditionalChinese, .locked): "鎖定位置"
+        case (.english, .automatic): "Auto Attach"
+        case (.english, .free): "Free Move"
+        case (.english, .locked): "Lock Position"
+        }
+    }
+
+    public func indicatorPlacementDescription(
+        _ mode: IndicatorPlacementMode
+    ) -> String {
+        switch (language, mode) {
+        case (.simplifiedChinese, .automatic): "自动跟随标题栏"
+        case (.simplifiedChinese, .free): "长按左键拖动"
+        case (.simplifiedChinese, .locked): "固定在当前屏幕位置"
+        case (.traditionalChinese, .automatic): "自動跟隨標題列"
+        case (.traditionalChinese, .free): "長按左鍵拖動"
+        case (.traditionalChinese, .locked): "固定在目前螢幕位置"
+        case (.english, .automatic): "Follows the title bar automatically"
+        case (.english, .free): "Hold and drag with the left mouse button"
+        case (.english, .locked): "Fixed at the current screen position"
+        }
+    }
+
     public var bankAvailable: String {
         switch language {
         case .simplifiedChinese: "Bank 可用重置"

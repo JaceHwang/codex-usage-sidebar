@@ -90,4 +90,46 @@ final class QuotaLocalizationTests: XCTestCase {
         XCTAssertEqual(english.freshness(minutes: 1), "1 minute ago")
         XCTAssertEqual(english.freshness(hours: 2), "2 hours ago")
     }
+
+    func testIndicatorPositionModeCopyInEveryLanguage() {
+        let simplified = QuotaLocalization(language: .simplifiedChinese)
+        let traditional = QuotaLocalization(language: .traditionalChinese)
+        let english = QuotaLocalization(language: .english)
+
+        XCTAssertEqual(simplified.positionModeTitle, "位置模式")
+        XCTAssertEqual(simplified.indicatorPlacementMode(.automatic), "自动")
+        XCTAssertEqual(simplified.indicatorPlacementMode(.free), "自由")
+        XCTAssertEqual(simplified.indicatorPlacementMode(.locked), "锁定")
+        XCTAssertEqual(simplified.indicatorPlacementDescription(.free), "长按左键拖动")
+        XCTAssertEqual(traditional.positionModeTitle, "位置模式")
+        XCTAssertEqual(traditional.indicatorPlacementMode(.automatic), "自動")
+        XCTAssertEqual(traditional.indicatorPlacementMode(.free), "自由")
+        XCTAssertEqual(traditional.indicatorPlacementMode(.locked), "鎖定")
+        XCTAssertEqual(english.positionModeTitle, "Position mode")
+        XCTAssertEqual(english.indicatorPlacementMode(.automatic), "Auto")
+        XCTAssertEqual(english.indicatorPlacementMode(.free), "Free")
+        XCTAssertEqual(english.indicatorPlacementMode(.locked), "Locked")
+        XCTAssertEqual(english.indicatorPlacementDescription(.locked), "Fixed at the current screen position")
+    }
+
+    func testDetailSettingsMenuCopyInEveryLanguage() {
+        let simplified = QuotaLocalization(language: .simplifiedChinese)
+        let traditional = QuotaLocalization(language: .traditionalChinese)
+        let english = QuotaLocalization(language: .english)
+
+        XCTAssertEqual(simplified.settings, "设置")
+        XCTAssertEqual(simplified.checkForUpdates, "检查更新")
+        XCTAssertEqual(simplified.reloadCompanion, "重新加载")
+        XCTAssertEqual(simplified.quitCompanion, "退出应用")
+        XCTAssertEqual(simplified.settingsPlacementMode(.automatic), "自动贴合")
+        XCTAssertEqual(simplified.settingsPlacementMode(.free), "自由移动")
+        XCTAssertEqual(simplified.settingsPlacementMode(.locked), "锁定位置")
+        XCTAssertEqual(traditional.settings, "設定")
+        XCTAssertEqual(traditional.settingsPlacementMode(.automatic), "自動貼合")
+        XCTAssertEqual(english.settings, "Settings")
+        XCTAssertEqual(english.checkForUpdates, "Check for Updates")
+        XCTAssertEqual(english.reloadCompanion, "Reload")
+        XCTAssertEqual(english.quitCompanion, "Quit App")
+        XCTAssertEqual(english.settingsPlacementMode(.locked), "Lock Position")
+    }
 }

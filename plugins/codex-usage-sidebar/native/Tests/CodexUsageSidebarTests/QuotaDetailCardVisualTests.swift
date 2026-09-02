@@ -142,8 +142,8 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                     descendants(of: card)
                         .compactMap { $0 as? NSButton }
                         .count,
-                    1,
-                    "The reference card includes one help control in its footer."
+                    2,
+                    "The footer includes its GitHub link and the settings control."
                 )
                 XCTAssertTrue(
                     descendants(of: card)
@@ -489,6 +489,112 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         card.layoutSubtreeIfNeeded()
 
         XCTAssertEqual(scrollView.frame.height, initialScrollHeight + 120)
+    }
+
+    func testResizeHintAppearsOnHoverAndHidesWhenThePointerLeaves() throws {
+        let content = QuotaDetailFormatter().content(
+            snapshot: longBankSnapshot,
+            tokenUsage: tokenUsageSnapshot,
+            footerName: "jace@example.com",
+            now: now,
+            language: .simplifiedChinese,
+            timeZone: timeZone
+        )
+        let card = QuotaDetailCardView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: QuotaDetailLayout.width,
+                height: QuotaDetailLayout.maximumHeight
+            ),
+            content: content,
+            rowHeights: Array(
+                repeating: QuotaDetailLayout.rowHeight,
+                count: content.rows.count
+            ),
+            version: "0.4.0",
+            onOpenURL: { _ in }
+        )
+        let handle = try XCTUnwrap(
+            descendants(of: card).first {
+                $0.accessibilityRole() == .slider
+            }
+        )
+        let hint = try XCTUnwrap(
+            descendants(of: card).first {
+                $0.isHidden && $0.frame.height == 22 && $0.frame.width >= 74
+            }
+        )
+        let event = try XCTUnwrap(
+            NSEvent.mouseEvent(
+                with: .mouseMoved,
+                location: .zero,
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 0,
+                clickCount: 0,
+                pressure: 0
+            )
+        )
+
+        handle.mouseEntered(with: event)
+        XCTAssertFalse(hint.isHidden)
+
+        handle.mouseExited(with: event)
+        XCTAssertTrue(hint.isHidden)
+    }
+
+    func testColdPanelInstallsCardAtFinalSizeBeforeSubviewAutoresizing() throws {
+        let content = QuotaDetailFormatter().content(
+            snapshot: longBankSnapshot,
+            tokenUsage: tokenUsageSnapshot,
+            footerName: "jace@example.com",
+            now: now,
+            language: .simplifiedChinese,
+            timeZone: timeZone
+        )
+        let layout = QuotaDetailPanelResolvedLayout.resolve(
+            content: content,
+            indicatorFrame: CGRect(x: 700, y: 760, width: 164, height: 46),
+            visibleFrame: CGRect(x: 0, y: 0, width: 1_200, height: 900)
+        )
+        let panel = NSPanel(
+            contentRect: .zero,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        let card = QuotaDetailCardView(
+            frame: CGRect(origin: .zero, size: layout.frame.size),
+            content: content,
+            rowHeights: layout.rowHeights,
+            version: "0.4.0",
+            onOpenURL: { _ in }
+        )
+
+        QuotaDetailPanel.install(card, into: panel, frame: layout.frame)
+
+        let scrollView = try XCTUnwrap(
+            descendants(of: card)
+                .compactMap { $0 as? NSScrollView }
+                .first { $0.hasVerticalScroller }
+        )
+        let rowDocument = try XCTUnwrap(scrollView.documentView)
+        let informationFrames = QuotaDetailLayout.informationFrames(
+            in: card.bounds,
+            tokenUsageVisible: true,
+            secondaryQuotaVisible: true
+        )
+
+        XCTAssertEqual(card.frame.size, layout.frame.size)
+        XCTAssertEqual(scrollView.frame, informationFrames.rowArea)
+        XCTAssertEqual(
+            rowDocument.frame.width,
+            scrollView.contentSize.width,
+            accuracy: 0.5
+        )
     }
 
     func testChromeOutlinesUseTheSharedSeparatorStyle() {

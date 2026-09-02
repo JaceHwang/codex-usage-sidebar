@@ -40,6 +40,14 @@ the gradient bars, reset countdowns, seven-day Token usage, and smooth fixed-wid
 Windows remains on its separately validated v0.3.3 release. See the [v0.3.5 release notes](docs/releases/v0.3.5.md)
 for the macOS asset and validation scope.
 
+macOS and Windows may receive independent maintenance patches. New platform-only releases use
+`macos-vX.Y.Z` or `windows-vX.Y.Z`; only parity-verified shared features use one `vX.Y.Z` release
+with both assets. See the [versioning and branch policy](VERSIONING.md),
+[release operations](docs/RELEASES.md), and source-controlled
+[platform release catalog](releases/platform-release-catalog.json).
+Project contributors must follow the [project development governance guide](docs/PROJECT_GOVERNANCE.md)
+for every development, GitHub delivery, and release.
+
 ## Current appearance
 
 <p align="center">
@@ -85,9 +93,10 @@ and renders one non-activating control in the nearest safe titlebar slot.
 | --- | --- |
 | Left, right, or bottom pane changes | The quota control prefers the native **Open Location** anchor, slides left around occupied controls, and moves to the reserved right-side position only when the local titlebar cannot fit it. |
 | Window moves or resizes | The collision-aware layout is sampled every 0.1 seconds, so the control tracks the available titlebar space without overlapping native controls or titles. |
+| Right-click position mode | **Auto** follows the collision-aware titlebar anchor. **Free** keeps a per-display screen position and supports a deliberate left-button drag. **Locked** keeps that position but disables dragging. |
 | Hover | A native detail card shows the synchronized plugin version, account identity, theme icon, independent 5-hour/7-day quotas, daily and total seven-day Token usage, Credits, and every Bank entry with status and expiry. |
 | Click | The detail card stays pinned until the quota control is clicked again; hover behavior remains available. |
-| Resize detail card | Drag the small centered grip above the footer. The pointer becomes an up/down resize cursor; resize remains smooth, fixed-width, top-anchored, and expands only the scrolling detail region. |
+| Resize detail card | The default detail viewport shows eight 32 pt rows even when fewer entries are available, so the card never collapses after opening. Drag the small centered grip above the footer to resize: the pointer becomes an up/down resize cursor; resize remains smooth, fixed-width, top-anchored, and expands only the scrolling detail region. User-selected height takes priority, while placement stays within the usable screen. |
 | Footer GitHub button | Opens the project repository at [github.com/JaceHwang/codex-usage-sidebar](https://github.com/JaceHwang/codex-usage-sidebar). The resting button blends into the footer; hover adds only a soft rounded shadow. |
 | Quota changes | Percentage color follows the exact 100% green, 49% orange, and 10% red palette while the filled bar reveals the matching spectrum. |
 | Codex language changes | The control and detail card follow Codex's effective Simplified Chinese, Traditional Chinese, or English locale within one second. |

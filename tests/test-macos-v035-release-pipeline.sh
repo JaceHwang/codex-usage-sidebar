@@ -2,17 +2,11 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-manifest="$repo_root/plugins/codex-usage-sidebar/.codex-plugin/plugin.json"
+manifest="plugins/codex-usage-sidebar/.codex-plugin/plugin.json"
 
-base_version="$(/usr/bin/python3 - "$manifest" <<'PY'
-import json
-import sys
-
-print(json.load(open(sys.argv[1], encoding="utf-8"))["version"].split("+", 1)[0])
-PY
-)"
+base_version="$(/usr/bin/git -C "$repo_root" show "v0.3.5:$manifest" | /usr/bin/python3 -c 'import json,sys; print(json.load(sys.stdin)["version"].split("+", 1)[0])')"
 [[ "$base_version" == "0.3.5" ]] || {
-  printf 'macOS v0.3.5 release pipeline requires plugin version 0.3.5, found %s\n' "$base_version" >&2
+  printf 'macOS v0.3.5 tag must retain plugin version 0.3.5, found %s\n' "$base_version" >&2
   exit 1
 }
 

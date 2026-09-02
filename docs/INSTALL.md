@@ -120,9 +120,12 @@ LaunchAgent in the same locations used by the marketplace hook. It does not modi
 
 ### Resize the detail card
 
-The small centered grip immediately above the footer is the macOS height control. Hovering it
-shows an up/down resize cursor; dragging changes only the card height, preserves its fixed width and
-titlebar anchor, and expands the scrollable row viewport. The card performs a full layout
+The small centered grip immediately above the footer is the macOS height control. The default
+scrolling-detail viewport is eight 32-point rows (256 points), including when fewer rows are
+available, which keeps the first-open card stable. Hovering the grip shows an up/down resize cursor;
+dragging changes only the card height, preserves its fixed width and titlebar anchor, and expands the
+scrollable row viewport. A user-selected height takes precedence over the default; the minimum stays
+at two rows and the panel remains constrained to the usable screen. The card performs a full layout
 reconciliation only when the drag ends, avoiding stutter while the pointer moves.
 
 ## Advanced: install from the marketplace

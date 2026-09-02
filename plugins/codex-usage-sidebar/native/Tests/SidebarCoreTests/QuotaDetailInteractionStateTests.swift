@@ -25,6 +25,17 @@ final class QuotaDetailInteractionStateTests: XCTestCase {
         XCTAssertTrue(state.shouldShowDetail)
     }
 
+    func testOutsideInteractionDismissesPinnedDetailImmediately() {
+        var state = QuotaDetailInteractionState()
+        state.updatePointerInside(true)
+        state.togglePinned(pointerInside: true)
+
+        state.dismissForOutsideInteraction()
+
+        XCTAssertFalse(state.isPinned)
+        XCTAssertFalse(state.shouldShowDetail)
+    }
+
     func testSecondClickDismissesUntilPointerExitsAndReenters() {
         var state = QuotaDetailInteractionState()
         state.updatePointerInside(true)
@@ -54,5 +65,14 @@ final class QuotaDetailInteractionStateTests: XCTestCase {
 
         XCTAssertFalse(state.isPinned)
         XCTAssertFalse(state.shouldShowDetail)
+    }
+
+    func testPositionModeMenuSuppressesHoverDetailWhilePointerRemainsOverIndicator() {
+        var state = QuotaDetailInteractionState()
+        state.updatePointerInside(true)
+
+        XCTAssertTrue(state.shouldShowDetail)
+        XCTAssertFalse(state.shouldShowDetail(whilePositionModeMenuIsPresented: true))
+        XCTAssertTrue(state.shouldShowDetail(whilePositionModeMenuIsPresented: false))
     }
 }
