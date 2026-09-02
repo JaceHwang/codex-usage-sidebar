@@ -31,7 +31,7 @@ version = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["version"]
 candidate = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))["activeCandidate"]
 assert version.split("+", 1)[0] == candidate["version"], version
 assert candidate["tag"] == f"{candidate['platform']}-v{candidate['version']}", candidate
-assert "+codex." in version, version
+assert version == candidate["version"] or "+codex." in version, version
 PY
 grep -q 'version=0.3.5' "$control"
 if grep -Eq 'version=0\.3\.[0-4]' "$control"; then

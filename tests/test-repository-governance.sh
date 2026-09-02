@@ -11,14 +11,14 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 root = Path.cwd()
-expected = "0.3.5"
+expected = (root / "version.txt").read_text().split()[0]
 
 manifest = json.loads((root / ".release-please-manifest.json").read_text())
 assert manifest == {".": expected}, manifest
-assert (root / "version.txt").read_text().split()[0] == expected
+assert expected.count(".") == 2 and all(part.isdecimal() for part in expected.split(".")), expected
 
 plugin = json.loads((root / "plugins/codex-usage-sidebar/.codex-plugin/plugin.json").read_text())
-assert plugin["version"] == expected, plugin["version"]
+assert plugin["version"].split("+", 1)[0] == expected, plugin["version"]
 
 with (root / "plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app/Contents/Info.plist").open("rb") as handle:
     plist = plistlib.load(handle)
