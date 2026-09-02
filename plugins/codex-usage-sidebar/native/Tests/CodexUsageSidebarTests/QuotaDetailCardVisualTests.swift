@@ -142,8 +142,8 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                     descendants(of: card)
                         .compactMap { $0 as? NSButton }
                         .count,
-                    1,
-                    "The reference card includes one help control in its footer."
+                    2,
+                    "The footer includes its GitHub link and the settings control."
                 )
                 XCTAssertTrue(
                     descendants(of: card)
@@ -512,7 +512,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                 repeating: QuotaDetailLayout.rowHeight,
                 count: content.rows.count
             ),
-            version: "0.3.6",
+            version: "0.4.0",
             onOpenURL: { _ in }
         )
         let handle = try XCTUnwrap(
@@ -570,7 +570,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             frame: CGRect(origin: .zero, size: layout.frame.size),
             content: content,
             rowHeights: layout.rowHeights,
-            version: "0.3.6",
+            version: "0.4.0",
             onOpenURL: { _ in }
         )
 

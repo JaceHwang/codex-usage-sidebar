@@ -14,6 +14,7 @@ final class QuotaDetailPanel {
     private var lastTheme: CodexInterfaceTheme?
     private var requestedHeight: CGFloat?
     var onOpenURL: ((URL) -> Void)?
+    var onSettingsButtonTapped: ((CGRect) -> Void)?
 
     init() {
         panel = PassivePanel(
@@ -94,6 +95,17 @@ final class QuotaDetailPanel {
                 rowHeights: rowHeights,
                 onOpenURL: { [weak self] destination in
                     self?.onOpenURL?(destination)
+                },
+                onSettingsButtonTapped: { [weak self] button in
+                    guard let self,
+                          let window = button.window
+                    else {
+                        return
+                    }
+                    let windowFrame = button.convert(button.bounds, to: nil)
+                    self.onSettingsButtonTapped?(
+                        window.convertToScreen(windowFrame)
+                    )
                 },
                 onResizeHeight: { [weak self] requestedHeight in
                     self?.resize(to: requestedHeight)
@@ -232,6 +244,7 @@ final class QuotaDetailCardView: NSView {
         rowHeights: [CGFloat],
         version: String? = nil,
         onOpenURL: @escaping (URL) -> Void,
+        onSettingsButtonTapped: @escaping (NSButton) -> Void = { _ in },
         onResizeHeight: @escaping (CGFloat) -> Void = { _ in },
         onResizeEnded: @escaping () -> Void = {}
     ) {
@@ -495,7 +508,8 @@ final class QuotaDetailCardView: NSView {
                 name: content.footerName,
                 avatarSeed: content.footerName,
                 avatarURL: content.footerAvatarURL,
-                onOpenURL: onOpenURL
+                onOpenURL: onOpenURL,
+                onSettingsButtonTapped: onSettingsButtonTapped
             )
         )
         let resizeHint = QuotaResizeHintView(text: content.resizeHint)
@@ -745,7 +759,8 @@ private final class QuotaFooterView: NSView {
         name: String?,
         avatarSeed: String?,
         avatarURL: URL?,
-        onOpenURL: @escaping (URL) -> Void
+        onOpenURL: @escaping (URL) -> Void,
+        onSettingsButtonTapped: @escaping (NSButton) -> Void
     ) {
         super.init(frame: frameRect)
         let avatar = QuotaAvatarView(
@@ -759,15 +774,27 @@ private final class QuotaFooterView: NSView {
         nameField.font = .systemFont(ofSize: 13, weight: .regular)
         nameField.textColor = .labelColor
         nameField.lineBreakMode = .byTruncatingTail
-        nameField.frame = CGRect(x: 54, y: 14, width: 160, height: 18)
+        nameField.frame = CGRect(
+            x: 54,
+            y: 14,
+            width: max(100, frameRect.width - 196),
+            height: 18
+        )
         addSubview(nameField)
 
         let github = QuotaFooterGitHubButton(
-            frame: CGRect(x: frameRect.width - 102, y: 9, width: 88, height: 30),
+            frame: CGRect(x: frameRect.width - 132, y: 9, width: 88, height: 30),
             destination: Self.projectURL,
             onActivate: onOpenURL
         )
         addSubview(github)
+        let settings = QuotaFooterSettingsButton(
+            frame: CGRect(x: frameRect.width - 44, y: 9, width: 30, height: 30),
+            accessibilityLabel: "Settings"
+        ) { button in
+            onSettingsButtonTapped(button)
+        }
+        addSubview(settings)
     }
 
     @available(*, unavailable)
@@ -888,6 +915,111 @@ final class QuotaFooterGitHubButton: NSButton {
             layer?.shadowOffset = NSSize(width: 0, height: -1)
             iconView.contentTintColor = .secondaryLabelColor
             titleLabel.textColor = .secondaryLabelColor
+        }
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+}
+
+@MainActor
+final class QuotaFooterSettingsButton: NSButton {
+    private let iconView: NSImageView
+    private let onActivate: (QuotaFooterSettingsButton) -> Void
+    private var hoverTrackingArea: NSTrackingArea?
+    private var isPointerInside = false
+
+    init(
+        frame frameRect: NSRect,
+        accessibilityLabel: String,
+        onActivate: @escaping (QuotaFooterSettingsButton) -> Void
+    ) {
+        iconView = NSImageView(
+            image: NSImage(
+                systemSymbolName: "gearshape",
+                accessibilityDescription: accessibilityLabel
+            ) ?? NSImage(size: NSSize(width: 16, height: 16))
+        )
+        self.onActivate = onActivate
+        super.init(frame: frameRect)
+        title = ""
+        isBordered = false
+        setButtonType(.momentaryPushIn)
+        wantsLayer = true
+        layer?.cornerRadius = 15
+        layer?.cornerCurve = .continuous
+        layer?.masksToBounds = false
+        target = self
+        action = #selector(activate)
+        iconView.imageScaling = .scaleProportionallyUpOrDown
+        iconView.image?.isTemplate = true
+        addSubview(iconView)
+        setAccessibilityElement(true)
+        setAccessibilityRole(.button)
+        setAccessibilityLabel(accessibilityLabel)
+        updateAppearance()
+    }
+
+    override func layout() {
+        super.layout()
+        iconView.frame = CGRect(
+            x: floor((bounds.width - 16) / 2),
+            y: floor((bounds.height - 16) / 2),
+            width: 16,
+            height: 16
+        )
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let hoverTrackingArea {
+            removeTrackingArea(hoverTrackingArea)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        hoverTrackingArea = area
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearance()
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isPointerInside = true
+        updateAppearance()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isPointerInside = false
+        updateAppearance()
+    }
+
+    @objc private func activate() {
+        onActivate(self)
+    }
+
+    private func updateAppearance() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.labelColor
+                .withAlphaComponent(isPointerInside ? 0.08 : 0)
+                .cgColor
+            layer?.shadowColor = NSColor.black.cgColor
+            layer?.shadowOpacity = isPointerInside ? 0.22 : 0
+            layer?.shadowRadius = isPointerInside ? 8 : 0
+            layer?.shadowOffset = NSSize(width: 0, height: -1)
+            iconView.contentTintColor = .secondaryLabelColor
         }
     }
 

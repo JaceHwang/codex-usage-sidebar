@@ -3,8 +3,8 @@
   "releasePolicy": "independent-platform-patches",
   "activeCandidate": {
     "platform": "macos",
-    "version": "0.3.6",
-    "tag": "macos-v0.3.6"
+    "version": "0.4.0",
+    "tag": "macos-v0.4.0"
   },
   "published": {
     "macos": {
@@ -40,18 +40,18 @@
   },
   "planned": {
     "macos": {
-      "version": "0.3.6",
-      "tag": "macos-v0.3.6",
-      "title": "Codex Usage Sidebar macOS v0.3.6",
+      "version": "0.4.0",
+      "tag": "macos-v0.4.0",
+      "title": "Codex Usage Sidebar macOS v0.4.0",
       "architecture": "arm64",
       "minimumSystem": "macOS 14+ Apple Silicon",
       "codexCompatibility": "No fixed Codex version; requires supported plugin CLI commands.",
       "assets": {
-        "installer": "codex-usage-sidebar-macos-arm64-v0.3.6.dmg",
-        "checksums": "MACOS-V036-SHA256SUMS.txt",
-        "provenance": "MACOS-V036-PROVENANCE.json"
+        "installer": "codex-usage-sidebar-macos-arm64-v0.4.0.dmg",
+        "checksums": "MACOS-V040-SHA256SUMS.txt",
+        "provenance": "MACOS-V040-PROVENANCE.json"
       },
-      "releaseNotes": "docs/releases/macos-v0.3.6.md"
+      "releaseNotes": "docs/releases/macos-v0.4.0.md"
     }
   }
 }

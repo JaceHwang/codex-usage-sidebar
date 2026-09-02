@@ -21,12 +21,12 @@ class ReleaseGovernanceTests(unittest.TestCase):
         self.assertEqual(1, catalog["schemaVersion"])
         self.assertEqual("independent-platform-patches", catalog["releasePolicy"])
         self.assertEqual("macos", catalog["activeCandidate"]["platform"])
-        self.assertEqual("0.3.6", catalog["activeCandidate"]["version"])
-        self.assertEqual("macos-v0.3.6", catalog["activeCandidate"]["tag"])
-        self.assertEqual("0.3.6", catalog["planned"]["macos"]["version"])
-        self.assertEqual("macos-v0.3.6", catalog["planned"]["macos"]["tag"])
+        self.assertEqual("0.4.0", catalog["activeCandidate"]["version"])
+        self.assertEqual("macos-v0.4.0", catalog["activeCandidate"]["tag"])
+        self.assertEqual("0.4.0", catalog["planned"]["macos"]["version"])
+        self.assertEqual("macos-v0.4.0", catalog["planned"]["macos"]["tag"])
         self.assertEqual(
-            "codex-usage-sidebar-macos-arm64-v0.3.6.dmg",
+            "codex-usage-sidebar-macos-arm64-v0.4.0.dmg",
             catalog["planned"]["macos"]["assets"]["installer"],
         )
         self.assertEqual("0.3.3", catalog["published"]["windows"]["version"])

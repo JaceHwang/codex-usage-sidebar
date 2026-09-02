@@ -9,6 +9,12 @@ public struct QuotaDetailInteractionState: Equatable, Sendable {
         isPinned || (isPointerInside && !suppressHoverUntilExit)
     }
 
+    public func shouldShowDetail(
+        whilePositionModeMenuIsPresented: Bool
+    ) -> Bool {
+        !whilePositionModeMenuIsPresented && shouldShowDetail
+    }
+
     public mutating func updatePointerInside(_ inside: Bool) {
         if !inside {
             suppressHoverUntilExit = false
@@ -25,6 +31,12 @@ public struct QuotaDetailInteractionState: Equatable, Sendable {
             isPinned = true
             suppressHoverUntilExit = false
         }
+    }
+
+    public mutating func dismissForOutsideInteraction() {
+        isPinned = false
+        isPointerInside = false
+        suppressHoverUntilExit = false
     }
 
     public mutating func reset() {

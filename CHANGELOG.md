@@ -27,6 +27,11 @@ All notable changes to this project are documented here. The project follows
 
 ### Added
 
+- Add a native right-click **Position mode** panel for the macOS titlebar
+  indicator. Automatic keeps adaptive titlebar placement; Free supports a
+  deliberate left-button drag; Locked preserves the same saved screen position.
+  Manual placements are stored per display and remain constrained to each
+  display's visible region after resolution or Dock changes.
 - Add `docs/PROJECT_GOVERNANCE.md` as the required project-wide procedure for development,
   GitHub delivery, version management, platform releases, and hotfixes.
 - Add a source-controlled platform release catalog, semantic-version and branch-governance policy,
@@ -41,6 +46,9 @@ All notable changes to this project are documented here. The project follows
 
 - Define independent platform patch tags as `macos-vX.Y.Z` and `windows-vX.Y.Z`; shared features
   continue to use a single `vX.Y.Z` release after parity verification.
+- Give the macOS quota-detail table a stable default viewport of eight 32-point rows (256 points).
+  Sparse data no longer collapses the first-open card; manual resize remains authoritative, with a
+  two-row minimum and screen-safe cap.
 
 ### Fixed
 

@@ -63,7 +63,7 @@ public enum QuotaDetailLayout {
     public static let dualQuotaHeaderHeight: CGFloat = 171
     public static let rowHeight: CGFloat = 32
     public static let verticalPadding: CGFloat = 16
-    public static let maximumHeight: CGFloat = 580
+    public static let maximumHeight: CGFloat = 720
     /// The largest manual height retains the compact native-popover character
     /// while allowing the user to reveal substantially more detail rows.
     public static let maximumResizableHeight: CGFloat = 720
@@ -77,6 +77,9 @@ public enum QuotaDetailLayout {
     public static let rowTopGap: CGFloat = 10
     public static let footerHeight: CGFloat = 44
     public static let minimumRowViewportHeight: CGFloat = rowHeight * 2
+    /// The default table viewport mirrors eight native detail rows. Content
+    /// shorter than that keeps the popover stable instead of collapsing.
+    public static let defaultRowViewportHeight: CGFloat = rowHeight * 8
 
     public static func headerHeight(secondaryQuotaVisible: Bool) -> CGFloat {
         secondaryQuotaVisible ? dualQuotaHeaderHeight : headerHeight
@@ -273,7 +276,10 @@ public enum QuotaDetailLayout {
     ) -> CGFloat {
         min(
             maximumHeight,
-            headerHeight(secondaryQuotaVisible: secondaryQuotaVisible) + verticalPadding + max(0, rowContentHeight) +
+            headerHeight(secondaryQuotaVisible: secondaryQuotaVisible) + rowTopGap + max(
+                defaultRowViewportHeight,
+                max(0, rowContentHeight)
+            ) +
                 (tokenUsageVisible ? tokenBandReservedHeight : 0) + footerHeight
         )
     }
@@ -319,7 +325,7 @@ public enum QuotaDetailLayout {
                 secondaryQuotaVisible: secondaryQuotaVisible
             )
         )
-        let height = min(
+        let desiredHeight = min(
             maximumHeight,
             max(minimumHeight, requestedHeight ?? naturalHeight)
         )
@@ -327,15 +333,13 @@ public enum QuotaDetailLayout {
             width,
             max(0, visibleFrame.width - screenMargin * 2)
         )
-        let minimumX = visibleFrame.minX + screenMargin
-        let maximumX = visibleFrame.maxX - cardWidth - screenMargin
-        let x = min(maximumX, max(minimumX, indicatorFrame.minX))
-        let desiredY = indicatorFrame.minY - height - controlGap
-        let minimumY = visibleFrame.minY + screenMargin
-        let maximumY = visibleFrame.maxY - height - screenMargin
-        let y = min(maximumY, max(minimumY, desiredY))
-
-        return CGRect(x: x, y: y, width: cardWidth, height: height)
+        return IndicatorAttachedPanelLayout.frame(
+            indicatorFrame: indicatorFrame,
+            panelSize: CGSize(width: cardWidth, height: desiredHeight),
+            visibleFrame: visibleFrame,
+            screenMargin: screenMargin,
+            controlGap: controlGap
+        )
     }
 
     public static func hoverBridgeFrame(
