@@ -26,10 +26,10 @@
 
 | Platform | Status | Distribution |
 | --- | --- | --- |
-| macOS 14+ Apple Silicon | [v0.3.5 release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5) | Published arm64 DMG with dual 5-hour/7-day quota presentation |
+| macOS 14+ Apple Silicon | [v0.4.0 release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.4.0) | Published arm64 DMG with placement modes, detail lock, settings and improved collision handling |
 | Windows 11 AMD64 (`x64`) | [v0.3.3 release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) | Unsigned `x64` setup with signed compatibility updates; Windows ARM64 is out of scope |
 
-The current source/local build is **0.4.0 candidate, not published**. Download links above retain the catalog-recorded macOS 0.3.5 and Windows 0.3.3 releases. Features and images below describe the current macOS candidate, not the older downloadable installers. New Windows source is not a claim of completed device validation.
+**macOS 0.4.0 is available.** The features below describe this release. Windows remains at its separately verified 0.3.3 release; new Windows source is not a claim of completed device validation.
 
 See the [current feature inventory](docs/CURRENT_FEATURES.md) and [current design](docs/CURRENT_DESIGN.md).
 
@@ -42,8 +42,8 @@ Captured on September 16, 2026 from the installed 0.4.0 local build on an Apple 
 ## Current appearance
 
 <p align="center">
-  <img src="docs/images/current/detail-en-light.png" alt="0.4.0 candidate native quota card, light theme, demonstration data" width="48%">
-  <img src="docs/images/current/detail-en-dark.png" alt="0.4.0 candidate native quota card, dark theme, demonstration data" width="48%">
+  <img src="docs/images/current/detail-en-light.png" alt="0.4.0 native quota card, light theme, demonstration data" width="48%">
+  <img src="docs/images/current/detail-en-dark.png" alt="0.4.0 native quota card, dark theme, demonstration data" width="48%">
 </p>
 
 Fresh renders of current AppKit controls with fixed demonstration data: dual quota, seven-day Tokens, detail lock, Bank expiry accents and footer settings. The detail lock is enabled in these fixtures. These are not live account captures or published-release screenshots.
@@ -68,7 +68,7 @@ Right-click the indicator or use the detail footer's settings menu to select a m
 
 ## What it does
 
-| Interaction or content | Current macOS candidate behavior |
+| Interaction or content | macOS 0.4.0 behavior |
 | --- | --- |
 | Indicator | Aligned 5-hour/7-day percentages and reset times; single-window display when secondary data is absent. |
 | Hover and click | Hover opens details; click pins/unpins. An outside click dismisses an ordinary pinned card. |
@@ -147,18 +147,18 @@ plugin support. The installer does not pin a Codex version. It searches the stan
 the current `PATH`; a CLI release is compatible when it provides the `plugin marketplace` and
 `plugin add` commands used by the installer.
 
-#### Install the v0.3.5 DMG
+#### Install the v0.4.0 DMG
 
-Download `codex-usage-sidebar-v0.3.5-macos-arm64.dmg` together with
-`MACOS-V035-SHA256SUMS.txt` and `MACOS-V035-PROVENANCE.json` from the
-[v0.3.5 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5).
+Download `codex-usage-sidebar-v0.4.0-macos-arm64.dmg` together with
+`MACOS-V040-SHA256SUMS.txt` and `MACOS-V040-PROVENANCE.json` from the
+[v0.4.0 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.4.0).
 Verify the DMG before opening it:
 
 ```bash
-shasum -a 256 codex-usage-sidebar-v0.3.5-macos-arm64.dmg
+shasum -a 256 codex-usage-sidebar-v0.4.0-macos-arm64.dmg
 ```
 
-Compare the result with the matching entry in `MACOS-V035-SHA256SUMS.txt`. `MACOS-V035-PROVENANCE.json`
+Compare the result with the matching entry in `MACOS-V040-SHA256SUMS.txt`. `MACOS-V040-PROVENANCE.json`
 records the exact source commit and embedded executable digests. Open the verified DMG,
 then open **Codex Usage Sidebar Installer**. This asset is not notarized;
 if macOS blocks it, right-click the installer in Finder and choose Open. Click **Install**, complete the
@@ -169,18 +169,19 @@ The installer keeps its files outside the Codex application and never copies you
 credentials. See [Installation and operations](docs/INSTALL.md) for repair, update, and uninstall
 behavior.
 
-#### Reproduce the macOS v0.3.5 release asset
+#### Reproduce the macOS v0.4.0 release asset
 
-Maintainers can rebuild the release asset from the exact v0.3.5 source commit recorded in the
+Use Xcode 26.5 with macOS SDK 26.5 (or explicitly select that SDK with `SDKROOT`).
+Maintainers can rebuild the release asset from the exact v0.4.0 source commit recorded in the
 provenance file. The scripts bind the payload commit into the app and never overwrite an existing
 asset:
 
 ```bash
-bash scripts/build-macos-v035-installer.sh
-bash scripts/package-macos-v035-installer.sh
-bash scripts/verify-macos-v035-installer-package.sh \
-  ".dist/v0.3.5/macos/Codex Usage Sidebar Installer.app" \
-  ".dist/v0.3.5/macos/codex-usage-sidebar-v0.3.5-macos-arm64.dmg"
+bash scripts/build-macos-v040-installer.sh
+bash scripts/package-macos-v040-installer.sh
+bash scripts/verify-macos-v040-installer-package.sh \
+  ".dist/v0.4.0/macos/Codex Usage Sidebar Installer.app" \
+  ".dist/v0.4.0/macos/codex-usage-sidebar-v0.4.0-macos-arm64.dmg"
 ```
 
 ### Advanced: manual marketplace installation
@@ -328,7 +329,7 @@ CI. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 - [Privacy](docs/PRIVACY.md)
 - [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
-- [v0.3.5 release notes](docs/releases/v0.3.5.md)
+- [v0.4.0 release notes](docs/releases/macos-v0.4.0.md)
 - [v0.3.3 release notes](docs/releases/v0.3.3.md)
 
 ## License

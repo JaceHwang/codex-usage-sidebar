@@ -16,10 +16,10 @@
 
 | 平台 | 状态 | 分发方式 |
 | --- | --- | --- |
-| macOS 14+ Apple Silicon | [`v0.3.5` 发布版](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5) | 已发布的 arm64 DMG，含 5 小时/7 天双额度展示 |
+| macOS 14+ Apple Silicon | [`v0.4.0` 发布版](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.4.0) | 已发布 arm64 DMG，含位置模式、详情锁定、设置菜单和防碰撞改进 |
 | Windows 11 AMD64（`x64`） | [`v0.3.3` 发布版](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) | 未签名 `x64` 安装包，带签名兼容更新；Windows ARM64 不在支持范围 |
 
-当前源码与本地构建为 **0.4.0 候选版，尚未发布**。以上下载链接仍指向发布目录中记录的 macOS 0.3.5 和 Windows 0.3.3。下方功能和配图说明当前 macOS 候选实现，不表示这些功能已包含在旧安装包中。Windows 新代码的功能对齐尚不等于已完成实机验收。
+**macOS 0.4.0 已发布。** 下方功能说明对应本次发布。Windows 保持单独验收的 0.3.3 发布版，新的 Windows 源码不代表已完成实机验收。
 
 完整范围见[当前功能清单](docs/CURRENT_FEATURES.md)和[当前设计说明](docs/CURRENT_DESIGN.md)。
 
@@ -32,8 +32,8 @@
 ## 当前实际效果
 
 <p align="center">
-  <img src="docs/images/current/detail-zh-cn-light.png" alt="0.4.0 candidate native quota card, light theme, demonstration data" width="48%">
-  <img src="docs/images/current/detail-zh-cn-dark.png" alt="0.4.0 candidate native quota card, dark theme, demonstration data" width="48%">
+  <img src="docs/images/current/detail-zh-cn-light.png" alt="0.4.0 native quota card, light theme, demonstration data" width="48%">
+  <img src="docs/images/current/detail-zh-cn-dark.png" alt="0.4.0 native quota card, dark theme, demonstration data" width="48%">
 </p>
 
 使用当前 AppKit 控件与固定示例数据重新渲染，展示双额度、七日 Token、详情锁定、Bank 到期颜色和页脚设置入口。图中详情处于锁定状态；不是实机账户截图或正式发布截图。
@@ -58,7 +58,7 @@
 
 ## 功能效果
 
-| 操作或内容 | 当前 macOS 候选版行为 |
+| 操作或内容 | macOS 0.4.0 行为 |
 | --- | --- |
 | 额度指示器 | 对齐显示 5 小时／7 天剩余比例与重置时间；缺少第二周期时使用单周期显示。 |
 | 悬停与点击 | 悬停打开明细；点击固定，再点解除。普通固定卡片可由外部点击关闭。 |
@@ -129,33 +129,34 @@ Agent 可以自动完成下载、摘要比对和启动安装器；但不能绕�
 版本，会同时搜索标准安装路径和当前 `PATH`；只要 CLI 提供安装器使用的 `plugin marketplace` 与
 `plugin add` 命令即可兼容。
 
-#### 安装 v0.3.5 图形安装器
+#### 安装 v0.4.0 图形安装器
 
-从 [v0.3.5 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5)
-下载 `codex-usage-sidebar-v0.3.5-macos-arm64.dmg`、`MACOS-V035-SHA256SUMS.txt` 与
-`MACOS-V035-PROVENANCE.json`。打开前先校验 DMG：
+从 [v0.4.0 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.4.0)
+下载 `codex-usage-sidebar-v0.4.0-macos-arm64.dmg`、`MACOS-V040-SHA256SUMS.txt` 与
+`MACOS-V040-PROVENANCE.json`。打开前先校验 DMG：
 
 ```bash
-shasum -a 256 codex-usage-sidebar-v0.3.5-macos-arm64.dmg
+shasum -a 256 codex-usage-sidebar-v0.4.0-macos-arm64.dmg
 ```
 
-将输出与 `MACOS-V035-SHA256SUMS.txt` 对应条目比较；`MACOS-V035-PROVENANCE.json` 记录精确源码提交与内嵌可执行文件摘要。打开已校验的 DMG，再打开 **Codex Usage Sidebar Installer**。该资产尚未公证；如被 macOS 阻止，
+将输出与 `MACOS-V040-SHA256SUMS.txt` 对应条目比较；`MACOS-V040-PROVENANCE.json` 记录精确源码提交与内嵌可执行文件摘要。打开已校验的 DMG，再打开 **Codex Usage Sidebar Installer**。该资产尚未公证；如被 macOS 阻止，
 请在 Finder 中右键点击安装器并选择“打开”。随后点击 **安装**，按引导完成 Codex 登录，并在 macOS
 提示时为 **Codex Usage Sidebar** 开启“辅助功能”；最后点击 **验证**，确认受管理的伴随程序正在运行。
 
 安装器会把文件放在 Codex 应用包之外，也绝不会复制普通 `~/.codex` 凭据。修复、更新和卸载行为请见
 [安装运维说明](docs/INSTALL.md)。
 
-#### 从源码复现 macOS v0.3.5 发布资产
+#### 从源码复现 macOS v0.4.0 发布资产
 
-维护者可从 provenance 中记录的精确 v0.3.5 源码提交重建资产。脚本会把载荷提交写入安装器，且不会覆盖已有资产：
+请使用 Xcode 26.5 与 macOS SDK 26.5，或通过 `SDKROOT` 明确选择该 SDK。
+维护者可从 provenance 中记录的精确 v0.4.0 源码提交重建资产。脚本会把载荷提交写入安装器，且不会覆盖已有资产：
 
 ```bash
-bash scripts/build-macos-v035-installer.sh
-bash scripts/package-macos-v035-installer.sh
-bash scripts/verify-macos-v035-installer-package.sh \
-  ".dist/v0.3.5/macos/Codex Usage Sidebar Installer.app" \
-  ".dist/v0.3.5/macos/codex-usage-sidebar-v0.3.5-macos-arm64.dmg"
+bash scripts/build-macos-v040-installer.sh
+bash scripts/package-macos-v040-installer.sh
+bash scripts/verify-macos-v040-installer-package.sh \
+  ".dist/v0.4.0/macos/Codex Usage Sidebar Installer.app" \
+  ".dist/v0.4.0/macos/codex-usage-sidebar-v0.4.0-macos-arm64.dmg"
 ```
 
 ### 高级：手动 Marketplace 安装
@@ -290,7 +291,7 @@ cd ../..
 - [隐私](docs/PRIVACY.md)
 - [支持](SUPPORT.md)
 - [更新记录](CHANGELOG.md)
-- [v0.3.5 发布说明](docs/releases/v0.3.5.md)
+- [v0.4.0 发布说明](docs/releases/macos-v0.4.0.md)
 - [v0.3.3 发布说明](docs/releases/v0.3.3.md)
 
 ## 许可证

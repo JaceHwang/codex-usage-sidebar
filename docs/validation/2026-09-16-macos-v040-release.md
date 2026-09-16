@@ -31,12 +31,13 @@ SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk \
 ./governance check all
 ```
 
-## Remaining release steps
+## Published and independently verified
 
-1. Pass full governance verification; commit integrated source without an ordinary version bump.
-2. Rebuild the tracked companion from the source commit, sign it and record its exact provenance; commit the payload and rerun all checks before push.
-3. Merge the feature PR after required CI. Review the generated Release Please 0.4.0 PR, rebuild its changed bundle metadata/signature, pass required checks and merge.
-4. Publish macOS using `publish-platform.yml` from the generated `v0.4.0` tag. Download and independently verify the three immutable release assets.
-5. Update the published catalog and download links only after successful publication; Windows remains at v0.3.3.
-
-No 0.4.0 release or new tag was published during this preparation.
+- Feature PR [#11](https://github.com/JaceHwang/codex-usage-sidebar/pull/11) and generated Release Please PR [#12](https://github.com/JaceHwang/codex-usage-sidebar/pull/12) merged after all checks passed.
+- Release tag `v0.4.0`: `75836c5dd9db142ff0725a7ea9335e53b42c9d52`.
+- [Publication workflow](https://github.com/JaceHwang/codex-usage-sidebar/actions/runs/35111553297) succeeded.
+- [Public release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.4.0) contains the arm64 DMG, SHA-256 file and provenance JSON.
+- Downloaded all three public assets again; checksum, mounted installer and companion signatures, both binary SDKs, embedded source commit and executable digests passed `.governance/project/verify-release macos-arm64 v0.4.0`.
+- DMG SHA-256: `a5dd1e6cce7ebd7e413457077a47bb5cbe096b8aff4a968cab2a13c022ae86af`.
+- Installer is ad-hoc signed and not notarized, as recorded in published provenance and installation guidance.
+- Windows remains on its separately published v0.3.3 installer.

@@ -1,8 +1,6 @@
 # Install with an Agent
 
-> **Current source vs downloads:** this checkout is the unpublished 0.4.0 candidate. The catalog
-> records macOS 0.3.5 and Windows 0.3.3 as published; release-specific instructions below retain
-> those versions. Candidate controls and behavior are documented in [CURRENT_FEATURES](CURRENT_FEATURES.md).
+> **Published platforms:** macOS 0.4.0 and Windows 0.3.3. See [current features](CURRENT_FEATURES.md) for the macOS release behavior; Windows development source is not a new Windows release.
 
 
 This playbook is for a coding agent with terminal access to the target computer. Use the Windows
@@ -147,7 +145,7 @@ Requirements:
 6. In the new task, invoke @codex-usage-sidebar to check and repair the installation.
 7. Verify the LaunchAgent, status output, isolated login, and accessibility state.
 8. If Accessibility is off, open the correct System Settings pane and ask me to approve the switch.
-9. Resize the right pane and verify behavior for the installed version. In the 0.4.0 candidate,
+9. Resize the right pane and verify behavior for the installed version. In the 0.4.0 release,
    occupied default fallback switches to persistent Free mode; do not treat that as an installation
    failure or require the semantic edge to equal the final manual position. Do not expose unrelated
    windows, conversations, or account data.
@@ -233,5 +231,5 @@ and preserves the stable local signing identity when available.
 
 Return the plugin version, login status, companion status, LaunchAgent state, Accessibility state,
 anchor source, and whether the control avoids native controls while the right pane is dragged
-through intermediate widths. For the current candidate, distinguish safe automatic placement from intentional Free fallback.
+through intermediate widths. For macOS 0.4.0, distinguish safe automatic placement from intentional Free fallback.
 Crop screenshots to the relevant titlebar area.

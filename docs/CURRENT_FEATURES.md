@@ -1,8 +1,6 @@
-# Current implementation — 0.4.0 candidate
+# Current implementation — macOS 0.4.0
 
-Reviewed against the working source on 2026-09-15. This is a feature inventory, not a release announcement.
-The repository catalog still records macOS **0.3.5** and Windows **0.3.3** as published. The functionality targets **0.4.0**; Release Please controls the checked-in product version.
-Local builds and screenshots do not establish a published installer.
+Reviewed against release source on 2026-09-16. Published platforms: macOS **0.4.0** and Windows **0.3.3**. Windows development source is not a new Windows release.
 
 ## macOS controls
 
