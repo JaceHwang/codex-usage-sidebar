@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/JaceHwang/codex-usage-sidebar/compare/v0.3.5...v0.4.0) (2026-09-16)
+
+
+### Features
+
+* **macos:** add quota controls and verified staged publishing ([a5a3b93](https://github.com/JaceHwang/codex-usage-sidebar/commit/a5a3b93b95946eab0d333a96e52315a6c56531a0))
+
 ## v0.3.3 - 2026-08-23
 
 - Published the macOS 14+ Apple Silicon DMG, SHA-256, and provenance assets alongside the existing
