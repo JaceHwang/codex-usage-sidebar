@@ -40,13 +40,27 @@ public sealed class QuotaDetailVisualFixtureTests
                 Descendants<ScrollViewer>(card).Single().Height);
             var texts = Descendants<TextBlock>(card).Select(item => item.Text).ToArray();
             CollectionAssert.Contains(texts, content.Title);
-            CollectionAssert.Contains(texts, "jace@example.com");
+            CollectionAssert.Contains(texts, "Jace");
             CollectionAssert.Contains(texts, "v0.4.0");
             Assert.IsFalse(texts.Any(text => text.Contains("Tibo", StringComparison.OrdinalIgnoreCase)));
 
             if (!string.IsNullOrWhiteSpace(outputDirectory))
                 Render(card, Path.Combine(outputDirectory, $"quota-{languageName}-{themeName}.png"));
         }
+    }
+
+    [STATestMethod]
+    public void FooterRendersEmailWhenDisplayNameIsUnavailable()
+    {
+        Application.ResourceAssembly ??= typeof(WpfOverlaySurface).Assembly;
+        var surface = new WpfOverlaySurface(DisplayLanguage.English, TimeZoneInfo.Utc);
+        var content = QuotaDetailFormatter.Format(
+            Snapshot, Now, DisplayLanguage.English, TimeZoneInfo.Utc, TokenUsage,
+            new AccountIdentity(null, "demo@example.com", null), "0.4.0");
+        var card = surface.BuildDetailCardForVisualFixture(content, WpfOverlayPalette.Light);
+        Layout(card);
+        var texts = Descendants<TextBlock>(card).Select(item => item.Text).ToArray();
+        CollectionAssert.Contains(texts, "demo@example.com");
     }
 
     private static void Layout(FrameworkElement element)
