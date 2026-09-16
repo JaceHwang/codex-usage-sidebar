@@ -34,10 +34,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-sdk_args=()
-if [[ -n "${SDKROOT:-}" ]]; then
-  sdk_args=(--sdk "$SDKROOT")
-fi
+sdk_path="${SDKROOT:-$(xcrun --sdk macosx --show-sdk-path)}"
+sdk_args=(--sdk "$sdk_path")
 xcrun swift test --build-system native "${sdk_args[@]}" --package-path "$package_root"
 xcrun swift build \
   --build-system native "${sdk_args[@]}" \

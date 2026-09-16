@@ -74,10 +74,8 @@ with open(output, "w", encoding="utf-8") as handle:
 PY
 
 native_root="$source_root/plugins/codex-usage-sidebar/native"
-sdk_args=()
-if [[ -n "${SDKROOT:-}" ]]; then
-  sdk_args=(--sdk "$SDKROOT")
-fi
+sdk_path="${SDKROOT:-$(DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}" xcrun --sdk macosx --show-sdk-path)}"
+sdk_args=(--sdk "$sdk_path")
 DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}" \
   /usr/bin/xcrun swift build \
     --build-system native "${sdk_args[@]}" \
