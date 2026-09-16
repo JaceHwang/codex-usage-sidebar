@@ -1,6 +1,6 @@
 # Architecture
 
-This page describes the working macOS **0.4.0 candidate**, not a newly published release.
+This page describes the published macOS **0.4.0** implementation.
 [Current feature inventory](CURRENT_FEATURES.md) · [Current design contract](CURRENT_DESIGN.md)
 
 ## Components

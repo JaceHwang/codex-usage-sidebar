@@ -1,6 +1,6 @@
 # Current design contract
 
-Status: implemented macOS 0.4.0 candidate, reviewed 2026-09-15. This describes the working source;
+Status: released macOS 0.4.0, reviewed 2026-09-16. This describes the released implementation;
 [governance](GOVERNANCE.md) still controls release authorization. Historical specifications and
 validation reports retain their original version scope. [Feature inventory](CURRENT_FEATURES.md).
 

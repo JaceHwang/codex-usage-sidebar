@@ -1,14 +1,12 @@
 # Installation and Operations
 
-> **Current source vs downloads:** this checkout is the unpublished 0.4.0 candidate. The catalog
-> records macOS 0.3.5 and Windows 0.3.3 as published; release-specific instructions below retain
-> those versions. Candidate controls and behavior are documented in [CURRENT_FEATURES](CURRENT_FEATURES.md).
+> **Published platforms:** macOS 0.4.0 and Windows 0.3.3. See [current features](CURRENT_FEATURES.md) for the macOS release behavior; Windows development source is not a new Windows release.
 
 
 ## Current release
 
-macOS 14+ Apple Silicon users download the v0.3.5 arm64 DMG, checksum, and provenance files from
-the [v0.3.5 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5).
+macOS 14+ Apple Silicon users download the v0.4.0 arm64 DMG, checksum, and provenance files from
+the [v0.4.0 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.4.0).
 Windows 11 AMD64/x64 remains on the separately validated v0.3.3 setup described below. Every
 installer asset is verified before publication.
 
@@ -108,19 +106,19 @@ hard-coded version gate.
 
 ### Install with the graphical installer
 
-Download the v0.3.5 arm64 DMG, its checksum file, and its provenance from the
-[v0.3.5 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5):
+Download the v0.4.0 arm64 DMG, its checksum file, and its provenance from the
+[v0.4.0 GitHub Release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.4.0):
 
 ```bash
-shasum -a 256 codex-usage-sidebar-v0.3.5-macos-arm64.dmg
+shasum -a 256 codex-usage-sidebar-v0.4.0-macos-arm64.dmg
 ```
 
-Compare the output with `MACOS-V035-SHA256SUMS.txt`. `MACOS-V035-PROVENANCE.json` records the
+Compare the output with `MACOS-V040-SHA256SUMS.txt`. `MACOS-V040-PROVENANCE.json` records the
 digest and exact source commit. Open the verified DMG, then open **Codex Usage Sidebar Installer**. The asset is not
 notarized. If macOS blocks it, right-click the installer in Finder and choose Open. Click **Install**,
 complete the isolated Codex login when prompted, enable Accessibility, then click **Verify**.
 
-The installer embeds the verified v0.3.5 marketplace payload and places the companion and
+The installer embeds the verified v0.4.0 marketplace payload and places the companion and
 LaunchAgent in the same locations used by the marketplace hook. It does not modify the Codex app.
 
 ### Resize the detail card
@@ -192,14 +190,14 @@ Repair once after changing the switch:
 A healthy adaptive-positioning result is read from the actual managed process and includes:
 
 ```text
-pid=12345 version=0.3.5 runtime=shown placement=content-header anchor=labeledControl
+pid=12345 version=0.4.0 runtime=shown placement=content-header anchor=labeledControl
 language=simplifiedChinese language_source=process
 indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app
 ```
 
 `openLocation`, `labeledControl`, `rightPaneBoundary` and `fallback` identify semantic anchor
-sources. Current candidate final geometry can differ after free-slot search or manual placement;
+sources. Current release final geometry can differ after free-slot search or manual placement;
 `x + width = edge - 8` is not a universal assertion. Check `mode`, `freeFallback` and the actual
 rectangle in current runtime output; older releases may omit those fields. The badge and status
 version must agree. See [Troubleshooting](TROUBLESHOOTING.md).
@@ -265,7 +263,7 @@ codex plugin marketplace remove codex-usage-sidebar
 Uninstall removes only the companion's exact Application Support directory and user LaunchAgent.
 It does not modify the official Codex app.
 
-## Current candidate controls and local testing
+## Current release controls and local testing
 
 For current source features (not the older published DMG), right-click the indicator for Automatic,
 Free or Locked; the footer gear provides the same modes plus Releases, Reload and Quit. The header

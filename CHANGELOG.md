@@ -7,6 +7,15 @@
 
 * **macos:** add quota controls and verified staged publishing ([a5a3b93](https://github.com/JaceHwang/codex-usage-sidebar/commit/a5a3b93b95946eab0d333a96e52315a6c56531a0))
 
+### macOS release details
+
+- Automatic / Free / Locked indicator modes with per-display persistence and safe default-to-Free fallback.
+- Detail lock, footer settings and Bank expiry urgency colors.
+- Final-frame collision checks exclude auxiliary-only accessibility containers; hover and click use the visible indicator bounds.
+- Native resource packaging supports Xcode 27; published executables retain macOS SDK 26.5.
+- Bilingual README and current design/operations documentation include a real installed companion screenshot and clearly labelled native fixture galleries.
+- macOS arm64 DMG, checksums and exact-tag provenance published; Windows remains at v0.3.3.
+
 ## v0.3.3 - 2026-08-23
 
 - Published the macOS 14+ Apple Silicon DMG, SHA-256, and provenance assets alongside the existing
@@ -32,22 +41,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-### Added
-
-- Current 0.4.0 candidate: Automatic / Free / Locked indicator modes with per-display persistence;
-  detail-window lock; settings menu (position, Releases, reload, quit); Bank expiry urgency colors.
-- Updated bilingual README, current design/feature inventory, operational/privacy guidance and
-  native-control documentation renders. These are candidate features, not a release announcement.
-
 ### Fixed
-
-- Limit hover, click and drag hit testing to the visible indicator; hidden menus no longer keep
-  details open. Package native resources correctly with Xcode 27 builds.
-- macOS candidate: revalidate cached/default positions using measured indicator width, and keep
-  the indicator visible by switching to Free when an occupied default has no safe alternative.
-- Exclude whole-titlebar containers with only AXShowMenu/AXScrollToVisible actions from button
-  obstacles; retain true button roles/direct press or pick targets.
-
 
 - Fixed the Windows selector packaging path to emit a schema-v2 catalog instead of the legacy
   schema-v1 device-test document, and reject invalid selector catalogs before publication.

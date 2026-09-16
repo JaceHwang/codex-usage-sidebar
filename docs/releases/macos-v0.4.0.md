@@ -1,6 +1,6 @@
 # Codex Usage Sidebar macOS v0.4.0
 
-> Release candidate — not published yet.
+> Published for macOS 14+ Apple Silicon. Windows remains at v0.3.3.
 
 This macOS 14+ Apple Silicon feature release adds explicit indicator placement
 modes without changing the Windows v0.3.3 release:
@@ -17,17 +17,15 @@ were prepared in the unpublished v0.3.6 candidate.
 
 The quota-detail table reserves at least eight rows (256 points) naturally and grows with content up to the screen/height cap. Manual resizing takes precedence, with a two-row minimum.
 
-## Planned assets
+## Published assets
 
 - Installer: `codex-usage-sidebar-v0.4.0-macos-arm64.dmg`
 - Checksums: `MACOS-V040-SHA256SUMS.txt`
 - Provenance: `MACOS-V040-PROVENANCE.json`
 
-The asset can be published only after the `v0.4.0` tag identifies the
-same verified commit embedded in the installer payload and recorded in
-provenance.
+The `v0.4.0` tag identifies the same verified commit embedded in the installer payload and recorded in provenance.
 
-## Current candidate additions (not a published asset)
+## Additional improvements
 
 - Header detail lock, independent from Locked indicator position, plus footer settings for position
   mode, Releases, reload and quit.
