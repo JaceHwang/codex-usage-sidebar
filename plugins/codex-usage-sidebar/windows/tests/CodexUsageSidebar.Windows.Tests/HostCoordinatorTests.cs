@@ -6,6 +6,73 @@ namespace CodexUsageSidebar.Windows.Tests;
 public sealed class HostCoordinatorTests
 {
     [TestMethod]
+    public async Task HidesOverlayWhenTheHostScannerIdentifiesSettings()
+    {
+        var overlay = new RecordingOverlay();
+        var coordinator = new WindowsHostCoordinator(
+            new StubLocator(Window("fixture")), new SettingsPageScanner(), overlay);
+
+        var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+
+        Assert.AreEqual(HostRuntimeState.Hidden, result);
+        Assert.AreEqual(1, overlay.HideCount);
+        Assert.IsNull(overlay.LastPresentation);
+    }
+
+    [DataTestMethod]
+    [DataRow("返回应用")]
+    [DataRow("返回應用")]
+    [DataRow("Back to app")]
+    public void SettingsNavigationLabelsAreRecognizedAcrossSupportedLanguages(string label)
+    {
+        var host = new RectD(0, 0, 1600, 1000);
+        Assert.IsTrue(HostPagePolicy.IsSettingsNavigation(
+            new HostPageControl(new RectD(16, 48, 132, 36), label), host, allowStructuralMatch: false));
+        Assert.IsTrue(HostPagePolicy.IsSettingsNavigation(
+            new HostPageControl(new RectD(16, 48, 132, 36), "アプリに戻る"), host, allowStructuralMatch: true));
+        Assert.IsFalse(HostPagePolicy.IsSettingsNavigation(
+            new HostPageControl(new RectD(700, 48, 132, 36), label), host, allowStructuralMatch: true));
+    }
+
+    [TestMethod]
+    public async Task PlacementUsesTheRenderedIndicatorWidthIncludingItsLogoAndBothRows()
+    {
+        var overlay = new MeasuredOverlay();
+        var coordinator = new WindowsHostCoordinator(new StubLocator(Window("fixture")), new StubScanner(), overlay);
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+        Assert.IsNotNull(overlay.LastPresentation);
+        Assert.AreEqual(275d, overlay.LastPresentation.Placement.Frame.Width);
+    }
+
+    private sealed class MeasuredOverlay : IOverlaySurface, IIndicatorSizeProvider
+    {
+        public OverlayPresentation? LastPresentation { get; private set; }
+        public double MeasureIndicatorWidth(AllowanceSnapshot snapshot, DisplayLanguage language, double height) => 275;
+        public ValueTask HideAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+        public ValueTask ShowAsync(OverlayPresentation presentation, CancellationToken cancellationToken)
+        { LastPresentation = presentation; return ValueTask.CompletedTask; }
+    }
+
+    private sealed class SettingsPageScanner : ITitlebarScanner
+    {
+        public ValueTask<TitlebarSnapshot> ScanAsync(HostWindowSnapshot host, CancellationToken cancellationToken) =>
+            ValueTask.FromException<TitlebarSnapshot>(new HostSettingsPageDetectedException());
+        public void Invalidate() { }
+    }
+
+    [TestMethod]
+    public async Task FallbackAlsoReservesTheMeasuredIndicatorWidth()
+    {
+        var overlay = new MeasuredOverlay();
+        var coordinator = new WindowsHostCoordinator(new StubLocator(Window("fixture")), new RejectingScanner(), overlay,
+            safeDockPreferences: SafeDockPreferences.Default with { FallbackLocked = true });
+        await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
+        Assert.IsNotNull(overlay.LastPresentation);
+        Assert.AreEqual(PlacementMode.SafeDock, overlay.LastPresentation.Mode);
+        Assert.AreEqual(275d, overlay.LastPresentation.Placement.Frame.Width);
+    }
+
+    [TestMethod]
     public async Task HidesOverlayWhenCodexWindowDoesNotExist()
     {
         var overlay = new RecordingOverlay();
@@ -39,9 +106,9 @@ public sealed class HostCoordinatorTests
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
         Assert.AreEqual(PlacementSurface.Content, overlay.LastPresentation?.Placement.Surface);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 1165.6666666666667) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 1077.6666666666667) < 0.0001);
         Assert.AreEqual(98, overlay.LastPresentation?.Placement.Frame.Y);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.Width - 333.3333333333333) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.Width - 421.3333333333333) < 0.0001);
         Assert.AreEqual(56, overlay.LastPresentation?.Placement.Frame.Height);
         Assert.AreEqual(76, overlay.LastPresentation?.Snapshot.RemainingPercent);
     }
@@ -213,7 +280,9 @@ public sealed class HostCoordinatorTests
 
         Assert.AreSame(usage, overlay.LastPresentation?.TokenUsage);
         Assert.AreSame(account, overlay.LastPresentation?.Account);
-        Assert.AreEqual("0.3.3", overlay.LastPresentation?.Version);
+        var version = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(
+            typeof(WindowsHostCoordinator).Assembly)!.InformationalVersion.Split('+')[0];
+        Assert.AreEqual(version, overlay.LastPresentation?.Version);
     }
 
     [TestMethod]
@@ -273,8 +342,8 @@ public sealed class HostCoordinatorTests
         Assert.AreEqual(1, scanner.InvalidateCount);
         Assert.AreEqual(DisplayLanguage.English, overlay.LastPresentation?.Language);
         Assert.AreNotEqual(simplifiedFrame, overlay.LastPresentation?.Placement.Frame);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 1686.6666666666667) < 0.0001);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation.Placement.Frame.Width - 333.3333333333333) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 1598.6666666666667) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation.Placement.Frame.Width - 421.3333333333333) < 0.0001);
     }
 
     [TestMethod]
@@ -421,8 +490,8 @@ public sealed class HostCoordinatorTests
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
         Assert.AreEqual(PlacementSurface.RightToolbar, overlay.LastPresentation?.Placement.Surface);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 2522.6666666666665) < 0.0001);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation.Placement.Frame.Width - 333.3333333333333) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.X - 2434.6666666666665) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation.Placement.Frame.Width - 421.3333333333333) < 0.0001);
         Assert.IsTrue(Math.Abs(overlay.LastPresentation.Placement.Frame.Right - 2856) < 0.0001);
     }
 
@@ -458,7 +527,7 @@ public sealed class HostCoordinatorTests
         var result = await coordinator.ReconcileAsync(Snapshot(), CancellationToken.None);
 
         Assert.AreEqual(HostRuntimeState.Visible, result);
-        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.Width - 333.3333333333333) < 0.0001);
+        Assert.IsTrue(Math.Abs(overlay.LastPresentation!.Placement.Frame.Width - 421.3333333333333) < 0.0001);
         Assert.AreEqual(56, overlay.LastPresentation?.Placement.Frame.Height);
         Assert.AreEqual(88, overlay.LastPresentation?.Placement.Frame.Y);
     }
@@ -509,6 +578,7 @@ public sealed class HostCoordinatorTests
     [TestMethod]
     public void HostArgumentsAcceptTheExactHookContract()
     {
+        if (!OperatingSystem.IsWindows()) Assert.Inconclusive("Windows absolute-path semantics require Windows.");
         var result = WindowsHostArguments.TryParse([
             "--background",
             "--plugin-root", @"C:\fixture\plugin",
@@ -545,6 +615,13 @@ public sealed class HostCoordinatorTests
         Assert.AreEqual(18, OverlayVisualMetrics.HeaderTitleFontSize);
         Assert.AreEqual(9, OverlayVisualMetrics.VersionBadgeFontSize);
         Assert.AreEqual(18, OverlayVisualMetrics.VersionBadgeHeight);
+        Assert.AreEqual(26, OverlayVisualMetrics.DetailLockButtonSize);
+        Assert.AreEqual(6, OverlayVisualMetrics.DetailLockButtonBadgeGap);
+        Assert.AreEqual(20, OverlayVisualMetrics.DetailLockButtonHoverAlpha);
+        Assert.AreEqual(31, OverlayVisualMetrics.DetailLockButtonActiveAlpha);
+        Assert.AreEqual(14, OverlayVisualMetrics.DetailResizeHitHeight);
+        Assert.AreEqual(20, OverlayVisualMetrics.DetailResizeHandleWidth);
+        Assert.AreEqual(3, OverlayVisualMetrics.DetailResizeHandleHeight);
         Assert.AreEqual(28, OverlayVisualMetrics.RemainingPercentFontSize);
         Assert.AreEqual(13, OverlayVisualMetrics.DetailValueFontSize);
         Assert.AreEqual(16, OverlayVisualMetrics.CountdownDigitFontSize);

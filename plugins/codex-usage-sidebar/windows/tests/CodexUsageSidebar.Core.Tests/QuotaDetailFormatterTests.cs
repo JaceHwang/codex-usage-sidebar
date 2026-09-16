@@ -17,11 +17,11 @@ public sealed class QuotaDetailFormatterTests
 
         Assert.AreEqual("Codex 剩余额度", content.Title);
         CollectionAssert.Contains(content.Rows.ToArray(), new QuotaDetailRow("套餐", "Plus"));
-        CollectionAssert.Contains(content.Rows.ToArray(), new QuotaDetailRow("额度周期", "7 天"));
-        CollectionAssert.Contains(content.Rows.ToArray(), new QuotaDetailRow("下次重置", "8月2日 08:00（7d6h）"));
+        Assert.IsFalse(content.Rows.Any(row => row.Label == "额度周期"));
+        CollectionAssert.Contains(content.Rows.ToArray(), new QuotaDetailRow("下次重置", "7天6小时\n（2026/08/02 08:00）", true, 76));
         CollectionAssert.Contains(content.Rows.ToArray(), new QuotaDetailRow("Credits", "12.50"));
         CollectionAssert.Contains(content.Rows.ToArray(), new QuotaDetailRow("Bank 可用重置", "2 次"));
-        CollectionAssert.Contains(content.Rows.ToArray(), new QuotaDetailRow("Bank 1到期时间", "8月1日 04:19（6d2h）"));
+        CollectionAssert.Contains(content.Rows.ToArray(), new QuotaDetailRow("Bank 1到期时间", "6天2小时\n（2026/08/01 04:19）", true, 49));
     }
 
     [TestMethod]
@@ -33,11 +33,11 @@ public sealed class QuotaDetailFormatterTests
             FullSnapshot(), Now, DisplayLanguage.TraditionalChinese, ChinaTime);
 
         Assert.AreEqual("Codex quota", english.Title);
-        CollectionAssert.Contains(english.Rows.ToArray(), new QuotaDetailRow("Next reset", "Aug 2, 08:00 (7d6h)"));
+        CollectionAssert.Contains(english.Rows.ToArray(), new QuotaDetailRow("Next reset", "7d 6h\n(2026/08/02 08:00)", true, 76));
         CollectionAssert.Contains(english.Rows.ToArray(), new QuotaDetailRow("Bank resets available", "2 resets"));
         Assert.AreEqual("Codex 剩餘額度", traditional.Title);
         CollectionAssert.Contains(traditional.Rows.ToArray(), new QuotaDetailRow("方案", "Plus"));
-        CollectionAssert.Contains(traditional.Rows.ToArray(), new QuotaDetailRow("下次重設", "8月2日 08:00（7d6h）"));
+        CollectionAssert.Contains(traditional.Rows.ToArray(), new QuotaDetailRow("下次重設", "7天6小時\n（2026/08/02 08:00）", true, 76));
     }
 
     [TestMethod]
@@ -54,7 +54,7 @@ public sealed class QuotaDetailFormatterTests
         var account = new AccountIdentity("Jace", "jace@example.com", null);
 
         var content = QuotaDetailFormatter.Format(
-            FullSnapshot(), Now, DisplayLanguage.SimplifiedChinese, ChinaTime, usage, account, "0.3.3");
+            FullSnapshot(), new DateTimeOffset(2026, 8, 1, 12, 0, 0, TimeSpan.FromHours(8)), DisplayLanguage.SimplifiedChinese, ChinaTime, usage, account, "0.3.3");
 
         Assert.AreEqual("0.3.3", content.Version);
         Assert.AreEqual(account, content.Account);
@@ -88,12 +88,10 @@ public sealed class QuotaDetailFormatterTests
         Assert.AreEqual(85, content.QuotaWindows?[0].RemainingPercent);
         Assert.AreEqual("7 天", content.QuotaWindows?[1].Label);
         Assert.AreEqual(98, content.QuotaWindows?[1].RemainingPercent);
+        Assert.IsFalse(content.Rows.Any(row => row.Label.Contains("额度周期")));
         CollectionAssert.Contains(
             content.Rows.ToArray(),
-            new QuotaDetailRow("额度周期（7天）", "7 天"));
-        CollectionAssert.Contains(
-            content.Rows.ToArray(),
-            new QuotaDetailRow("下次重置（7天）", "9月1日 08:00（37d6h）"));
+            new QuotaDetailRow("下次重置（7天）", "37天6小时\n（2026/09/01 08:00）", true, 98));
 
         var summary = QuotaDetailFormatter.FormatIndicatorSummary(
             DualSnapshot(), DisplayLanguage.SimplifiedChinese, ChinaTime);

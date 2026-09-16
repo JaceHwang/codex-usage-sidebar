@@ -1,5 +1,7 @@
 # Quota Popover Reference Redesign
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 ## Status
 
 Approved visual direction: the user-provided reference image is the single visual source of truth. The bottom Jace user area and question-mark button are included.

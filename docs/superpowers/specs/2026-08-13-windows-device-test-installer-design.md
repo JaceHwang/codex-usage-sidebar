@@ -1,5 +1,7 @@
 # Windows Device-Test Installer Design
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 ## Scope
 
 This milestone connects the existing localized WPF installer shell to the already validated

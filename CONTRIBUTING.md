@@ -21,7 +21,10 @@ Requirements: macOS 14+, Apple Silicon, full Xcode, and a running Codex desktop 
 
 ```bash
 git clone https://github.com/JaceHwang/codex-usage-sidebar.git
-cd codex-usage-sidebar/plugins/codex-usage-sidebar
+cd codex-usage-sidebar
+git switch -c codex/feat/your-change
+./governance doctor
+cd plugins/codex-usage-sidebar
 bash scripts/build-companion.sh
 bash tests/test-sidebar-control.sh
 bash tests/test-signing-identity.sh
@@ -33,17 +36,22 @@ bash tests/live-app-server-probe.sh
 ## Pull requests
 
 - Add or update tests for behavior changes.
-- Keep the companion outside `/Applications/ChatGPT.app`.
+- Keep the companion outside the official Codex application bundle.
 - Keep companion authentication isolated from the normal `~/.codex` home.
 - Do not add telemetry or direct network calls without an explicit design discussion.
-- Run `CUS_ALLOW_SOURCE_AHEAD=1 bash scripts/validate-public-repo.sh` from the repository root on a
-  feature branch. Release promotion removes that exception before `main`.
+- Work on `codex/<type>/<kebab-case>`, never directly on `main`. Run `./governance doctor` before
+  code changes and `./governance check all` before pushing; do not bypass hooks or weaken checks.
+- Product versions are managed only through generated Release Please PRs. An unpublished working
+  candidate or local screenshot version is not a release.
+- Update both READMEs and the [current feature/design docs](docs/CURRENT_FEATURES.md) when behavior
+  changes. Generate native example images using the [documented fixture workflow](docs/images/current/README.md),
+  then inspect them before replacing references. Preserve historical release evidence.
 - Explain the user impact, root cause, and verification in the PR description.
 - Do not include personal paths, account data, full-screen desktop captures, or generated build trees.
 
 ## Commit style
 
-Use concise imperative subjects, for example:
+Use English Conventional Commit subjects and Conventional Commit PR titles, for example:
 
 ```text
 fix: keep the exact Open Location gap while panes move

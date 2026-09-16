@@ -1,5 +1,7 @@
 # Windows v0.3.3 实机诊断交接手册
 
+> Version-scoped historical handoff/validation document. See [current features](CURRENT_FEATURES.md) for present source scope. This record does not certify a new Windows candidate or supersede current repository governance.
+
 本手册用于在真实 Windows 11 AMD64/x64 电脑上进行已发布 v0.3.3 Windows 安装包的发布后诊断与兼容性报告。它不是绕过 Windows 安全对话框或发布新资产的授权。
 
 ## 1. 安全准备

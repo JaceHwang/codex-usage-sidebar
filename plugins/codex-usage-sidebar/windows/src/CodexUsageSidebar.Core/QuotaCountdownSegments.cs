@@ -18,6 +18,20 @@ public static class QuotaCountdownSegmenter
     public static IReadOnlyList<QuotaCountdownSegment> Segments(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
+        foreach (var pattern in new[]
+        {
+            @"^([0-9]+)(天)([0-9]+)(小时|小時)(\s*[（(].*)$",
+            @"^([0-9]+)(d\s+)([0-9]+)(h)(\s+\(.*)$",
+        })
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(value, pattern);
+            if (!match.Success) continue;
+            return [new(match.Groups[1].Value, QuotaCountdownSegmentRole.Digits),
+                new(match.Groups[2].Value, QuotaCountdownSegmentRole.Unit),
+                new(match.Groups[3].Value, QuotaCountdownSegmentRole.Digits),
+                new(match.Groups[4].Value, QuotaCountdownSegmentRole.Unit),
+                new(match.Groups[5].Value, QuotaCountdownSegmentRole.Plain)];
+        }
         var candidates = new List<Candidate>();
         AddCandidate(value, '（', '）', candidates);
         AddCandidate(value, '(', ')', candidates);

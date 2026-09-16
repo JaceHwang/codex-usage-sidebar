@@ -1,5 +1,7 @@
 # Windows v0.3.2 parity notes
 
+> Version-scoped historical handoff/validation document. See [current features](CURRENT_FEATURES.md) for present source scope. This record does not certify a new Windows candidate or supersede current repository governance.
+
 The Windows implementation now follows the same visible quota-card contract as the current macOS
 card. It uses the official Codex app-server over stdio and keeps the Codex application package
 read-only.

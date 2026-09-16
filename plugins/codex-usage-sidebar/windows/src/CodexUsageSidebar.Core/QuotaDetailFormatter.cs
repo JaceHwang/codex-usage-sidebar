@@ -1,8 +1,13 @@
 namespace CodexUsageSidebar.Core;
 
-public sealed record QuotaDetailRow(string Label, string Value);
+public sealed record QuotaDetailRow(string Label, string Value,
+    bool EmphasizeCountdown = false, int? AccentRemainingPercent = null);
 
 public sealed record QuotaWindowPresentation(string Label, int RemainingPercent);
+public sealed record QuotaIndicatorRow(string Label, int RemainingPercent, string Reset)
+{
+    public string Percentage => $"{RemainingPercent}%";
+}
 
 public sealed record QuotaIndicatorSummary(
     string Primary,
@@ -32,13 +37,17 @@ public sealed record QuotaDetailContent(
     IReadOnlyList<QuotaDetailRow> Rows,
     QuotaTokenUsageContent? TokenUsage = null,
     AccountIdentity? Account = null,
-    string Version = QuotaDetailFormatter.ProductVersion,
+    string Version = "",
     string AccountLabel = "Account",
     IReadOnlyList<QuotaWindowPresentation>? QuotaWindows = null);
 
 public static class QuotaDetailFormatter
 {
-    public const string ProductVersion = "0.3.3";
+    public static string ProductVersion { get; } =
+        System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(
+            typeof(QuotaDetailFormatter).Assembly)?.InformationalVersion.Split('+')[0]
+        ?? typeof(QuotaDetailFormatter).Assembly.GetName().Version?.ToString(3)
+        ?? "unknown";
     private static readonly string[] EnglishMonths =
         ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -57,25 +66,21 @@ public static class QuotaDetailFormatter
         {
             rows.Add(new QuotaDetailRow(copy.Plan, Capitalize(snapshot.PlanType)));
         }
-        if (snapshot.WindowDurationMinutes is > 0)
-        {
-            rows.Add(new QuotaDetailRow(
-                copy.QuotaWindow,
-                FormatPeriod(snapshot.WindowDurationMinutes.Value, language)));
-        }
         rows.Add(new QuotaDetailRow(
-            copy.NextReset,
-            FormatDateWithInterval(snapshot.ResetsAt, now, language, timeZone)));
+            snapshot.Secondary is not null || snapshot.WindowDurationMinutes == 300
+                ? language switch
+                {
+                    DisplayLanguage.SimplifiedChinese => "下次重置（5小时）",
+                    DisplayLanguage.TraditionalChinese => "下次重設（5小時）",
+                    _ => "Next reset (5 hours)",
+                } : copy.NextReset,
+            FormatDateWithInterval(snapshot.ResetsAt, now, language, timeZone), true, snapshot.RemainingPercent));
         if (snapshot.Secondary is { } secondary)
         {
             rows.Add(new QuotaDetailRow(
-                copy.SecondaryQuotaWindow,
-                FormatPeriod(secondary.WindowDurationMinutes ?? 10_080, language)));
-            rows.Add(new QuotaDetailRow(
                 copy.SecondaryNextReset,
-                FormatDateWithInterval(secondary.ResetsAt, now, language, timeZone)));
+                FormatDateWithInterval(secondary.ResetsAt, now, language, timeZone), true, secondary.RemainingPercent));
         }
-        rows.Add(new QuotaDetailRow("Credits", FormatCredits(snapshot.Credits, copy)));
 
         var primaryWindowLabel = snapshot.WindowDurationMinutes is { } primaryMinutes
             ? FormatPeriod(primaryMinutes, language)
@@ -105,7 +110,8 @@ public static class QuotaDetailFormatter
             {
                 rows.Add(new QuotaDetailRow(
                     copy.BankExpiry(index + 1),
-                    FormatBankExpiry(credits[index], now, language, timeZone, copy)));
+                    FormatBankExpiry(credits[index], now, language, timeZone, copy), true,
+                    BankExpiryAccentPercent(credits[index].ExpiresAt, now)));
             }
             if (credits.Length == 0 && bank.AvailableCount > 0)
             {
@@ -116,6 +122,7 @@ public static class QuotaDetailFormatter
         {
             rows.Add(new QuotaDetailRow(copy.BankAvailable, copy.NoData));
         }
+        rows.Add(new QuotaDetailRow("Credits", FormatCredits(snapshot.Credits, copy)));
         rows.Add(new QuotaDetailRow(copy.Updated, FormatFreshness(snapshot.ReceivedAt, now, language, copy)));
 
         return new QuotaDetailContent(
@@ -127,6 +134,17 @@ public static class QuotaDetailFormatter
             string.IsNullOrWhiteSpace(version) ? ProductVersion : version,
             copy.Account,
             quotaWindows);
+    }
+
+    private static int? BankExpiryAccentPercent(
+        DateTimeOffset? expiresAt,
+        DateTimeOffset now)
+    {
+        if (expiresAt is null) return null;
+        var remaining = expiresAt.Value - now;
+        if (remaining <= TimeSpan.FromDays(3)) return 10;
+        if (remaining <= TimeSpan.FromDays(7)) return 49;
+        return 100;
     }
 
     public static QuotaIndicatorSummary FormatIndicatorSummary(
@@ -159,6 +177,27 @@ public static class QuotaDetailFormatter
             snapshot.Secondary?.RemainingPercent);
     }
 
+    public static IReadOnlyList<QuotaIndicatorRow> FormatIndicatorRows(
+        AllowanceSnapshot snapshot, DisplayLanguage language, TimeZoneInfo timeZone)
+    {
+        string Date(DateTimeOffset reset)
+        {
+            var local = TimeZoneInfo.ConvertTime(reset, timeZone);
+            return language == DisplayLanguage.English
+                ? $"{EnglishMonths[local.Month - 1]} {local.Day}, {local:HH:mm}"
+                : $"{local.Month}月{local.Day}日 {local:HH:mm}";
+        }
+        var copy = QuotaCopy.For(language);
+        var rows = new List<QuotaIndicatorRow>
+        {
+            new(snapshot.WindowDurationMinutes is { } minutes ? FormatPeriod(minutes, language) : copy.PrimaryQuotaWindow,
+                snapshot.RemainingPercent, Date(snapshot.ResetsAt)),
+        };
+        if (snapshot.Secondary is { } secondary)
+            rows.Add(new(copy.SecondaryQuotaWindowValue, secondary.RemainingPercent, Date(secondary.ResetsAt)));
+        return rows;
+    }
+
     private static QuotaTokenUsageContent? FormatTokenUsage(
         AllowanceSnapshot snapshot,
         TokenUsageSnapshot? tokenUsage,
@@ -168,41 +207,30 @@ public static class QuotaDetailFormatter
         QuotaCopy copy)
     {
         if (tokenUsage is null) return null;
+        var cycle = TokenUsageWindow.Resolve(snapshot, tokenUsage, now, timeZone);
         var localNow = TimeZoneInfo.ConvertTime(now, timeZone);
-        var localReset = TimeZoneInfo.ConvertTime(snapshot.ResetsAt, timeZone);
-        var cycleStart = snapshot.WindowDurationMinutes is > 0
-            ? localReset.Date.AddMinutes(-snapshot.WindowDurationMinutes.Value)
-            : localNow.Date.AddDays(-6);
-        var buckets = tokenUsage.DailyBuckets.ToDictionary(bucket => bucket.Date, bucket => bucket.Tokens);
         var days = Enumerable.Range(0, 7)
-            .Select(offset => cycleStart.AddDays(offset))
+            .Select(offset => cycle.FirstDay.AddDays(offset))
             .Select(date =>
             {
-                var dateOnly = DateOnly.FromDateTime(date);
-                var tokens = tokenUsage.Availability == TokenUsageAvailability.Available
-                    && date < localReset.Date
-                    && buckets.TryGetValue(dateOnly, out var value)
-                        ? value
-                        : 0L;
+                var tokens = cycle.TokensByDay.GetValueOrDefault(date);
                 return new QuotaTokenUsageDay(
-                    dateOnly,
-                    FormatChartDate(dateOnly, language),
+                    date,
+                    FormatChartDate(date, language),
                     FormatTokenCount(tokens),
                     tokens,
-                    dateOnly == DateOnly.FromDateTime(localNow.DateTime));
+                    date == DateOnly.FromDateTime(localNow.DateTime));
             })
             .ToArray();
-        var total = tokenUsage.Availability == TokenUsageAvailability.Available
-            ? days.Sum(day => day.Tokens)
-            : 0L;
+        var total = cycle.Total;
         return new QuotaTokenUsageContent(
             copy.TokenTitle,
-            tokenUsage.Availability,
+            cycle.Availability,
             days,
             total,
-            FormatTokenTotal(total, language),
+            cycle.Availability == TokenUsageAvailability.Available ? FormatTokenTotal(total, language) : copy.TokenUnavailable,
             copy.TokenUnavailable,
-            tokenUsage.Availability == TokenUsageAvailability.Available
+            cycle.Availability == TokenUsageAvailability.Available
                 ? copy.TokenDelay
                 : null);
     }
@@ -266,13 +294,11 @@ public static class QuotaDetailFormatter
         TimeZoneInfo timeZone)
     {
         var local = TimeZoneInfo.ConvertTime(date, timeZone);
-        var absolute = language == DisplayLanguage.English
-            ? $"{EnglishMonths[local.Month - 1]} {local.Day}, {local:HH:mm}"
-            : $"{local.Month}月{local.Day}日 {local:HH:mm}";
+        var absolute = local.ToString("yyyy/MM/dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         var relative = FormatRelative(now, date, language);
         return language == DisplayLanguage.English
-            ? $"{absolute} ({relative})"
-            : $"{absolute}（{relative}）";
+            ? $"{relative}\n({absolute})"
+            : $"{relative}\n（{absolute}）";
     }
 
     private static string FormatRelative(
@@ -280,30 +306,21 @@ public static class QuotaDetailFormatter
         DateTimeOffset target,
         DisplayLanguage language)
     {
-        var interval = target - now;
-        var totalSeconds = (long)Math.Floor(Math.Abs(interval.TotalSeconds));
-        string value;
-        if (totalSeconds >= 86_400)
+        var seconds = Math.Max(0, (target - now).TotalSeconds);
+        if (seconds < 60) return "<1m";
+        if (seconds < 3600) return language switch
         {
-            value = $"{totalSeconds / 86_400}d{totalSeconds % 86_400 / 3_600}h";
-        }
-        else if (totalSeconds >= 3_600)
+            DisplayLanguage.SimplifiedChinese => $"{(long)(seconds / 60)}分钟",
+            DisplayLanguage.TraditionalChinese => $"{(long)(seconds / 60)}分鐘",
+            _ => $"{(long)(seconds / 60)}m",
+        };
+        var hours = (long)(seconds / 3600);
+        return language switch
         {
-            value = $"{totalSeconds / 3_600}h{totalSeconds % 3_600 / 60}m";
-        }
-        else if (totalSeconds >= 60)
-        {
-            value = $"{totalSeconds / 60}m";
-        }
-        else
-        {
-            value = "<1m";
-        }
-        if (interval >= TimeSpan.Zero)
-        {
-            return value;
-        }
-        return language == DisplayLanguage.English ? value + " ago" : value + "前";
+            DisplayLanguage.SimplifiedChinese => $"{hours / 24}天{hours % 24}小时",
+            DisplayLanguage.TraditionalChinese => $"{hours / 24}天{hours % 24}小時",
+            _ => $"{hours / 24}d {hours % 24}h",
+        };
     }
 
     private static string FormatBankExpiry(

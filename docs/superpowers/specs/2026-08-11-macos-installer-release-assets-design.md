@@ -1,5 +1,7 @@
 # Codex Usage Sidebar macOS Installer and Release Assets Design
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 ## Context
 
 Codex Usage Sidebar is currently distributed as a Codex marketplace plugin whose session hook

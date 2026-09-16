@@ -1,5 +1,7 @@
 # Token Usage Popover Implementation Plan
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add an official app-server-backed current-cycle token usage chart and total to the native quota popover while preserving the Tibo X row, multilingual behavior, countdown emphasis, and existing placement/lifecycle behavior.

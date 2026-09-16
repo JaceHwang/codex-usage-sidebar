@@ -3,9 +3,15 @@ set -euo pipefail
 
 plugin_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 executable="$plugin_root/assets/Codex Usage Sidebar.app/Contents/MacOS/CodexUsageSidebar"
+resource_bundle="$plugin_root/assets/Codex Usage Sidebar.app/Contents/Resources/CodexUsageSidebar_CodexUsageSidebar.bundle"
 
 [[ -x "$executable" ]] || {
   printf 'companion executable is missing: %s\n' "$executable" >&2
+  exit 66
+}
+
+[[ -d "$resource_bundle" ]] || {
+  printf 'companion resource bundle is missing: %s\n' "$resource_bundle" >&2
   exit 66
 }
 

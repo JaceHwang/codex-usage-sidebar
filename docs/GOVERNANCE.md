@@ -24,8 +24,8 @@ directly on `main`, or manually change a product version in an ordinary commit.
 
 ## Versions and releases
 
-The current stable product version has one machine-readable source of truth:
-`.release-please-manifest.json`. A Release Please PR updates the product version
+Release Please manages the product version through `.release-please-manifest.json`.
+A candidate value in the working tree is not evidence of a published stable release. A Release Please PR updates the product version
 in `version.txt`, the plugin manifest, the macOS bundle plist, the Windows
 `VersionPrefix`, and `CHANGELOG.md` together.
 
@@ -36,11 +36,20 @@ and chore changes do not release by default.
 
 Release Please creates a draft GitHub Release. This project uses staged platform
 publishing: a platform must build from the exact tag/SHA, pass its verifier, and
-must not overwrite an existing asset. The generic staged publisher is retained
-as a migration gate while the established macOS and Windows evidence-bound
-release workflows are still authoritative. Do not disable those legacy workflows
-until their tag, checksum, provenance, and asset tests are equivalent.
+must not overwrite an existing asset. For macOS 0.4.0, the staged publisher selects the macOS runner and delegates to the versioned
+build/package/verifier scripts. It checks the exact tag, clean checkout, arm64 payload, signatures,
+SDK, checksum and provenance before upload. Windows publishing remains on its existing
+evidence-bound workflow until equivalent verification is implemented.
 
 Pre-releases are only made from `codex/prerelease/alpha`,
 `codex/prerelease/beta`, or `codex/prerelease/rc`; stable releases still come
 from `main`.
+
+## macOS 0.4.0 release preparation
+
+The catalog uses `v0.4.0`, matching Release Please and the unified product version policy.
+The planned catalog is release intent; only uploaded, verified assets make a platform available.
+Ordinary feature commits retain the current released version; Release Please performs the bump.
+After its version PR changes the bundle plist, rebuild and sign the companion from that PR's exact
+source commit, update payload provenance, and rerun every required check before merging.
+Never manually create a stable tag or use a dirty local build as exact release provenance.

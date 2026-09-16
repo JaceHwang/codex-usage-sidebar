@@ -1,5 +1,7 @@
 # Windows v0.3.3 real-device diagnostics handoff
 
+> Version-scoped historical handoff/validation document. See [current features](CURRENT_FEATURES.md) for present source scope. This record does not certify a new Windows candidate or supersede current repository governance.
+
 Use this procedure for post-release diagnostics and compatibility reports for the published v0.3.3 Windows setup on a real Windows 11 AMD64/x64 computer. It is not authorization to bypass Windows security UI or publish new assets.
 
 ## 1. Prepare safely

@@ -208,6 +208,11 @@ public struct QuotaDetailFormatter: Sendable {
                             now: now,
                             copy: copy,
                             timeZone: timeZone
+                        ),
+                        valueStyle: .resetCountdown,
+                        accentRemainingPercent: bankExpiryAccentPercent(
+                            expiresAt: item.element.expiresAt,
+                            now: now
                         )
                     )
                 )
@@ -424,6 +429,21 @@ public struct QuotaDetailFormatter: Sendable {
                 ? "\(expiryDescription) · \(copy.expired)"
                 : expiryDescription
         }
+    }
+
+    private func bankExpiryAccentPercent(
+        expiresAt: Date?,
+        now: Date
+    ) -> Int? {
+        guard let expiresAt else { return nil }
+        let remaining = expiresAt.timeIntervalSince(now)
+        if remaining <= 3 * 24 * 60 * 60 {
+            return 10
+        }
+        if remaining <= 7 * 24 * 60 * 60 {
+            return 49
+        }
+        return 100
     }
 
     private func displayFreshness(

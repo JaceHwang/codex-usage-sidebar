@@ -1,5 +1,7 @@
 # Emphasized Countdown Typography Design
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 ## Goal
 
 Make compact reset intervals such as `（5d21h）` and `(2d6h)` faster to scan in the quota popover without adding a capsule, background, border, or extra width.

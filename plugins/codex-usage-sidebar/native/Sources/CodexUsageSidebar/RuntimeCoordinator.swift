@@ -32,6 +32,8 @@ struct RuntimeTokenUsageState {
 @MainActor
 final class RuntimeCoordinator: NSObject {
     private let overlay = OverlayPanel()
+    private let placementStore = IndicatorPlacementStore()
+    private var placementPreferences = IndicatorPlacementPreferences()
     private let accessibility = AccessibilityLocator()
     private let contentHeader = ContentHeaderLocator()
     private let formatter = ResetFormatter()
@@ -81,6 +83,23 @@ final class RuntimeCoordinator: NSObject {
             )
         }
         super.init()
+        placementPreferences = placementStore.preferences
+        overlay.placementMode = placementPreferences.mode
+        overlay.onPlacementModeSelected = { [weak self] mode, frame in
+            self?.selectPlacementMode(mode, currentFrame: frame)
+        }
+        overlay.onIndicatorDragged = { [weak self] frame in
+            self?.updateDraggedIndicatorFrame(frame) ?? frame
+        }
+        overlay.onIndicatorDragEnded = { [weak self] frame in
+            self?.persistDraggedIndicatorFrame(frame)
+        }
+        overlay.onReloadRequested = { [weak self] in
+            self?.reloadCompanion()
+        }
+        overlay.onQuitRequested = {
+            NSApplication.shared.terminate(nil)
+        }
     }
 
     func start() {
@@ -165,6 +184,14 @@ final class RuntimeCoordinator: NSObject {
         }
     }
 
+    func reloadCompanion() {
+        reconcileLanguage()
+        reconcileHost()
+        nextPeriodicRefresh = .distantPast
+        refreshNow(reason: .focus)
+        reconcileOverlay()
+    }
+
     func reconcileOverlay() {
         guard isCodexForeground else {
             recordDiagnosticState("hidden:not-foreground")
@@ -219,10 +246,14 @@ final class RuntimeCoordinator: NSObject {
             hideOverlay()
             return
         }
-        let resolvedIndicatorFrame = OverlayLayout.indicatorFrame(
+        applyAutomaticFreeFallback()
+        let automaticIndicatorFrame = contentHeader.collisionFreeIndicatorFrame ?? OverlayLayout.indicatorFrame(
             in: windowFrame,
             contentTrailingEdge: anchor.trailingEdge,
             width: resolvedIndicatorWidth
+        )
+        let resolvedIndicatorFrame = resolvedIndicatorFrame(
+            automaticFrame: automaticIndicatorFrame
         )
         guard let detail = detailContent() else {
             recordDiagnosticState("hidden:no-snapshot")
@@ -234,12 +265,13 @@ final class RuntimeCoordinator: NSObject {
             summary: summary,
             indicatorFrame: resolvedIndicatorFrame,
             theme: currentTheme,
+            language: languageState.language,
             detail: detail,
             dimmed: freshness == .dimmed
         )
 
         recordDiagnosticState(
-            "shown placement=content-header anchor=\(anchor.source.rawValue) " +
+            "shown placement=content-header mode=\(placementPreferences.mode.rawValue) anchor=\(anchor.source.rawValue) " +
                 "indicator=\(Int(resolvedIndicatorFrame.minX))," +
                 "\(Int(resolvedIndicatorFrame.minY))," +
                 "\(Int(resolvedIndicatorFrame.width))," +
@@ -283,6 +315,12 @@ final class RuntimeCoordinator: NSObject {
     }
 
     private func trackOverlayPosition() {
+        // During a free drag, the indicator is positioned from the current
+        // screen pointer. The periodic host-layout probe must not overwrite
+        // that live frame with a stale title-bar calculation.
+        guard !overlay.isDraggingIndicator else {
+            return
+        }
         guard
             isCodexForeground,
             let processIdentifier = host?.processIdentifier,
@@ -301,18 +339,133 @@ final class RuntimeCoordinator: NSObject {
             hideOverlay()
             return
         }
+        applyAutomaticFreeFallback()
         // A missing content anchor is an expected state while Codex is
         // resizing the middle tab or rebuilding its toolbar. Keep the
         // indicator alive in the independent right-side fallback slot
         // instead of leaving the previous frame behind (or skipping the
         // update entirely).
         overlay.reposition(
-            to: OverlayLayout.indicatorFrame(
+            to: resolvedIndicatorFrame(
+                automaticFrame: contentHeader.collisionFreeIndicatorFrame ?? OverlayLayout.indicatorFrame(
                 in: windowFrame,
                 contentTrailingEdge: anchor.trailingEdge,
                 width: currentIndicatorWidth
+                )
             )
         )
+    }
+
+    private func applyAutomaticFreeFallback() {
+        guard placementPreferences.mode == .automatic,
+              contentHeader.shouldSwitchToFree,
+              let frame = contentHeader.collisionFreeIndicatorFrame else { return }
+        if let screen = placementStore.screen(containing: frame) {
+            placementPreferences.switchToFreeFallback(
+                frame: frame, visibleFrame: screen.visibleFrame,
+                displayID: placementStore.displayID(for: screen)
+            )
+        } else {
+            placementPreferences.mode = .free
+        }
+        placementStore.preferences = placementPreferences
+        overlay.placementMode = .free
+        recordDiagnosticState("placement=free reason=default-position-occupied")
+    }
+
+    private func resolvedIndicatorFrame(automaticFrame: CGRect) -> CGRect {
+        let preferences = placementPreferences
+        if preferences.mode.usesManualFrame,
+           let displayID = preferences.activeManualDisplayID,
+           let screen = placementStore.screen(forDisplayID: displayID)
+        {
+            return IndicatorPlacementResolver.frame(
+                preferences: preferences,
+                automaticFrame: automaticFrame,
+                displayID: displayID,
+                visibleFrame: screen.visibleFrame
+            )
+        }
+        guard let screen = placementStore.screen(containing: automaticFrame) else {
+            return automaticFrame
+        }
+        return IndicatorPlacementResolver.frame(
+            preferences: preferences,
+            automaticFrame: automaticFrame,
+            displayID: placementStore.displayID(for: screen),
+            visibleFrame: screen.visibleFrame
+        )
+    }
+
+    private func selectPlacementMode(
+        _ mode: IndicatorPlacementMode,
+        currentFrame: CGRect
+    ) {
+        var preferences = placementPreferences
+        guard let screen = placementStore.screen(containing: currentFrame) else {
+            preferences.mode = mode
+            placementPreferences = preferences
+            placementStore.preferences = preferences
+            overlay.placementMode = mode
+            reconcileOverlay()
+            return
+        }
+        let displayID = placementStore.displayID(for: screen)
+        if mode.usesManualFrame,
+           (preferences.mode == .automatic ||
+                preferences.placement(for: displayID) == nil)
+        {
+            preferences.captureManualPlacement(
+                frame: currentFrame,
+                visibleFrame: screen.visibleFrame,
+                displayID: displayID
+            )
+        }
+        preferences.mode = mode
+        placementPreferences = preferences
+        placementStore.preferences = preferences
+        overlay.placementMode = mode
+        reconcileOverlay()
+    }
+
+    private func updateDraggedIndicatorFrame(_ frame: CGRect) -> CGRect {
+        guard let screen = placementStore.screen(containing: frame) else {
+            return frame
+        }
+        let displayID = placementStore.displayID(for: screen)
+        var preferences = placementPreferences
+        preferences.captureManualPlacement(
+            frame: frame,
+            visibleFrame: screen.visibleFrame,
+            displayID: displayID
+        )
+        placementPreferences = preferences
+        return IndicatorPlacementResolver.frame(
+            preferences: preferences,
+            automaticFrame: frame,
+            displayID: displayID,
+            visibleFrame: screen.visibleFrame
+        )
+    }
+
+    private func persistDraggedIndicatorFrame(_ frame: CGRect) {
+        // The in-memory placement was already updated on every pointer event.
+        // Persist only once when the pointer is released so disk encoding never
+        // competes with the live drag path.
+        guard placementPreferences.mode == .free else {
+            return
+        }
+        if let screen = placementStore.screen(containing: frame) {
+            let displayID = placementStore.displayID(for: screen)
+            var preferences = placementPreferences
+            preferences.captureManualPlacement(
+                frame: frame,
+                visibleFrame: screen.visibleFrame,
+                displayID: displayID
+            )
+            placementPreferences = preferences
+        }
+        placementStore.preferences = placementPreferences
     }
 
     private var isCodexForeground: Bool {

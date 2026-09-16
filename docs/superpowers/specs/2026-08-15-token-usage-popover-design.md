@@ -1,5 +1,7 @@
 # Token Usage Popover Design
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 ## Objective
 
 Add current-quota-cycle token usage to the native Codex Usage Sidebar quota popover. The popover will show a daily breakdown and a period total, reuse Codex's authenticated app-server data channel, retain the existing Tibo X information entry, and keep all existing quota, Bank, theme, language, placement, and pinning behavior intact.

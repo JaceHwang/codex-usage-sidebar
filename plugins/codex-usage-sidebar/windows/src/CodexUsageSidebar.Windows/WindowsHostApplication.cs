@@ -86,6 +86,9 @@ internal sealed class WindowsOverlayRuntime : IDisposable
     private int reconcileInProgress;
     private Task? sessionTask;
     private RuntimeStateOutcome? lastOutcome;
+    private readonly object sessionGate = new();
+    private CancellationTokenSource? currentSessionCancellation;
+    private readonly ITitlebarScanner titlebarScanner;
 
     internal WindowsOverlayRuntime(
         WindowsRuntimePaths paths,
@@ -98,10 +101,18 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         var language = LanguageResolver.Resolve(CultureInfo.CurrentUICulture.Name);
         languageProvider = WindowsCodexLanguageProvider.CreateDefault();
         languageState = new RuntimeLanguageState(language);
-        overlay = new WpfOverlaySurface(language, TimeZoneInfo.Local);
+        var placementStore = new IndicatorPreferencesStore(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "CodexUsageSidebar", "indicator-placement.json"));
+        var placementPreferences = placementStore.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
+        var surface = new WpfOverlaySurface(language, TimeZoneInfo.Local, placementPreferences, placementStore);
+        surface.ReloadRequested += () => _ = ReloadAsync();
+        surface.QuitRequested += () => Application.Current?.Shutdown();
+        overlay = surface;
+        this.titlebarScanner = titlebarScanner ?? new ValidatedUiaTitlebarScanner();
         coordinator = new WindowsHostCoordinator(
             new Win32CodexWindowLocator(),
-            titlebarScanner ?? new ValidatedUiaTitlebarScanner(),
+            this.titlebarScanner,
             overlay,
             runtimeStateStore: runtimeStateStore,
             safeDockPreferences: safeDockPreferences,
@@ -188,6 +199,16 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         await coordinator.UpdateSafeDockPreferencesAsync(preferences, cancellation.Token).ConfigureAwait(false);
     }
 
+    private async Task ReloadAsync()
+    {
+        nextLanguageRefresh = DateTimeOffset.MinValue;
+        titlebarScanner.Invalidate();
+        // Restart only the data session, not the application or its singleton.
+        // The initial handshake rereads quota, account, and weekly usage together.
+        lock (sessionGate) currentSessionCancellation?.Cancel();
+        await ReconcileAsync();
+    }
+
     private async Task ExportDiagnosticsAsync(string destination)
     {
         var report = await new WindowsDiagnosticProbe(new Win32CodexWindowLocator())
@@ -211,6 +232,8 @@ internal sealed class WindowsOverlayRuntime : IDisposable
     {
         while (!cancellationToken.IsCancellationRequested)
         {
+            using var sessionCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            lock (sessionGate) currentSessionCancellation = sessionCancellation;
             try
             {
                 var session = new AppServerSession(
@@ -223,7 +246,7 @@ internal sealed class WindowsOverlayRuntime : IDisposable
                         Volatile.Write(ref latestSnapshot, snapshot);
                         return ValueTask.CompletedTask;
                     },
-                    cancellationToken,
+                    sessionCancellation.Token,
                     usage =>
                     {
                         if (usage.Availability == TokenUsageAvailability.Available)
@@ -246,6 +269,10 @@ internal sealed class WindowsOverlayRuntime : IDisposable
             {
                 break;
             }
+            catch (OperationCanceledException) when (sessionCancellation.IsCancellationRequested)
+            {
+                // Explicit Reload starts the next session without the failure backoff.
+            }
             catch (Exception)
             {
                 Volatile.Write(ref latestSnapshot, null);
@@ -259,6 +286,11 @@ internal sealed class WindowsOverlayRuntime : IDisposable
                 {
                     break;
                 }
+            }
+            finally
+            {
+                lock (sessionGate)
+                    if (ReferenceEquals(currentSessionCancellation, sessionCancellation)) currentSessionCancellation = null;
             }
         }
     }

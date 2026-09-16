@@ -42,7 +42,8 @@ public readonly record struct SafeDockPlacementRequest(
     RectD WorkArea,
     RectD CaptionBounds,
     double DpiScale,
-    SafeDockPreferences Preferences);
+    SafeDockPreferences Preferences,
+    double? IndicatorWidthDip = null);
 
 public readonly record struct SafeDockPlacementResult(
     RectD? Frame,
@@ -74,6 +75,9 @@ public static class SafeDockPlacementResolver
         foreach (var size in CandidateSizes(request.Preferences.Size))
         {
             var indicator = SizeFor(size, request.DpiScale);
+            if (size == SafeDockSize.Standard && request.IndicatorWidthDip is { } measuredWidth
+                && double.IsFinite(measuredWidth) && measuredWidth > 0)
+                indicator = new CompatibilitySize(measuredWidth * request.DpiScale, indicator.Height);
             var frame = ResolveFrame(bounds, request.HostBounds, request.CaptionBounds, indicator, request);
             if (frame is not null)
             {

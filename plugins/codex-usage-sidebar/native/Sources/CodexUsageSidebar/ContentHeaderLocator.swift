@@ -23,6 +23,8 @@ final class ContentHeaderLocator {
     private let cacheLifetime: TimeInterval = 0.75
     private var cachedAnchor: CachedAnchor?
     private(set) var isSettingsPage = false
+    private(set) var collisionFreeIndicatorFrame: CGRect?
+    private(set) var shouldSwitchToFree = false
     private(set) var latestDiagnosticDetail = "anchor_scan=not-run"
 
     func resolve(
@@ -30,6 +32,8 @@ final class ContentHeaderLocator {
         windowFrame: CGRect,
         indicatorWidth: CGFloat = OverlayLayout.indicatorWidth
     ) -> ContentHeaderAnchor {
+        collisionFreeIndicatorFrame = nil
+        shouldSwitchToFree = false
         guard AXIsProcessTrusted() else {
             isSettingsPage = false
             latestDiagnosticDetail = "anchor_scan=accessibility-required"
@@ -52,9 +56,9 @@ final class ContentHeaderLocator {
             window: window
         )
 
-        var scanMinimumX = ContentHeaderAnchorResolver.initialScanMinimumX(
-            in: windowFrame
-        )
+        // Search the complete toolbar for free space and interactive obstacles.
+        // Anchor selection still applies its own central-content constraints.
+        var scanMinimumX = windowFrame.minX
         var scan = scanLayout(
             in: window,
             windowFrame: windowFrame,
@@ -133,6 +137,15 @@ final class ContentHeaderLocator {
             cached: retainedAnchor
         )
         let usedCachedAnchor = anchor != scannedAnchor
+        let placement = ContentHeaderAnchorResolver.automaticPlacement(
+            anchor: anchor,
+            controls: scan.obstacles,
+            windowFrame: windowFrame,
+            indicatorWidth: indicatorWidth,
+            minimumScannedX: scanMinimumX
+        )
+        collisionFreeIndicatorFrame = placement.frame
+        shouldSwitchToFree = placement.shouldSwitchToFree
         if scannedAnchor.trailingEdge != nil, scannedAnchor.source != .fallback {
             cachedAnchor = CachedAnchor(
                 processIdentifier: processIdentifier,
@@ -148,6 +161,9 @@ final class ContentHeaderLocator {
         let edge = anchor.trailingEdge.map { String(Int($0)) } ?? "fallback"
         latestDiagnosticDetail =
             "anchor_scan=visited:\(totalVisited)," +
+            "obstacles:\(scan.obstacles.count),freeFallback:\(placement.shouldSwitchToFree)," +
+            (ProcessInfo.processInfo.environment["CUS_DIAGNOSTIC_OBSTACLES"] == "1"
+                ? "obstacleBounds:\(scan.obstacleDetails.joined(separator: ";"))," : "") +
             "controls:\(scan.controls.count),panes:\(scan.panes.count)," +
             "passes:\(scanPasses),minimumX:\(Int(scanMinimumX))," +
             "cached:\(usedCachedAnchor),source:\(anchor.source.rawValue),edge:\(edge)," +
@@ -210,13 +226,15 @@ final class ContentHeaderLocator {
         in window: AXUIElement,
         windowFrame: CGRect,
         minimumX: CGFloat
-    ) -> (controls: [ContentHeaderControl], panes: [CGRect], visited: Int) {
+    ) -> (controls: [ContentHeaderControl], obstacles: [ContentHeaderControl], obstacleDetails: [String], panes: [CGRect], visited: Int) {
         var queue = children(of: window).map {
             QueueEntry(element: $0, depth: 1)
         }
         var index = 0
         var visited = 0
         var controls: [ContentHeaderControl] = []
+        var obstacles: [ContentHeaderControl] = []
+        var obstacleDetails: [String] = []
         var panes: [CGRect] = []
 
         while index < queue.count, visited < maximumElements {
@@ -232,20 +250,37 @@ final class ContentHeaderLocator {
                 let topLeftFrame = frame(of: entry.element)
             {
                 let appKitFrame = appKitFrame(fromTopLeftFrame: topLeftFrame)
+                let inToolbar = appKitFrame.width > 0 && appKitFrame.height > 0
+                    && appKitFrame.height <= OverlayLayout.toolbarHeight * 2
+                    && appKitFrame.maxY > windowFrame.maxY - OverlayLayout.toolbarHeight
+                    && appKitFrame.minY < windowFrame.maxY
+                var actionNames: CFArray?
+                if inToolbar { AXUIElementCopyActionNames(entry.element, &actionNames) }
+                let interactive = ContentHeaderAnchorResolver.isInteractiveToolbarRole(
+                    role, actions: actionNames as? [String] ?? []
+                )
+                // Interactive controls can cross the toolbar boundary. Keep
+                // their whole frame for safety without admitting conversation
+                // text as a new positioning anchor.
+                if interactive, inToolbar {
+                    obstacles.append(ContentHeaderControl(frame: appKitFrame, labels: []))
+                    obstacleDetails.append("\(role)[\((actionNames as? [String] ?? []).joined(separator: ","))]@\(Int(appKitFrame.minX)),\(Int(appKitFrame.minY)),\(Int(appKitFrame.width)),\(Int(appKitFrame.height))")
+                }
                 if
-                    (role == "AXButton" || role == "AXStaticText"),
+                    (interactive || role == "AXStaticText"),
                     ContentHeaderAnchorResolver.isEligibleToolbarItem(
                         frame: appKitFrame,
                         windowFrame: windowFrame,
-                        isAnchorCandidate: role == "AXButton"
+                        isAnchorCandidate: interactive
                     )
                 {
                     if let control = control(
                         for: entry.element,
                         appKitFrame: appKitFrame,
-                        isAnchorCandidate: role == "AXButton"
+                        isAnchorCandidate: interactive
                     ) {
                         controls.append(control)
+                        if role == "AXStaticText" { obstacles.append(control) }
                     }
                 } else if role == "AXGroup" {
                     panes.append(appKitFrame)
@@ -270,7 +305,7 @@ final class ContentHeaderLocator {
                 )
             }
         }
-        return (controls, panes, visited)
+        return (controls, obstacles, obstacleDetails, panes, visited)
     }
 
     private func retainedAnchor(

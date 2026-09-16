@@ -18,6 +18,13 @@ public static class OverlayVisualMetrics
     public const double HeaderTitleMaximumWidth = 190;
     public const double VersionBadgeFontSize = 9;
     public const double VersionBadgeHeight = 18;
+    public const double DetailLockButtonSize = 26;
+    public const double DetailLockButtonBadgeGap = 6;
+    public const byte DetailLockButtonHoverAlpha = 20;
+    public const byte DetailLockButtonActiveAlpha = 31;
+    public const double DetailResizeHitHeight = 14;
+    public const double DetailResizeHandleWidth = 20;
+    public const double DetailResizeHandleHeight = 3;
     public const double RemainingPercentFontSize = 28;
     public const double DetailValueFontSize = 13;
     public const double CountdownDigitFontSize = 16;

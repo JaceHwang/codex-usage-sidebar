@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/images/hero.svg" alt="自适应放置在 Codex 标题栏中的剩余额度" width="900">
-</p>
-
 <h1 align="center">Codex Usage Sidebar</h1>
 
 <p align="center">在 Codex 标题栏实时显示剩余额度、重置时间、Credits 与 Bank 明细。</p>
@@ -23,63 +19,58 @@
 | macOS 14+ Apple Silicon | [`v0.3.5` 发布版](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5) | 已发布的 arm64 DMG，含 5 小时/7 天双额度展示 |
 | Windows 11 AMD64（`x64`） | [`v0.3.3` 发布版](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) | 未签名 `x64` 安装包，带签名兼容更新；Windows ARM64 不在支持范围 |
 
-v0.3.5 是 macOS 双额度展示的维护版本。标题栏按钮保留固定的 5 小时/7 天列对齐，并在每行百分比与重置时间之间明确显示 ` · `，便于快速辨识；防碰撞定位逻辑不变。浮窗继续提供渐变进度条、重置倒计时、七日 Token 用量和固定宽度的平滑高度调整。Windows 继续使用独立验证的 v0.3.3 发布版。macOS 资产与验证范围见 [v0.3.5 发布说明](docs/releases/v0.3.5.md)。
+当前源码与本地构建为 **0.4.0 候选版，尚未发布**。以上下载链接仍指向发布目录中记录的 macOS 0.3.5 和 Windows 0.3.3。下方功能和配图说明当前 macOS 候选实现，不表示这些功能已包含在旧安装包中。Windows 新代码的功能对齐尚不等于已完成实机验收。
+
+完整范围见[当前功能清单](docs/CURRENT_FEATURES.md)和[当前设计说明](docs/CURRENT_DESIGN.md)。
+
+## macOS 实机截图
+
+![macOS 实机指示器](docs/images/current/live-macos-indicator.jpg)
+
+2026 年 9 月 16 日在 Apple Silicon Mac 上截取，来自已安装的 0.4.0 本地构建。图中为伴生应用实际窗口和实时额度，不包含宿主对话或账号标识。
 
 ## 当前实际效果
 
 <p align="center">
-  <img src="docs/images/quota-popover-v0.3.3-zh-light.png" alt="Codex Usage Sidebar v0.3.3 浅色主题 5 小时与 7 天双额度浮窗" width="48%">
-  <img src="docs/images/quota-popover-v0.3.3-zh-dark.png" alt="Codex Usage Sidebar v0.3.3 深色主题 5 小时与 7 天双额度浮窗" width="48%">
+  <img src="docs/images/current/detail-zh-cn-light.png" alt="0.4.0 candidate native quota card, light theme, demonstration data" width="48%">
+  <img src="docs/images/current/detail-zh-cn-dark.png" alt="0.4.0 candidate native quota card, dark theme, demonstration data" width="48%">
 </p>
 
-<p align="center"><em>当前浅色主题 · 当前深色主题</em></p>
-
-这些原生 AppKit 截图展示独立的双额度进度条、七日 Token 图表、强调的重置倒计时、账号身份、
-主题图标、紧凑 GitHub 链接，以及浅色/深色材质。
-
-### v0.3.5 标题栏按钮
+使用当前 AppKit 控件与固定示例数据重新渲染，展示双额度、七日 Token、详情锁定、Bank 到期颜色和页脚设置入口。图中详情处于锁定状态；不是实机账户截图或正式发布截图。
 
 <p align="center">
-  <img src="docs/images/quota-header-indicator-v0.3.5-zh-light.png" alt="v0.3.5 双额度标题栏按钮：百分比与重置时间以居中圆点分隔" width="900">
+  <img src="docs/images/current/position-zh-cn-light.png" alt="Automatic, Free and Locked position selector" width="48%">
+  <img src="docs/images/current/settings-zh-cn-light.png" alt="Position mode, Check for updates, Reload and Quit settings menu" width="30%">
 </p>
 
-两行的圆点位于固定的时间列中，既清晰隔开百分比与重置时间，又保持 5 小时和 7 天的列对齐。
+[配图来源与复现方法](docs/images/current/README.md)。
 
 ## 自适应标题栏定位
 
-<p align="center">
-  <img src="docs/images/adaptive-titlebar-nearby-dark.png" alt="额度按钮移动到打开位置左侧最近的无碰撞空位" width="96%">
-</p>
+- **自动贴合**：按实际文字宽度寻找标题栏空位，避让真实按钮、可点击控件和静态标题。
+- **默认回退**：找不到安全空位时回到默认位置；默认位置仍与交互控件重叠时，自动切换并保存为「自由移动」。不会因为拥挤而隐藏，也不会自动切回。
+- **自由移动**：按住左键拖动，按显示器保存位置。
+- **锁定位置**：保持手动位置，禁止拖动；与详情卡片的锁定按钮是两件事。
 
-<p align="center"><em>空间足够：使用最近的无碰撞空位，并与原生控件保持 8pt 间隔。</em></p>
+右键指示器，或打开详情页脚的设置菜单，都能选择位置模式。临时想恢复自动定位时，手动选择「自动贴合」。
 
-<p align="center">
-  <img src="docs/images/adaptive-titlebar-fallback-dark.png" alt="额度按钮移动到右侧标题栏安全回退位置" width="96%">
-</p>
-
-<p align="center"><em>空间不足：立即切换到标题栏右侧预留位置；中间页签继续缩窄时仍保持显示。</em></p>
+![当前定位流程示意图，非GUI截图](docs/images/placement.svg)
 
 ## 功能效果
 
-Codex Usage Sidebar 会在 Codex 官方应用包之外安装一个轻量原生伴随程序。它从本机
-`app-server` 读取额度更新，跟随白天/黑夜主题，并把额度按钮放进最近的安全标题栏空位。
-
-| 场景 | 表现 |
+| 操作或内容 | 当前 macOS 候选版行为 |
 | --- | --- |
-| 打开或关闭左、右、下侧栏 | 优先跟随原生“打开位置”，遇到占用控件时向左寻找最近空位；本地空间不足才切换到右侧预留位置。 |
-| 移动或缩放窗口 | 每 `0.1 秒`重新核对可用标题栏空间，避免覆盖原生按钮和页签标题；没有可靠中间锚点时固定回退到右侧停靠位。 |
-| 鼠标悬浮 | 展示同步的插件版本、账号身份、主题图标、独立的 5 小时/7 天额度、七日每日与总 Token 使用量、Credits、全部 Bank 次数、状态与过期时间。 |
-| 鼠标点击 | 浮窗保持常驻，再次点击收回；原有悬浮查看方式继续保留。 |
-| 调整浮窗高度 | 拖动页脚上沿中央的小拖拽条。鼠标会变为上下调整光标；保持固定宽度和顶部标题栏锚点，仅平滑扩展可滚动的明细区。 |
-| 底部 GitHub 按钮 | 打开 [github.com/JaceHwang/codex-usage-sidebar](https://github.com/JaceHwang/codex-usage-sidebar)。默认态融入底部背景，悬浮时仅显示柔和圆角阴影。 |
-| 剩余额度变化 | 百分比严格按 100% 绿、49% 橙、10% 红连续过渡，已填充进度显示对应光谱。 |
-| Codex 语言变化 | 按 Codex 最终显示语言在 1 秒内切换简体中文、繁体中文或英文。 |
+| 额度指示器 | 对齐显示 5 小时／7 天剩余比例与重置时间；缺少第二周期时使用单周期显示。 |
+| 悬停与点击 | 悬停打开明细；点击固定，再点解除。普通固定卡片可由外部点击关闭。 |
+| 详情锁定 | 卡片标题旁的锁定按钮使明细在鼠标移开或外部点击后仍保持打开，直到解锁。 |
+| 明细数据 | 双额度进度、七日每日与总 Token 用量、账号、版本、套餐、Credits，以及各条 Bank 状态和到期时间。 |
+| Bank 到期提醒 | 距到期不超过 3 天为红色，超过 3 天至 7 天为橙色，超过 7 天为绿色；未知到期时间无紧迫度强调。 |
+| 调整高度 | 自然明细视口至少 8 行（256 点），随内容增长；手动调整最少 2 行；拖动底部调整手柄改变滚动区高度，宽度保持 360 点。 |
+| 设置菜单 | 位置模式、检查更新、重新加载、退出。检查更新会打开 GitHub Releases，不会自动下载安装。 |
+| 外观与语言 | 跟随 Codex 明暗主题及简体中文、繁体中文、英文；其他语言回退英文。 |
+| 动态定位 | 自动模式每 0.1 秒重新扫描；只把按钮角色及直接点击／选择动作当成交互对象，不把普通容器的辅助动作当作按钮。 |
 
-旧版左侧栏底部副本以及所有侧栏状态同步代码均已删除，现在只有顶部这一个额度按钮。
-
-<p align="center">
-  <img src="docs/images/placement.svg" alt="侧栏与窗口变化时自动避让原生控件" width="900">
-</p>
+缺少快照、数据过期或 Codex 不在前台等情况下仍可能隐藏；这与标题栏拥挤时的自由移动降级不同。
 
 ## 快速安装
 
@@ -189,21 +180,9 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 
 ## 防碰撞定位原理
 
-伴随程序扫描会影响标题栏定位的辅助功能分支，只读取合格按钮和静态标题的标签与几何信息；
-相关区域内的结构组只读取几何信息，用于识别面板边界。之后按以下规则定位：
+扫描整个标题栏可影响定位的范围，以实际指示器宽度（164–280 点）和 8 点间距校验最终位置，包括缓存位置和默认位置。结构容器仅有 `AXShowMenu`／`AXScrollToVisible` 动作时不会被误算为按钮；真实按钮及有 `AXPress`／`AXPick` 的控件仍会参与避让。不会读取聊天正文。
 
-```text
-1. 优先：额度按钮.maxX = 打开位置按钮.minX - 8pt
-2. 若候选框碰到其他标题栏元素，向左移动到最近的完整空位
-3. 若标题前已无完整空位，立即使用右侧预留回退位置
-```
-
-标题栏元素扫描横向覆盖 164pt 额度按钮的完整可能范围，并排除 46pt 标题栏以外的元素。结构组
-只作为面板边界几何使用，不读取其标签或文字，因此不会读取聊天正文。
-全屏时被裁切到窗口顶端、仅剩 1px 高的退化正文元素会被忽略，不会误判成可见标题。程序会在
-读取标签前先做几何过滤，每个 0.1 秒定位周期都会重新扫描合格标题栏几何，即使语义锚点本身
-没有移动。主动回退会立即替换已过期的保留锚点；短暂扫描不完整时最多保留最后一次有效位置
-0.75 秒。整个过程不会修改 Codex 内部代码。
+语义锚点只是优先定位依据，最终位置可能因搜索空位或手动模式而不同。详见[当前设计](docs/CURRENT_DESIGN.md)。
 
 ## 实时额度明细
 
@@ -267,26 +246,22 @@ env CODEX_HOME="$HOME/Library/Application Support/CodexUsageSidebar/CodexHome" c
 精确定位正常时会返回常驻 LaunchAgent 进程的真实状态：
 
 ```text
-pid=12345 version=0.3.3 runtime=shown placement=content-header anchor=labeledControl
+pid=12345 version=0.4.0 runtime=shown placement=content-header mode=automatic anchor=labeledControl
 language=simplifiedChinese language_source=process
 indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app
 ```
 
-当锚点为 `openLocation`、`labeledControl` 或 `rightPaneBoundary` 时，额度按钮右边缘应等于
-`edge - 8`。带有效边缘的 `fallback` 表示主动切换到右侧安全位置，并非故障；状态版本号还应
-与悬浮卡片徽标一致。
+`mode=automatic/free/locked` 表示当前模式；`freeFallback` 表示当前扫描是否建议因默认位置碰撞而降级。`anchor` 与 `edge` 是语义定位依据，不能再用 `indicator.maxX = edge - 8` 判断所有模式是否正常。版本号应与详情卡片徽标一致。
 
 ## 构建来源证明
 
-Marketplace 分发的伴随程序来自 GitHub Actions 的精确产物。
-[`assets/PROVENANCE.json`](plugins/codex-usage-sidebar/assets/PROVENANCE.json) 记录源码提交、工作流、
-Artifact 摘要、压缩包摘要、可执行文件 SHA-256 与代码目录哈希。CI 会先验证固定产物，再独立
-重建并运行测试。
+发布资产绑定精确发布提交、校验和及来源记录。[PROVENANCE.json](plugins/codex-usage-sidebar/assets/PROVENANCE.json) 记录伴生程序源码与可执行文件摘要；发布 DMG 另附 `MACOS-V040-PROVENANCE.json`。本地未提交构建不能充当正式发布证据。安装时可能重新签名，因此安装后字节哈希与源包不同并不直接表示代码不同。
 
 ## 开发验证
 
 ```bash
+./governance doctor
 cd plugins/codex-usage-sidebar
 bash scripts/build-companion.sh
 bash tests/test-sidebar-control.sh
@@ -294,13 +269,17 @@ bash tests/test-signing-identity.sh
 bash tests/live-app-server-probe.sh   # 需要先登录隔离 CodexHome
 
 cd ../..
-CUS_ALLOW_SOURCE_AHEAD=1 bash scripts/validate-public-repo.sh
+./governance check all
 ```
 
 完整 Swift 测试、arm64 Release 构建、签名选择与严格签名校验均由构建脚本执行。提交 PR 前请
 阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 文档索引
+
+- [当前功能清单](docs/CURRENT_FEATURES.md)
+- [当前设计说明](docs/CURRENT_DESIGN.md)
+- [历史设计索引](docs/superpowers/README.md)
 
 - [安装与运维](docs/INSTALL.md)
 - [Agent 安装流程](docs/INSTALL_FOR_AGENTS.md)

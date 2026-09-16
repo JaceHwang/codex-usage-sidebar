@@ -1,5 +1,7 @@
 # Windows Compatibility v0.3.3 Implementation Plan
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Make the Windows companion remain usable across Codex titlebar changes by adding adaptive placement, an automatic safe dock fallback, signed compatibility rules, actionable status, diagnostics, and setup verification.

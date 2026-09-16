@@ -1,12 +1,19 @@
 public struct QuotaDetailInteractionState: Equatable, Sendable {
     public private(set) var isPinned = false
+    public private(set) var isLockedOpen = false
     private var isPointerInside = false
     private var suppressHoverUntilExit = false
 
     public init() {}
 
     public var shouldShowDetail: Bool {
-        isPinned || (isPointerInside && !suppressHoverUntilExit)
+        isLockedOpen || isPinned || (isPointerInside && !suppressHoverUntilExit)
+    }
+
+    public func shouldShowDetail(
+        whilePositionModeMenuIsPresented: Bool
+    ) -> Bool {
+        !whilePositionModeMenuIsPresented && shouldShowDetail
     }
 
     public mutating func updatePointerInside(_ inside: Bool) {
@@ -25,6 +32,23 @@ public struct QuotaDetailInteractionState: Equatable, Sendable {
             isPinned = true
             suppressHoverUntilExit = false
         }
+    }
+
+    public mutating func toggleLockedOpen(pointerInside: Bool) {
+        isPointerInside = pointerInside
+        if isLockedOpen {
+            isLockedOpen = false
+        } else {
+            isLockedOpen = true
+            isPinned = false
+        }
+        suppressHoverUntilExit = false
+    }
+
+    public mutating func dismissForOutsideInteraction() {
+        isPinned = false
+        isPointerInside = false
+        suppressHoverUntilExit = false
     }
 
     public mutating func reset() {

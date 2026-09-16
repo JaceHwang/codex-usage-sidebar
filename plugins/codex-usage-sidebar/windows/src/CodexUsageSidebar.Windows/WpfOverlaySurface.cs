@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -13,7 +14,7 @@ using CodexUsageSidebar.Core;
 
 namespace CodexUsageSidebar.Windows;
 
-public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
+public sealed partial class WpfOverlaySurface : IOverlaySurface, IIndicatorSizeProvider
 {
     private const int ExtendedWindowStyle = -20;
     private const int NoActivateStyle = 0x08000000;
@@ -25,7 +26,7 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
     private readonly Window detail;
     private readonly Border indicatorSurface;
     private readonly Image indicatorLogo;
-    private readonly TextBlock indicatorText;
+    private readonly Grid indicatorText;
     private readonly DispatcherTimer hoverTimer;
     private DetailInteractionState interaction = DetailInteractionState.Initial;
     private OverlayPresentation? latestPresentation;
@@ -33,23 +34,29 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
     private WpfOverlayPalette palette = WpfOverlayPalette.Light;
     private Uri? accountAvatarURL;
     private ImageSource? accountAvatarSource;
-    private System.Windows.Point? dragStartPointer;
-    private RectD? dragStartFrame;
+    private readonly IndicatorDragSession indicatorDrag = new();
+    private readonly IndicatorPlacementPreferences placementPreferences;
+    private readonly IndicatorPreferencesStore? placementStore;
+    private OverlayPresentation? automaticPresentation;
+    private QuotaDetailContent? renderedContent;
+    private WpfOverlayPalette? renderedPalette;
+    private ImageSource? renderedAvatar;
+    private ScrollViewer? detailRows;
+    private double requestedRowViewportHeight = QuotaDetailViewportPolicy.DefaultRowViewportHeight;
+    private bool isResizingDetail;
+    private double resizeStartCursorY;
+    private double resizeStartRowHeight;
 
-    public event Func<SafeDockPreferences, CancellationToken, ValueTask>? SafeDockPreferencesChanged;
-
-    public WpfOverlaySurface(DisplayLanguage language, TimeZoneInfo timeZone)
+    public WpfOverlaySurface(DisplayLanguage language, TimeZoneInfo timeZone,
+        IndicatorPlacementPreferences? placementPreferences = null,
+        IndicatorPreferencesStore? placementStore = null)
     {
         this.timeZone = timeZone;
-        indicatorText = new TextBlock
+        this.placementPreferences = placementPreferences ?? new();
+        this.placementStore = placementStore;
+        indicatorText = new Grid
         {
-            FontFamily = new FontFamily("Segoe UI"),
-            FontSize = 13,
-            FontWeight = FontWeights.SemiBold,
-            TextAlignment = TextAlignment.Left,
             VerticalAlignment = VerticalAlignment.Center,
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            Foreground = palette.Primary,
         };
         indicatorLogo = new Image
         {
@@ -101,38 +108,49 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
         indicator.Width = OverlayVisualMetrics.IndicatorWidth;
         detail = CreatePassiveWindow(new Border());
         detail.Width = OverlayVisualMetrics.DetailWidth;
-        detail.MaxHeight = 480;
+        detail.MaxHeight = QuotaDetailViewportPolicy.MaximumPanelHeight;
+        detail.IsVisibleChanged += (_, _) =>
+        {
+            if (!detail.IsVisible && settingsMenu is not null) settingsMenu.IsOpen = false;
+            UpdateOutsideClickMonitor();
+        };
+        indicator.Closed += (_, _) => outsideClickMonitor?.Dispose();
         indicator.MouseLeftButtonDown += (_, eventArgs) =>
         {
-            if (eventArgs.ChangedButton != MouseButton.Left || !CanDragSafeDock()) return;
-            dragStartPointer = eventArgs.GetPosition(indicator);
-            dragStartFrame = latestPresentation!.Placement.Frame;
+            if (eventArgs.ChangedButton != MouseButton.Left || !CanDragIndicator()
+                || !GetCursorPos(out var cursor)) return;
+            indicatorDrag.Begin(cursor.X, cursor.Y, latestPresentation!.Placement.Frame, latestPresentation.DpiScale);
             indicator.CaptureMouse();
+            eventArgs.Handled = true;
+        };
+        indicator.MouseMove += (_, eventArgs) =>
+        {
+            if (!indicatorDrag.IsActive || eventArgs.LeftButton != MouseButtonState.Pressed
+                || !GetCursorPos(out var cursor) || latestPresentation is not { } presentation) return;
+            var frame = indicatorDrag.Update(cursor.X, cursor.Y,
+                this.placementPreferences.Mode);
+            if (frame is null) return;
+            latestPresentation = presentation with { Placement = presentation.Placement with { Frame = frame.Value } };
+            PositionPhysical(indicator, frame.Value);
+            detail.Hide();
             eventArgs.Handled = true;
         };
         indicator.MouseLeftButtonUp += async (_, eventArgs) =>
         {
             if (eventArgs.ChangedButton != MouseButton.Left) return;
-            if (dragStartPointer is not null && dragStartFrame is not null)
+            var dragged = indicatorDrag.End();
+            if (indicator.IsMouseCaptured) indicator.ReleaseMouseCapture();
+            if (dragged && latestPresentation is { } presentation)
             {
-                var start = dragStartPointer.Value;
-                var current = eventArgs.GetPosition(indicator);
-                var dpiScale = latestPresentation?.DpiScale ?? 1;
-                var releasedFrame = dragStartFrame.Value with
-                {
-                    X = dragStartFrame.Value.X + ((current.X - start.X) * dpiScale),
-                    Y = dragStartFrame.Value.Y + ((current.Y - start.Y) * dpiScale),
-                };
-                dragStartPointer = null;
-                dragStartFrame = null;
-                indicator.ReleaseMouseCapture();
-                await SnapSafeDockAsync(releasedFrame);
+                CaptureManualPlacement(presentation.Placement.Frame);
+                await SavePlacementAsync();
                 eventArgs.Handled = true;
                 return;
             }
             interaction = interaction.TogglePinned(IsPointerInsideOverlay());
             RefreshInteraction();
         };
+        indicator.LostMouseCapture += (_, _) => indicatorDrag.End();
         hoverTimer = new DispatcherTimer(
             TimeSpan.FromMilliseconds(100),
             DispatcherPriority.Input,
@@ -147,6 +165,10 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
         cancellationToken.ThrowIfCancellationRequested();
         return OnUiAsync(() =>
         {
+            // Incoming quota/titlebar observations cannot move the control
+            // underneath an active captured screen-coordinate drag.
+            if (indicatorDrag.IsActive) return;
+            automaticPresentation = presentation;
             var frame = presentation.Placement.Frame;
             if (presentation.Mode == PlacementMode.SafeDock
                 && presentation.SafeDockRequest is { } request)
@@ -168,9 +190,25 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
                     SafeDockRequest = request,
                 };
             }
+            if (this.placementPreferences.Mode != IndicatorPlacementMode.Automatic)
+            {
+                var screen = System.Windows.Forms.Screen.AllScreens.FirstOrDefault(
+                    screen => screen.DeviceName == this.placementPreferences.ActiveDisplayId)
+                    ?? System.Windows.Forms.Screen.FromHandle(presentation.OwnerHandle);
+                var work = ScreenWorkArea(screen);
+                var scale = ScaleForScreen(screen, presentation.DpiScale);
+                var manualSize = frame with
+                {
+                    Width = frame.Width / presentation.DpiScale * scale,
+                    Height = frame.Height / presentation.DpiScale * scale,
+                };
+                if (!this.placementPreferences.Placements.ContainsKey(screen.DeviceName))
+                    this.placementPreferences.Capture(screen.DeviceName, manualSize, work);
+                frame = this.placementPreferences.Resolve(screen.DeviceName, work, manualSize);
+                presentation = presentation with { DpiScale = scale, Placement = presentation.Placement with { Frame = frame } };
+            }
             latestPresentation = presentation;
             palette = ResolvePalette(presentation.ThemeProbePoint);
-            indicatorText.Foreground = palette.Primary;
             indicatorLogo.Source = LoadThemeIconSource(palette);
             indicator.Opacity = presentation.Freshness == SnapshotFreshness.Dimmed ? 0.58 : 1;
             detail.Opacity = presentation.Freshness == SnapshotFreshness.Dimmed ? 0.58 : 1;
@@ -209,6 +247,8 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
             latestPresentation = null;
             latestContent = null;
             interaction = DetailInteractionState.Initial;
+            indicatorDrag.End();
+            if (indicator.IsMouseCaptured) indicator.ReleaseMouseCapture();
             hoverTimer.Stop();
             detail.Hide();
             indicator.Hide();
@@ -224,14 +264,16 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
 
     private void RefreshInteraction()
     {
-        var highlighted = IsPointerInside(indicator) || interaction.IsPinned;
+        UpdateOutsideClickMonitor();
+        if (indicatorDrag.IsDragging || settingsMenu?.IsOpen == true) return;
+        var highlighted = IsPointerInside(indicator) || interaction.IsPinned || interaction.IsLockedOpen;
         var color = palette.PrimaryColor;
         indicatorSurface.Background = new SolidColorBrush(Color.FromArgb(
             IndicatorHitTestPolicy.BackgroundAlpha(highlighted),
             color.R,
             color.G,
             color.B));
-        if (interaction.ShouldShowDetail
+        if (QuotaDetailViewportPolicy.ShouldKeepDetailVisible(isResizingDetail, interaction)
             && latestPresentation is not null
             && latestContent is not null)
         {
@@ -266,85 +308,69 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
                 bounds.Bottom - bounds.Top));
     }
 
-    private void UpdateIndicator(AllowanceSnapshot snapshot, DisplayLanguage language, bool compactMode)
+    private bool CanDragIndicator() =>
+        latestPresentation is not null && placementPreferences.Mode == IndicatorPlacementMode.Free;
+
+    private async Task SetPlacementModeAsync(IndicatorPlacementMode mode)
     {
-        indicatorText.Inlines.Clear();
-        var accent = WpfQuotaColors.ForRemainingPercent(snapshot.RemainingPercent);
-        indicatorText.Inlines.Add(new System.Windows.Documents.Run(
-            compactMode
-                ? SafeDockIndicatorText.Format(snapshot.RemainingPercent, SafeDockSize.Compact)
-                : $"{snapshot.RemainingPercent}%")
-        {
-            FontSize = 14,
-            FontWeight = FontWeights.Bold,
-            Foreground = new SolidColorBrush(accent),
-        });
-        if (compactMode) return;
-        var compact = QuotaDetailFormatter.FormatCompact(snapshot, language, timeZone);
-        var separator = compact.IndexOf('·');
-        indicatorText.Inlines.Add(new System.Windows.Documents.Run(
-            separator > 0 ? compact[(separator - 1)..] : string.Empty)
-        {
-            Foreground = palette.Primary,
-        });
+        if (!Enum.IsDefined(mode)) return;
+        if (latestPresentation is { } current && mode != IndicatorPlacementMode.Automatic)
+            CaptureManualPlacement(current.Placement.Frame);
+        placementPreferences.Mode = mode;
+        indicatorDrag.End();
+        if (indicator.IsMouseCaptured) indicator.ReleaseMouseCapture();
+        await SavePlacementAsync();
+        if (automaticPresentation is { } automatic) await ShowAsync(automatic, CancellationToken.None);
     }
 
-    private bool CanDragSafeDock() =>
-        latestPresentation is { Mode: PlacementMode.SafeDock, SafeDockRequest: not null };
-
-    private async Task SnapSafeDockAsync(RectD releasedFrame)
+    private void CaptureManualPlacement(RectD frame)
     {
-        if (latestPresentation is not { Mode: PlacementMode.SafeDock, SafeDockRequest: { } request } presentation)
-        {
-            return;
-        }
-
-        var preferences = SafeDockDragSnapPolicy.Snap(request, releasedFrame);
-        await NotifySafeDockPreferencesChangedAsync(preferences, CancellationToken.None);
-        request = request with
-        {
-            Preferences = preferences,
-            WorkArea = UsableWorkArea(request.WorkArea)
-                ? request.WorkArea
-                : WorkAreaFor(presentation.OwnerHandle) ?? request.WorkArea,
-        };
-        var resolved = SafeDockPlacementResolver.Resolve(request);
-        if (resolved.Frame is null) return;
-
-        var frame = resolved.Frame.Value;
-        latestPresentation = presentation with
-        {
-            Placement = presentation.Placement with { Frame = frame },
-            SafeDockSize = resolved.Size,
-            SafeDockRequest = request,
-        };
-        UpdateIndicator(
-            presentation.Snapshot,
-            presentation.Language,
-            resolved.Size == SafeDockSize.Compact);
-        indicator.Width = frame.Width / presentation.DpiScale;
-        indicator.Height = frame.Height / presentation.DpiScale;
-        PositionPhysical(indicator, frame);
+        var screen = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point(
+            (int)Math.Round(frame.X + frame.Width / 2), (int)Math.Round(frame.Y + frame.Height / 2)));
+        placementPreferences.Capture(screen.DeviceName, frame, ScreenWorkArea(screen));
     }
 
-    private async ValueTask NotifySafeDockPreferencesChangedAsync(
-        SafeDockPreferences preferences,
-        CancellationToken cancellationToken)
+    private async Task SavePlacementAsync()
     {
-        if (SafeDockPreferencesChanged is null) return;
-        foreach (Func<SafeDockPreferences, CancellationToken, ValueTask> handler in SafeDockPreferencesChanged.GetInvocationList())
-        {
-            await handler(preferences, cancellationToken);
-        }
+        if (placementStore is null) return;
+        try { await placementStore.SaveAsync(placementPreferences, CancellationToken.None); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { Trace.TraceWarning("Unable to save indicator placement: {0}", error.GetType().Name); }
+    }
+
+    private static RectD ScreenWorkArea(System.Windows.Forms.Screen screen) => new(
+        screen.WorkingArea.X, screen.WorkingArea.Y, screen.WorkingArea.Width, screen.WorkingArea.Height);
+
+    private static double ScaleForScreen(System.Windows.Forms.Screen screen, double fallback)
+    {
+        var monitor = MonitorFromPoint(new NativePoint { X = screen.Bounds.X + screen.Bounds.Width / 2,
+            Y = screen.Bounds.Y + screen.Bounds.Height / 2 }, 2);
+        return monitor != IntPtr.Zero && GetDpiForMonitor(monitor, 0, out var dpiX, out _) == 0 && dpiX > 0
+            ? dpiX / 96d : fallback;
     }
 
     private void ShowDetail(OverlayPresentation presentation, QuotaDetailContent content)
     {
-        detail.Content = BuildDetailCard(content, palette, accountAvatarSource);
+        if (!QuotaDetailContentComparer.Equivalent(renderedContent, content)
+            || !ReferenceEquals(renderedPalette, palette) || !ReferenceEquals(renderedAvatar, accountAvatarSource))
+        {
+            var scrollOffset = detailRows?.VerticalOffset ?? 0;
+            detail.Content = BuildDetailCard(content, palette, accountAvatarSource);
+            renderedContent = content;
+            renderedPalette = palette;
+            renderedAvatar = accountAvatarSource;
+            detail.UpdateLayout();
+            detailRows?.ScrollToVerticalOffset(scrollOffset);
+        }
         detail.SizeToContent = SizeToContent.Height;
         detail.UpdateLayout();
+        PositionDetail(presentation);
+    }
+
+    private void PositionDetail(OverlayPresentation presentation)
+    {
         var indicatorFrame = presentation.Placement.Frame;
-        var workArea = WorkAreaFor(presentation.OwnerHandle);
+        var workArea = WorkAreaFor(new WindowInteropHelper(indicator).Handle);
         if (workArea is null)
         {
             detail.Hide();
@@ -367,7 +393,7 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
         if (!detail.IsVisible) detail.Show();
     }
 
-    private static Border BuildDetailCard(
+    private Border BuildDetailCard(
         QuotaDetailContent content,
         WpfOverlayPalette palette,
         ImageSource? accountAvatarSource)
@@ -377,8 +403,8 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
         var header = new Grid { Margin = new Thickness(16, 13, 16, 9) };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(32) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var icon = BuildThemeIcon(palette);
         Grid.SetColumn(icon, 0);
@@ -396,13 +422,16 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
         };
         Grid.SetColumn(title, 1);
         header.Children.Add(title);
+        var lockButton = BuildDetailLockButton(content, palette);
+        Grid.SetColumn(lockButton, 3);
+        header.Children.Add(lockButton);
         var highlight = palette.BadgeColor;
         var badge = new Border
         {
             BorderBrush = new SolidColorBrush(Color.FromArgb(110, highlight.R, highlight.G, highlight.B)),
             BorderThickness = new Thickness(0.75),
             CornerRadius = new CornerRadius(8),
-            Margin = new Thickness(7, 0, 8, 0),
+            Margin = new Thickness(0, 0, 8, 0),
             Padding = new Thickness(5, 0, 5, 0),
             Height = OverlayVisualMetrics.VersionBadgeHeight,
             VerticalAlignment = VerticalAlignment.Center,
@@ -417,27 +446,43 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
                 VerticalAlignment = VerticalAlignment.Center,
             },
         };
-        Grid.SetColumn(badge, 2);
+        Grid.SetColumn(badge, 4);
         header.Children.Add(badge);
-        var remaining = new TextBlock
-        {
-            Text = $"{content.RemainingPercent}%",
-            FontFamily = new FontFamily("Segoe UI"),
-            FontSize = OverlayVisualMetrics.RemainingPercentFontSize,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(accent),
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        Grid.SetColumn(remaining, 4);
-        header.Children.Add(remaining);
         body.Children.Add(header);
-        body.Children.Add(new WpfQuotaProgressBar
+        var quotaWindows = content.QuotaWindows ??
+            [new QuotaWindowPresentation(string.Empty, content.RemainingPercent)];
+        foreach (var window in quotaWindows)
         {
-            Height = OverlayVisualMetrics.ProgressTrackHeight,
-            Margin = new Thickness(16, 0, 16, 13),
-            RemainingPercent = content.RemainingPercent,
-            TrackBrush = palette.Track,
-        });
+            var quotaHeader = new Grid { Margin = new Thickness(16, 6, 16, 3) };
+            quotaHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            quotaHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            quotaHeader.Children.Add(new TextBlock
+            {
+                Text = window.Label,
+                FontSize = 14,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = palette.Primary,
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            var remaining = new TextBlock
+            {
+                Text = $"{window.RemainingPercent}%",
+                FontSize = OverlayVisualMetrics.RemainingPercentFontSize,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(WpfQuotaColors.ForRemainingPercent(window.RemainingPercent)),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            Grid.SetColumn(remaining, 1);
+            quotaHeader.Children.Add(remaining);
+            body.Children.Add(quotaHeader);
+            body.Children.Add(new WpfQuotaProgressBar
+            {
+                Height = OverlayVisualMetrics.ProgressTrackHeight,
+                Margin = new Thickness(16, 0, 16, 13),
+                RemainingPercent = window.RemainingPercent,
+                TrackBrush = palette.Track,
+            });
+        }
         body.Children.Add(BuildFullWidthSeparator(palette));
 
         if (content.TokenUsage is { } tokenUsage)
@@ -460,7 +505,7 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
             }
 
             var row = content.Rows[index];
-            var grid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
+            var grid = new Grid { MinHeight = row.Value.Contains('\n') ? 46 : 32 };
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(126) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.Children.Add(new TextBlock
@@ -468,21 +513,27 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
                 Text = row.Label,
                 FontFamily = new FontFamily("Segoe UI"),
                 FontSize = 13,
-                Foreground = palette.Secondary,
+                Foreground = palette.Primary,
+                FontWeight = FontWeights.SemiBold,
+                VerticalAlignment = VerticalAlignment.Center,
                 TextWrapping = TextWrapping.Wrap,
             });
-            var value = BuildDetailValue(row.Value, accent, palette);
+            var rowAccent = WpfQuotaColors.ForRemainingPercent(row.AccentRemainingPercent ?? content.RemainingPercent);
+            var value = BuildDetailValue(row.Value, rowAccent, palette, row.EmphasizeCountdown);
+            value.VerticalAlignment = VerticalAlignment.Center;
             Grid.SetColumn(value, 1);
             grid.Children.Add(value);
             rows.Children.Add(grid);
         }
-        body.Children.Add(new ScrollViewer
+        detailRows = new ScrollViewer
         {
             Content = rows,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            MaxHeight = 360,
-        });
+            Height = requestedRowViewportHeight,
+        };
+        body.Children.Add(detailRows);
+        body.Children.Add(BuildDetailResizeHandle(palette));
         body.Children.Add(BuildFullWidthSeparator(palette));
         body.Children.Add(BuildFooter(content, palette, accountAvatarSource));
         return new Border
@@ -494,6 +545,158 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
             CornerRadius = new CornerRadius(12),
             Child = body,
         };
+    }
+
+    internal Border BuildDetailCardForVisualFixture(
+        QuotaDetailContent content,
+        WpfOverlayPalette palette) =>
+        BuildDetailCard(content, palette, accountAvatarSource: null);
+
+    private FrameworkElement BuildDetailResizeHandle(WpfOverlayPalette palette)
+    {
+        var grip = new Border
+        {
+            Width = OverlayVisualMetrics.DetailResizeHandleWidth,
+            Height = OverlayVisualMetrics.DetailResizeHandleHeight,
+            CornerRadius = new CornerRadius(OverlayVisualMetrics.DetailResizeHandleHeight / 2),
+            Background = palette.Secondary,
+            Opacity = 0.72,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var handle = new Border
+        {
+            Height = OverlayVisualMetrics.DetailResizeHitHeight,
+            Background = Brushes.Transparent,
+            Cursor = Cursors.SizeNS,
+            ToolTip = QuotaDetailViewportPolicy.ResizeHint(
+                latestPresentation?.Language ?? DisplayLanguage.English),
+            Child = grip,
+        };
+        ToolTipService.SetInitialShowDelay(handle, 0);
+        ToolTipService.SetBetweenShowDelay(handle, 0);
+        System.Windows.Automation.AutomationProperties.SetName(
+            handle,
+            QuotaDetailViewportPolicy.ResizeHint(latestPresentation?.Language ?? DisplayLanguage.English));
+        handle.MouseLeftButtonDown += (_, eventArgs) =>
+        {
+            if (detailRows is null || !GetCursorPos(out var cursor)) return;
+            isResizingDetail = true;
+            resizeStartCursorY = cursor.Y;
+            resizeStartRowHeight = detailRows.ActualHeight;
+            grip.Background = new SolidColorBrush(palette.BadgeColor);
+            grip.Opacity = 0.9;
+            handle.CaptureMouse();
+            eventArgs.Handled = true;
+        };
+        handle.MouseMove += (_, eventArgs) =>
+        {
+            if (!isResizingDetail || eventArgs.LeftButton != MouseButtonState.Pressed
+                || detailRows is null || latestPresentation is not { } presentation
+                || !GetCursorPos(out var cursor)) return;
+            var workArea = WorkAreaFor(new WindowInteropHelper(indicator).Handle);
+            if (workArea is null) return;
+            var fixedChromeHeight = Math.Max(0, detail.ActualHeight - detailRows.ActualHeight);
+            var availablePanelHeight = workArea.Value.Height / presentation.DpiScale;
+            requestedRowViewportHeight = QuotaDetailViewportPolicy.ResolveRowViewportHeight(
+                resizeStartRowHeight + cursor.Y - resizeStartCursorY,
+                availablePanelHeight,
+                fixedChromeHeight);
+            detailRows.Height = requestedRowViewportHeight;
+            detail.UpdateLayout();
+            PositionDetail(presentation);
+            eventArgs.Handled = true;
+        };
+        handle.MouseLeftButtonUp += (_, eventArgs) =>
+        {
+            if (!isResizingDetail) return;
+            isResizingDetail = false;
+            if (handle.IsMouseCaptured) handle.ReleaseMouseCapture();
+            grip.Background = palette.Secondary;
+            grip.Opacity = handle.IsMouseOver ? 0.9 : 0.72;
+            eventArgs.Handled = true;
+        };
+        handle.MouseEnter += (_, _) => grip.Opacity = 0.9;
+        handle.MouseLeave += (_, _) => { if (!isResizingDetail) grip.Opacity = 0.72; };
+        handle.LostMouseCapture += (_, _) =>
+        {
+            isResizingDetail = false;
+            grip.Background = palette.Secondary;
+            grip.Opacity = handle.IsMouseOver ? 0.9 : 0.72;
+        };
+        return handle;
+    }
+
+    private ToggleButton BuildDetailLockButton(QuotaDetailContent content, WpfOverlayPalette palette)
+    {
+        var button = new ToggleButton
+        {
+            Width = OverlayVisualMetrics.DetailLockButtonSize,
+            Height = OverlayVisualMetrics.DetailLockButtonSize,
+            Margin = new Thickness(0, 0, OverlayVisualMetrics.DetailLockButtonBadgeGap, 0),
+            Padding = new Thickness(0),
+            BorderThickness = new Thickness(0),
+            Background = Brushes.Transparent,
+            Foreground = palette.Secondary,
+            Cursor = Cursors.Hand,
+            Focusable = false,
+            IsChecked = interaction.IsLockedOpen,
+            VerticalAlignment = VerticalAlignment.Center,
+            Content = new TextBlock
+            {
+                Text = "\uE718",
+                FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
+                FontSize = 13,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            },
+        };
+        var chrome = new FrameworkElementFactory(typeof(Border));
+        chrome.Name = "LockChrome";
+        chrome.SetValue(Border.BackgroundProperty, Brushes.Transparent);
+        chrome.SetValue(Border.CornerRadiusProperty,
+            new CornerRadius(OverlayVisualMetrics.DetailLockButtonSize / 2));
+        var presenter = new FrameworkElementFactory(typeof(ContentPresenter));
+        presenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        presenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+        chrome.AppendChild(presenter);
+        var template = new ControlTemplate(typeof(ToggleButton)) { VisualTree = chrome };
+        var hover = new Trigger { Property = ToggleButton.IsMouseOverProperty, Value = true };
+        hover.Setters.Add(new Setter(Border.BackgroundProperty,
+            new SolidColorBrush(Color.FromArgb(
+                OverlayVisualMetrics.DetailLockButtonHoverAlpha,
+                palette.PrimaryColor.R,
+                palette.PrimaryColor.G,
+                palette.PrimaryColor.B)), "LockChrome"));
+        var active = new Trigger { Property = ToggleButton.IsCheckedProperty, Value = true };
+        active.Setters.Add(new Setter(Border.BackgroundProperty,
+            new SolidColorBrush(Color.FromArgb(
+                OverlayVisualMetrics.DetailLockButtonActiveAlpha,
+                palette.BadgeColor.R,
+                palette.BadgeColor.G,
+                palette.BadgeColor.B)), "LockChrome"));
+        active.Setters.Add(new Setter(ToggleButton.ForegroundProperty, palette.Badge));
+        template.Triggers.Add(hover);
+        template.Triggers.Add(active);
+        button.Template = template;
+        UpdateDetailLockButtonAccessibility(button, content);
+        button.Click += (_, _) =>
+        {
+            interaction = interaction.ToggleLockedOpen(IsPointerInsideOverlay());
+            button.IsChecked = interaction.IsLockedOpen;
+            UpdateDetailLockButtonAccessibility(button, content);
+            RefreshInteraction();
+        };
+        return button;
+    }
+
+    private void UpdateDetailLockButtonAccessibility(ToggleButton button, QuotaDetailContent content)
+    {
+        var language = latestPresentation?.Language ?? DisplayLanguage.English;
+        var label = QuotaDetailLockCopy.Label(language, interaction.IsLockedOpen);
+        button.ToolTip = label;
+        System.Windows.Automation.AutomationProperties.SetName(button, label);
+        System.Windows.Automation.AutomationProperties.SetHelpText(button, content.Title);
     }
 
     private static Border BuildFullWidthSeparator(WpfOverlayPalette palette) => new()
@@ -627,7 +830,7 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
         return new Border { Child = panel };
     }
 
-    private static UIElement BuildFooter(
+    private UIElement BuildFooter(
         QuotaDetailContent content,
         WpfOverlayPalette palette,
         ImageSource? accountAvatarSource)
@@ -635,6 +838,7 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
         var footer = new Grid { Margin = new Thickness(16, 8, 12, 10) };
         footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         footer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var account = content.Account?.PreferredName ?? content.AccountLabel;
         var avatar = BuildAccountAvatar(content.Account, palette, accountAvatarSource);
@@ -707,6 +911,7 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
         github.Template = template;
         github.Click += (_, _) =>
         {
+            DismissDetail();
             try
             {
                 Process.Start(new ProcessStartInfo
@@ -721,6 +926,26 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
         };
         Grid.SetColumn(github, 2);
         footer.Children.Add(github);
+        var settings = new Button
+        {
+            Content = new TextBlock { Text = "\uE713", FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                FontSize = 15, Foreground = palette.Secondary },
+            Template = template,
+            BorderThickness = new Thickness(0),
+            Background = Brushes.Transparent,
+            Cursor = Cursors.Hand,
+            VerticalAlignment = VerticalAlignment.Center,
+            ToolTip = latestPresentation?.Language switch
+            {
+                DisplayLanguage.SimplifiedChinese => "设置",
+                DisplayLanguage.TraditionalChinese => "設定",
+                _ => "Settings",
+            },
+        };
+        System.Windows.Automation.AutomationProperties.SetName(settings, settings.ToolTip.ToString());
+        settings.Click += (_, _) => ShowSettings(settings);
+        Grid.SetColumn(settings, 3);
+        footer.Children.Add(settings);
         return footer;
     }
 
@@ -790,7 +1015,8 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
         }
     }
 
-    private static TextBlock BuildDetailValue(string value, Color accent, WpfOverlayPalette palette)
+    private static TextBlock BuildDetailValue(string value, Color accent, WpfOverlayPalette palette,
+        bool emphasizeCountdown = true)
     {
         var text = new TextBlock
         {
@@ -799,7 +1025,9 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
             TextAlignment = TextAlignment.Right,
             TextWrapping = TextWrapping.Wrap,
         };
-        foreach (var segment in QuotaCountdownSegmenter.Segments(value))
+        var segments = emphasizeCountdown ? QuotaCountdownSegmenter.Segments(value)
+            : new[] { new QuotaCountdownSegment(value, QuotaCountdownSegmentRole.Plain) };
+        foreach (var segment in segments)
         {
             var run = new System.Windows.Documents.Run(segment.Text)
             {
@@ -982,6 +1210,12 @@ public sealed class WpfOverlaySurface : ISafeDockOverlaySurface
 
     [DllImport("user32.dll")]
     private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(NativePoint point, uint flags);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr monitor, int type, out uint dpiX, out uint dpiY);
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     [return: MarshalAs(UnmanagedType.Bool)]

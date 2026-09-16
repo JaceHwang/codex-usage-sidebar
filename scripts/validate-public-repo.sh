@@ -288,26 +288,31 @@ print("JSON, privacy, placeholder, and Markdown link checks passed")
 PY
 
 /usr/bin/python3 - "$repo_root" <<'PY'
+import json
 import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
+catalog = json.loads((root / "releases/platform-release-catalog.json").read_text())
+published_macos = catalog["published"]["macos"]
+asset = published_macos["assets"]["installer"]
+version_key = published_macos["version"].replace(".", "")
 required_copy = {
     "README.md": (
-        "codex-usage-sidebar-v0.3.5-macos-arm64.dmg",
+        asset,
         "right-click the installer in Finder and choose Open",
     ),
     "README.zh-CN.md": (
-        "codex-usage-sidebar-v0.3.5-macos-arm64.dmg",
+        asset,
         "在 Finder 中右键点击安装器并选择“打开”",
     ),
 }
 for relative, (asset_name, gatekeeper_warning) in required_copy.items():
     text = (root / relative).read_text(encoding="utf-8")
     if asset_name not in text:
-        raise SystemExit(f"{relative}: missing v0.3.5 macOS installer asset")
-    if "build-macos-v035-installer.sh" not in text:
-        raise SystemExit(f"{relative}: missing reproducible v0.3.5 macOS build command")
+        raise SystemExit(f"{relative}: missing published macOS installer asset {asset_name}")
+    if f"build-macos-v{version_key}-installer.sh" not in text:
+        raise SystemExit(f"{relative}: missing reproducible macOS build command for {published_macos['version']}")
     if gatekeeper_warning not in text:
         raise SystemExit(f"{relative}: missing Finder Open warning for the local installer")
 PY

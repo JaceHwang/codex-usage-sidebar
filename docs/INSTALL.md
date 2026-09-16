@@ -1,5 +1,10 @@
 # Installation and Operations
 
+> **Current source vs downloads:** this checkout is the unpublished 0.4.0 candidate. The catalog
+> records macOS 0.3.5 and Windows 0.3.3 as published; release-specific instructions below retain
+> those versions. Candidate controls and behavior are documented in [CURRENT_FEATURES](CURRENT_FEATURES.md).
+
+
 ## Current release
 
 macOS 14+ Apple Silicon users download the v0.3.5 arm64 DMG, checksum, and provenance files from
@@ -193,12 +198,11 @@ indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app
 ```
 
-`openLocation`, `labeledControl`, and `rightPaneBoundary` are valid resolved sources. For those
-sources, an indicator frame `x,y,width,height` satisfies `x + width = edge - 8`. A `fallback` with
-a numeric edge is also healthy: it is the deliberate safe right-side position used when no full
-local slot remains. v0.3.5 normally reports `cached:false` because every placement tick re-scans
-eligible titlebar geometry; the version must match the badge beside the hover-card title. See
-[Troubleshooting](TROUBLESHOOTING.md).
+`openLocation`, `labeledControl`, `rightPaneBoundary` and `fallback` identify semantic anchor
+sources. Current candidate final geometry can differ after free-slot search or manual placement;
+`x + width = edge - 8` is not a universal assertion. Check `mode`, `freeFallback` and the actual
+rectangle in current runtime output; older releases may omit those fields. The badge and status
+version must agree. See [Troubleshooting](TROUBLESHOOTING.md).
 
 The language fields report the effective mapped UI language and how it was obtained. `process` is
 the preferred steady-state result because it reflects the language Codex is actually displaying,
@@ -260,3 +264,26 @@ codex plugin marketplace remove codex-usage-sidebar
 
 Uninstall removes only the companion's exact Application Support directory and user LaunchAgent.
 It does not modify the official Codex app.
+
+## Current candidate controls and local testing
+
+For current source features (not the older published DMG), right-click the indicator for Automatic,
+Free or Locked; the footer gear provides the same modes plus Releases, Reload and Quit. The header
+lock keeps the detail open and is independent from Locked position mode. Manual positions persist
+per display. Crowding can switch Automatic to Free; choose Automatic explicitly to resume.
+
+Build and install the working checkout only when you intend to test unpublished source:
+
+```bash
+bash plugins/codex-usage-sidebar/scripts/build-companion.sh
+bash plugins/codex-usage-sidebar/scripts/sidebar-control.sh ensure \
+  --plugin-root "$PWD/plugins/codex-usage-sidebar" \
+  --plugin-data "$HOME/Library/Application Support/CodexUsageSidebar/Data"
+"$HOME/Library/Application Support/CodexUsageSidebar/sidebar-control.sh" status
+```
+
+Run from the repository root. This updates the companion outside Codex and may preserve/reapply its
+local signing identity. A local build is not a release or proof of clean-source provenance. Keep the
+working-tree/snapshot distinction in [current features](CURRENT_FEATURES.md); the build script's
+base commit alone does not describe uncommitted changes. Retain a backup before replacing a local
+candidate that may contain different work.

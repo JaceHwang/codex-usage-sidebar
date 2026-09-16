@@ -37,7 +37,80 @@ public struct ContentHeaderAnchor: Equatable, Sendable {
     }
 }
 
+public struct AutomaticIndicatorPlacement: Equatable, Sendable {
+    public let frame: CGRect
+    public let shouldSwitchToFree: Bool
+}
+
 public enum ContentHeaderAnchorResolver {
+    public static func isInteractiveToolbarRole(_ role: String, actions: [String] = []) -> Bool {
+        // Web accessibility exposes AXShowMenu/AXScrollToVisible on containers
+        // and images too. Those auxiliary actions do not define a hit target.
+        role.hasSuffix("Button") || actions.contains("AXPress") || actions.contains("AXPick")
+    }
+
+    public static func automaticPlacement(
+        anchor: ContentHeaderAnchor,
+        controls: [ContentHeaderControl],
+        windowFrame: CGRect,
+        indicatorWidth: CGFloat,
+        minimumScannedX: CGFloat? = nil
+    ) -> AutomaticIndicatorPlacement {
+        if let frame = collisionFreeIndicatorFrame(
+            anchor: anchor, controls: controls, windowFrame: windowFrame,
+            indicatorWidth: indicatorWidth, minimumScannedX: minimumScannedX
+        ) {
+            return AutomaticIndicatorPlacement(frame: frame, shouldSwitchToFree: false)
+        }
+        let fallback = OverlayLayout.indicatorFrame(
+            in: windowFrame, contentTrailingEdge: nil, width: indicatorWidth
+        )
+        let blocked = controls.contains {
+            $0.isAnchorCandidate && fallback.intersects($0.frame.insetBy(dx: -OverlayLayout.indicatorGap, dy: 0))
+        }
+        return AutomaticIndicatorPlacement(frame: fallback, shouldSwitchToFree: blocked)
+    }
+
+    public static func collisionFreeIndicatorFrame(
+        anchor: ContentHeaderAnchor,
+        controls: [ContentHeaderControl],
+        windowFrame: CGRect,
+        indicatorWidth: CGFloat,
+        minimumScannedX: CGFloat? = nil
+    ) -> CGRect? {
+        let preferred = OverlayLayout.indicatorFrame(
+            in: windowFrame, contentTrailingEdge: anchor.trailingEdge, width: indicatorWidth
+        )
+        let minimumX = max(windowFrame.minX + 8, minimumScannedX ?? windowFrame.minX + 8)
+        // Use every scanned control intersecting the indicator's band. Unlike
+        // anchor selection, collision safety also includes partially overlapping
+        // controls and never treats a cached or fallback position as trusted.
+        let obstacles = controls.map(\.frame).filter {
+            $0.width > 0 && $0.height > 0 && $0.maxY > preferred.minY && $0.minY < preferred.maxY
+        }.map { $0.insetBy(dx: -OverlayLayout.indicatorGap, dy: 0) }
+        func fits(_ frame: CGRect) -> Bool {
+            frame.minX >= minimumX && frame.maxX <= windowFrame.maxX - 8
+                && !obstacles.contains { frame.intersects($0) }
+        }
+        if fits(preferred) { return preferred }
+
+        let fallback = OverlayLayout.indicatorFrame(
+            in: windowFrame, contentTrailingEdge: nil, width: indicatorWidth
+        )
+        if fits(fallback) { return fallback }
+
+        // Each free interval ends at an obstacle's leading edge or the window
+        // boundary. Search those endpoints, right to left, without leaving the
+        // scanned region. The caller handles the default-position/free-mode fallback.
+        let edges = ([windowFrame.maxX - 8] + obstacles.map(\.minX)).sorted(by: >)
+        for edge in edges {
+            let frame = CGRect(x: edge - preferred.width, y: preferred.minY,
+                               width: preferred.width, height: preferred.height)
+            if fits(frame) { return frame }
+        }
+        return nil
+    }
+
     // Long localized labels (notably English and several CJK/European
     // locales) can make Codex's Open Location control wider than the compact
     // Chinese layout. Keep it eligible so the collision resolver can still

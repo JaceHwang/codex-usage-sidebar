@@ -62,7 +62,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             let content = QuotaDetailFormatter().content(
                 snapshot: longBankSnapshot,
                 tokenUsage: tokenUsageSnapshot,
-                footerName: "jace@example.com",
+                footerName: "demo@example.com",
                 now: now,
                 language: language,
                 timeZone: timeZone
@@ -89,7 +89,9 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                         ),
                         content: content,
                         rowHeights: rowHeights,
-                        version: "0.3.3",
+                        version: ProcessInfo.processInfo.environment["CUS_VISUAL_VERSION"] ?? "0.3.3",
+                        isLockedOpen: true,
+                        lockAccessibilityLabel: QuotaLocalization(language: language).unlockDetailWindow,
                         onOpenURL: { _ in }
                     )
                     renderedCard?.appearance = appearance
@@ -142,13 +144,13 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                     descendants(of: card)
                         .compactMap { $0 as? NSButton }
                         .count,
-                    1,
-                    "The reference card includes one help control in its footer."
+                    3,
+                    "The card includes the header lock control plus its GitHub and settings footer controls."
                 )
                 XCTAssertTrue(
                     descendants(of: card)
                         .compactMap { $0 as? NSTextField }
-                        .contains { $0.stringValue == "jace@example.com" },
+                        .contains { $0.stringValue == "demo@example.com" },
                     "The footer renders the account identity supplied by Codex."
                 )
                 XCTAssertFalse(
@@ -236,7 +238,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         )
     }
 
-    func testOnlyResetRowUsesCountdownEmphasis() throws {
+    func testResetAndBankRowsShareTypographyButUseIndependentSemanticColors() throws {
         let content = QuotaDetailFormatter().content(
             snapshot: longBankSnapshot,
             tokenUsage: tokenUsageSnapshot,
@@ -332,11 +334,22 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             ) as? NSColor
         )
 
-        XCTAssertGreaterThan(resetFont.pointSize, bankFont.pointSize)
-        XCTAssertNotEqual(
-            resetColor.usingColorSpace(.deviceRGB),
-            bankColor.usingColorSpace(.deviceRGB)
+        XCTAssertEqual(resetFont, bankFont)
+        XCTAssertEqual(
+            bankColor.usingColorSpace(.deviceRGB),
+            QuotaColorScale.components(remainingPercent: 10)
+                .appKitColor
+                .usingColorSpace(.deviceRGB)
         )
+        let bankDateRange = try XCTUnwrap(
+            (bankValue as NSString).range(of: "2026/").nonEmpty
+        )
+        let bankDateFont = try XCTUnwrap(
+            bankField.attributedStringValue.attribute(
+                .font, at: bankDateRange.location, effectiveRange: nil
+            ) as? NSFont
+        )
+        XCTAssertGreaterThan(bankFont.pointSize, bankDateFont.pointSize)
         XCTAssertEqual(
             resetColor.usingColorSpace(.deviceRGB),
             QuotaColorScale.components(remainingPercent: 32)
@@ -446,7 +459,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         let content = QuotaDetailFormatter().content(
             snapshot: longBankSnapshot,
             tokenUsage: tokenUsageSnapshot,
-            footerName: "jace@example.com",
+            footerName: "demo@example.com",
             now: now,
             language: .simplifiedChinese,
             timeZone: timeZone
@@ -489,6 +502,112 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         card.layoutSubtreeIfNeeded()
 
         XCTAssertEqual(scrollView.frame.height, initialScrollHeight + 120)
+    }
+
+    func testResizeHintAppearsOnHoverAndHidesWhenThePointerLeaves() throws {
+        let content = QuotaDetailFormatter().content(
+            snapshot: longBankSnapshot,
+            tokenUsage: tokenUsageSnapshot,
+            footerName: "demo@example.com",
+            now: now,
+            language: .simplifiedChinese,
+            timeZone: timeZone
+        )
+        let card = QuotaDetailCardView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: QuotaDetailLayout.width,
+                height: QuotaDetailLayout.maximumHeight
+            ),
+            content: content,
+            rowHeights: Array(
+                repeating: QuotaDetailLayout.rowHeight,
+                count: content.rows.count
+            ),
+            version: "0.4.0",
+            onOpenURL: { _ in }
+        )
+        let handle = try XCTUnwrap(
+            descendants(of: card).first {
+                $0.accessibilityRole() == .slider
+            }
+        )
+        let hint = try XCTUnwrap(
+            descendants(of: card).first {
+                $0.isHidden && $0.frame.height == 22 && $0.frame.width >= 74
+            }
+        )
+        let event = try XCTUnwrap(
+            NSEvent.mouseEvent(
+                with: .mouseMoved,
+                location: .zero,
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 0,
+                clickCount: 0,
+                pressure: 0
+            )
+        )
+
+        handle.mouseEntered(with: event)
+        XCTAssertFalse(hint.isHidden)
+
+        handle.mouseExited(with: event)
+        XCTAssertTrue(hint.isHidden)
+    }
+
+    func testColdPanelInstallsCardAtFinalSizeBeforeSubviewAutoresizing() throws {
+        let content = QuotaDetailFormatter().content(
+            snapshot: longBankSnapshot,
+            tokenUsage: tokenUsageSnapshot,
+            footerName: "demo@example.com",
+            now: now,
+            language: .simplifiedChinese,
+            timeZone: timeZone
+        )
+        let layout = QuotaDetailPanelResolvedLayout.resolve(
+            content: content,
+            indicatorFrame: CGRect(x: 700, y: 760, width: 164, height: 46),
+            visibleFrame: CGRect(x: 0, y: 0, width: 1_200, height: 900)
+        )
+        let panel = NSPanel(
+            contentRect: .zero,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        let card = QuotaDetailCardView(
+            frame: CGRect(origin: .zero, size: layout.frame.size),
+            content: content,
+            rowHeights: layout.rowHeights,
+            version: "0.4.0",
+            onOpenURL: { _ in }
+        )
+
+        QuotaDetailPanel.install(card, into: panel, frame: layout.frame)
+
+        let scrollView = try XCTUnwrap(
+            descendants(of: card)
+                .compactMap { $0 as? NSScrollView }
+                .first { $0.hasVerticalScroller }
+        )
+        let rowDocument = try XCTUnwrap(scrollView.documentView)
+        let informationFrames = QuotaDetailLayout.informationFrames(
+            in: card.bounds,
+            tokenUsageVisible: true,
+            secondaryQuotaVisible: true
+        )
+
+        XCTAssertEqual(card.frame.size, layout.frame.size)
+        XCTAssertEqual(scrollView.frame, informationFrames.rowArea)
+        XCTAssertEqual(
+            rowDocument.frame.width,
+            scrollView.contentSize.width,
+            accuracy: 0.5
+        )
     }
 
     func testChromeOutlinesUseTheSharedSeparatorStyle() {
@@ -550,6 +669,39 @@ final class QuotaDetailCardVisualTests: XCTestCase {
             "Current-period token usage is unavailable"
         )
         XCTAssertTrue(bars.allSatisfy { ($0.accessibilityValue() as? String) == "0" })
+    }
+
+    func testExportsDocumentationMenusWhenRequested() throws {
+        guard let path = ProcessInfo.processInfo.environment["CUS_VISUAL_OUTPUT_DIR"] else { return }
+        let directory = URL(fileURLWithPath: path)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        for (language, name, _) in languages {
+            for (themeName, appearance) in appearances {
+                let theme: CodexInterfaceTheme = themeName == "dark" ? .dark : .light
+                let position = IndicatorPositionModePopover()
+                position.show(relativeTo: CGRect(x: 500, y: 600, width: 212, height: 46),
+                              mode: .automatic, localization: QuotaLocalization(language: language),
+                              theme: theme, onSelection: { _ in })
+                if let frame = position.frame {
+                    let view = try XCTUnwrap(NSApp.windows.first { $0.isVisible && $0.frame == frame }?.contentView)
+                    view.appearance = appearance
+                    view.layoutSubtreeIfNeeded()
+                    try renderPNG(view).write(to: directory.appendingPathComponent("position-\(name)-\(themeName).png"))
+                } else { XCTFail("Position menu did not open") }
+                position.hide()
+                let settings = QuotaDetailSettingsMenuPopover()
+                settings.show(relativeTo: CGRect(x: 700, y: 300, width: 30, height: 30),
+                              mode: .automatic, localization: QuotaLocalization(language: language), theme: theme,
+                              onPlacementModeSelected: { _ in }, onCheckForUpdates: {}, onReload: {}, onQuit: {})
+                if let frame = settings.parentFrame {
+                    let view = try XCTUnwrap(NSApp.windows.first { $0.isVisible && $0.frame == frame }?.contentView)
+                    view.appearance = appearance
+                    view.layoutSubtreeIfNeeded()
+                    try renderPNG(view).write(to: directory.appendingPathComponent("settings-\(name)-\(themeName).png"))
+                } else { XCTFail("Settings menu did not open") }
+                settings.hide()
+            }
+        }
     }
 
     private var languages: [

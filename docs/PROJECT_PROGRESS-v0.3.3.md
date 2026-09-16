@@ -1,5 +1,7 @@
 # Codex Usage Sidebar v0.3.3 progress
 
+> Version-scoped historical handoff/validation document. See [current features](CURRENT_FEATURES.md) for present source scope. This record does not certify a new Windows candidate or supersede current repository governance.
+
 ## Objective
 
 Implement the approved dual-quota reference UI on both platforms: show the 5-hour and 7-day windows
