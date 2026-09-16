@@ -1,5 +1,7 @@
 # Windows Content Toolbar Parity Implementation Plan
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Anchor the Windows quota indicator to the active content toolbar's Open Location control, keep it stable through host geometry changes, and match the macOS v0.2.3 detail header.

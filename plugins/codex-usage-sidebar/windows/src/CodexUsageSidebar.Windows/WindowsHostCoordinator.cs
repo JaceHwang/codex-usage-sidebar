@@ -129,6 +129,18 @@ public sealed class WindowsHostCoordinator
             {
                 titlebar = await scanner.ScanAsync(host, cancellationToken).ConfigureAwait(false);
             }
+            catch (HostSettingsPageDetectedException)
+            {
+                await overlay.HideAsync(cancellationToken).ConfigureAwait(false);
+                return await CompleteAsync(
+                    HostRuntimeState.Hidden,
+                    new CompatibilityDecision(
+                        SemanticCompatibility.Valid,
+                        ProfileCompatibility.Validated,
+                        SafeDockPlacement.None,
+                        CompatibilityFailureCode.None),
+                    cancellationToken).ConfigureAwait(false);
+            }
             catch (InvalidSelectorCatalogException)
             {
                 return await HandleUnresolvedTitlebarAsync(
@@ -163,7 +175,9 @@ public sealed class WindowsHostCoordinator
 
         var scale = host.DpiScale;
         var indicatorHeight = titlebar.OpenLocationBounds.Height / scale;
-        var indicatorWidth = OverlayVisualMetrics.IndicatorWidthForHeight(indicatorHeight) * scale;
+        var indicatorWidth = (overlay is IIndicatorSizeProvider measured
+            ? measured.MeasureIndicatorWidth(snapshot, language, indicatorHeight)
+            : OverlayVisualMetrics.IndicatorWidthForHeight(indicatorHeight)) * scale;
         var placement = PlacementResolver.ResolveResponsive(
             titlebar.ToolbarBounds,
             titlebar.OpenLocationBounds,
@@ -208,7 +222,8 @@ public sealed class WindowsHostCoordinator
                     titlebar.ToolbarBounds.X + (4 * scale),
                     titlebar.ToolbarBounds.Y + (4 * scale)),
                 tokenUsage,
-                account),
+                account,
+                Version: QuotaDetailFormatter.ProductVersion),
             cancellationToken).ConfigureAwait(false);
         return await CompleteAsync(HostRuntimeState.Visible, titlebarDecision, cancellationToken).ConfigureAwait(false);
     }
@@ -255,7 +270,9 @@ public sealed class WindowsHostCoordinator
             host.WorkArea ?? host.Bounds,
             host.CaptionBounds ?? default,
             host.DpiScale,
-            safeDockPreferences);
+            safeDockPreferences,
+            overlay is IIndicatorSizeProvider measured
+                ? measured.MeasureIndicatorWidth(snapshot, language, OverlayVisualMetrics.IndicatorHeight) : null);
         var resolved = SafeDockPlacementResolver.Resolve(request);
         if (resolved.Frame is null)
         {
@@ -277,6 +294,7 @@ public sealed class WindowsHostCoordinator
                 new PointD(host.Bounds.X + (4 * host.DpiScale), host.Bounds.Y + (72 * host.DpiScale)),
                 tokenUsage,
                 account,
+                Version: QuotaDetailFormatter.ProductVersion,
                 Mode: PlacementMode.SafeDock,
                 SafeDockSize: resolved.Size,
                 SafeDockRequest: request),

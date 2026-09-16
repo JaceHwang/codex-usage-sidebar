@@ -1,5 +1,7 @@
 # Codex Usage Sidebar v0.3.2 progress
 
+> Version-scoped historical handoff/validation document. See [current features](CURRENT_FEATURES.md) for present source scope. This record does not certify a new Windows candidate or supersede current repository governance.
+
 ## Release baseline
 
 `v0.3.2` is published on [GitHub Releases](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.2) for:

@@ -1,5 +1,7 @@
 # macOS Installer Release Assets Implementation Plan
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ship a native macOS arm64 installer DMG for the existing Codex Usage Sidebar v0.2.3 payload, document it in both READMEs, and add the verified DMG to the existing v0.2.3 GitHub Release Assets.

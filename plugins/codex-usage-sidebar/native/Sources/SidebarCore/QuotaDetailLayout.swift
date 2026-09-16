@@ -2,6 +2,7 @@ import CoreGraphics
 
 public struct QuotaDetailHeaderFrames: Equatable, Sendable {
     public let title: CGRect
+    public let lockButton: CGRect
     public let versionBadge: CGRect
     public let primaryLabel: CGRect
     public let remaining: CGRect
@@ -12,6 +13,7 @@ public struct QuotaDetailHeaderFrames: Equatable, Sendable {
 
     public init(
         title: CGRect,
+        lockButton: CGRect = .zero,
         versionBadge: CGRect,
         primaryLabel: CGRect = .zero,
         remaining: CGRect,
@@ -21,6 +23,7 @@ public struct QuotaDetailHeaderFrames: Equatable, Sendable {
         secondaryProgress: CGRect = .zero
     ) {
         self.title = title
+        self.lockButton = lockButton
         self.versionBadge = versionBadge
         self.primaryLabel = primaryLabel
         self.remaining = remaining
@@ -63,7 +66,7 @@ public enum QuotaDetailLayout {
     public static let dualQuotaHeaderHeight: CGFloat = 171
     public static let rowHeight: CGFloat = 32
     public static let verticalPadding: CGFloat = 16
-    public static let maximumHeight: CGFloat = 580
+    public static let maximumHeight: CGFloat = 720
     /// The largest manual height retains the compact native-popover character
     /// while allowing the user to reveal substantially more detail rows.
     public static let maximumResizableHeight: CGFloat = 720
@@ -77,6 +80,9 @@ public enum QuotaDetailLayout {
     public static let rowTopGap: CGFloat = 10
     public static let footerHeight: CGFloat = 44
     public static let minimumRowViewportHeight: CGFloat = rowHeight * 2
+    /// The default table viewport mirrors eight native detail rows. Content
+    /// shorter than that keeps the popover stable instead of collapsing.
+    public static let defaultRowViewportHeight: CGFloat = rowHeight * 8
 
     public static func headerHeight(secondaryQuotaVisible: Bool) -> CGFloat {
         secondaryQuotaVisible ? dualQuotaHeaderHeight : headerHeight
@@ -93,24 +99,37 @@ public enum QuotaDetailLayout {
         in bounds: CGRect,
         titleWidth: CGFloat,
         versionBadgeWidth: CGFloat,
+        lockButtonWidth: CGFloat = 0,
         secondaryQuotaVisible: Bool = false
     ) -> QuotaDetailHeaderFrames {
         let badgeWidth = max(0, versionBadgeWidth)
+        let resolvedLockButtonWidth = max(0, lockButtonWidth)
         let titleX = bounds.minX + contentHorizontalInset + 32 + 10
+        let versionBadge = CGRect(
+            x: bounds.maxX - contentHorizontalInset - badgeWidth,
+            y: bounds.maxY - 42,
+            width: badgeWidth,
+            height: 22
+        )
+        let lockButton = resolvedLockButtonWidth > 0
+            ? CGRect(
+                x: versionBadge.minX - 6 - resolvedLockButtonWidth,
+                y: versionBadge.midY - 13,
+                width: resolvedLockButtonWidth,
+                height: 26
+            )
+            : .zero
+        let trailingControlMinX = resolvedLockButtonWidth > 0
+            ? lockButton.minX
+            : versionBadge.minX
         let maximumTitleWidth = max(
             0,
-            bounds.maxX - contentHorizontalInset - badgeWidth - 8 - titleX
+            trailingControlMinX - 8 - titleX
         )
         let title = CGRect(
             x: titleX,
             y: bounds.maxY - 42,
             width: min(max(0, titleWidth), maximumTitleWidth),
-            height: 22
-        )
-        let versionBadge = CGRect(
-            x: bounds.maxX - contentHorizontalInset - badgeWidth,
-            y: title.midY - 11,
-            width: badgeWidth,
             height: 22
         )
         let quotaWidth = max(0, bounds.width - contentHorizontalInset * 2)
@@ -161,6 +180,7 @@ public enum QuotaDetailLayout {
             : .zero
         return QuotaDetailHeaderFrames(
             title: title,
+            lockButton: lockButton,
             versionBadge: versionBadge,
             primaryLabel: primaryLabel,
             remaining: remaining,
@@ -273,7 +293,10 @@ public enum QuotaDetailLayout {
     ) -> CGFloat {
         min(
             maximumHeight,
-            headerHeight(secondaryQuotaVisible: secondaryQuotaVisible) + verticalPadding + max(0, rowContentHeight) +
+            headerHeight(secondaryQuotaVisible: secondaryQuotaVisible) + rowTopGap + max(
+                defaultRowViewportHeight,
+                max(0, rowContentHeight)
+            ) +
                 (tokenUsageVisible ? tokenBandReservedHeight : 0) + footerHeight
         )
     }
@@ -319,7 +342,7 @@ public enum QuotaDetailLayout {
                 secondaryQuotaVisible: secondaryQuotaVisible
             )
         )
-        let height = min(
+        let desiredHeight = min(
             maximumHeight,
             max(minimumHeight, requestedHeight ?? naturalHeight)
         )
@@ -327,15 +350,13 @@ public enum QuotaDetailLayout {
             width,
             max(0, visibleFrame.width - screenMargin * 2)
         )
-        let minimumX = visibleFrame.minX + screenMargin
-        let maximumX = visibleFrame.maxX - cardWidth - screenMargin
-        let x = min(maximumX, max(minimumX, indicatorFrame.minX))
-        let desiredY = indicatorFrame.minY - height - controlGap
-        let minimumY = visibleFrame.minY + screenMargin
-        let maximumY = visibleFrame.maxY - height - screenMargin
-        let y = min(maximumY, max(minimumY, desiredY))
-
-        return CGRect(x: x, y: y, width: cardWidth, height: height)
+        return IndicatorAttachedPanelLayout.frame(
+            indicatorFrame: indicatorFrame,
+            panelSize: CGSize(width: cardWidth, height: desiredHeight),
+            visibleFrame: visibleFrame,
+            screenMargin: screenMargin,
+            controlGap: controlGap
+        )
     }
 
     public static func hoverBridgeFrame(

@@ -1,5 +1,10 @@
 # Troubleshooting
 
+> **Current source vs downloads:** this checkout is the unpublished 0.4.0 candidate. The catalog
+> records macOS 0.3.5 and Windows 0.3.3 as published; release-specific instructions below retain
+> those versions. Candidate controls and behavior are documented in [CURRENT_FEATURES](CURRENT_FEATURES.md).
+
+
 ## Windows setup and runtime
 
 The v0.3.3 installer is published in the
@@ -83,33 +88,53 @@ If a locally verified layout moves only after plugin reinstall, compare the visi
 with `version=` from status and check that status reports the active LaunchAgent PID. Repair copies
 and re-signs the payload with the stable local identity; do not re-sign the official Codex app.
 
-## Placement overlaps a titlebar control after resizing a pane
+## Placement overlaps or Automatic immediately becomes Free
 
-Run status and inspect the anchor fields:
+In the current candidate, Automatic first searches safe space. When none fits it uses the default
+position; an interactive control overlapping that default causes a persistent switch to Free.
+Drag the indicator, or explicitly select Automatic again after freeing titlebar space. This behavior
+is separate from stale-data/background-host hiding.
+
+An earlier local 0.4.0 build treated any AX action as clickable: a 1920×46 `AXGroup` with only
+`AXShowMenu`/`AXScrollToVisible` then blocked the whole toolbar. Current code excludes those auxiliary
+actions; real button roles and `AXPress`/`AXPick` controls remain obstacles. A shared version badge
+alone cannot identify which local candidate build is installed.
+
+Check the live process using the installed control script's `status`. Example fields:
 
 ```text
-version=0.2.3 anchor=labeledControl placement=content-header
-indicator=654,1003,164,46 anchor_scan=...cached:false,source:labeledControl,edge:826
+version=0.4.0 runtime=shown placement=content-header mode=automatic
+indicator=1123,1003,209,46 anchor_scan=...obstacles:13,freeFallback:false,...edge:1340
 ```
 
-- `openLocation` identifies Open Location as the semantic origin; the resolved edge may be its
-  direct 8-point slot or a collision-adjusted slot farther left.
-- `labeledControl` means the resolver used the nearest collision-free slot before a labeled button.
-- `rightPaneBoundary` means the nearest safe slot was derived from the pane boundary.
-- `fallback` with a numeric `edge` is an intentional safe right-side placement when the local
-  titlebar has no complete slot.
-- `fallback` without an edge is a transient unresolved scan; the last valid placement is retained.
+These are sample values, not expected coordinates/counts for every layout. `mode` is the actual
+mode; `freeFallback` is the current scan recommendation, including when already in Free. Anchor
+source/edge are preferences, not proof of final collision-free placement; do not require
+`x + width = edge - 8` after free-slot search or in manual modes.
 
-For any resolved non-fallback source with `indicator=x,y,width,height` and `edge=n`, the geometry
-satisfies `x + width = n - 8`. Drag the right pane through the failing width and confirm the control
-either moves into the nearest free slot or switches to the safe right-side position. If the badge
-or status reports a plugin version older than 0.2.3, upgrade the plugin first. Otherwise bring Codex to the
-foreground, confirm Accessibility, run repair, and include sanitized status output, the visible
-version badge, the Codex build number, and a cropped titlebar screenshot in a bug report.
+For a targeted role/bounds diagnostic (no label text), run:
 
-On v0.3.2, fullscreen Codex with the right pane closed must not switch to fallback merely
-because conversation elements are clipped against the top window edge. A healthy direct result in
-that state reports `anchor=openLocation`; the indicator still ends eight points before its edge.
+```bash
+CUS_DIAGNOSTIC_OBSTACLES=1 "$HOME/Library/Application Support/CodexUsageSidebar/Codex Usage Sidebar.app/Contents/MacOS/CodexUsageSidebar" --diagnostic-once
+```
+
+The one-shot probe uses the default width, so confirm actual-width behavior with the managed
+runtime-state file and a user-provided cropped screenshot. Repair/reinstall the intended local
+payload if code and installed build differ; preserve signing identity and do not re-sign Codex.
+
+## Detail pin, detail lock and position lock
+
+Click-pinned detail dismisses on outside click. The header lock keeps it open until unlocked,
+subject to normal visibility gates. Locked **position mode** only prevents dragging the indicator.
+The position selector can temporarily suppress the detail card. These are separate controls.
+
+## Detail size, menus and update behavior
+
+Sparse details keep an eight-row natural minimum; additional rows may grow to the height cap.
+Use the resize grip to adjust the scrolling region. Long English detail labels can be clipped in
+the fixed-width row column; the native documentation fixtures show the current rendering rather
+than edited replacement text. Check for updates opens GitHub Releases; it does not install an update.
+Reload restarts the companion; Quit terminates it (the configured LaunchAgent can start it again).
 
 ## Data looks old
 

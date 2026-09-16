@@ -1,5 +1,7 @@
 # 在 Codex 中继续 Windows 维护工作
 
+> Version-scoped historical handoff/validation document. See [current features](CURRENT_FEATURES.md) for present source scope. This record does not certify a new Windows candidate or supersede current repository governance.
+
 ## 权威状态
 
 - 分支为 `main`；跨电脑接力以 Git 提交 SHA 和提交历史为源码依据。

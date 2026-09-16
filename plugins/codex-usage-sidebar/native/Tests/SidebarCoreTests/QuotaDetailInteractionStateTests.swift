@@ -25,6 +25,41 @@ final class QuotaDetailInteractionStateTests: XCTestCase {
         XCTAssertTrue(state.shouldShowDetail)
     }
 
+    func testOutsideInteractionDismissesPinnedDetailImmediately() {
+        var state = QuotaDetailInteractionState()
+        state.updatePointerInside(true)
+        state.togglePinned(pointerInside: true)
+
+        state.dismissForOutsideInteraction()
+
+        XCTAssertFalse(state.isPinned)
+        XCTAssertFalse(state.shouldShowDetail)
+    }
+
+    func testLockedOpenDetailIgnoresOutsideInteraction() {
+        var state = QuotaDetailInteractionState()
+        state.updatePointerInside(true)
+        state.toggleLockedOpen(pointerInside: true)
+        state.updatePointerInside(false)
+
+        state.dismissForOutsideInteraction()
+
+        XCTAssertTrue(state.isLockedOpen)
+        XCTAssertTrue(state.shouldShowDetail)
+    }
+
+    func testSecondLockClickReturnsToHoverControlledVisibility() {
+        var state = QuotaDetailInteractionState()
+        state.toggleLockedOpen(pointerInside: true)
+
+        state.toggleLockedOpen(pointerInside: true)
+        XCTAssertFalse(state.isLockedOpen)
+        XCTAssertTrue(state.shouldShowDetail)
+
+        state.updatePointerInside(false)
+        XCTAssertFalse(state.shouldShowDetail)
+    }
+
     func testSecondClickDismissesUntilPointerExitsAndReenters() {
         var state = QuotaDetailInteractionState()
         state.updatePointerInside(true)
@@ -53,6 +88,16 @@ final class QuotaDetailInteractionStateTests: XCTestCase {
         state.reset()
 
         XCTAssertFalse(state.isPinned)
+        XCTAssertFalse(state.isLockedOpen)
         XCTAssertFalse(state.shouldShowDetail)
+    }
+
+    func testPositionModeMenuSuppressesHoverDetailWhilePointerRemainsOverIndicator() {
+        var state = QuotaDetailInteractionState()
+        state.updatePointerInside(true)
+
+        XCTAssertTrue(state.shouldShowDetail)
+        XCTAssertFalse(state.shouldShowDetail(whilePositionModeMenuIsPresented: true))
+        XCTAssertTrue(state.shouldShowDetail(whilePositionModeMenuIsPresented: false))
     }
 }

@@ -1,59 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="430" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
-  <title id="title">Adaptive collision-aware placement across Codex layouts</title>
-  <desc id="desc">Three titlebar layouts show direct anchoring, collision avoidance, and safe fallback.</desc>
-  <rect width="1200" height="430" rx="28" fill="#f1f1eb"/>
-  <g font-family="Avenir Next,Helvetica Neue,sans-serif">
-    <text x="42" y="46" fill="#232720" font-size="23" font-weight="700">One control. The nearest safe titlebar slot.</text>
-    <g transform="translate(38 78)">
-      <text x="0" y="0" fill="#50554b" font-size="14" font-weight="700">DIRECT ANCHOR</text>
-      <rect y="18" width="350" height="280" rx="16" fill="#fff" stroke="#d4d5ce"/>
-      <rect y="18" width="350" height="44" rx="16" fill="#e9e9e4"/>
-      <path d="M0 62h350" stroke="#d4d5ce"/>
-      <rect y="62" width="116" height="236" fill="#e5e5df"/>
-      <path d="M116 62v236" stroke="#d4d5ce"/>
-      <rect x="148" y="27" width="104" height="27" rx="8" fill="#dadbd4"/>
-      <text x="163" y="45" fill="#286047" font-size="11" font-weight="700">57% | 16:08</text>
-      <path d="M256 32v17" stroke="#c18a28" stroke-width="2"/>
-      <rect x="264" y="27" width="72" height="27" rx="8" fill="#dadbd4"/>
-      <text x="274" y="45" fill="#44483f" font-size="10">Open Location</text>
-      <text x="135" y="111" fill="#373b33" font-size="14" font-weight="700">Preferred frame is free</text>
-      <text x="135" y="136" fill="#7c8176" font-size="12">Exact 8 pt edge gap</text>
-    </g>
-
-    <g transform="translate(425 78)">
-      <text x="0" y="0" fill="#50554b" font-size="14" font-weight="700">NATIVE CONTROL COLLISION</text>
-      <rect y="18" width="350" height="280" rx="16" fill="#fff" stroke="#d4d5ce"/>
-      <rect y="18" width="350" height="44" rx="16" fill="#e9e9e4"/>
-      <path d="M0 62h350" stroke="#d4d5ce"/>
-      <rect x="238" y="62" width="112" height="236" fill="#e5e5df"/>
-      <path d="M238 62v236" stroke="#d4d5ce"/>
-      <rect x="42" y="27" width="104" height="27" rx="8" fill="#dadbd4"/>
-      <text x="57" y="45" fill="#286047" font-size="11" font-weight="700">57% | 16:08</text>
-      <path d="M150 32v17" stroke="#c18a28" stroke-width="2"/>
-      <rect x="158" y="27" width="32" height="27" rx="8" fill="#c8cac2"/>
-      <circle cx="174" cy="40.5" r="5" fill="none" stroke="#686d63"/>
-      <rect x="198" y="27" width="96" height="27" rx="8" fill="#dadbd4"/>
-      <text x="208" y="45" fill="#44483f" font-size="10">Open Location</text>
-      <text x="30" y="111" fill="#373b33" font-size="14" font-weight="700">Preferred frame is occupied</text>
-      <text x="30" y="136" fill="#7c8176" font-size="12">Slide to nearest complete free slot</text>
-    </g>
-
-    <g transform="translate(812 78)">
-      <text x="0" y="0" fill="#50554b" font-size="14" font-weight="700">NO COMPLETE LOCAL SLOT</text>
-      <rect y="18" width="350" height="280" rx="16" fill="#fff" stroke="#d4d5ce"/>
-      <rect y="18" width="350" height="44" rx="16" fill="#e9e9e4"/>
-      <path d="M0 62h350" stroke="#d4d5ce"/>
-      <rect y="218" width="350" height="80" fill="#e5e5df"/>
-      <path d="M0 218h350" stroke="#d4d5ce"/>
-      <rect x="18" y="27" width="116" height="27" rx="8" fill="#c8cac2"/>
-      <text x="30" y="45" fill="#686d63" font-size="10">Thread title</text>
-      <rect x="142" y="27" width="80" height="27" rx="8" fill="#dadbd4"/>
-      <text x="150" y="45" fill="#44483f" font-size="9">Open Location</text>
-      <path d="M226 32v17" stroke="#c18a28" stroke-width="2"/>
-      <rect x="234" y="27" width="104" height="27" rx="8" fill="#dadbd4"/>
-      <text x="249" y="45" fill="#286047" font-size="11" font-weight="700">57% | 16:08</text>
-      <text x="30" y="111" fill="#373b33" font-size="14" font-weight="700">Static title blocks local fit</text>
-      <text x="30" y="136" fill="#7c8176" font-size="12">Move to reserved right-side fallback</text>
-    </g>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="310" viewBox="0 0 1200 310" role="img" aria-labelledby="title desc">
+<title id="title">Automatic placement and persistent Free fallback</title>
+<desc id="desc">Schematic, not a GUI screenshot. Search safe titlebar space; otherwise use the default frame; if a button overlaps the default, save Free mode and allow dragging.</desc>
+<rect width="1200" height="310" rx="24" fill="#f4f6f9"/>
+<g font-family="Helvetica Neue,Arial,sans-serif" fill="#182539">
+<text x="36" y="43" font-size="22" font-weight="700">Current macOS placement · 0.4.0 candidate</text>
+<text x="36" y="69" font-size="14" fill="#526177">Behavior schematic — not a GUI screenshot</text>
+<g transform="translate(36 95)"><rect width="348" height="150" rx="16" fill="white" stroke="#ccd4df"/>
+<text x="20" y="35" font-size="18" font-weight="700">1 · Find free space</text><text x="20" y="67" font-size="15">Measured indicator width + 8 pt gaps</text><text x="20" y="96" font-size="15">Avoid real controls and title text</text><text x="20" y="127" font-size="14" fill="#176442">Space fits → stay Automatic</text></g>
+<text x="398" y="178" font-size="24">→</text>
+<g transform="translate(426 95)"><rect width="348" height="150" rx="16" fill="white" stroke="#ccd4df"/>
+<text x="20" y="35" font-size="18" font-weight="700">2 · Default position</text><text x="20" y="67" font-size="15">No safe slot → use the default frame</text><text x="20" y="96" font-size="15">The default is not reserved space</text><text x="20" y="127" font-size="14" fill="#176442">No button collision → stay Automatic</text></g>
+<text x="788" y="178" font-size="24">→</text>
+<g transform="translate(816 95)"><rect width="348" height="150" rx="16" fill="#eaf2ff" stroke="#a8c6f5"/>
+<text x="20" y="35" font-size="18" font-weight="700">3 · Switch to Free</text><text x="20" y="67" font-size="15">Default collides with a button</text><text x="20" y="96" font-size="15">Save mode + default position</text><text x="20" y="127" font-size="14" fill="#245a9c">Keep visible; drag to reposition</text></g>
+<text x="36" y="283" font-size="15" fill="#526177">Return to Automatic explicitly. Locked position and detail-card lock are separate controls.</text>
+</g></svg>

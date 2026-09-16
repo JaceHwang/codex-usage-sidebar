@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/images/hero.svg" alt="Codex Usage Sidebar adaptive titlebar placement" width="900">
-</p>
-
 <h1 align="center">Codex Usage Sidebar</h1>
 
 <p align="center">
@@ -33,71 +29,58 @@
 | macOS 14+ Apple Silicon | [v0.3.5 release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.5) | Published arm64 DMG with dual 5-hour/7-day quota presentation |
 | Windows 11 AMD64 (`x64`) | [v0.3.3 release](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.3.3) | Unsigned `x64` setup with signed compatibility updates; Windows ARM64 is out of scope |
 
-v0.3.5 is a macOS maintenance release for the dual-quota presentation. Its two-row titlebar
-indicator keeps fixed 5-hour/7-day columns and now visibly separates each percentage from its reset
-time with ` · `, improving scanning without changing collision-aware placement. The macOS card keeps
-the gradient bars, reset countdowns, seven-day Token usage, and smooth fixed-width resize behavior.
-Windows remains on its separately validated v0.3.3 release. See the [v0.3.5 release notes](docs/releases/v0.3.5.md)
-for the macOS asset and validation scope.
+The current source/local build is **0.4.0 candidate, not published**. Download links above retain the catalog-recorded macOS 0.3.5 and Windows 0.3.3 releases. Features and images below describe the current macOS candidate, not the older downloadable installers. New Windows source is not a claim of completed device validation.
+
+See the [current feature inventory](docs/CURRENT_FEATURES.md) and [current design](docs/CURRENT_DESIGN.md).
+
+## Live macOS capture
+
+![Live macOS capture](docs/images/current/live-macos-indicator.jpg)
+
+Captured on September 16, 2026 from the installed 0.4.0 local build on an Apple Silicon Mac. This is the actual companion window with live quota values; the host conversation is excluded.
 
 ## Current appearance
 
 <p align="center">
-  <img src="docs/images/quota-popover-v0.3.3-en-light.png" alt="Codex Usage Sidebar v0.3.3 light-theme dual 5-hour and 7-day quota popover" width="48%">
-  <img src="docs/images/quota-popover-v0.3.3-en-dark.png" alt="Codex Usage Sidebar v0.3.3 dark-theme dual 5-hour and 7-day quota popover" width="48%">
+  <img src="docs/images/current/detail-en-light.png" alt="0.4.0 candidate native quota card, light theme, demonstration data" width="48%">
+  <img src="docs/images/current/detail-en-dark.png" alt="0.4.0 candidate native quota card, dark theme, demonstration data" width="48%">
 </p>
 
-<p align="center"><em>Current light theme · Current dark theme</em></p>
-
-These native AppKit captures show the two independent quota bars, seven-day Token chart, accented
-reset countdowns, account identity, themed icon, compact GitHub link, and light/dark materials.
-
-### v0.3.5 titlebar indicator
+Fresh renders of current AppKit controls with fixed demonstration data: dual quota, seven-day Tokens, detail lock, Bank expiry accents and footer settings. The detail lock is enabled in these fixtures. These are not live account captures or published-release screenshots.
 
 <p align="center">
-  <img src="docs/images/quota-header-indicator-v0.3.5-zh-light.png" alt="v0.3.5 two-row quota indicator with a centered dot between percentage and reset time" width="900">
+  <img src="docs/images/current/position-en-light.png" alt="Automatic, Free and Locked position selector" width="48%">
+  <img src="docs/images/current/settings-en-light.png" alt="Position mode, Check for updates, Reload and Quit settings menu" width="30%">
 </p>
 
-The new separator stays in the time column of both rows, so the percentage and reset time remain
-distinct while the 5-hour and 7-day values stay aligned.
+[Image provenance and reproduction](docs/images/current/README.md).
 
 ## Adaptive titlebar placement
 
-<p align="center">
-  <img src="docs/images/adaptive-titlebar-nearby-dark.png" alt="Quota control moved into the nearest free titlebar slot before Open Location" width="96%">
-</p>
+- **Automatic** searches titlebar space using the measured label width, avoiding real buttons, actionable controls and static titles.
+- **Default fallback** remains visible when no safe slot fits. If an interactive control overlaps that default, the mode switches to **Free** and is saved; it never silently switches back.
+- **Free** supports left-button dragging and saves positions per display.
+- **Locked** preserves the manual position and prevents dragging. This is independent from the detail card's lock button.
 
-<p align="center"><em>Enough room: the control occupies the nearest collision-free slot and keeps an 8-point gap.</em></p>
+Right-click the indicator or use the detail footer's settings menu to select a mode. Choose Automatic explicitly to resume automatic placement.
 
-<p align="center">
-  <img src="docs/images/adaptive-titlebar-fallback-dark.png" alt="Quota control moved to the safe right-side titlebar fallback" width="96%">
-</p>
-
-<p align="center"><em>Not enough room: the control moves immediately to the reserved right-side titlebar position and remains visible while the middle tab continues shrinking.</em></p>
+![Current placement flow schematic, not a GUI screenshot](docs/images/placement.svg)
 
 ## What it does
 
-Codex Usage Sidebar installs a small native macOS companion outside the signed Codex application.
-It reads quota updates from Codex's local `app-server`, follows the current light or dark theme,
-and renders one non-activating control in the nearest safe titlebar slot.
-
-| Situation | Behavior |
+| Interaction or content | Current macOS candidate behavior |
 | --- | --- |
-| Left, right, or bottom pane changes | The quota control prefers the native **Open Location** anchor, slides left around occupied controls, and moves to the reserved right-side position only when the local titlebar cannot fit it. |
-| Window moves or resizes | The collision-aware layout is sampled every 0.1 seconds, so the control tracks the available titlebar space without overlapping native controls or titles. |
-| Hover | A native detail card shows the synchronized plugin version, account identity, theme icon, independent 5-hour/7-day quotas, daily and total seven-day Token usage, Credits, and every Bank entry with status and expiry. |
-| Click | The detail card stays pinned until the quota control is clicked again; hover behavior remains available. |
-| Resize detail card | Drag the small centered grip above the footer. The pointer becomes an up/down resize cursor; resize remains smooth, fixed-width, top-anchored, and expands only the scrolling detail region. |
-| Footer GitHub button | Opens the project repository at [github.com/JaceHwang/codex-usage-sidebar](https://github.com/JaceHwang/codex-usage-sidebar). The resting button blends into the footer; hover adds only a soft rounded shadow. |
-| Quota changes | Percentage color follows the exact 100% green, 49% orange, and 10% red palette while the filled bar reveals the matching spectrum. |
-| Codex language changes | The control and detail card follow Codex's effective Simplified Chinese, Traditional Chinese, or English locale within one second. |
+| Indicator | Aligned 5-hour/7-day percentages and reset times; single-window display when secondary data is absent. |
+| Hover and click | Hover opens details; click pins/unpins. An outside click dismisses an ordinary pinned card. |
+| Detail lock | The header lock keeps details open across pointer departure and outside clicks until unlocked. |
+| Detail data | Dual progress bars, seven-day daily/total Tokens, account, version, plan, Credits and every Bank entry's status/expiry. |
+| Bank urgency | Red at up to 3 days, orange above 3 through 7 days, green above 7 days; unknown expiry has no urgency accent. |
+| Resize | Natural details viewport: at least 8 rows (256 points), growing with content; manual minimum 2. The footer grip resizes the scrolling region; width remains 360 points. |
+| Settings | Position mode, Check for updates, Reload and Quit. Check for updates opens GitHub Releases, without automatic download/install. |
+| Appearance and language | Codex light/dark theme and effective Simplified Chinese, Traditional Chinese or English; other locales fall back to English. |
+| Live placement | Automatic mode re-scans every 0.1 seconds; button roles/direct press or pick actions count, generic container auxiliary actions do not. |
 
-The old sidebar-footer copy and all sidebar-state synchronization code are removed. There is only one
-quota control.
-
-<p align="center">
-  <img src="docs/images/placement.svg" alt="Collision-aware placement across pane and window changes" width="900">
-</p>
+Missing snapshots, stale data or a background Codex window can still hide the overlay. Those are distinct from the crowding-to-Free transition.
 
 ## Quick install
 
@@ -223,26 +206,9 @@ Then enable Accessibility for **Codex Usage Sidebar** when macOS asks. See
 
 ## Collision-aware positioning
 
-The companion scans the accessibility branches that can affect titlebar placement. It reads labels
-and frames only from eligible buttons and static title text, and uses unlabeled structural group
-frames in the relevant region to detect pane boundaries. It then applies this placement policy:
+The full relevant titlebar is scanned and final placement is checked using the actual indicator width (164–280 points) and an 8-point gap, including cached/default frames. Containers exposing only `AXShowMenu`/`AXScrollToVisible` are not buttons; button roles and direct `AXPress`/`AXPick` controls remain obstacles. Conversation bodies are not read.
 
-```text
-1. Prefer quota.maxX = openLocation.minX - 8 pt.
-2. If that frame intersects another titlebar item, slide left to the nearest free slot.
-3. If no complete slot remains before a title barrier, use the reserved right-side fallback.
-```
-
-The toolbar-item scan includes the full horizontal reach of the 164-point control but rejects items
-outside the 46-point titlebar. Structural groups are considered only as geometry for pane-boundary
-detection; their labels and text are never read. This keeps resizing responsive without reading
-conversation bodies.
-Degenerate elements clipped to a 1-point line at the top of a fullscreen window are ignored rather
-than mistaken for visible title text. Geometry eligibility is checked before any label is read, and
-every 0.1-second placement tick re-scans eligible titlebar geometry even when the semantic anchor
-itself is unchanged. An intentional fallback replaces an obsolete retained anchor immediately; a
-transient incomplete scan still preserves the last valid placement for at most 0.75 seconds. The
-companion never modifies Codex internals.
+A semantic anchor is a preference, not the final displayed position after free-slot search or manual placement. See [current design](docs/CURRENT_DESIGN.md).
 
 ## Live details
 
@@ -317,26 +283,22 @@ Read the complete [privacy model](docs/PRIVACY.md), [architecture](docs/ARCHITEC
 A healthy precise-positioning result includes the state from the actual LaunchAgent process:
 
 ```text
-pid=12345 version=0.3.3 runtime=shown placement=content-header anchor=labeledControl
+pid=12345 version=0.4.0 runtime=shown placement=content-header mode=automatic anchor=labeledControl
 language=simplifiedChinese language_source=process
 indicator=654,1003,164,46 ... cached:false,source:labeledControl,edge:826
 installed and loaded: .../Codex Usage Sidebar.app
 ```
 
-For `openLocation`, `labeledControl`, or `rightPaneBoundary`, the indicator's right edge equals
-`edge - 8`. A `fallback` with a resolved edge is an intentional move to the safe right-side slot,
-not an error. The runtime version must match the badge in the hover card.
+`mode=automatic/free/locked` is the current mode; `freeFallback` describes the current scan's default-collision decision. `anchor`/`edge` are semantic hints, so `indicator.maxX = edge - 8` is not a universal health check. The version must match the detail-card badge.
 
 ## Build provenance
 
-The marketplace companion is promoted from the exact artifact produced by GitHub Actions.
-[`assets/PROVENANCE.json`](plugins/codex-usage-sidebar/assets/PROVENANCE.json) records the source
-commit, workflow run, artifact digest, archive digest, executable SHA-256, and code-directory hash.
-CI verifies the pinned payload before independently rebuilding and testing the source.
+Published assets bind the exact release commit, checksums and provenance. The tracked [PROVENANCE.json](plugins/codex-usage-sidebar/assets/PROVENANCE.json) identifies the companion source and executable digest; release DMGs additionally carry `MACOS-V040-PROVENANCE.json`. Local uncommitted builds are not release evidence. Installation can re-sign the binary, so installed byte hashes can differ from the source payload without a code change.
 
 ## Development
 
 ```bash
+./governance doctor
 cd plugins/codex-usage-sidebar
 bash scripts/build-companion.sh
 bash tests/test-sidebar-control.sh
@@ -344,7 +306,7 @@ bash tests/test-signing-identity.sh
 bash tests/live-app-server-probe.sh   # requires isolated CodexHome login
 
 cd ../..
-CUS_ALLOW_SOURCE_AHEAD=1 bash scripts/validate-public-repo.sh
+./governance check all
 ```
 
 The build runs the complete Swift suite, produces an arm64 release app, selects the stable local
@@ -352,6 +314,10 @@ signing identity when available, and otherwise applies the deterministic ad-hoc 
 CI. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
 ## Documentation
+
+- [Current features](docs/CURRENT_FEATURES.md)
+- [Current design](docs/CURRENT_DESIGN.md)
+- [Historical designs](docs/superpowers/README.md)
 
 - [Human installation and operations](docs/INSTALL.md)
 - [Agent installation playbook](docs/INSTALL_FOR_AGENTS.md)

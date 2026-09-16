@@ -1,7 +1,12 @@
 # Install with an Agent
 
+> **Current source vs downloads:** this checkout is the unpublished 0.4.0 candidate. The catalog
+> records macOS 0.3.5 and Windows 0.3.3 as published; release-specific instructions below retain
+> those versions. Candidate controls and behavior are documented in [CURRENT_FEATURES](CURRENT_FEATURES.md).
+
+
 This playbook is for a coding agent with terminal access to the target computer. Use the Windows
-path for the published `v0.3.3` setup and the macOS v0.3.3 DMG installation.
+path for the published `v0.3.3` setup and the macOS installation path.
 
 ## Windows 11 AMD64/x64 automatic setup install
 
@@ -142,9 +147,10 @@ Requirements:
 6. In the new task, invoke @codex-usage-sidebar to check and repair the installation.
 7. Verify the LaunchAgent, status output, isolated login, and accessibility state.
 8. If Accessibility is off, open the correct System Settings pane and ask me to approve the switch.
-9. Resize the right pane and confirm collision-free adaptive placement: a resolved local source
-   keeps an 8-point edge gap, while insufficient space selects the safe right-side fallback. Do not
-   expose unrelated windows, conversations, or account data.
+9. Resize the right pane and verify behavior for the installed version. In the 0.4.0 candidate,
+   occupied default fallback switches to persistent Free mode; do not treat that as an installation
+   failure or require the semantic edge to equal the final manual position. Do not expose unrelated
+   windows, conversations, or account data.
 ```
 
 ### Deterministic procedure
@@ -201,20 +207,14 @@ launchctl print "gui/$(id -u)/com.jace.codex-usage-sidebar"
 
 Interpret status conservatively:
 
-- `installed and loaded` confirms the managed runtime is present.
-- `accessibility=granted` permits semantic placement checks.
-- `accessibility=required` means the user must approve the macOS switch.
-- `placement=content-header` with `openLocation`, `labeledControl`, or `rightPaneBoundary` confirms
-  a resolved collision-free local placement.
-- `fallback` with a numeric edge confirms the intentional safe right-side placement used when no
-  complete local slot remains; it is not a failure.
-- `cached:false` is the expected steady state because every 0.1-second tick re-scans eligible
-  titlebar geometry for collisions.
-- `pid=<LaunchAgent PID>` confirms status came from the managed process rather than a standalone
-  diagnostic invocation.
-- `version=<version>` must match the visible badge beside the hover-card title.
-- For a resolved non-fallback source with `indicator=x,y,width,height` and `edge=n`, `x + width`
-  must equal `n - 8`.
+- `installed and loaded` confirms a managed process, not that its overlay is visible.
+- `accessibility=granted` confirms permission; `required` needs the OS/user permission flow.
+- Verify `pid` against the active LaunchAgent and `version` against the card badge.
+- Candidate `mode=automatic/free/locked` reports position mode. A crowded default can deliberately
+  switch to Free; users explicitly select Automatic to resume.
+- `freeFallback` reports the current scan's fallback decision. `anchor`/`edge` do not universally
+  determine the final indicator rectangle after safe-slot selection or manual placement.
+- A one-shot diagnostic is not equivalent to actual managed-runtime placement.
 
 Accessibility is a macOS security permission. Never bypass it or claim it is granted before the OS
 reports that state.
@@ -233,5 +233,5 @@ and preserves the stable local signing identity when available.
 
 Return the plugin version, login status, companion status, LaunchAgent state, Accessibility state,
 anchor source, and whether the control avoids native controls while the right pane is dragged
-through intermediate widths. Confirm both the nearest-free-slot and safe-right-fallback states.
+through intermediate widths. For the current candidate, distinguish safe automatic placement from intentional Free fallback.
 Crop screenshots to the relevant titlebar area.

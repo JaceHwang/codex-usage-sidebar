@@ -1,5 +1,7 @@
 # Wide Right-Pane Anchor Fix Implementation Plan
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Keep the quota control in the available center-titlebar slot when a wide right pane moves Open Location left of the whole-window midpoint.

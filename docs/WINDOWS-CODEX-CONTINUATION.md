@@ -1,5 +1,7 @@
 # Continuing Windows maintenance in Codex
 
+> Version-scoped historical handoff/validation document. See [current features](CURRENT_FEATURES.md) for present source scope. This record does not certify a new Windows candidate or supersede current repository governance.
+
 ## Authoritative state
 
 - Branch: `main`; use Git history and the exact commit SHA as the source of truth.

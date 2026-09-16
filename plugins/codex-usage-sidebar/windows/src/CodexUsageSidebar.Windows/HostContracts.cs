@@ -65,7 +65,7 @@ public sealed record OverlayPresentation(
     PointD ThemeProbePoint,
     TokenUsageSnapshot? TokenUsage = null,
     AccountIdentity? Account = null,
-    string Version = QuotaDetailFormatter.ProductVersion,
+    string Version = "",
     PlacementMode Mode = PlacementMode.Titlebar,
     SafeDockSize SafeDockSize = SafeDockSize.Standard,
     SafeDockPlacementRequest? SafeDockRequest = null);
@@ -93,6 +93,8 @@ public sealed class WindowsDeviceValidationRequiredException : Exception
     public string BuildIdentity { get; }
 }
 
+public sealed class HostSettingsPageDetectedException : Exception;
+
 public interface IHostWindowLocator
 {
     ValueTask<HostWindowSnapshot?> FindAsync(CancellationToken cancellationToken);
@@ -110,6 +112,11 @@ public interface IOverlaySurface
 {
     ValueTask ShowAsync(OverlayPresentation presentation, CancellationToken cancellationToken);
     ValueTask HideAsync(CancellationToken cancellationToken);
+}
+
+public interface IIndicatorSizeProvider
+{
+    double MeasureIndicatorWidth(AllowanceSnapshot snapshot, DisplayLanguage language, double height);
 }
 
 public interface ISafeDockOverlaySurface : IOverlaySurface

@@ -19,7 +19,7 @@ fi
   exit 65
 }
 
-if [[ -d /Applications/Xcode.app/Contents/Developer ]]; then
+if [[ -z "${DEVELOPER_DIR:-}" && -d /Applications/Xcode.app/Contents/Developer ]]; then
   export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 fi
 
@@ -34,21 +34,30 @@ cleanup() {
 }
 trap cleanup EXIT
 
-xcrun swift test --package-path "$package_root"
+sdk_path="${SDKROOT:-$(xcrun --sdk macosx --show-sdk-path)}"
+sdk_args=(--sdk "$sdk_path")
+xcrun swift test --build-system native "${sdk_args[@]}" --package-path "$package_root"
 xcrun swift build \
+  --build-system native "${sdk_args[@]}" \
   -c release \
   --arch arm64 \
   --package-path "$package_root"
 release_bin_path="$(
   xcrun swift build \
+    --build-system native "${sdk_args[@]}" \
     -c release \
     --arch arm64 \
     --show-bin-path \
     --package-path "$package_root"
 )"
 release_binary="$release_bin_path/CodexUsageSidebar"
+release_resource_bundle="$release_bin_path/CodexUsageSidebar_CodexUsageSidebar.bundle"
 [[ -x "$release_binary" ]] || {
   printf 'release executable is missing: %s\n' "$release_binary" >&2
+  exit 66
+}
+[[ -d "$release_resource_bundle" ]] || {
+  printf 'release resource bundle is missing: %s\n' "$release_resource_bundle" >&2
   exit 66
 }
 
@@ -64,6 +73,9 @@ release_binary="$release_bin_path/CodexUsageSidebar"
 /usr/bin/install -m 0644 \
   "$plugin_root/assets/quota-icon-light.png" \
   "$staged_app/Contents/Resources/quota-icon-light.png"
+/usr/bin/ditto \
+  "$release_resource_bundle" \
+  "$staged_app/Contents/Resources/CodexUsageSidebar_CodexUsageSidebar.bundle"
 
 /bin/cat >"$staged_app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

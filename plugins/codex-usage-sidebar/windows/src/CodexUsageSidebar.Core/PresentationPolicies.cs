@@ -218,17 +218,43 @@ public static class IndicatorHitTestPolicy
     public static byte BackgroundAlpha(bool highlighted) => highlighted ? (byte)18 : (byte)1;
 }
 
-public readonly record struct DetailInteractionState(bool IsPinned, bool IsPointerInside, bool SuppressHoverUntilExit)
+public static class QuotaDetailLockCopy
 {
-    public static DetailInteractionState Initial => new(false, false, false);
-    public bool ShouldShowDetail => IsPinned || (IsPointerInside && !SuppressHoverUntilExit);
+    public static string Label(DisplayLanguage language, bool isLockedOpen) => (language, isLockedOpen) switch
+    {
+        (DisplayLanguage.SimplifiedChinese, false) => "固定浮窗",
+        (DisplayLanguage.SimplifiedChinese, true) => "取消固定浮窗",
+        (DisplayLanguage.TraditionalChinese, false) => "固定浮窗",
+        (DisplayLanguage.TraditionalChinese, true) => "取消固定浮窗",
+        (DisplayLanguage.English, false) => "Keep popover open",
+        _ => "Stop keeping popover open",
+    };
+}
+
+public readonly record struct DetailInteractionState(
+    bool IsPinned,
+    bool IsPointerInside,
+    bool SuppressHoverUntilExit,
+    bool IsLockedOpen)
+{
+    public static DetailInteractionState Initial => new(false, false, false, false);
+    public bool ShouldShowDetail => IsLockedOpen || IsPinned || (IsPointerInside && !SuppressHoverUntilExit);
 
     public DetailInteractionState PointerChanged(bool inside) =>
         this with { IsPointerInside = inside, SuppressHoverUntilExit = inside && SuppressHoverUntilExit };
 
+    public DetailInteractionState PointerPressed(bool insideOverlay, bool insideMenu) =>
+        insideOverlay || insideMenu
+            ? this
+            : this with { IsPinned = false, IsPointerInside = false, SuppressHoverUntilExit = true };
+
     public DetailInteractionState TogglePinned(bool pointerInside) => IsPinned
-        ? new DetailInteractionState(false, pointerInside, pointerInside)
-        : new DetailInteractionState(true, pointerInside, false);
+        ? this with { IsPinned = false, IsPointerInside = pointerInside, SuppressHoverUntilExit = pointerInside }
+        : this with { IsPinned = true, IsPointerInside = pointerInside, SuppressHoverUntilExit = false };
+
+    public DetailInteractionState ToggleLockedOpen(bool pointerInside) => IsLockedOpen
+        ? this with { IsLockedOpen = false, IsPointerInside = pointerInside, SuppressHoverUntilExit = false }
+        : this with { IsLockedOpen = true, IsPinned = false, IsPointerInside = pointerInside, SuppressHoverUntilExit = false };
 }
 
 public enum SnapshotFreshness { Fresh, Dimmed, Hidden }

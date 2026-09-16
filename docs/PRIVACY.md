@@ -1,58 +1,54 @@
-# Privacy Model
+# Privacy model
+
+Scope: current macOS 0.4.0 candidate; Windows has its separate UIA/runtime and published-version boundary.
 
 ## Data read
 
-- Remaining Codex quota, reset time, plan metadata, Credits, every Bank entry, seven-day Token usage,
-  and account display identity from the local Codex `app-server` JSON-RPC stream.
-- Codex window geometry and named-control accessibility labels and frames needed for placement.
-- Local process and bundle metadata needed to discover the running Codex installation.
-- Local Codex theme preference used to match light and dark appearance.
+- Quota windows, reset times, plan, Credits, Bank credits/status/expiry, seven-day Tokens and account
+  display identity from the local Codex app-server over JSON-RPC/stdio.
+- Codex window geometry, eligible titlebar-control labels, roles, actions and bounds for placement.
+  Non-actionable groups provide structural pane geometry; conversation bodies are not read.
+- Process/bundle metadata for Codex discovery, effective language and light/dark appearance.
+- Mouse-down events while the relevant menus or pinned detail interactions are active, solely to
+  detect an outside click and dismiss those surfaces. Free-mode dragging uses pointer events.
 
 ## Authentication
 
-The companion launches `codex app-server` with an isolated home at:
-
-```text
-~/Library/Application Support/CodexUsageSidebar/CodexHome
-```
-
-Credentials in that directory are created only through the official `codex login` flow. The plugin
-does not copy or read the normal `~/.codex/auth.json` file.
+The companion uses the separate home at
+`~/Library/Application Support/CodexUsageSidebar/CodexHome`.
+Credentials there are created through official `codex login`. Installation does not copy the normal
+`~/.codex/auth.json`. Do not put credentials or account data in documentation screenshots.
 
 ## Data written
 
-- Companion application and control script under
-  `~/Library/Application Support/CodexUsageSidebar/`.
-- Isolated Codex authentication and configuration under its `CodexHome` subdirectory.
-- Runtime data and local logs under the `Data` subdirectory. The sanitized runtime-state file
-  contains only the companion PID, bundle version, timestamp, visibility, anchor source, and overlay
-  geometry; it contains no quota values, account identifiers, or conversation content.
-- One user LaunchAgent at `~/Library/LaunchAgents/com.jace.codex-usage-sidebar.plist`.
+- Application/control scripts under `~/Library/Application Support/CodexUsageSidebar/`.
+- Isolated authentication/configuration under `CodexHome`; runtime state/logs under `Data`.
+- User LaunchAgent at `~/Library/LaunchAgents/com.jace.codex-usage-sidebar.plist`.
+- UserDefaults position preference `com.jace.codex-usage-sidebar.indicator-placement.v1` in the
+  companion's defaults domain: mode, active display identifier and normalized per-display positions.
+- Managed status contains PID, version, time, visibility, mode, mapped language/source, anchor,
+  geometry, scan/obstacle counts and the current `freeFallback` decision. It does not contain quota
+  values, account identifiers, control labels or conversation content.
+- Opt-in `CUS_DIAGNOSTIC_OBSTACLES=1` adds AX role/action names and control rectangles only.
 
 ## Data not collected
 
-- Conversation text or repository contents
-- Tibo X content, X API data, prediction data, or browser scraping
-- Browser cookies or data from other applications
-- Normal Codex-home credentials
-- Keyboard or global mouse events
-- Usage telemetry, remote analytics, or advertising identifiers
+Conversation bodies, repository file contents, browser cookies, keyboard input, click-history logs,
+normal Codex-home credentials, telemetry and advertising identifiers are not collected by this companion.
+It does not scrape social feeds or web pages. Raw locale-discovery process arguments are not persisted.
 
-## Network behavior
+## Network and external actions
 
-The companion adds no analytics service or application server. It communicates with the official
-Codex `app-server` executable over local stdio. Network access performed by that component for
-authenticated quota data remains governed by Codex itself.
+The companion adds no analytics server. Official app-server networking for authenticated account
+and quota data follows Codex's own behavior. The GitHub footer opens the repository; Check for
+updates opens its Releases page in the browser and does not silently install updates. Published
+Windows compatibility updates use their separate signed HTTPS/catalog verification contract.
 
-## Accessibility permission
+## Accessibility and input boundaries
 
-Accessibility is used only for placement in the active Codex window. The companion reads labels
-and frames from eligible buttons/static text in the 46-point titlebar band to identify a preferred
-semantic anchor and avoid meaningfully visible occupied geometry. It also reads structural
-`AXGroup` frames in relevant accessibility branches for pane-boundary detection, but never reads
-labels or text from those groups. Degenerate content clipped to the fullscreen top edge is rejected
-by geometry before any label attribute is read, and its descendants are pruned from traversal.
-Eligible titlebar labels remain in memory; managed diagnostics contain only the sanitized anchor
-source, scan counts, edge, and indicator frame. It does not read conversation bodies, synthesize
-typing or clicks, inspect another application's accessibility tree, or bypass the macOS permission
-prompt.
+macOS grants the permission. The companion does not bypass the prompt, modify the Codex bundle,
+or synthesize typing/clicks. Geometry filters bound titlebar reads; button roles and direct press/pick
+actions identify interaction targets. Generic menu/scroll helper actions do not turn structural
+containers into buttons. Temporary outside-click observers are removed when the corresponding
+surface closes. This is not a claim of zero global mouse observation: such observers are part of
+the current outside-dismiss behavior.

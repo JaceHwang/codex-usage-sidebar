@@ -18,11 +18,12 @@ permissions:
 jobs:
   publish:
     name: release / publish platform
-    runs-on: ubuntu-24.04
+    runs-on: ${{ inputs.platform == 'macos-arm64' && 'macos-26' || 'ubuntu-24.04' }}
     env:
       GH_TOKEN: ${{ github.token }}
       RELEASE_TAG: ${{ inputs.tag }}
       RELEASE_PLATFORM: ${{ inputs.platform }}
+      DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer
     steps:
       - name: Validate release inputs
         run: |
@@ -33,6 +34,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ inputs.tag }}
+          fetch-depth: 0
       - name: Build and verify platform assets
         run: |
           set -euo pipefail

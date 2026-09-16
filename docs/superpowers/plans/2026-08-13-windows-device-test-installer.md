@@ -1,5 +1,7 @@
 # Windows Device-Test Installer Implementation Plan
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 ## Goal
 
 Provide a provenance-bound, localized WPF device-test manager for install, repair, and conservative

@@ -1,29 +1,18 @@
 # Plugin payload
 
-This directory is the installable `codex-usage-sidebar` plugin referenced by the repository's Git
-marketplace manifest. Start at the [repository README](../../README.md) for installation,
-screenshots, privacy, support, and contribution instructions.
+This is the installable plugin directory. The current source/app version is **0.4.0 candidate**;
+see the [repository README](../../README.md) / [中文说明](../../README.zh-CN.md) for download versions,
+current native renders, installation and support.
 
-Its native companion shows one live quota control in a collision-free Codex titlebar slot. Version
-0.3.3 prefers an exact 8-point Open Location gap, slides left to the nearest complete free slot when
-native controls occupy that frame, and uses the safe right-side fallback when no local slot remains.
-Fullscreen content clipped to a 1-point top-edge frame is ignored rather than treated as a titlebar
-obstacle. The companion never creates a second control in the left sidebar.
+The macOS companion displays primary/secondary quota windows, seven-day Tokens, account identity,
+Credits and Bank expiry/status. It provides hover/click pin, an independent detail lock, resizable
+scrolling details, a GitHub footer and settings (position mode, Releases link, reload, quit).
+Automatic placement searches safe space; occupied default fallback switches persistently to Free.
+Free allows dragging and Locked fixes the manual position. These modes are separate from detail lock.
 
-The hover card shows the synchronized bundle version beside its title, the current-cycle daily and
-total token usage chart, and Codex account identity in the footer. Its compact footer contains a
-borderless GitHub button that opens the project repository at
-`https://github.com/JaceHwang/codex-usage-sidebar`; the resting state blends into the background,
-while hover adds a soft rounded shadow. Percentage text uses exact
-100% green, 49% orange, and 10% red anchors, while the filled progress bar clips the matching
-red-to-orange-to-green spectrum. Managed status reports the actual LaunchAgent PID, version, anchor,
-indicator frame, mapped language, and language source.
-
-The current release follows Codex's effective Simplified Chinese, Traditional Chinese, or English locale,
-including the final locale resolved by Codex when its setting is Auto; unsupported locales use
-English. Click pins the quota card until the next click, while hover remains available.
-
-Developer verification:
+Read [current features](../../docs/CURRENT_FEATURES.md), [current design](../../docs/CURRENT_DESIGN.md)
+and [privacy](../../docs/PRIVACY.md). Windows source and macOS-local tests do not establish a newly
+published Windows build. The release catalog retains the published-platform matrix.
 
 ```bash
 bash scripts/build-companion.sh
@@ -31,5 +20,8 @@ bash tests/test-sidebar-control.sh
 bash tests/test-signing-identity.sh
 bash tests/test-bundle-version.sh
 bash tests/test-build-sdk.sh
-bash tests/live-app-server-probe.sh
+bash tests/live-app-server-probe.sh # requires isolated CodexHome login
 ```
+
+A local build does not publish a release. Follow the repository governance entrypoint before
+committing, pushing or releasing. Snapshot/dirty metadata must not be presented as exact CI provenance.

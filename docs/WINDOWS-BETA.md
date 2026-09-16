@@ -1,5 +1,7 @@
 # Windows v0.3.3 release and compatibility guide
 
+> Version-scoped historical handoff/validation document. See [current features](CURRENT_FEATURES.md) for present source scope. This record does not certify a new Windows candidate or supersede current repository governance.
+
 ## Release status
 
 `v0.3.3` publishes an unsigned, current-user Windows 11 AMD64/x64 setup:

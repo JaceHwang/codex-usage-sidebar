@@ -12,8 +12,12 @@ final class QuotaDetailPanel {
     private var lastContent: QuotaDetailContent?
     private var lastIndicatorFrame: CGRect?
     private var lastTheme: CodexInterfaceTheme?
+    private var lastIsLockedOpen = false
+    private var lastLockAccessibilityLabel = ""
     private var requestedHeight: CGFloat?
     var onOpenURL: ((URL) -> Void)?
+    var onSettingsButtonTapped: ((CGRect) -> Void)?
+    var onLockOpenToggle: (() -> Void)?
 
     init() {
         panel = PassivePanel(
@@ -39,19 +43,25 @@ final class QuotaDetailPanel {
     func show(
         content: QuotaDetailContent,
         relativeTo indicatorFrame: CGRect,
-        theme: CodexInterfaceTheme
+        theme: CodexInterfaceTheme,
+        isLockedOpen: Bool = false,
+        lockAccessibilityLabel: String = "Keep popover open"
     ) {
         if
             panel.isVisible,
             lastContent == content,
             lastIndicatorFrame == indicatorFrame,
-            lastTheme == theme
+            lastTheme == theme,
+            lastIsLockedOpen == isLockedOpen,
+            lastLockAccessibilityLabel == lockAccessibilityLabel
         {
             return
         }
         lastContent = content
         lastIndicatorFrame = indicatorFrame
         lastTheme = theme
+        lastIsLockedOpen = isLockedOpen
+        lastLockAccessibilityLabel = lockAccessibilityLabel
 
         let screen = NSScreen.screens.first {
             $0.frame.contains(
@@ -66,6 +76,8 @@ final class QuotaDetailPanel {
             content: content,
             indicatorFrame: indicatorFrame,
             theme: theme,
+            isLockedOpen: isLockedOpen,
+            lockAccessibilityLabel: lockAccessibilityLabel,
             visibleFrame: visibleFrame
         )
     }
@@ -74,6 +86,8 @@ final class QuotaDetailPanel {
         content: QuotaDetailContent,
         indicatorFrame: CGRect,
         theme: CodexInterfaceTheme,
+        isLockedOpen: Bool,
+        lockAccessibilityLabel: String,
         visibleFrame: CGRect
     ) {
         let resolvedLayout = QuotaDetailPanelResolvedLayout.resolve(
@@ -92,8 +106,24 @@ final class QuotaDetailPanel {
                 frame: CGRect(origin: .zero, size: panelFrame.size),
                 content: content,
                 rowHeights: rowHeights,
+                isLockedOpen: isLockedOpen,
+                lockAccessibilityLabel: lockAccessibilityLabel,
+                onLockOpenToggle: { [weak self] in
+                    self?.onLockOpenToggle?()
+                },
                 onOpenURL: { [weak self] destination in
                     self?.onOpenURL?(destination)
+                },
+                onSettingsButtonTapped: { [weak self] button in
+                    guard let self,
+                          let window = button.window
+                    else {
+                        return
+                    }
+                    let windowFrame = button.convert(button.bounds, to: nil)
+                    self.onSettingsButtonTapped?(
+                        window.convertToScreen(windowFrame)
+                    )
                 },
                 onResizeHeight: { [weak self] requestedHeight in
                     self?.resize(to: requestedHeight)
@@ -104,9 +134,27 @@ final class QuotaDetailPanel {
             )
             card?.appearance = appearance
         }
-        panel.contentView = card
-        panel.setFrame(panelFrame, display: true)
+        if let card {
+            Self.install(card, into: panel, frame: panelFrame)
+        }
         panel.orderFrontRegardless()
+    }
+
+    /// Installs a detail card only after the panel has its final geometry.
+    ///
+    /// `NSPanel` applies autoresizing masks as soon as a content view is
+    /// attached. A cold panel starts at a zero-sized content rect, so attaching
+    /// the card first permanently distorts its top-anchored header and
+    /// stretchable scroll area on the first render.
+    static func install(
+        _ card: NSView,
+        into panel: NSPanel,
+        frame: CGRect
+    ) {
+        panel.setFrame(frame, display: false)
+        panel.contentView = card
+        card.frame = CGRect(origin: .zero, size: frame.size)
+        card.layoutSubtreeIfNeeded()
     }
 
     private func resize(to requestedHeight: CGFloat) {
@@ -158,6 +206,8 @@ final class QuotaDetailPanel {
             content: content,
             indicatorFrame: indicatorFrame,
             theme: theme,
+            isLockedOpen: lastIsLockedOpen,
+            lockAccessibilityLabel: lastLockAccessibilityLabel,
             visibleFrame: visibleFrame
         )
     }
@@ -213,7 +263,11 @@ final class QuotaDetailCardView: NSView {
         content: QuotaDetailContent,
         rowHeights: [CGFloat],
         version: String? = nil,
+        isLockedOpen: Bool = false,
+        lockAccessibilityLabel: String = "Keep popover open",
+        onLockOpenToggle: @escaping () -> Void = {},
         onOpenURL: @escaping (URL) -> Void,
+        onSettingsButtonTapped: @escaping (NSButton) -> Void = { _ in },
         onResizeHeight: @escaping (CGFloat) -> Void = { _ in },
         onResizeEnded: @escaping () -> Void = {}
     ) {
@@ -241,6 +295,12 @@ final class QuotaDetailCardView: NSView {
             ) as? String ?? "dev"
         )
         let versionBadge = VersionBadgeView(text: "v\(displayedVersion)")
+        let lockButton = QuotaDetailLockButton(
+            frame: .zero,
+            isLockedOpen: isLockedOpen,
+            accessibilityLabel: lockAccessibilityLabel,
+            onActivate: onLockOpenToggle
+        )
         let secondaryQuotaVisible = content.quotaWindows.count > 1
 
         let remaining = label(
@@ -258,6 +318,7 @@ final class QuotaDetailCardView: NSView {
                 fittingWidth: title.fittingSize.width
             ),
             versionBadgeWidth: versionBadge.intrinsicContentSize.width,
+            lockButtonWidth: 28,
             secondaryQuotaVisible: secondaryQuotaVisible
         )
         let themeIcon = QuotaThemeIconView(frame: CGRect(
@@ -268,9 +329,11 @@ final class QuotaDetailCardView: NSView {
         ))
         themeIcon.autoresizingMask = [.minYMargin]
         title.autoresizingMask = [.minYMargin]
+        lockButton.autoresizingMask = [.minYMargin]
         versionBadge.autoresizingMask = [.minYMargin]
         remaining.autoresizingMask = [.minYMargin]
         title.frame = headerFrames.title
+        lockButton.frame = headerFrames.lockButton
         versionBadge.frame = headerFrames.versionBadge
         if let primaryWindow = content.quotaWindows.first {
             let primaryWindowLabel = label(
@@ -286,6 +349,7 @@ final class QuotaDetailCardView: NSView {
         remaining.frame = headerFrames.remaining
         addSubview(themeIcon)
         addSubview(title)
+        addSubview(lockButton)
         addSubview(versionBadge)
         addSubview(remaining)
 
@@ -477,7 +541,8 @@ final class QuotaDetailCardView: NSView {
                 name: content.footerName,
                 avatarSeed: content.footerName,
                 avatarURL: content.footerAvatarURL,
-                onOpenURL: onOpenURL
+                onOpenURL: onOpenURL,
+                onSettingsButtonTapped: onSettingsButtonTapped
             )
         )
         let resizeHint = QuotaResizeHintView(text: content.resizeHint)
@@ -500,11 +565,10 @@ final class QuotaDetailCardView: NSView {
             ),
             accessibilityLabel: content.resizeHint,
             onResizeHeight: onResizeHeight,
-            onResizeBegan: {
-                resizeHint.isHidden = false
+            onHintVisibilityChanged: { isVisible in
+                resizeHint.isHidden = !isVisible
             },
             onResizeEnded: {
-                resizeHint.isHidden = true
                 onResizeEnded()
             }
         )
@@ -535,7 +599,7 @@ final class QuotaDetailCardView: NSView {
 @MainActor
 private final class QuotaDetailHeightResizeHandleView: NSView {
     private let onResizeHeight: (CGFloat) -> Void
-    private let onResizeBegan: () -> Void
+    private let onHintVisibilityChanged: (Bool) -> Void
     private let onResizeEnded: () -> Void
     private var startingHeight: CGFloat = 0
     private var startingScreenY: CGFloat = 0
@@ -548,11 +612,11 @@ private final class QuotaDetailHeightResizeHandleView: NSView {
         frame frameRect: NSRect,
         accessibilityLabel: String,
         onResizeHeight: @escaping (CGFloat) -> Void,
-        onResizeBegan: @escaping () -> Void,
+        onHintVisibilityChanged: @escaping (Bool) -> Void,
         onResizeEnded: @escaping () -> Void
     ) {
         self.onResizeHeight = onResizeHeight
-        self.onResizeBegan = onResizeBegan
+        self.onHintVisibilityChanged = onHintVisibilityChanged
         self.onResizeEnded = onResizeEnded
         super.init(frame: frameRect)
         wantsLayer = true
@@ -601,14 +665,13 @@ private final class QuotaDetailHeightResizeHandleView: NSView {
         isPointerInside = true
         NSCursor.resizeUpDown.set()
         updateAppearance()
+        updateHintVisibility()
     }
 
     override func mouseExited(with event: NSEvent) {
-        guard !isDragging else {
-            return
-        }
         isPointerInside = false
         updateAppearance()
+        updateHintVisibility()
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -621,7 +684,7 @@ private final class QuotaDetailHeightResizeHandleView: NSView {
         isDragging = true
         NSCursor.resizeUpDown.set()
         updateAppearance()
-        onResizeBegan()
+        updateHintVisibility()
     }
 
     override func mouseDragged(with event: NSEvent) {
@@ -638,6 +701,7 @@ private final class QuotaDetailHeightResizeHandleView: NSView {
         resizingWindow = nil
         isDragging = false
         updateAppearance()
+        updateHintVisibility()
         onResizeEnded()
     }
 
@@ -661,6 +725,10 @@ private final class QuotaDetailHeightResizeHandleView: NSView {
             .cgColor
         needsDisplay = true
         window?.invalidateCursorRects(for: self)
+    }
+
+    private func updateHintVisibility() {
+        onHintVisibilityChanged(isPointerInside || isDragging)
     }
 }
 
@@ -724,7 +792,8 @@ private final class QuotaFooterView: NSView {
         name: String?,
         avatarSeed: String?,
         avatarURL: URL?,
-        onOpenURL: @escaping (URL) -> Void
+        onOpenURL: @escaping (URL) -> Void,
+        onSettingsButtonTapped: @escaping (NSButton) -> Void
     ) {
         super.init(frame: frameRect)
         let avatar = QuotaAvatarView(
@@ -738,15 +807,27 @@ private final class QuotaFooterView: NSView {
         nameField.font = .systemFont(ofSize: 13, weight: .regular)
         nameField.textColor = .labelColor
         nameField.lineBreakMode = .byTruncatingTail
-        nameField.frame = CGRect(x: 54, y: 14, width: 160, height: 18)
+        nameField.frame = CGRect(
+            x: 54,
+            y: 14,
+            width: max(100, frameRect.width - 196),
+            height: 18
+        )
         addSubview(nameField)
 
         let github = QuotaFooterGitHubButton(
-            frame: CGRect(x: frameRect.width - 102, y: 9, width: 88, height: 30),
+            frame: CGRect(x: frameRect.width - 132, y: 9, width: 88, height: 30),
             destination: Self.projectURL,
             onActivate: onOpenURL
         )
         addSubview(github)
+        let settings = QuotaFooterSettingsButton(
+            frame: CGRect(x: frameRect.width - 44, y: 9, width: 30, height: 30),
+            accessibilityLabel: "Settings"
+        ) { button in
+            onSettingsButtonTapped(button)
+        }
+        addSubview(settings)
     }
 
     @available(*, unavailable)
@@ -877,6 +958,111 @@ final class QuotaFooterGitHubButton: NSButton {
 }
 
 @MainActor
+final class QuotaFooterSettingsButton: NSButton {
+    private let iconView: NSImageView
+    private let onActivate: (QuotaFooterSettingsButton) -> Void
+    private var hoverTrackingArea: NSTrackingArea?
+    private var isPointerInside = false
+
+    init(
+        frame frameRect: NSRect,
+        accessibilityLabel: String,
+        onActivate: @escaping (QuotaFooterSettingsButton) -> Void
+    ) {
+        iconView = NSImageView(
+            image: NSImage(
+                systemSymbolName: "gearshape",
+                accessibilityDescription: accessibilityLabel
+            ) ?? NSImage(size: NSSize(width: 16, height: 16))
+        )
+        self.onActivate = onActivate
+        super.init(frame: frameRect)
+        title = ""
+        isBordered = false
+        setButtonType(.momentaryPushIn)
+        wantsLayer = true
+        layer?.cornerRadius = 15
+        layer?.cornerCurve = .continuous
+        layer?.masksToBounds = false
+        target = self
+        action = #selector(activate)
+        iconView.imageScaling = .scaleProportionallyUpOrDown
+        iconView.image?.isTemplate = true
+        addSubview(iconView)
+        setAccessibilityElement(true)
+        setAccessibilityRole(.button)
+        setAccessibilityLabel(accessibilityLabel)
+        updateAppearance()
+    }
+
+    override func layout() {
+        super.layout()
+        iconView.frame = CGRect(
+            x: floor((bounds.width - 16) / 2),
+            y: floor((bounds.height - 16) / 2),
+            width: 16,
+            height: 16
+        )
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let hoverTrackingArea {
+            removeTrackingArea(hoverTrackingArea)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        hoverTrackingArea = area
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearance()
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isPointerInside = true
+        updateAppearance()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isPointerInside = false
+        updateAppearance()
+    }
+
+    @objc private func activate() {
+        onActivate(self)
+    }
+
+    private func updateAppearance() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.labelColor
+                .withAlphaComponent(isPointerInside ? 0.08 : 0)
+                .cgColor
+            layer?.shadowColor = NSColor.black.cgColor
+            layer?.shadowOpacity = isPointerInside ? 0.22 : 0
+            layer?.shadowRadius = isPointerInside ? 8 : 0
+            layer?.shadowOffset = NSSize(width: 0, height: -1)
+            iconView.contentTintColor = .secondaryLabelColor
+        }
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+}
+
+@MainActor
 final class QuotaReferenceTiboOutlineView: NSView {
     override var isOpaque: Bool { false }
 
@@ -935,6 +1121,116 @@ private final class VersionBadgeView: NSView {
             y: floor((bounds.height - textSize.height) / 2)
         )
         (text as NSString).draw(at: textPoint, withAttributes: attributes)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+}
+
+@MainActor
+final class QuotaDetailLockButton: NSButton {
+    private let iconView: NSImageView
+    private let onActivate: () -> Void
+    private var hoverTrackingArea: NSTrackingArea?
+    private var isPointerInside = false
+
+    init(
+        frame frameRect: NSRect,
+        isLockedOpen: Bool,
+        accessibilityLabel: String,
+        onActivate: @escaping () -> Void
+    ) {
+        iconView = NSImageView()
+        self.onActivate = onActivate
+        super.init(frame: frameRect)
+        title = ""
+        isBordered = false
+        setButtonType(.momentaryPushIn)
+        state = isLockedOpen ? .on : .off
+        wantsLayer = true
+        layer?.cornerRadius = frameRect.height / 2
+        layer?.cornerCurve = .continuous
+        layer?.masksToBounds = false
+        target = self
+        action = #selector(activate)
+        iconView.imageScaling = .scaleProportionallyUpOrDown
+        addSubview(iconView)
+        setAccessibilityElement(true)
+        setAccessibilityRole(.button)
+        setAccessibilityLabel(accessibilityLabel)
+        updateAppearance()
+    }
+
+    override func layout() {
+        super.layout()
+        layer?.cornerRadius = bounds.height / 2
+        iconView.frame = CGRect(
+            x: floor((bounds.width - 13) / 2),
+            y: floor((bounds.height - 13) / 2),
+            width: 13,
+            height: 13
+        )
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let hoverTrackingArea {
+            removeTrackingArea(hoverTrackingArea)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        hoverTrackingArea = area
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearance()
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isPointerInside = true
+        updateAppearance()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isPointerInside = false
+        updateAppearance()
+    }
+
+    @objc private func activate() {
+        onActivate()
+    }
+
+    private func updateAppearance() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            let isLockedOpen = state == .on
+            let backgroundAlpha: CGFloat = isLockedOpen ? 0.12 : (isPointerInside ? 0.08 : 0)
+            let tint: NSColor = isLockedOpen ? .controlAccentColor : .secondaryLabelColor
+            layer?.backgroundColor = (isLockedOpen ? NSColor.controlAccentColor : NSColor.labelColor)
+                .withAlphaComponent(backgroundAlpha)
+                .cgColor
+            layer?.shadowColor = NSColor.black.cgColor
+            layer?.shadowOpacity = isPointerInside ? 0.16 : 0
+            layer?.shadowRadius = isPointerInside ? 5 : 0
+            layer?.shadowOffset = NSSize(width: 0, height: -1)
+            iconView.image = NSImage(
+                systemSymbolName: isLockedOpen ? "pin.fill" : "pin",
+                accessibilityDescription: accessibilityLabel()
+            )
+            iconView.image?.isTemplate = true
+            iconView.contentTintColor = tint
+        }
     }
 
     @available(*, unavailable)
@@ -1027,8 +1323,20 @@ final class QuotaThemeIconView: NSView {
         let asset = QuotaThemeIconAsset.forAppearance(effectiveAppearance)
         let bundles = [Bundle.main, Bundle.module] + Bundle.allBundles + Bundle.allFrameworks
         iconImage = bundles.lazy.compactMap { bundle in
-            bundle.url(forResource: asset.resourceName, withExtension: "png")
-                .flatMap(NSImage.init(contentsOf:))
+            let candidateURLs = [
+                bundle.url(
+                    forResource: asset.resourceName,
+                    withExtension: "png"
+                ),
+                bundle.url(
+                    forResource: asset.resourceName,
+                    withExtension: "png",
+                    subdirectory: "Resources"
+                )
+            ]
+            return candidateURLs.lazy.compactMap { $0 }.compactMap {
+                NSImage(contentsOf: $0)
+            }.first
         }.first
         needsDisplay = true
     }

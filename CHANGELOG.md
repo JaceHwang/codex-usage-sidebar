@@ -27,7 +27,20 @@ All notable changes to this project are documented here. The project follows
 
 ### Added
 
+- Current 0.4.0 candidate: Automatic / Free / Locked indicator modes with per-display persistence;
+  detail-window lock; settings menu (position, Releases, reload, quit); Bank expiry urgency colors.
+- Updated bilingual README, current design/feature inventory, operational/privacy guidance and
+  native-control documentation renders. These are candidate features, not a release announcement.
+
 ### Fixed
+
+- Limit hover, click and drag hit testing to the visible indicator; hidden menus no longer keep
+  details open. Package native resources correctly with Xcode 27 builds.
+- macOS candidate: revalidate cached/default positions using measured indicator width, and keep
+  the indicator visible by switching to Free when an occupied default has no safe alternative.
+- Exclude whole-titlebar containers with only AXShowMenu/AXScrollToVisible actions from button
+  obstacles; retain true button roles/direct press or pick targets.
+
 
 - Fixed the Windows selector packaging path to emit a schema-v2 catalog instead of the legacy
   schema-v1 device-test document, and reject invalid selector catalogs before publication.

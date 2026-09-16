@@ -38,6 +38,9 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
     private static readonly Condition ButtonCondition = new PropertyCondition(
         AutomationElement.ControlTypeProperty,
         ControlType.Button);
+    private static readonly Condition SettingsNavigationCondition = new OrCondition(
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Hyperlink));
     private readonly ValidatedTitlebarCache cache = new();
     private readonly object scanGate = new();
     private readonly SelectorProfileCatalog selectorCatalog;
@@ -136,9 +139,25 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         {
             throw new InvalidSelectorCatalogException();
         }
-        var nodes = observationProvider is null
-            ? QueryValidatedStructureFromDesktop(host, cancellationToken)
-            : NormalizeObservations(observationProvider(host, cancellationToken).AsTask().GetAwaiter().GetResult());
+        IReadOnlyList<UiaStructureNode> nodes;
+        if (observationProvider is null)
+        {
+            nodes = QueryValidatedStructureFromDesktop(host, cancellationToken);
+        }
+        else
+        {
+            var observations = observationProvider(host, cancellationToken).AsTask().GetAwaiter().GetResult();
+            var hasConversationAnchor = observations.Any(observation =>
+                UiaSemanticRoleClassifier.Classify(observation.Name) == UiaSemanticRoles.OpenLocation);
+            if (observations.Any(observation => HostPagePolicy.IsSettingsNavigation(
+                new HostPageControl(observation.Bounds, observation.Name),
+                host.Bounds,
+                allowStructuralMatch: !hasConversationAnchor)))
+            {
+                throw new HostSettingsPageDetectedException();
+            }
+            nodes = NormalizeObservations(observations);
+        }
         var snapshot = CodexTitlebarSelector.TryResolve(
             host.BuildIdentity,
             host.DpiScale,
@@ -465,7 +484,44 @@ public sealed class ValidatedUiaTitlebarScanner : ITitlebarScanner
         {
             throw new WindowsDeviceValidationRequiredException(host.BuildIdentity);
         }
+        var conversationAnchors = DiscoverOpenLocationSeeds(root, host.Bounds, host.DpiScale, cancellationToken);
+        if (IsSettingsPage(root, host.Bounds, conversationAnchors.Count == 0, cancellationToken))
+        {
+            throw new HostSettingsPageDetectedException();
+        }
         return QueryValidatedStructure(root, host.Bounds, host.DpiScale, cancellationToken);
+    }
+
+    private static bool IsSettingsPage(
+        AutomationElement root,
+        RectD hostBounds,
+        bool allowStructuralMatch,
+        CancellationToken cancellationToken)
+    {
+        AutomationElementCollection candidates;
+        try { candidates = root.FindAll(TreeScope.Descendants, SettingsNavigationCondition); }
+        catch (ElementNotAvailableException) { return false; }
+        if (candidates.Count > MaximumCandidateButtons) return false;
+        foreach (AutomationElement candidate in candidates)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                var current = candidate.Current;
+                var bounds = current.BoundingRectangle;
+                if (HostPagePolicy.IsSettingsNavigation(
+                    new HostPageControl(
+                        new RectD(bounds.X, bounds.Y, bounds.Width, bounds.Height),
+                        current.Name ?? string.Empty),
+                    hostBounds,
+                    allowStructuralMatch))
+                {
+                    return true;
+                }
+            }
+            catch (ElementNotAvailableException) { }
+        }
+        return false;
     }
 
     private static IReadOnlyList<UiaStructureNode> NormalizeObservations(IReadOnlyList<UiaScanningObservation> observed)

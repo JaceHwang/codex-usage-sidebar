@@ -1,5 +1,7 @@
 # Adaptive Titlebar Placement Implementation Plan
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 Date: 2026-08-10
 Target: v0.2.3
 

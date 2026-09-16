@@ -1,5 +1,7 @@
 # Tibo X Information Entry Design
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 ## Objective
 
 Add a native, localized Tibo information entry to the Codex quota popover. The entry opens `https://x.com/thsottiaux` in the system default browser, dismisses the quota popover before navigation, and leaves a clean extension boundary for a later Tibo-post summary or reset-date prediction feature.

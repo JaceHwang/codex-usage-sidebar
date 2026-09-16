@@ -4,6 +4,14 @@
 <dict>
 	<key>files</key>
 	<dict>
+		<key>Resources/CodexUsageSidebar_CodexUsageSidebar.bundle/Resources/quota-icon-dark.png</key>
+		<data>
+		Dycdm2f5VDhv6bK5EfmDJ4BqdJ8=
+		</data>
+		<key>Resources/CodexUsageSidebar_CodexUsageSidebar.bundle/Resources/quota-icon-light.png</key>
+		<data>
+		zxlKY6P8F2yppIZq6KRp7zYBNvE=
+		</data>
 		<key>Resources/quota-icon-dark.png</key>
 		<data>
 		Dycdm2f5VDhv6bK5EfmDJ4BqdJ8=
@@ -15,6 +23,20 @@
 	</dict>
 	<key>files2</key>
 	<dict>
+		<key>Resources/CodexUsageSidebar_CodexUsageSidebar.bundle/Resources/quota-icon-dark.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			WYRMh0eqZT6w/ScaVaTQvMt32VvpK2ypGwpYxFi0ZsI=
+			</data>
+		</dict>
+		<key>Resources/CodexUsageSidebar_CodexUsageSidebar.bundle/Resources/quota-icon-light.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			lkjNg1gTgbCmQdnnpjSLX8WzzwDXOzoOD0hGzm+z4tM=
+			</data>
+		</dict>
 		<key>Resources/quota-icon-dark.png</key>
 		<dict>
 			<key>hash2</key>

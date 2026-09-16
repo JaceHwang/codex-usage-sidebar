@@ -1,5 +1,7 @@
 # Windows Content Toolbar Parity Design
 
+> Historical design/plan snapshot. For the implemented 0.4.0 candidate, use [current design](../../CURRENT_DESIGN.md) and [current features](../../CURRENT_FEATURES.md). This record is not the current behavior or release approval.
+
 Date: 2026-08-12
 Target: Codex Usage Sidebar v0.3.0-beta.1 on Windows 11 AMD64/x64
 Visual baseline: macOS v0.2.3

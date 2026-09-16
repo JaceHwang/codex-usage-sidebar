@@ -5,6 +5,44 @@ namespace CodexUsageSidebar.Core.Tests;
 [TestClass]
 public sealed class PresentationPolicyTests
 {
+    [DataTestMethod]
+    [DataRow(DisplayLanguage.SimplifiedChinese, false, "固定浮窗")]
+    [DataRow(DisplayLanguage.SimplifiedChinese, true, "取消固定浮窗")]
+    [DataRow(DisplayLanguage.TraditionalChinese, false, "固定浮窗")]
+    [DataRow(DisplayLanguage.TraditionalChinese, true, "取消固定浮窗")]
+    [DataRow(DisplayLanguage.English, false, "Keep popover open")]
+    [DataRow(DisplayLanguage.English, true, "Stop keeping popover open")]
+    public void LocalizesTheDetailLockButton(DisplayLanguage language, bool isLockedOpen, string expected)
+    {
+        Assert.AreEqual(expected, QuotaDetailLockCopy.Label(language, isLockedOpen));
+    }
+
+    [TestMethod]
+    public void LockedOpenDetailSurvivesOutsidePointerPressUntilUnlocked()
+    {
+        var locked = DetailInteractionState.Initial.ToggleLockedOpen(true);
+
+        var afterOutsidePress = locked.PointerPressed(false, false);
+
+        Assert.IsTrue(afterOutsidePress.IsLockedOpen);
+        Assert.IsTrue(afterOutsidePress.ShouldShowDetail);
+        var unlocked = afterOutsidePress.ToggleLockedOpen(true).PointerChanged(false);
+        Assert.IsFalse(unlocked.IsLockedOpen);
+        Assert.IsFalse(unlocked.ShouldShowDetail);
+    }
+
+    [TestMethod]
+    public void OutsidePressDismissesPinnedCardButMenuAndCardPressesDoNot()
+    {
+        var pinned = DetailInteractionState.Initial.PointerChanged(true).TogglePinned(true);
+        Assert.AreEqual(pinned, pinned.PointerPressed(insideOverlay: true, insideMenu: false));
+        Assert.AreEqual(pinned, pinned.PointerPressed(insideOverlay: false, insideMenu: true));
+        var dismissed = pinned.PointerPressed(insideOverlay: false, insideMenu: false);
+        Assert.IsFalse(dismissed.IsPinned);
+        Assert.IsFalse(dismissed.ShouldShowDetail);
+        Assert.IsTrue(dismissed.PointerChanged(false).PointerChanged(true).ShouldShowDetail);
+    }
+
     [TestMethod]
     public void MapsCodexLocalesAndFallsBackToEnglish()
     {
