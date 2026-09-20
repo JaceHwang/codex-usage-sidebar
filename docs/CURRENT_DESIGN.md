@@ -1,6 +1,7 @@
 # Current design contract
 
-Status: released macOS 0.4.0, reviewed 2026-09-16. This describes the released implementation;
+Status: development source after released macOS 0.4.0, reviewed 2026-09-20. Published versions remain
+macOS 0.4.0 and Windows 0.3.3; these source changes do not constitute a new release.
 [governance](GOVERNANCE.md) still controls release authorization. Historical specifications and
 validation reports retain their original version scope. [Feature inventory](CURRENT_FEATURES.md).
 
@@ -40,10 +41,16 @@ the detail card. Global/local mouse-down observers exist only to dismiss outside
 they do not synthesize input or record click history.
 
 The card has a 360-point fixed width, header (single or dual quota), optional seven-day Token band,
-scrolling information rows and a footer. Natural row viewport is at least 256 points, including sparse content; it can grow with more rows;
-minimum is 64. Manual resizing preserves the top edge and total height stays within 720 points and
-screen limits. Footer controls open the repository or a four-item settings menu. Settings position
+scrolling information rows and a footer. Its light-theme surface is opaque pure white. Natural row
+viewport is at least 256 points, including sparse content; it can grow with more rows; minimum is 64.
+Manual resizing preserves the top edge and is limited only by available screen space, with no
+separate product maximum. Footer controls open the repository or a four-item settings menu. Settings position
 submenu supports pointer transfer without premature dismissal. Check for updates opens Releases.
+
+The Windows WPF surface follows the same pure-white light surface and screen-bounded height policy.
+Right-clicking its indicator opens the same three placement choices used by the settings submenu.
+Windows continues to use its own validated UIA and Safe Dock compatibility path; unknown host
+structures remain hidden rather than being placed by coordinate guesses.
 
 Bank expiry colors use remaining time, independent of remaining-quota color. Three-day and seven-day
 thresholds are inclusive at the lower urgency boundary described in CURRENT_FEATURES.md. Unknown

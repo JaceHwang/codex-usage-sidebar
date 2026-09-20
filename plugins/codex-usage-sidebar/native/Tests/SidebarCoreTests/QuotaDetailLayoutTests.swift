@@ -55,7 +55,6 @@ final class QuotaDetailLayoutTests: XCTestCase {
             tokenUsageVisible: true
         )
 
-        XCTAssertEqual(QuotaDetailLayout.maximumHeight, 720)
         XCTAssertEqual(header.title.height, 22)
         XCTAssertGreaterThan(header.title.minY, information.topDivider.maxY)
         XCTAssertGreaterThan(header.remaining.minY, information.topDivider.maxY)
@@ -98,8 +97,8 @@ final class QuotaDetailLayoutTests: XCTestCase {
         XCTAssertEqual(frame.maxX, 490)
     }
 
-    func testCapsManyRowsForScrollableContent() {
-        XCTAssertEqual(QuotaDetailLayout.contentHeight(rowCount: 100), 720)
+    func testManyRowsHaveNoProductHeightCapButStillFitTheVisibleScreen() {
+        XCTAssertEqual(QuotaDetailLayout.contentHeight(rowCount: 100), 3_374)
         let frame = QuotaDetailLayout.frame(
             indicatorFrame: CGRect(x: 205, y: 390, width: 148, height: 46),
             rowCount: 100,
@@ -108,6 +107,21 @@ final class QuotaDetailLayoutTests: XCTestCase {
 
         XCTAssertEqual(frame.height, 374)
         XCTAssertEqual(frame.minY, 8)
+    }
+
+    func testUserRequestedHeightCanExceedTheFormerProductCap() {
+        let indicator = CGRect(x: 300, y: 1_100, width: 164, height: 46)
+        let frame = QuotaDetailLayout.frame(
+            indicatorFrame: indicator,
+            rowContentHeight: 360,
+            visibleFrame: CGRect(x: 0, y: 0, width: 1_200, height: 1_200),
+            tokenUsageVisible: true,
+            secondaryQuotaVisible: true,
+            requestedHeight: 900
+        )
+
+        XCTAssertEqual(frame.height, 900)
+        XCTAssertEqual(frame.maxY, indicator.minY - QuotaDetailLayout.controlGap)
     }
 
     func testDefaultDualQuotaTokenViewportShowsEightRows() {

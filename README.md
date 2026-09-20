@@ -31,6 +31,12 @@
 
 **macOS 0.4.0 is available.** The features below describe this release. Windows remains at its separately verified 0.3.3 release; new Windows source is not a claim of completed device validation.
 
+> [!NOTE]
+> Development source after these releases uses an opaque pure-white light detail surface and removes
+> the former 720-point product height cap on macOS and Windows. Windows source also adds the
+> indicator right-click placement selector. These source changes are not yet a new published build;
+> Windows behavior still requires its own CI and device acceptance.
+
 See the [current feature inventory](docs/CURRENT_FEATURES.md) and [current design](docs/CURRENT_DESIGN.md).
 
 ## Live macOS capture

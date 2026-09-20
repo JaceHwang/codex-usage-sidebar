@@ -5,7 +5,6 @@ public static class QuotaDetailViewportPolicy
     public const double RowHeight = 32;
     public const double MinimumRowViewportHeight = RowHeight * 2;
     public const double DefaultRowViewportHeight = RowHeight * 8;
-    public const double MaximumPanelHeight = 720;
 
     public static double ResolveRowViewportHeight(
         double requestedHeight,
@@ -14,7 +13,7 @@ public static class QuotaDetailViewportPolicy
     {
         var maximum = Math.Max(
             MinimumRowViewportHeight,
-            Math.Min(MaximumPanelHeight, availablePanelHeight) - Math.Max(0, fixedChromeHeight));
+            availablePanelHeight - Math.Max(0, fixedChromeHeight));
         return Math.Clamp(requestedHeight, MinimumRowViewportHeight, maximum);
     }
 

@@ -12,6 +12,14 @@ namespace CodexUsageSidebar.Windows.Tests;
 public sealed class QuotaDetailVisualFixtureTests
 {
     [STATestMethod]
+    public void LightPaletteUsesAnOpaquePureWhiteDetailSurface()
+    {
+        var surface = (SolidColorBrush)WpfOverlayPalette.Light.Surface;
+        Assert.AreEqual(Color.FromArgb(255, 255, 255, 255), surface.Color);
+        Assert.AreEqual(1d, surface.Opacity);
+    }
+
+    [STATestMethod]
     public void RendersTheProductionCardInEverySupportedLanguageAndTheme()
     {
         Application.ResourceAssembly ??= typeof(WpfOverlaySurface).Assembly;

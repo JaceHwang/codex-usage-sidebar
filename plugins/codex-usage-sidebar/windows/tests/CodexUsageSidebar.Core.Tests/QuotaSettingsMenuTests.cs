@@ -19,4 +19,19 @@ public sealed class QuotaSettingsMenuTests
         Assert.AreEqual(IndicatorPlacementMode.Locked, menu[0].Children!.Single(item => item.Selected).Mode);
         Assert.IsTrue(menu.Skip(1).All(item => item.Children is null));
     }
+
+    [DataTestMethod]
+    [DataRow(DisplayLanguage.SimplifiedChinese)]
+    [DataRow(DisplayLanguage.TraditionalChinese)]
+    [DataRow(DisplayLanguage.English)]
+    public void IndicatorContextMenuReusesTheThreeLocalizedPlacementChoices(DisplayLanguage language)
+    {
+        var choices = QuotaSettingsMenu.CreatePlacementItems(language, IndicatorPlacementMode.Free);
+        CollectionAssert.AreEqual(
+            new[] { IndicatorPlacementMode.Automatic, IndicatorPlacementMode.Free, IndicatorPlacementMode.Locked },
+            choices.Select(item => item.Mode).ToArray());
+        Assert.AreEqual(IndicatorPlacementMode.Free, choices.Single(item => item.Selected).Mode);
+        Assert.IsTrue(choices.All(item => !string.IsNullOrWhiteSpace(item.Label)
+            && !string.IsNullOrWhiteSpace(item.Icon)));
+    }
 }

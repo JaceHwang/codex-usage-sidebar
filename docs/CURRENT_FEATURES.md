@@ -1,6 +1,6 @@
-# Current implementation — macOS 0.4.0
+# Current development implementation — after macOS 0.4.0
 
-Reviewed against release source on 2026-09-16. Published platforms: macOS **0.4.0** and Windows **0.3.3**. Windows development source is not a new Windows release.
+Reviewed against development source on 2026-09-20. Published platforms remain macOS **0.4.0** and Windows **0.3.3**. The changes below are not a new release or a claim of completed Windows device validation.
 
 ## macOS controls
 
@@ -13,7 +13,7 @@ Reviewed against release source on 2026-09-16. Published platforms: macOS **0.4.
 | Indicator right-click | Opens the Automatic / Free / Locked position selector. The detail card is suppressed while this selector is open. |
 | Settings gear | Position mode submenu, Check for updates, Reload companion, Quit companion. Check for updates opens GitHub Releases; it does not silently download/install a release. |
 | GitHub footer icon | Opens the project repository. |
-| Resize grip | Resizes only the scrolling details viewport. Width stays 360 points and the upper edge stays anchored, subject to screen bounds. Natural viewport is at least eight rows (256 points) and can grow with content; manual minimum is two rows (64 points); total height is capped at 720 points and available screen space. |
+| Resize grip | Resizes only the scrolling details viewport. Width stays 360 points and the upper edge stays anchored, subject to screen bounds. Natural viewport is at least eight rows (256 points) and can grow with content; manual minimum is two rows (64 points). There is no separate product height cap; only available screen space limits the result. |
 
 ## Position modes
 
@@ -47,8 +47,9 @@ avoids the former whole-titlebar-container collision. See [current design](CURRE
   accent. These accents are separate from the remaining-quota colors.
 - Remaining-quota percentage colors interpolate between the 10% red, 49% orange and 100% green
   anchors; the filled progress bar clips the corresponding gradient.
-- Light/dark appearance and effective Codex language: Simplified Chinese, Traditional Chinese,
-  English; unsupported languages use English. No independent language selector.
+- Light/dark appearance, with an opaque pure-white detail surface in the light theme, and effective
+  Codex language: Simplified Chinese, Traditional Chinese, English; unsupported languages use
+  English. No independent language selector.
 
 Locking the detail card is session interaction state, not the persisted position-mode setting.
 The card's current visibility is not a guarantee of fresh data: snapshots dim after two minutes
@@ -60,11 +61,12 @@ crowding fallback.
 
 The current source includes WPF indicator/detail surfaces, Automatic/Free/Locked modes with
 normalized display preferences, atomic JSON preference writes, detail pin/lock, outside-click
-handling, settings controls (position/update/reload/quit), quota/Token formatting, Bank expiry
-formatting, host-page policies and portable host tests. Windows viewport policy starts at eight
-rows, permits two rows minimum and caps the panel at 720; it is a separate WPF implementation. The
-published download remains Windows 11 AMD64/x64 **0.3.3**. The current source has not been validated
-as a new Windows installer on this Mac. In particular, the macOS AX collision/free-mode fallback
+handling, indicator right-click position selection, settings controls (position/update/reload/quit),
+quota/Token formatting, Bank expiry formatting, host-page policies and portable host tests. Its
+light detail surface is opaque pure white. Windows viewport policy starts at eight rows, permits two
+rows minimum and has no product height cap beyond the current display work area; it remains a
+separate WPF implementation. The published download remains Windows 11 AMD64/x64 **0.3.3**. The
+current source has not been validated as a new Windows installer on this Mac. In particular, the macOS AX collision/free-mode fallback
 must not be advertised as a verified Windows behavior: Windows uses its own UIA/placement path.
 Unknown Windows host structures remain subject to the validated selector/compatibility policy.
 

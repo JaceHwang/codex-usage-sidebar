@@ -3,10 +3,10 @@
     "kind": "local-unpublished"
   },
   "companion": {
-    "cdhashSha256": "b1d1ffa1151ff81fabb70be9fbef9a997759af51271db4831835804fcfadd1df",
-    "executableSha256": "ca356141d387457fccb91c0c9e8ab7bbc0fff96dafb4bed880efa00f1fc53561",
+    "cdhashSha256": "f5db7dec1efe9196bca7f1f3c1bb02ac733936383b8fef5d9a517b406449c357",
+    "executableSha256": "39390fa1a55d4857e4ad4c48f7b005a36901816b5f94989c4a2db84ea248a400",
     "signature": "adhoc"
   },
   "schemaVersion": 1,
-  "sourceCommit": "2e587d95db7cb514eadcb94fffaeb6d949296d85"
+  "sourceCommit": "276cdce5bc2b1409ba4c63abd6589793d6b80fe4"
 }

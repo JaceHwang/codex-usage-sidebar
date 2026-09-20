@@ -79,23 +79,7 @@ public sealed partial class WpfOverlaySurface
         }
         // Keep the quota card and its footer anchor stable while using either menu level.
         interaction = new DetailInteractionState(true, true, false, false);
-        var menu = new ContextMenu
-        {
-            Width = 176,
-            FontFamily = new FontFamily("Segoe UI"),
-            FontSize = 12,
-            Foreground = palette.Primary,
-            Background = palette.Surface,
-            BorderBrush = palette.Border,
-            BorderThickness = new Thickness(0.5),
-            PlacementTarget = target,
-            Placement = System.Windows.Controls.Primitives.PlacementMode.Custom,
-            CustomPopupPlacementCallback = (popup, anchor, _) =>
-            [
-                new CustomPopupPlacement(new Point(anchor.Width - popup.Width, -popup.Height - 6), PopupPrimaryAxis.Horizontal),
-                new CustomPopupPlacement(new Point(anchor.Width - popup.Width, anchor.Height + 6), PopupPrimaryAxis.Horizontal),
-            ],
-        };
+        var menu = CreateMenu(target, 176);
         foreach (var descriptor in QuotaSettingsMenu.Create(latestPresentation.Language, placementPreferences.Mode))
         {
             var item = MenuRow(descriptor.Label, descriptor.Icon, 176);
@@ -135,6 +119,52 @@ public sealed partial class WpfOverlaySurface
         menu.IsOpen = true;
         UpdateOutsideClickMonitor();
     }
+
+    private void ShowPositionMenu(FrameworkElement target)
+    {
+        if (latestPresentation is null) return;
+        if (settingsMenu?.IsOpen == true)
+        {
+            settingsMenu.IsOpen = false;
+            return;
+        }
+        interaction = new DetailInteractionState(false, IsPointerInside(indicator), true, false);
+        detail.Hide();
+        var menu = CreateMenu(target, 176);
+        foreach (var choice in QuotaSettingsMenu.CreatePlacementItems(
+                     latestPresentation.Language,
+                     placementPreferences.Mode))
+        {
+            var item = MenuRow(choice.Label, choice.Icon, 176, choice.Selected);
+            item.Click += async (_, _) =>
+            {
+                menu.IsOpen = false;
+                await SetPlacementModeAsync(choice.Mode);
+            };
+            menu.Items.Add(item);
+        }
+        settingsMenu = menu;
+        menu.IsOpen = true;
+        UpdateOutsideClickMonitor();
+    }
+
+    private ContextMenu CreateMenu(FrameworkElement target, double width) => new()
+    {
+        Width = width,
+        FontFamily = new FontFamily("Segoe UI"),
+        FontSize = 12,
+        Foreground = palette.Primary,
+        Background = palette.Surface,
+        BorderBrush = palette.Border,
+        BorderThickness = new Thickness(0.5),
+        PlacementTarget = target,
+        Placement = System.Windows.Controls.Primitives.PlacementMode.Custom,
+        CustomPopupPlacementCallback = (popup, anchor, _) =>
+        [
+            new CustomPopupPlacement(new Point(anchor.Width - popup.Width, -popup.Height - 6), PopupPrimaryAxis.Horizontal),
+            new CustomPopupPlacement(new Point(anchor.Width - popup.Width, anchor.Height + 6), PopupPrimaryAxis.Horizontal),
+        ],
+    };
 
     private MenuItem MenuRow(string title, string icon, double width, bool selected = false)
     {

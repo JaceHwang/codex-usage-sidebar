@@ -108,7 +108,6 @@ public sealed partial class WpfOverlaySurface : IOverlaySurface, IIndicatorSizeP
         indicator.Width = OverlayVisualMetrics.IndicatorWidth;
         detail = CreatePassiveWindow(new Border());
         detail.Width = OverlayVisualMetrics.DetailWidth;
-        detail.MaxHeight = QuotaDetailViewportPolicy.MaximumPanelHeight;
         detail.IsVisibleChanged += (_, _) =>
         {
             if (!detail.IsVisible && settingsMenu is not null) settingsMenu.IsOpen = false;
@@ -149,6 +148,12 @@ public sealed partial class WpfOverlaySurface : IOverlaySurface, IIndicatorSizeP
             }
             interaction = interaction.TogglePinned(IsPointerInsideOverlay());
             RefreshInteraction();
+        };
+        indicator.MouseRightButtonUp += (_, eventArgs) =>
+        {
+            if (eventArgs.ChangedButton != MouseButton.Right) return;
+            ShowPositionMenu(indicatorSurface);
+            eventArgs.Handled = true;
         };
         indicator.LostMouseCapture += (_, _) => indicatorDrag.End();
         hoverTimer = new DispatcherTimer(
@@ -1277,7 +1282,7 @@ internal sealed record WpfOverlayPalette(
     internal static WpfOverlayPalette Light { get; } = Create(
         Color.FromRgb(23, 23, 23),
         Color.FromRgb(112, 112, 112),
-        Color.FromRgb(250, 250, 250),
+        Color.FromRgb(255, 255, 255),
         Color.FromRgb(208, 208, 208),
         Color.FromRgb(231, 231, 231),
         Color.FromRgb(0, 122, 255));
