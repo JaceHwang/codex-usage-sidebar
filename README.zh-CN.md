@@ -21,6 +21,11 @@
 
 **macOS 0.4.0 已发布。** 下方功能说明对应本次发布。Windows 保持单独验收的 0.3.3 发布版，新的 Windows 源码不代表已完成实机验收。
 
+> [!NOTE]
+> 上述发布后的开发源码已将 macOS 和 Windows 浅色详情面板改为不透明纯白色，
+> 并取消原有 720 点的产品高度上限；Windows 源码同时补齐了指示器右键位置模式选择。
+> 这些源码变更尚不是新的已发布构建；Windows 仍需独立 CI 与实机验收。
+
 完整范围见[当前功能清单](docs/CURRENT_FEATURES.md)和[当前设计说明](docs/CURRENT_DESIGN.md)。
 
 ## macOS 实机截图

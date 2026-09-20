@@ -66,10 +66,6 @@ public enum QuotaDetailLayout {
     public static let dualQuotaHeaderHeight: CGFloat = 171
     public static let rowHeight: CGFloat = 32
     public static let verticalPadding: CGFloat = 16
-    public static let maximumHeight: CGFloat = 720
-    /// The largest manual height retains the compact native-popover character
-    /// while allowing the user to reveal substantially more detail rows.
-    public static let maximumResizableHeight: CGFloat = 720
     public static let screenMargin: CGFloat = 8
     public static let controlGap: CGFloat = 8
     public static let tokenBandHeight: CGFloat = 150
@@ -291,14 +287,11 @@ public enum QuotaDetailLayout {
         tokenUsageVisible: Bool = false,
         secondaryQuotaVisible: Bool = false
     ) -> CGFloat {
-        min(
-            maximumHeight,
-            headerHeight(secondaryQuotaVisible: secondaryQuotaVisible) + rowTopGap + max(
-                defaultRowViewportHeight,
-                max(0, rowContentHeight)
-            ) +
-                (tokenUsageVisible ? tokenBandReservedHeight : 0) + footerHeight
-        )
+        headerHeight(secondaryQuotaVisible: secondaryQuotaVisible) + rowTopGap + max(
+            defaultRowViewportHeight,
+            max(0, rowContentHeight)
+        ) +
+            (tokenUsageVisible ? tokenBandReservedHeight : 0) + footerHeight
     }
 
     public static func frame(
@@ -331,10 +324,7 @@ public enum QuotaDetailLayout {
             tokenUsageVisible: tokenUsageVisible,
             secondaryQuotaVisible: secondaryQuotaVisible
         )
-        let maximumHeight = min(
-            availableHeight,
-            max(naturalHeight, maximumResizableHeight)
-        )
+        let maximumHeight = availableHeight
         let minimumHeight = min(
             maximumHeight,
             minimumResizableHeight(

@@ -6,15 +6,15 @@ namespace CodexUsageSidebar.Core.Tests;
 public sealed class CurrentMacParityTests
 {
     [TestMethod]
-    public void DetailViewportDefaultsToEightRowsAndClampsBetweenTwoRowsAndTheScreen()
+    public void DetailViewportDefaultsToEightRowsAndOnlyClampsBetweenTwoRowsAndTheScreen()
     {
         Assert.AreEqual(32d, QuotaDetailViewportPolicy.RowHeight);
         Assert.AreEqual(256d, QuotaDetailViewportPolicy.DefaultRowViewportHeight);
         Assert.AreEqual(64d, QuotaDetailViewportPolicy.MinimumRowViewportHeight);
-        Assert.AreEqual(720d, QuotaDetailViewportPolicy.MaximumPanelHeight);
         Assert.AreEqual(256d, QuotaDetailViewportPolicy.ResolveRowViewportHeight(256, 720, 360));
         Assert.AreEqual(64d, QuotaDetailViewportPolicy.ResolveRowViewportHeight(20, 720, 360));
         Assert.AreEqual(140d, QuotaDetailViewportPolicy.ResolveRowViewportHeight(500, 500, 360));
+        Assert.AreEqual(900d, QuotaDetailViewportPolicy.ResolveRowViewportHeight(900, 1_400, 360));
         Assert.AreEqual("调整高度", QuotaDetailViewportPolicy.ResizeHint(DisplayLanguage.SimplifiedChinese));
         Assert.AreEqual("調整高度", QuotaDetailViewportPolicy.ResizeHint(DisplayLanguage.TraditionalChinese));
         Assert.AreEqual("Adjust height", QuotaDetailViewportPolicy.ResizeHint(DisplayLanguage.English));

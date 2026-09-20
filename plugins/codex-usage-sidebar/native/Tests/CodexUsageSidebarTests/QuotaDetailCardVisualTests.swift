@@ -7,6 +7,7 @@ import XCTest
 final class QuotaDetailCardVisualTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_786_800_000)
     private let timeZone = TimeZone(identifier: "Asia/Shanghai")!
+    private let referenceCardHeight: CGFloat = 720
 
     func testThemeIconAssetFollowsCodexAppearance() {
         XCTAssertEqual(
@@ -47,7 +48,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         )
     }
 
-    func testRendersEveryLocalizedThemeFixtureWithFixedInformationBand() throws {
+    func testRendersEveryLocalizedThemeFixtureWithNaturalInformationBand() throws {
         let outputDirectory = ProcessInfo.processInfo.environment[
             "CUS_VISUAL_OUTPUT_DIR"
         ].map(URL.init(fileURLWithPath:))
@@ -162,9 +163,12 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                 let scrollView = try XCTUnwrap(
                     descendants(of: card)
                         .compactMap { $0 as? NSScrollView }
-                        .first { $0.hasVerticalScroller }
+                        .first
                 )
-                XCTAssertTrue(scrollView.hasVerticalScroller)
+                XCTAssertFalse(
+                    scrollView.hasVerticalScroller,
+                    "The unconstrained reference card grows with its information rows instead of enforcing the former product height cap."
+                )
 
                 let png = try renderPNG(card)
                 XCTAssertGreaterThan(png.count, 1_000)
@@ -205,7 +209,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                 x: 0,
                 y: 0,
                 width: QuotaDetailLayout.width,
-                height: QuotaDetailLayout.maximumHeight
+                height: referenceCardHeight
             ),
             content: content,
             rowHeights: rowHeights,
@@ -255,7 +259,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                 x: 0,
                 y: 0,
                 width: QuotaDetailLayout.width,
-                height: QuotaDetailLayout.maximumHeight
+                height: referenceCardHeight
             ),
             content: content,
             rowHeights: rowHeights,
@@ -455,6 +459,26 @@ final class QuotaDetailCardVisualTests: XCTestCase {
         XCTAssertEqual(material.shadowOpacity(for: .darkAqua), 0.08, accuracy: 0.001)
     }
 
+    func testLightCardMaterialRendersAnOpaquePureWhiteSurface() throws {
+        let material = QuotaCardMaterialView(
+            frame: CGRect(x: 0, y: 0, width: 120, height: 120)
+        )
+        material.appearance = try XCTUnwrap(NSAppearance(named: .aqua))
+        let representation = try XCTUnwrap(
+            material.bitmapImageRepForCachingDisplay(in: material.bounds)
+        )
+
+        material.cacheDisplay(in: material.bounds, to: representation)
+
+        let center = try XCTUnwrap(
+            representation.colorAt(x: 60, y: 60)?.usingColorSpace(.deviceRGB)
+        )
+        XCTAssertEqual(center.redComponent, 1, accuracy: 0.001)
+        XCTAssertEqual(center.greenComponent, 1, accuracy: 0.001)
+        XCTAssertEqual(center.blueComponent, 1, accuracy: 0.001)
+        XCTAssertEqual(center.alphaComponent, 1, accuracy: 0.001)
+    }
+
     func testResizeHandleUsesExpandedHitAreaAndGrowsTheScrollableRegion() throws {
         let content = QuotaDetailFormatter().content(
             snapshot: longBankSnapshot,
@@ -469,7 +493,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                 x: 0,
                 y: 0,
                 width: QuotaDetailLayout.width,
-                height: QuotaDetailLayout.maximumHeight
+                height: referenceCardHeight
             ),
             content: content,
             rowHeights: Array(
@@ -497,7 +521,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
 
         card.setFrameSize(NSSize(
             width: QuotaDetailLayout.width,
-            height: QuotaDetailLayout.maximumHeight + 120
+            height: referenceCardHeight + 120
         ))
         card.layoutSubtreeIfNeeded()
 
@@ -518,7 +542,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                 x: 0,
                 y: 0,
                 width: QuotaDetailLayout.width,
-                height: QuotaDetailLayout.maximumHeight
+                height: referenceCardHeight
             ),
             content: content,
             rowHeights: Array(
@@ -642,7 +666,7 @@ final class QuotaDetailCardVisualTests: XCTestCase {
                 x: 0,
                 y: 0,
                 width: QuotaDetailLayout.width,
-                height: QuotaDetailLayout.maximumHeight
+                height: referenceCardHeight
             ),
             content: content,
             rowHeights: Array(
