@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -42,7 +43,7 @@ class ProvenanceTests(unittest.TestCase):
 
     def verify(self):
         (self.root / "MACOS-V040-PROVENANCE.json").write_text(json.dumps(self.metadata))
-        return subprocess.run(["python3", str(VERIFIER), "v0.4.0", str(self.root), str(self.app)], cwd=self.root,
+        return subprocess.run([sys.executable, str(VERIFIER), "v0.4.0", str(self.root), str(self.app)], cwd=self.root,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode
 
     def test_valid_metadata(self):
