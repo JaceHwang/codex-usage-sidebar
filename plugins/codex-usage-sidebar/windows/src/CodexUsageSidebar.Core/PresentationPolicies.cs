@@ -218,6 +218,24 @@ public static class IndicatorHitTestPolicy
     public static byte BackgroundAlpha(bool highlighted) => highlighted ? (byte)18 : (byte)1;
 }
 
+public enum IndicatorClickAction
+{
+    None,
+    ToggleDetails,
+    SwitchToAutomaticPlacement,
+}
+
+public static class IndicatorClickPolicy
+{
+    public static IndicatorClickAction Resolve(int clickCount, bool dragged)
+    {
+        if (dragged || clickCount <= 0) return IndicatorClickAction.None;
+        return clickCount == 2
+            ? IndicatorClickAction.SwitchToAutomaticPlacement
+            : IndicatorClickAction.ToggleDetails;
+    }
+}
+
 public static class QuotaDetailLockCopy
 {
     public static string Label(DisplayLanguage language, bool isLockedOpen) => (language, isLockedOpen) switch

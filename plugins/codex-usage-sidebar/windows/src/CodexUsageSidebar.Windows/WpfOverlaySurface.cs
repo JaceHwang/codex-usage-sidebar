@@ -146,6 +146,14 @@ public sealed partial class WpfOverlaySurface : IOverlaySurface, IIndicatorSizeP
                 eventArgs.Handled = true;
                 return;
             }
+            var clickAction = IndicatorClickPolicy.Resolve(eventArgs.ClickCount, dragged);
+            if (clickAction == IndicatorClickAction.SwitchToAutomaticPlacement)
+            {
+                await SetPlacementModeAsync(IndicatorPlacementMode.Automatic);
+                eventArgs.Handled = true;
+                return;
+            }
+            if (clickAction != IndicatorClickAction.ToggleDetails) return;
             interaction = interaction.TogglePinned(IsPointerInsideOverlay());
             RefreshInteraction();
         };
