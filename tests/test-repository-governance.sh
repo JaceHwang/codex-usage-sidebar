@@ -44,6 +44,8 @@ PY
 
 grep -q '^RELEASE_MODE=staged$' .governance/policy.sh
 grep -q "^RELEASE_PLATFORMS='macos-arm64 windows-x64'$" .governance/policy.sh
+grep -q "MINGW\*|MSYS\*|CYGWIN\*" .governance/project/check-full
+grep -q "dotnet test plugins/codex-usage-sidebar/windows/CodexUsageSidebar.Windows.sln" .governance/project/check-full
 grep -q '^FAST_CHECK_ADAPTER=.governance/project/check-fast$' .governance/policy.sh
 grep -q '^FULL_CHECK_ADAPTER=.governance/project/check-full$' .governance/policy.sh
 
