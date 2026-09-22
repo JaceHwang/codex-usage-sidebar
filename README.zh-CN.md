@@ -297,7 +297,7 @@ cd ../..
 - [支持](SUPPORT.md)
 - [更新记录](CHANGELOG.md)
 - [v0.4.0 发布说明](docs/releases/macos-v0.4.0.md)
-- [v0.3.3 发布说明](docs/releases/v0.3.3.md)
+- [Windows v0.4.1 发布说明](docs/releases/windows-v0.4.1.md)
 
 ## 许可证
 

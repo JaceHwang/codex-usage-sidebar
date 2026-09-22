@@ -336,7 +336,7 @@ CI. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 - [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
 - [v0.4.0 release notes](docs/releases/macos-v0.4.0.md)
-- [v0.3.3 release notes](docs/releases/v0.3.3.md)
+- [Windows v0.4.1 release notes](docs/releases/windows-v0.4.1.md)
 
 ## License
 
