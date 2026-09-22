@@ -2,12 +2,13 @@
 set -euo pipefail
 
 plugin_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+python="${PYTHON:-python3}"
 hooks="$plugin_root/hooks/hooks.json"
 control="$plugin_root/scripts/sidebar-control-windows.ps1"
 plugin_json="$plugin_root/.codex-plugin/plugin.json"
 version_manifest="$plugin_root/../../.release-please-manifest.json"
 
-python3 - "$hooks" <<'PY'
+"$python" - "$hooks" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -22,7 +23,7 @@ assert "${PLUGIN_DATA}" in command
 PY
 
 [[ -f "$control" ]]
-python3 - "$plugin_json" "$version_manifest" <<'PY'
+"$python" - "$plugin_json" "$version_manifest" <<'PY'
 import json
 import sys
 from pathlib import Path

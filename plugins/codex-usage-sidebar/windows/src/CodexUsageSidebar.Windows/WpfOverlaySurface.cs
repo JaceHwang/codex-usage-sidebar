@@ -163,12 +163,27 @@ public sealed partial class WpfOverlaySurface : IOverlaySurface, IIndicatorSizeP
             indicator.Dispatcher);
     }
 
-    public ValueTask ShowAsync(
+    public bool HasForegroundWindow
+    {
+        get
+        {
+            var foreground = GetForegroundWindow();
+            if (foreground == IntPtr.Zero) return false;
+            _ = GetWindowThreadProcessId(foreground, out var processId);
+            return processId == Environment.ProcessId;
+        }
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    public async ValueTask ShowAsync(
         OverlayPresentation presentation,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return OnUiAsync(() =>
+        Task persistence = Task.CompletedTask;
+        await OnUiAsync(() =>
         {
             // Incoming quota/titlebar observations cannot move the control
             // underneath an active captured screen-coordinate drag.
@@ -194,6 +209,13 @@ public sealed partial class WpfOverlaySurface : IOverlaySurface, IIndicatorSizeP
                     SafeDockSize = resolved.Size,
                     SafeDockRequest = request,
                 };
+            }
+            if (presentation.SwitchToFree && placementPreferences.Mode == IndicatorPlacementMode.Automatic)
+            {
+                var fallbackScreen = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point(
+                    (int)Math.Round(frame.X + frame.Width / 2), (int)Math.Round(frame.Y + frame.Height / 2)));
+                if (placementPreferences.SwitchToFreeFallback(fallbackScreen.DeviceName, frame, ScreenWorkArea(fallbackScreen)))
+                    persistence = SavePlacementAsync();
             }
             if (this.placementPreferences.Mode != IndicatorPlacementMode.Automatic)
             {
@@ -242,6 +264,7 @@ public sealed partial class WpfOverlaySurface : IOverlaySurface, IIndicatorSizeP
             hoverTimer.Start();
             RefreshInteraction();
         });
+        await persistence;
     }
 
     public ValueTask HideAsync(CancellationToken cancellationToken)

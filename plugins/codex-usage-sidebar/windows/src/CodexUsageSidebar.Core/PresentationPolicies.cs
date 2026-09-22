@@ -246,7 +246,7 @@ public readonly record struct DetailInteractionState(
     public DetailInteractionState PointerPressed(bool insideOverlay, bool insideMenu) =>
         insideOverlay || insideMenu
             ? this
-            : this with { IsPinned = false, IsPointerInside = false, SuppressHoverUntilExit = true };
+            : this with { IsPinned = false, IsPointerInside = false, SuppressHoverUntilExit = false };
 
     public DetailInteractionState TogglePinned(bool pointerInside) => IsPinned
         ? this with { IsPinned = false, IsPointerInside = pointerInside, SuppressHoverUntilExit = pointerInside }

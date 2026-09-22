@@ -4,7 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
-python3 - <<'PY'
+"${PYTHON:-python3}" - <<'PY'
 import json
 import plistlib
 import xml.etree.ElementTree as ET

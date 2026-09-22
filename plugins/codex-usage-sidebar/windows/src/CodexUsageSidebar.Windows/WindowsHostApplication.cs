@@ -78,7 +78,6 @@ internal sealed class WindowsOverlayRuntime : IDisposable
     private readonly WindowsCodexLanguageProvider languageProvider;
     private readonly RuntimeLanguageState languageState;
     private readonly WindowsTrayController tray;
-    private readonly ISafeDockPreferencesStore? safeDockPreferencesStore;
     private AllowanceSnapshot? latestSnapshot;
     private TokenUsageSnapshot? latestTokenUsage;
     private AccountIdentity? latestAccount;
@@ -97,7 +96,6 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         SafeDockPreferences? safeDockPreferences = null,
         ITitlebarScanner? titlebarScanner = null)
     {
-        this.safeDockPreferencesStore = safeDockPreferencesStore;
         var language = LanguageResolver.Resolve(CultureInfo.CurrentUICulture.Name);
         languageProvider = WindowsCodexLanguageProvider.CreateDefault();
         languageState = new RuntimeLanguageState(language);
@@ -127,7 +125,6 @@ internal sealed class WindowsOverlayRuntime : IDisposable
             Dispatcher.CurrentDispatcher);
         tray = new WindowsTrayController(
             () => lastOutcome,
-            locked => _ = UpdateFallbackLockAsync(locked),
             ExportDiagnosticsAsync,
             () => Application.Current?.Shutdown());
     }
@@ -188,15 +185,6 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         {
             Volatile.Write(ref reconcileInProgress, 0);
         }
-    }
-
-    private async Task UpdateFallbackLockAsync(bool locked)
-    {
-        var current = safeDockPreferencesStore is null
-            ? SafeDockPreferences.Default
-            : await safeDockPreferencesStore.LoadAsync(cancellation.Token).ConfigureAwait(false);
-        var preferences = current with { FallbackLocked = locked };
-        await coordinator.UpdateSafeDockPreferencesAsync(preferences, cancellation.Token).ConfigureAwait(false);
     }
 
     private async Task ReloadAsync()
