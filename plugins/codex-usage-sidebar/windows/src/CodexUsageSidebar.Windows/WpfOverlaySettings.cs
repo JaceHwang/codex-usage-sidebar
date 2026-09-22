@@ -16,6 +16,7 @@ public sealed partial class WpfOverlaySurface
     private ContextMenu? settingsMenu;
     private OutsideClickMonitor? outsideClickMonitor;
     public event Action? ReloadRequested;
+    public event Action? TitlebarRefreshRequested;
     public event Action? QuitRequested;
 
     private void DismissDetail()

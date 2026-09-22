@@ -10,6 +10,26 @@ namespace CodexUsageSidebar.Windows.Tests;
 public sealed class SettingsInteractionTests
 {
     [STATestMethod]
+    public async Task SwitchingToAutomaticPlacementRequestsATitlebarRescan()
+    {
+        Application.ResourceAssembly ??= typeof(WpfOverlaySurface).Assembly;
+        var preferences = new IndicatorPlacementPreferences { Mode = IndicatorPlacementMode.Free };
+        var surface = new WpfOverlaySurface(DisplayLanguage.English, TimeZoneInfo.Utc, preferences);
+        var refreshEvent = typeof(WpfOverlaySurface).GetEvent("TitlebarRefreshRequested");
+
+        Assert.IsNotNull(refreshEvent);
+        var refreshes = 0;
+        refreshEvent.AddEventHandler(surface, (Action)(() => refreshes++));
+        var method = typeof(WpfOverlaySurface).GetMethod("SetPlacementModeAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        await (Task)method.Invoke(surface, [IndicatorPlacementMode.Automatic])!;
+
+        Assert.AreEqual(IndicatorPlacementMode.Automatic, preferences.Mode);
+        Assert.AreEqual(1, refreshes);
+    }
+
+    [STATestMethod]
     public void DarkSettingsMenuOverridesSystemMenuAndSelectionColors()
     {
         Application.ResourceAssembly ??= typeof(WpfOverlaySurface).Assembly;

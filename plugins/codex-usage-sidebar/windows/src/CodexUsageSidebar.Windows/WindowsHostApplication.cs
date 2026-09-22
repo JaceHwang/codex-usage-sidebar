@@ -105,6 +105,7 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         var placementPreferences = placementStore.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
         var surface = new WpfOverlaySurface(language, TimeZoneInfo.Local, placementPreferences, placementStore);
         surface.ReloadRequested += () => _ = ReloadAsync();
+        surface.TitlebarRefreshRequested += () => _ = RefreshTitlebarAsync();
         surface.QuitRequested += () => Application.Current?.Shutdown();
         overlay = surface;
         this.titlebarScanner = titlebarScanner ?? new ValidatedUiaTitlebarScanner();
@@ -194,6 +195,12 @@ internal sealed class WindowsOverlayRuntime : IDisposable
         // Restart only the data session, not the application or its singleton.
         // The initial handshake rereads quota, account, and weekly usage together.
         lock (sessionGate) currentSessionCancellation?.Cancel();
+        await ReconcileAsync();
+    }
+
+    private async Task RefreshTitlebarAsync()
+    {
+        titlebarScanner.Invalidate();
         await ReconcileAsync();
     }
 
