@@ -30,7 +30,7 @@
         "checksums": "WINDOWS-V041-SHA256SUMS.txt",
         "provenance": "WINDOWS-V041-PROVENANCE.json"
       },
-      "releaseNotes": "docs/releases/v0.3.3.md"
+      "releaseNotes": "docs/releases/windows-v0.4.1.md"
     }
   },
   "planned": {}
