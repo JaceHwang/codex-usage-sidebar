@@ -745,14 +745,12 @@ public sealed class HostCoordinatorTests
     }
 
     [TestMethod]
-    public void ValidatedTitlebarCacheHasA100MillisecondFreshWindowAnd750MillisecondRetentionWindow()
+    public void ValidatedTitlebarCacheKeepsAStableHostSnapshotFreshForThirtySeconds()
     {
         long timestamp = 10_000;
         var cache = new ValidatedTitlebarCache(
             () => timestamp,
-            timestampFrequency: 1_000,
-            TimeSpan.FromMilliseconds(100),
-            TimeSpan.FromMilliseconds(750));
+            timestampFrequency: 1_000);
         var host = new HostWindowSnapshot(
             new IntPtr(9), new RectD(-2000, 0, 1600, 1200), true, 1.5, "build-a");
         var snapshot = new TitlebarSnapshot(-500, []);
@@ -763,11 +761,14 @@ public sealed class HostCoordinatorTests
         Assert.IsNull(cache.TryGet(host with { DpiScale = 2 }));
         Assert.IsNull(cache.TryGet(host with { BuildIdentity = "build-b" }));
 
-        timestamp += 100;
+        timestamp += 29_999;
+        Assert.AreSame(snapshot, cache.TryGet(host));
+
+        timestamp += 1;
         Assert.IsNull(cache.TryGet(host));
         Assert.AreSame(snapshot, cache.TryGetRetained(host));
 
-        timestamp += 650;
+        timestamp += 270_000;
         Assert.IsNull(cache.TryGetRetained(host));
 
         cache.Invalidate();

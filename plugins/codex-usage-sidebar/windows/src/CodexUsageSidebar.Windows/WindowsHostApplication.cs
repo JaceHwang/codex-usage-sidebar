@@ -119,7 +119,7 @@ internal sealed class WindowsOverlayRuntime : IDisposable
             paths.CodexExecutable,
             paths.IsolatedCodexHome);
         reconcileTimer = new DispatcherTimer(
-            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromSeconds(2),
             DispatcherPriority.Background,
             async (_, _) => await ReconcileAsync(),
             Dispatcher.CurrentDispatcher);

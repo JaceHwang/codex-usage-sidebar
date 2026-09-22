@@ -286,7 +286,9 @@ public sealed partial class WpfOverlaySurface : IOverlaySurface, IIndicatorSizeP
     private void PollPointer()
     {
         var inside = IsPointerInsideOverlay();
-        interaction = interaction.PointerChanged(inside);
+        var updated = interaction.PointerChanged(inside);
+        if (updated == interaction) return;
+        interaction = updated;
         RefreshInteraction();
     }
 
