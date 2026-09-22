@@ -18,11 +18,11 @@ assert manifest == {".": expected}, manifest
 assert expected.count(".") == 2 and all(part.isdecimal() for part in expected.split(".")), expected
 
 plugin = json.loads((root / "plugins/codex-usage-sidebar/.codex-plugin/plugin.json").read_text())
-assert plugin["version"].split("+", 1)[0] == expected, plugin["version"]
+plugin_version = plugin["version"].split("+", 1)[0]
 
 with (root / "plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app/Contents/Info.plist").open("rb") as handle:
     plist = plistlib.load(handle)
-assert plist["CFBundleShortVersionString"] == expected
+assert plist["CFBundleShortVersionString"] == plugin_version
 
 xml = ET.parse(root / "plugins/codex-usage-sidebar/windows/Directory.Build.props")
 assert xml.findtext(".//VersionPrefix") == expected
@@ -31,10 +31,10 @@ config = json.loads((root / "release-please-config.json").read_text())
 package = config["packages"]["."]
 assert package["component"] == "codex-usage-sidebar"
 extra = {(item["path"], item["type"]) for item in package["extra-files"]}
-assert ("plugins/codex-usage-sidebar/.codex-plugin/plugin.json", "json") in extra
 assert ("version.txt", "generic") in extra
-assert ("plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app/Contents/Info.plist", "xml") in extra
 assert ("plugins/codex-usage-sidebar/windows/Directory.Build.props", "xml") in extra
+assert ("plugins/codex-usage-sidebar/.codex-plugin/plugin.json", "json") not in extra
+assert ("plugins/codex-usage-sidebar/assets/Codex Usage Sidebar.app/Contents/Info.plist", "xml") not in extra
 
 for channel in ("alpha", "beta", "rc"):
     prerelease = json.loads((root / ".governance/release" / f"{channel}.json").read_text())
