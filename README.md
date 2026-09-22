@@ -31,12 +31,6 @@
 
 **macOS 0.4.0 and Windows 0.4.1 are available.** Each platform is distributed from its verified release assets.
 
-> [!NOTE]
-> Development source after these releases uses an opaque pure-white light detail surface and removes
-> the former 720-point product height cap on macOS and Windows. Windows source also adds the
-> indicator right-click placement selector. These source changes are not yet a new published build;
-> Windows behavior still requires its own CI and device acceptance.
-
 See the [current feature inventory](docs/CURRENT_FEATURES.md) and [current design](docs/CURRENT_DESIGN.md).
 
 ## Live macOS capture
@@ -322,21 +316,14 @@ CI. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
 ## Documentation
 
-- [Current features](docs/CURRENT_FEATURES.md)
-- [Current design](docs/CURRENT_DESIGN.md)
-- [Historical designs](docs/superpowers/README.md)
-
+- [Documentation index](docs/README.md)
+- [Current features](docs/CURRENT_FEATURES.md) and [current design](docs/CURRENT_DESIGN.md)
 - [Human installation and operations](docs/INSTALL.md)
 - [Agent installation playbook](docs/INSTALL_FOR_AGENTS.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Windows beta development](docs/WINDOWS-BETA.md)
-- [Windows real-device diagnostic handoff](docs/WINDOWS-DEVICE-HANDOFF.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
-- [Privacy](docs/PRIVACY.md)
+- [Architecture](docs/ARCHITECTURE.md), [troubleshooting](docs/TROUBLESHOOTING.md), and [privacy](docs/PRIVACY.md)
 - [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
-- [v0.4.0 release notes](docs/releases/macos-v0.4.0.md)
-- [Windows v0.4.1 release notes](docs/releases/windows-v0.4.1.md)
+- [macOS v0.4.0 release notes](docs/releases/macos-v0.4.0.md) and [Windows v0.4.1 release notes](docs/releases/windows-v0.4.1.md)
 
 ## License
 
