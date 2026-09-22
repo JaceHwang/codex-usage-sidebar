@@ -19,12 +19,7 @@
 | macOS 14+ Apple Silicon | [`v0.4.0` 发布版](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.4.0) | 已发布 arm64 DMG，含位置模式、详情锁定、设置菜单和防碰撞改进 |
 | Windows 11 AMD64（`x64`） | [`v0.4.1` 发布版](https://github.com/JaceHwang/codex-usage-sidebar/releases/tag/v0.4.1) | 未签名 `x64` 安装包，带签名兼容更新；Windows ARM64 不在支持范围 |
 
-**macOS 0.4.0 已发布。** 下方功能说明对应本次发布。Windows 保持单独验收的 0.3.3 发布版，新的 Windows 源码不代表已完成实机验收。
-
-> [!NOTE]
-> 上述发布后的开发源码已将 macOS 和 Windows 浅色详情面板改为不透明纯白色，
-> 并取消原有 720 点的产品高度上限；Windows 源码同时补齐了指示器右键位置模式选择。
-> 这些源码变更尚不是新的已发布构建；Windows 仍需独立 CI 与实机验收。
+**macOS 0.4.0 与 Windows 0.4.1 均已发布。** 两个平台分别通过对应 Release 中经过校验的资产分发。
 
 完整范围见[当前功能清单](docs/CURRENT_FEATURES.md)和[当前设计说明](docs/CURRENT_DESIGN.md)。
 
@@ -283,21 +278,14 @@ cd ../..
 
 ## 文档索引
 
-- [当前功能清单](docs/CURRENT_FEATURES.md)
-- [当前设计说明](docs/CURRENT_DESIGN.md)
-- [历史设计索引](docs/superpowers/README.md)
-
+- [完整文档索引](docs/README.md)
+- [当前功能清单](docs/CURRENT_FEATURES.md)与[当前设计说明](docs/CURRENT_DESIGN.md)
 - [安装与运维](docs/INSTALL.md)
 - [Agent 安装流程](docs/INSTALL_FOR_AGENTS.md)
-- [架构](docs/ARCHITECTURE.md)
-- [Windows Beta 开发说明](docs/WINDOWS-BETA.md)
-- [Windows 实机诊断交接手册](docs/WINDOWS-DEVICE-HANDOFF.zh-CN.md)
-- [故障排查](docs/TROUBLESHOOTING.md)
-- [隐私](docs/PRIVACY.md)
+- [架构](docs/ARCHITECTURE.md)、[故障排查](docs/TROUBLESHOOTING.md)与[隐私](docs/PRIVACY.md)
 - [支持](SUPPORT.md)
 - [更新记录](CHANGELOG.md)
-- [v0.4.0 发布说明](docs/releases/macos-v0.4.0.md)
-- [Windows v0.4.1 发布说明](docs/releases/windows-v0.4.1.md)
+- [macOS v0.4.0 发布说明](docs/releases/macos-v0.4.0.md)与 [Windows v0.4.1 发布说明](docs/releases/windows-v0.4.1.md)
 
 ## 许可证
 
